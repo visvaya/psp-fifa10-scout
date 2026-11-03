@@ -1,15 +1,22 @@
 // The effects at the edge of the reducer: the parsing worker, the local store and the files the
-// user picked. The stored fifa.db is loaded on start, so the game file is picked once.
+// user picked. The stored fifa.db and career save load on start, so each is picked once.
 import { useEffect, useState } from "react";
 import type { Dispatch } from "react";
 import type { GameLanguages } from "../logic/game-names.ts";
 import { pickLocaleFiles, pickSaveFiles } from "../logic/load-scout.ts";
-import type { LoadRequest, WorkerMessage, WorkerRequest } from "../logic/load-scout.ts";
+import type { LoadRequest, SaveFiles, WorkerMessage, WorkerRequest } from "../logic/load-scout.ts";
 import { actionOf } from "../logic/scout-state.ts";
 import type { Preferences, ScoutAction } from "../logic/scout-state.ts";
 import { createScoutStore } from "../logic/scout-store.ts";
 import type { ScoutStore, StoredScout } from "../logic/scout-store.ts";
 import { detectBackend } from "./browser-store.ts";
+import { createGameMemory, createSaveMemory } from "./load-memory.ts";
+import type { LoadStarted } from "./load-memory.ts";
+
+const blobs = ({ dataBin, paramSfo }: SaveFiles<Uint8Array>): SaveFiles<Blob> => ({
+  dataBin: new Blob([dataBin.slice()]),
+  paramSfo: new Blob([paramSfo.slice()]),
+});
 
 const openStore = async () => {
   const store = createScoutStore(await detectBackend());
@@ -23,55 +30,45 @@ const restore = (dispatch: Dispatch<ScoutAction>, stored: StoredScout) => {
   }
 };
 
-/** How a load started: a picked file's name, or the stored game with its name. */
-type LoadStarted = Pick<
-  Extract<ScoutAction, { readonly type: "load-started" }>,
-  "restored" | "gameName"
->;
-
 const createSession = (dispatch: Dispatch<ScoutAction>) => {
-  let worker: Worker | null = null;
   /** The store once open; saves wait for it, so a game picked before it opens is still kept. */
-  let store: Promise<ScoutStore> | null = null;
+  let [worker, store]: [Worker | null, Promise<ScoutStore> | null] = [null, null];
   let lastRequestId = 0;
-  /** The fifa.db of the last good load. */
-  let game: Blob | null = null;
   /** The save for every load; an attached language file for the next load only. */
   let pending: Pick<LoadRequest, "save" | "locale"> = {};
-  /** The file name of each request whose game came from a picked file, so its fifa.db goes to the store. */
-  const fromFile = new Map<number, string>();
+  const withStore = (run: (opened: ScoutStore) => Promise<void>) => void store?.then(run);
+  const [gameMemory, saveMemory] = [createGameMemory(withStore), createSaveMemory(withStore)];
 
   /** Loads the game; a picked file carries its name, the stored one is restored, a reload has neither. */
   const start = (source: Blob, started: LoadStarted = {}) => {
     lastRequestId += 1;
-    if (started.restored === undefined && typeof started.gameName === "string")
-      fromFile.set(lastRequestId, started.gameName);
+    gameMemory.started(lastRequestId, { source, started });
+    saveMemory.started(lastRequestId);
     const request: WorkerRequest = { requestId: lastRequestId, game: source, ...pending };
     pending = pending.save === undefined ? {} : { save: pending.save };
     dispatch({ type: "load-started", requestId: lastRequestId, ...started });
     worker?.postMessage(request, []);
   };
 
+  /** Loads the game again, so picked or forgotten files apply. */
+  const reload = () => {
+    const again = gameMemory.reload();
+    if (again !== null) start(again.source, again.started);
+  };
+
   /** Keeps picked save or language files for the next load, and reloads the game with them. */
   const pickFiles = <K extends "save" | "locale">(stage: K, picked: LoadRequest[K] | null) => {
-    if (picked === null) {
-      dispatch({ type: "files-incomplete", stage });
-      return;
-    }
+    if (picked === null) return dispatch({ type: "files-incomplete", stage });
     pending = { ...pending, [stage]: picked };
-    if (game !== null) start(game);
+    if (stage === "save") saveMemory.picked(pending.save);
+    reload();
   };
 
   const onMessage = ({ data: message }: MessageEvent<WorkerMessage>) => {
     // A bad save must not block the next game load.
     if (message.type === "failed" && message.error.stage === "save") pending = {};
-    if (message.type === "done") {
-      game = new Blob([message.result.gameDb.slice()]);
-      const name = fromFile.get(message.requestId);
-      fromFile.delete(message.requestId);
-      if (name !== undefined)
-        void store?.then(async (opened) => opened.saveGameDb(message.result.gameDb, name));
-    }
+    gameMemory.finished(message);
+    saveMemory.finished(message);
     dispatch(actionOf(message));
   };
 
@@ -85,6 +82,7 @@ const createSession = (dispatch: Dispatch<ScoutAction>) => {
       const { stored } = await opening;
       if (isCancelled()) return null;
       restore(dispatch, stored);
+      if (stored.careerSave !== null) pending = { save: blobs(stored.careerSave) };
       // A game picked while the store opened wins over the stored one.
       if (stored.gameDb !== null && lastRequestId === 0)
         start(new Blob([stored.gameDb.slice()]), { restored: true, gameName: stored.gameName });
@@ -94,12 +92,16 @@ const createSession = (dispatch: Dispatch<ScoutAction>) => {
     pickGame: (file: File) => start(file, { gameName: file.name }),
     pickSave: (files: readonly File[]) => pickFiles("save", pickSaveFiles(files)),
     pickLocale: (files: readonly File[]) => pickFiles("locale", pickLocaleFiles(files)),
-    savePreferences: (preferences: Preferences) => {
-      void store?.then(async (opened) => opened.savePreferences(preferences));
+    /** Drops the career save from the session and the store, and reloads the game without it. */
+    forgetSave: () => {
+      pending = {};
+      saveMemory.forget();
+      reload();
     },
-    saveLanguages: (languages: GameLanguages) => {
-      void store?.then(async (opened) => opened.saveLanguages(languages));
-    },
+    savePreferences: (preferences: Preferences) =>
+      withStore(async (opened) => opened.savePreferences(preferences)),
+    saveLanguages: (languages: GameLanguages) =>
+      withStore(async (opened) => opened.saveLanguages(languages)),
   };
 };
 
@@ -126,6 +128,7 @@ export const useScoutFiles = (dispatch: Dispatch<ScoutAction>) => {
     pickGame: session.pickGame,
     pickSave: session.pickSave,
     pickLocale: session.pickLocale,
+    forgetSave: session.forgetSave,
     savePreferences: session.savePreferences,
     saveLanguages: session.saveLanguages,
   };

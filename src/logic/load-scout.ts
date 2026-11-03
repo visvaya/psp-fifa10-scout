@@ -15,7 +15,7 @@ import type { Player } from "./players.ts";
 
 export type LoadPhase = "game" | "save" | "players";
 export type LoadStage = "game" | "save" | "locale";
-export type LoadErrorKind = "wrong-game" | "wrong-file" | "damaged" | "unexpected";
+export type LoadErrorKind = "wrong-game" | "wrong-file" | "not-career" | "damaged" | "unexpected";
 
 export interface LoadError {
   readonly stage: LoadStage;
@@ -41,10 +41,20 @@ export interface LoadRequest {
   readonly locale?: LocaleFiles<Blob>;
 }
 
+/** What a career save holds, so the user can tell which save was loaded. */
+export interface CareerSummary {
+  readonly managerName: string;
+  /** The user's club as fifa.db names it, null when the save links it to no club. */
+  readonly clubName: string | null;
+  readonly lastGameDate: Date;
+}
+
 export interface LoadResult {
   readonly players: readonly Player[];
   /** The user's club in the career, null without a save. */
   readonly myTeamId: number | null;
+  /** The loaded career, null without a save. */
+  readonly career: CareerSummary | null;
   /** The extracted fifa.db, for the local store. */
   readonly gameDb: Uint8Array;
   /** Names of each language in the disc image or the attached file; empty for a bare fifa.db. */
@@ -63,6 +73,8 @@ export type WorkerMessage =
 const KIND_PATTERNS: readonly (readonly [LoadErrorKind, RegExp])[] = [
   ["wrong-game", /not FIFA 10|wrong game/u],
   ["wrong-file", /^Not an? |too short|too large|does not describe|lists no/u],
+  // The profile and squads saves decrypt and parse like a career save, but have no user team.
+  ["not-career", /no user team/u],
 ];
 
 /** What went wrong in user terms: only SaveFormatError comes from the file itself. */
@@ -141,15 +153,25 @@ export const loadScout = async (
   };
   if (save === undefined) {
     onPhase("players");
-    return { players: buildPlayers(db), myTeamId: null, gameDb, ...names };
+    return { players: buildPlayers(db), myTeamId: null, career: null, gameDb, ...names };
   }
   onPhase("save");
   const career = await atStage("save", async () =>
     parseCareerSave(db, readSaveData(await bytesOf(save.dataBin), await bytesOf(save.paramSfo))),
   );
-  const myTeamId = await atStage("save", () => careerManager(db, career).teamId);
+  const { teamId, managerName, lastGameDate } = await atStage("save", () =>
+    careerManager(db, career),
+  );
   onPhase("players");
-  return { players: buildPlayers(db, career), myTeamId, gameDb, ...names };
+  const players = buildPlayers(db, career);
+  const clubName = players.find((player) => player.clubId === teamId)?.clubName ?? null;
+  return {
+    players,
+    myTeamId: teamId,
+    career: { managerName, clubName, lastGameDate },
+    gameDb,
+    ...names,
+  };
 };
 
 /** DATA.BIN and PARAM.SFO among the picked files (iOS has no folder picker), or null. */

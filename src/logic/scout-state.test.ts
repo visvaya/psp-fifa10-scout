@@ -16,15 +16,18 @@ import { testPlayer } from "./test-support/player-fixtures.ts";
 const PLAYERS = [testPlayer({ id: 1 }), testPlayer({ id: 2, clubId: 7 })];
 const loading = scoutReducer(initialScoutState, { type: "load-started", requestId: 1 });
 
+const SUCCEEDED = {
+  type: "load-succeeded",
+  requestId: 1,
+  players: PLAYERS,
+  myTeamId: null,
+  career: null,
+  languages: {},
+  attachedLanguage: null,
+} as const;
+
 const loaded = (myTeamId: number | null = null, from: ScoutState = loading): ScoutState =>
-  scoutReducer(from, {
-    type: "load-succeeded",
-    requestId: 1,
-    players: PLAYERS,
-    myTeamId,
-    languages: {},
-    attachedLanguage: null,
-  });
+  scoutReducer(from, { ...SUCCEEDED, myTeamId });
 
 const NAMES = { teams: { 1: "Klub" }, leagues: {}, countries: {} };
 
@@ -48,20 +51,15 @@ describe("scoutReducer loading", () => {
       loading: null,
       view: "start",
     });
+    const career = { managerName: "A", clubName: "B", lastGameDate: new Date(0) };
+    expect(scoutReducer(loading, { ...SUCCEEDED, myTeamId: 5, career }).career).toBe(career);
   });
 
   it("ignores phases and results of a superseded load", () => {
     const newer = scoutReducer(loading, { type: "load-started", requestId: 2 });
     for (const action of [
       { type: "load-phase", requestId: 1, phase: "players" },
-      {
-        type: "load-succeeded",
-        requestId: 1,
-        players: PLAYERS,
-        myTeamId: null,
-        languages: {},
-        attachedLanguage: null,
-      },
+      SUCCEEDED,
       { type: "load-failed", requestId: 1, error: { stage: "game", kind: "damaged" } },
     ] as const) {
       expect(scoutReducer(newer, action)).toBe(newer);
@@ -96,21 +94,12 @@ describe("scoutReducer loading", () => {
       type: "languages-restored",
       languages: { eng_us: NAMES },
     });
-    const added = scoutReducer(restored, {
-      type: "load-succeeded",
-      requestId: 1,
-      players: PLAYERS,
-      myTeamId: null,
-      languages: { pol_pl: NAMES },
-      attachedLanguage: null,
-    });
+    const added = scoutReducer(restored, { ...SUCCEEDED, languages: { pol_pl: NAMES } });
     expect(Object.keys(added.languages)).toEqual(["eng_us", "pol_pl"]);
     expect(added).not.toHaveProperty("gameLanguage");
     const attached = scoutReducer(scoutReducer(added, { type: "load-started", requestId: 2 }), {
-      type: "load-succeeded",
+      ...SUCCEEDED,
       requestId: 2,
-      players: PLAYERS,
-      myTeamId: null,
       languages: { cze_cz: NAMES },
       attachedLanguage: "cze_cz",
     });
@@ -304,6 +293,7 @@ describe("actionOf", () => {
     const result = {
       players: PLAYERS,
       myTeamId: 7,
+      career: null,
       gameDb: Uint8Array.of(1),
       languages,
       attachedLanguage: "pol_pl",
@@ -313,6 +303,7 @@ describe("actionOf", () => {
       requestId: 3,
       players: PLAYERS,
       myTeamId: 7,
+      career: null,
       languages,
       attachedLanguage: "pol_pl",
     });

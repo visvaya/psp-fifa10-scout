@@ -27,11 +27,13 @@ export interface BuildSizes {
 // Raised 2026-11-03 for locking the page behind a dialog on iOS, as Chrome's guidance on scrolling under
 // a modal dialog describes (root locked, dialog overscroll contained): CSS gzip 2 556 -> 2 569 (budget
 // 2 560 -> 2 600), precache 375 761 -> 375 857.
+// Raised 2026-11-03 for remembering the career save and showing what it holds: JS 107 923 -> 108 729,
+// precache 376 235 -> 378 573; the stored save, its summary, the forget button and the folder help.
 export const SIZE_BUDGETS: BuildSizes = {
-  jsGzipBytes: 106 * 1024,
+  jsGzipBytes: 107 * 1024,
   cssGzipBytes: 2600,
   serviceWorkerBytes: 11 * 1024,
-  precacheBytes: 368 * 1024,
+  precacheBytes: 370 * 1024,
 };
 
 const SIZE_KEYS = [

@@ -1,4 +1,4 @@
-// The one load/save adapter: the extracted fifa.db and the filter and sort preferences, each stored
+// The one load/save adapter: the extracted fifa.db, the career save and the filter and sort preferences, each stored
 // as { schemaVersion, value } in a key-value backend (IndexedDB in the browser, memory otherwise).
 // Nothing leaves the device. Preferences 2 migrate to 3 and a fifa.db 1 (bare bytes) to 2 (bytes and the
 // game file's name); any other version or shape is ignored, and
@@ -6,6 +6,7 @@
 import type { GameLanguages, GameNames } from "./game-names.ts";
 import { FLAG_KEYS, LIST_FIELDS, RANGE_KEYS } from "./filter-players.ts";
 import type { ListKey, PositionRating, Range } from "./filter-players.ts";
+import type { SaveFiles } from "./load-scout.ts";
 import { OVR_WEIGHTS } from "./overall-rating.ts";
 import { ATTRIBUTE_NAMES } from "./players.ts";
 import { POSITION_GROUPS } from "./positions.ts";
@@ -17,7 +18,7 @@ import type { SortKey } from "./sort-players.ts";
  * Per record, so a change to the preferences keeps the stored fifa.db. Preferences 2: clubStatus;
  * 3: ranges, lists and flags, showPotential. Game database 2: the game file's name.
  */
-export const SCHEMA_VERSION = { gameDb: 2, preferences: 3, languages: 1 } as const;
+export const SCHEMA_VERSION = { gameDb: 2, preferences: 3, languages: 1, careerSave: 1 } as const;
 
 export interface StorageBackend {
   readonly get: (key: string) => Promise<unknown>;
@@ -30,6 +31,8 @@ export interface StoredScout {
   readonly gameName: string | null;
   readonly preferences: Preferences | null;
   readonly languages: GameLanguages;
+  /** The last career save loaded, as picked, so the career comes back after the app restarts. */
+  readonly careerSave: SaveFiles<Uint8Array> | null;
 }
 
 /** The sort keys the screens offer; anything else in storage is dropped. */
@@ -216,6 +219,13 @@ const gameDbOf = (record: unknown): Pick<StoredScout, "gameDb" | "gameName"> => 
   };
 };
 
+const careerSaveOf = (record: unknown): SaveFiles<Uint8Array> | null => {
+  const { dataBin, paramSfo } = recordOf(versioned(record, SCHEMA_VERSION.careerSave));
+  return dataBin instanceof Uint8Array && paramSfo instanceof Uint8Array
+    ? { dataBin, paramSfo }
+    : null;
+};
+
 export const createScoutStore = (backend: StorageBackend) => ({
   load: async (): Promise<StoredScout> => {
     return {
@@ -224,12 +234,16 @@ export const createScoutStore = (backend: StorageBackend) => ({
       languages: parseLanguages(
         versioned(await backend.get("languages"), SCHEMA_VERSION.languages),
       ),
+      careerSave: careerSaveOf(await backend.get("careerSave")),
     };
   },
   saveGameDb: async (gameDb: Uint8Array, name: string): Promise<void> =>
     backend.set("gameDb", { schemaVersion: SCHEMA_VERSION.gameDb, value: { bytes: gameDb, name } }),
   savePreferences: async (preferences: Preferences): Promise<void> =>
     backend.set("preferences", { schemaVersion: SCHEMA_VERSION.preferences, value: preferences }),
+  /** null forgets the stored save. */
+  saveCareerSave: async (save: SaveFiles<Uint8Array> | null): Promise<void> =>
+    backend.set("careerSave", { schemaVersion: SCHEMA_VERSION.careerSave, value: save }),
   saveLanguages: async (languages: GameLanguages): Promise<void> =>
     backend.set("languages", { schemaVersion: SCHEMA_VERSION.languages, value: languages }),
 });

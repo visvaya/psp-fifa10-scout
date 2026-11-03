@@ -96,6 +96,7 @@ export const App = (): JSX.Element => {
             language={language}
             onGame={files.pickGame}
             onSave={files.pickSave}
+            onForgetSave={files.forgetSave}
             onLocale={files.pickLocale}
             dispatch={dispatch}
           />

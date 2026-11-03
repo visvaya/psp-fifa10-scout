@@ -98,7 +98,13 @@ export const buildScoutDb = (): Uint8Array =>
       })),
     ]),
     table("team_manager", [
-      { team_id: SCOUT_USER_TEAM_ID, firstname: "Anna", surname: "Kariera", last_game_number: 0 },
+      {
+        team_id: SCOUT_USER_TEAM_ID,
+        firstname: "Anna",
+        surname: "Kariera",
+        // 2009-08-08, game 7 of that day: days since 1582-10-14 times 1024, plus the game.
+        last_game_number: 155_892 * 1024 + 7,
+      },
     ]),
     empty("playerstats"),
     empty("career_youth_accademy"),

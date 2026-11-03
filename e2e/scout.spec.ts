@@ -2,7 +2,11 @@ import { AxeBuilder } from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
 import path from "node:path";
-import { SYNTHETIC_DB_PATH, SYNTHETIC_LOCALE_PATHS } from "../scripts/write-synthetic-db.ts";
+import {
+  SYNTHETIC_DB_PATH,
+  SYNTHETIC_LOCALE_PATHS,
+  SYNTHETIC_SAVE_PATHS,
+} from "../scripts/write-synthetic-db.ts";
 
 /** Picks a game file once the input is enabled: setInputFiles also fills a disabled input, and a pick
  * made before the app opens its worker is lost (a user cannot pick there). */
@@ -197,6 +201,32 @@ test.describe("table and dialogs", () => {
     await expect(card).toBeVisible();
     await page.mouse.click(8, 400);
     await expect(card).toBeHidden();
+  });
+});
+
+test.describe("career save", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  test("shows the loaded career, keeps it after a reload and forgets it on request", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await pickGame(page, SYNTHETIC_DB_PATH);
+    await page.getByLabel("Wybierz DATA.BIN i PARAM.SFO").setInputFiles([...SYNTHETIC_SAVE_PATHS]);
+    const summary = page.getByText(
+      "Kariera: Anna Kariera, Wisła Kraków, ostatni mecz 8 sierpnia 2009",
+    );
+    await expect(summary).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole("table")).toBeVisible();
+    await page.getByRole("button", { name: "Pliki" }).click();
+    await expect(summary).toBeVisible();
+    await page.getByRole("button", { name: "Usuń zapis kariery" }).click();
+    await expect(summary).toBeHidden();
+    await page.reload();
+    await expect(page.getByRole("table")).toBeVisible();
+    await page.getByRole("button", { name: "Pliki" }).click();
+    await expect(page.getByText(/^Kariera: /u)).toHaveCount(0);
   });
 });
 
