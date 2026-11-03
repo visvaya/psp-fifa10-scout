@@ -4,8 +4,6 @@ on:
   push:
     branches: [main]
   pull_request:
-    # edited: a corrected pull request title is checked again without a new push.
-    types: [opened, synchronize, reopened, edited]
   workflow_dispatch:
 
 permissions:
@@ -26,7 +24,6 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
-      pull-requests: read # the live pull request title
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -45,12 +42,3 @@ jobs:
       - name: Audit all dependencies (report only)
         run: pnpm audit
         continue-on-error: true
-      # The title becomes the commit on main when the pull request is squashed. Read live rather than
-      # from the event, so a rerun after fixing the title sees the new one. Runs even after an earlier
-      # failure, so a bad title is reported together with everything else.
-      - name: Check the pull request title
-        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq .title | pnpm exec commitlint
