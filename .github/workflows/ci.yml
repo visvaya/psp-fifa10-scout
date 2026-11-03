@@ -133,6 +133,7 @@ jobs:
         id: head
         run: |
           head=$(git ls-remote "https://github.com/${GITHUB_REPOSITORY}.git" refs/heads/main | cut -f1)
+          if [ -z "$head" ]; then echo "::error::could not read the head of main"; exit 1; fi
           if [ "$head" = "$GITHUB_SHA" ]; then echo "current=true" >> "$GITHUB_OUTPUT"
           else echo "::notice::main is now at $head; its own run deploys it"; echo "current=false" >> "$GITHUB_OUTPUT"; fi
       - name: Check the Cloudflare token
