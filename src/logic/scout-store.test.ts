@@ -21,15 +21,35 @@ describe("scout store", () => {
 
   it("ignores records of another schema version or shape", async () => {
     const backend = memoryBackend();
-    await backend.set("gameDb", { schemaVersion: SCHEMA_VERSION + 1, value: Uint8Array.of(1) });
-    await backend.set("preferences", { schemaVersion: SCHEMA_VERSION, value: { filters: 3 } });
+    await backend.set("gameDb", {
+      schemaVersion: SCHEMA_VERSION.gameDb + 1,
+      value: Uint8Array.of(1),
+    });
+    await backend.set("preferences", {
+      schemaVersion: SCHEMA_VERSION.preferences,
+      value: { filters: 3 },
+    });
     expect(await createScoutStore(backend).load()).toEqual({ gameDb: null, preferences: null });
     await backend.set("gameDb", "junk");
     await backend.set("preferences", {
-      schemaVersion: SCHEMA_VERSION,
+      schemaVersion: SCHEMA_VERSION.preferences,
       value: { filters: {}, sort: { key: "salary", direction: "ascending" } },
     });
     expect(await createScoutStore(backend).load()).toEqual({ gameDb: null, preferences: null });
+  });
+
+  it("drops preferences of version 1 but keeps the stored fifa.db", async () => {
+    const backend = memoryBackend();
+    await backend.set("preferences", {
+      schemaVersion: 1,
+      value: { filters: { freeAgentsOnly: false }, sort: DEFAULT_SORT },
+    });
+    await backend.set("gameDb", { schemaVersion: 1, value: Uint8Array.of(7) });
+    expect(SCHEMA_VERSION.preferences).toBe(2);
+    expect(await createScoutStore(backend).load()).toEqual({
+      gameDb: Uint8Array.of(7),
+      preferences: null,
+    });
   });
 
   it("accepts the default sort with empty filters", async () => {

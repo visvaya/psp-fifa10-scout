@@ -3,8 +3,14 @@ import type { Dispatch, JSX } from "react";
 import type { Player } from "../logic/players.ts";
 import { POSITION_GROUPS } from "../logic/positions.ts";
 import { activeFilterKeys, facetOptions } from "../logic/scout-state.ts";
-import type { FacetOption, FilterChange, ScoutAction, ScoutFilters } from "../logic/scout-state.ts";
-import { FILTER_LABELS, POSITION_GROUP_LABELS, TEXT } from "./text.ts";
+import type {
+  ClubStatus,
+  FacetOption,
+  FilterChange,
+  ScoutAction,
+  ScoutFilters,
+} from "../logic/scout-state.ts";
+import { CLUB_STATUS_LABELS, FILTER_LABELS, POSITION_GROUP_LABELS, TEXT } from "./text.ts";
 
 interface FilterFormProps {
   readonly players: readonly Player[];
@@ -108,11 +114,29 @@ const PositionsField = ({ filters, change }: { filters: ScoutFilters; change: Ch
   );
 };
 
-const CheckField = (props: {
-  name: "freeAgentsOnly" | "excludeMyClub";
-  filters: ScoutFilters;
-  change: Change;
-}) => (
+const CLUB_STATUSES: readonly ClubStatus[] = ["with-club", "all", "free-agents"];
+
+/** One control for the three club states, so "free agents" and "hide clubless" cannot contradict. */
+const ClubStatusField = ({ filters, change }: { filters: ScoutFilters; change: Change }) => (
+  <fieldset className="field">
+    <legend>{FILTER_LABELS.clubStatus}</legend>
+    {CLUB_STATUSES.map((status) => (
+      <label key={status} className="check">
+        <input
+          type="radio"
+          name="club-status"
+          checked={(filters.clubStatus ?? "with-club") === status}
+          onChange={() => {
+            change({ clubStatus: status });
+          }}
+        />
+        {CLUB_STATUS_LABELS[status]}
+      </label>
+    ))}
+  </fieldset>
+);
+
+const CheckField = (props: { name: "excludeMyClub"; filters: ScoutFilters; change: Change }) => (
   <label className="check">
     <input
       type="checkbox"
@@ -170,7 +194,7 @@ export const FilterForm = ({
           ))}
         </select>
       </label>
-      <CheckField name="freeAgentsOnly" {...shared} />
+      <ClubStatusField {...shared} />
       {myTeamId === null ? null : <CheckField name="excludeMyClub" {...shared} />}
       <button
         type="button"

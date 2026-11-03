@@ -6,8 +6,15 @@ import { nameCollator } from "./players.ts";
 import type { Player } from "./players.ts";
 import type { SortDirection, SortKey } from "./sort-players.ts";
 
+/** Which players by club: unset means "with-club", the default that hides clubless players. */
+export type ClubStatus = "with-club" | "all" | "free-agents";
+
 /** The filters as the user sets them; "exclude my club" becomes a club id only with a career. */
-export type ScoutFilters = Omit<PlayerFilters, "excludeTeamId"> & {
+export type ScoutFilters = Omit<
+  PlayerFilters,
+  "excludeTeamId" | "freeAgentsOnly" | "withClubOnly"
+> & {
+  readonly clubStatus?: ClubStatus;
   readonly excludeMyClub?: boolean;
 };
 export type FilterKey = keyof ScoutFilters;
@@ -83,7 +90,7 @@ const ASCENDING_FIRST = new Set<SortKey>([
 ]);
 
 const isSet = (value: ScoutFilters[FilterKey]): boolean => {
-  if (value === undefined || value === false) return false;
+  if (value === undefined || value === false || value === "with-club") return false;
   if (typeof value === "string") return value.trim() !== "";
   if (Array.isArray(value)) return value.length > 0;
   if (typeof value === "object") return Object.values(value).some((item) => item !== undefined);
@@ -100,7 +107,7 @@ const FILTER_KEYS: readonly FilterKey[] = [
   "teamIds",
   "nationalityIds",
   "contractEndsBy",
-  "freeAgentsOnly",
+  "clubStatus",
   "excludeMyClub",
 ];
 
@@ -192,10 +199,17 @@ export const actionOf = (message: WorkerMessage): ScoutAction => {
 
 /** The filters filterPlayers takes. */
 export const effectiveFilters = (
-  { excludeMyClub, ...filters }: ScoutFilters,
+  { excludeMyClub, clubStatus, ...filters }: ScoutFilters,
   myTeamId: number | null,
-): PlayerFilters =>
-  excludeMyClub === true && myTeamId !== null ? { ...filters, excludeTeamId: myTeamId } : filters;
+): PlayerFilters => ({
+  ...filters,
+  ...(clubStatus === "all"
+    ? {}
+    : clubStatus === "free-agents"
+      ? { freeAgentsOnly: true }
+      : { withClubOnly: true }),
+  ...(excludeMyClub === true && myTeamId !== null ? { excludeTeamId: myTeamId } : {}),
+});
 
 export type AttributeBand = "high" | "good" | "average" | "low";
 

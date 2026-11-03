@@ -2,7 +2,7 @@
 import type { LoadErrorKind, LoadPhase } from "../logic/load-scout.ts";
 import type { AttributeName } from "../logic/players.ts";
 import type { PositionGroup } from "../logic/positions.ts";
-import type { FilterKey, ScoutError } from "../logic/scout-state.ts";
+import type { ClubStatus, FilterKey, ScoutError } from "../logic/scout-state.ts";
 
 const NBSP = " ";
 
@@ -90,11 +90,17 @@ export const FILTER_LABELS: Readonly<Record<FilterKey, string>> = {
   teamIds: "Klub",
   nationalityIds: "Narodowość",
   contractEndsBy: "Kontrakt",
-  freeAgentsOnly: "Wolni zawodnicy",
+  clubStatus: "Zawodnicy",
   excludeMyClub: "Bez mojego klubu",
 };
 
 // jscpd:ignore-end
+
+export const CLUB_STATUS_LABELS: Readonly<Record<ClubStatus, string>> = {
+  "with-club": "z klubem",
+  all: "wszyscy, także bez klubu",
+  "free-agents": "tylko bez klubu",
+};
 
 const PHASES: Readonly<Record<LoadPhase, string>> = {
   game: "Czytam plik gry…",

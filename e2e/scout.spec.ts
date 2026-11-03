@@ -6,7 +6,12 @@ import { SYNTHETIC_DB_PATH } from "../scripts/write-synthetic-db.ts";
 const loadDatabase = async (page: Page) => {
   await page.goto("/");
   await page.getByLabel("Wybierz obraz ISO lub fifa.db").setInputFiles(SYNTHETIC_DB_PATH);
-  await expect(page.getByText("63\u00a0zawodników")).toBeVisible();
+  await expectCount(page, "62\u00a0zawodników");
+};
+
+/** The visible count; the status region repeats it once the announcement settles. */
+const expectCount = async (page: Page, text: string) => {
+  await expect(page.locator("p.count")).toHaveText(text);
 };
 
 const expectNoAxeViolations = async (page: Page) => {
@@ -26,7 +31,7 @@ test.describe("wide screen", () => {
       "ascending",
     );
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("brozek");
-    await expect(page.getByText("1\u00a0zawodnik", { exact: true })).toBeVisible();
+    await expectCount(page, "1\u00a0zawodnik");
     const name = table.getByRole("button", { name: "Paweł Brożek" });
     await name.click();
     const card = page.getByRole("dialog", { name: "Paweł Brożek" });
@@ -35,7 +40,19 @@ test.describe("wide screen", () => {
     await expect(card).toBeHidden();
     await expect(name).toBeFocused();
     await page.getByRole("button", { name: "Usuń filtr: Nazwisko" }).click();
-    await expect(page.getByText("63\u00a0zawodników")).toBeVisible();
+    await expectCount(page, "62\u00a0zawodników");
+  });
+
+  test("hides clubless players by default and shows only them on request", async ({ page }) => {
+    await loadDatabase(page);
+    await expect(page.getByRole("radio", { name: "z klubem" })).toBeChecked();
+    await page.getByRole("radio", { name: "tylko bez klubu" }).check();
+    await expectCount(page, "1 zawodnik");
+    await expect(page.getByRole("button", { name: "Jan Wolny" })).toBeVisible();
+    await page.getByRole("radio", { name: "wszyscy, także bez klubu" }).check();
+    await expectCount(page, "63 zawodników");
+    await page.getByRole("button", { name: "Wyczyść filtry" }).click();
+    await expectCount(page, "62 zawodników");
   });
 
   test("keeps the game database and filters after a reload", async ({ page }) => {

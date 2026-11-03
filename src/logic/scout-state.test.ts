@@ -75,10 +75,10 @@ describe("scoutReducer filters, sort and card", () => {
   it("merges filter changes and removes one filter", () => {
     const state = scoutReducer(initialScoutState, {
       type: "filters-changed",
-      filters: { text: "mes", freeAgentsOnly: true },
+      filters: { text: "mes", clubStatus: "free-agents" },
     });
     const removed = scoutReducer(state, { type: "filter-removed", key: "text" });
-    expect(removed.filters).toEqual({ freeAgentsOnly: true });
+    expect(removed.filters).toEqual({ clubStatus: "free-agents" });
   });
 
   it("drops a change back to an empty value", () => {
@@ -155,19 +155,26 @@ describe("actionOf", () => {
 });
 
 describe("effectiveFilters", () => {
+  it("hides clubless players by default, shows all, or only free agents", () => {
+    expect(effectiveFilters({}, null)).toEqual({ withClubOnly: true });
+    expect(effectiveFilters({ clubStatus: "with-club" }, null)).toEqual({ withClubOnly: true });
+    expect(effectiveFilters({ clubStatus: "all" }, null)).toEqual({});
+    expect(effectiveFilters({ clubStatus: "free-agents" }, null)).toEqual({ freeAgentsOnly: true });
+  });
+
   it("turns 'exclude my club' into the club id, only with a career", () => {
-    expect(effectiveFilters({ excludeMyClub: true, text: "a" }, 7)).toEqual({
+    expect(effectiveFilters({ excludeMyClub: true, text: "a", clubStatus: "all" }, 7)).toEqual({
       text: "a",
       excludeTeamId: 7,
     });
-    expect(effectiveFilters({ excludeMyClub: true }, null)).toEqual({});
+    expect(effectiveFilters({ excludeMyClub: true, clubStatus: "all" }, null)).toEqual({});
   });
 });
 
 describe("activeFilterKeys", () => {
   it("lists the filters that narrow the list", () => {
     expect(
-      activeFilterKeys({ text: " ", age: { min: 18 }, potential: {}, freeAgentsOnly: false }),
+      activeFilterKeys({ text: " ", age: { min: 18 }, potential: {}, clubStatus: "with-club" }),
     ).toEqual(["age"]);
     expect(activeFilterKeys({ excludeMyClub: true, leagueIds: [1] })).toEqual([
       "leagueIds",
