@@ -111,6 +111,7 @@ describe("filterPlayers", () => {
     expect(at({ positionRating: { code: 1, min: 20, max: 30 } })).toEqual([2, 3]);
     expect(at({ positionRating: { code: 1 } })).toEqual([1, 2, 3, 4]);
     expect(at({ positionRating: { code: 2, max: 49 } })).toEqual([]);
+    expect(at({ positionRating: { code: 40 } })).toEqual([]);
   });
 
   it("requires a trait or its absence", () => {
