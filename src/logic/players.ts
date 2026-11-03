@@ -1,6 +1,6 @@
 // One immutable summary per player: fifa.db's players joined with their club, league, national team
 // and nationality, and with a career save also the save's links, date and season stats.
-import { careerManager, effectiveRows } from "../data/career-save.ts";
+import { careerManager, effectiveRows, seasonStartDate } from "../data/career-save.ts";
 import type { CareerSave } from "../data/career-save.ts";
 import { ageOn, birthdateToDate, readTable } from "../data/ea-db.ts";
 import type { EaDb, EaDbRow } from "../data/ea-db.ts";
@@ -120,7 +120,7 @@ export interface Player {
   /** Kilograms. */
   readonly weight: number;
   readonly potential: number;
-  /** OVR at the preferred position: aged to the career date with a save, from fifa.db without. */
+  /** OVR at the preferred position: aged to the season's first match day with a save, from fifa.db without. */
   readonly overall: number;
   /** Potential minus OVR. */
   readonly growth: number;
@@ -334,12 +334,12 @@ export const withNameOrder = (
   );
 };
 
-/** OVR from fifa.db without a save; with one, aged to its last game date (overall-rating.md). */
+/** OVR from fifa.db without a save; with one, aged to the season's first match day (overall-rating.md). */
 const rater = (db: EaDb, save: CareerSave | undefined): Context["rate"] => {
   if (save === undefined) return (_row, attributes, code) => baseOverall(attributes, code);
   const curves = readCurves(db);
   const deltas = potentialDeltas(db, save);
-  const date = careerManager(db, save).lastGameDate;
+  const date = seasonStartDate(db, save);
   return (row, attributes, code) =>
     careerOverall(
       {

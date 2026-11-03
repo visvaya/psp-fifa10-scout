@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { careerManager, effectiveRows, parseCareerSave } from "./career-save.ts";
+import { careerManager, effectiveRows, parseCareerSave, seasonStartDate } from "./career-save.ts";
 import { parseEaDb, readTable } from "./ea-db.ts";
 import { buildEaDb } from "./test-support/synthetic-ea-db.ts";
 import { buildCareerSave, le32, poolString } from "./test-support/synthetic-career-save.ts";
@@ -119,6 +119,17 @@ describe("parseCareerSave", () => {
     expect(manager.teamId).toBe(1873);
     expect(manager.managerName).toBe("Nowy Kariera");
     expect(manager.lastGameDate.toISOString().slice(0, 10)).toBe("2009-07-25");
+  });
+
+  it("dates the season start by the earliest fixture, else by the last played game", () => {
+    const save = parse([MANAGERS]);
+    // 0x9839807 is 2009-07-25, game 7; one week earlier is 7 * 1024 lower.
+    const fixtures = [0x983b400, 0x9839807 - 7 * 1024, 0x9839807].map((game) =>
+      Object.freeze({ game_number: game }),
+    );
+    const date = (career: typeof save) => seasonStartDate(DB, career).toISOString().slice(0, 10);
+    expect(date(new Map([...save, ["fixtures", fixtures]]))).toBe("2009-07-18");
+    expect(date(save)).toBe("2009-07-25");
   });
 
   it("uses the save's rows for a replaced table and fifa.db's otherwise", () => {
