@@ -29,8 +29,10 @@ interface BitField {
 
 type EaDbField = WordField | BitField;
 
-interface EaDbTable {
+export interface EaDbTable {
   readonly name: string;
+  /** Offset of the table's directory entry. */
+  readonly directoryOffset: number;
   readonly rowCount: number;
   readonly recordSize: number;
   readonly fields: readonly EaDbField[];
@@ -52,7 +54,7 @@ const u32 = (view: DataView, offset: number): number => {
   return view.getUint32(offset, true);
 };
 
-const readString = (view: DataView, offset: number): string => {
+export const readString = (view: DataView, offset: number): string => {
   if (offset + 2 > view.byteLength) throw new SaveFormatError("Database offset is out of range");
   const start = offset + 2;
   const end = start + view.getUint16(offset, true);
@@ -85,7 +87,7 @@ const bitFields = (
 const parseEntry = (
   view: DataView,
   offset: number,
-): { entry: Omit<EaDbTable, "rowCount" | "recordsOffset">; end: number } => {
+): { entry: Omit<EaDbTable, "rowCount" | "recordsOffset" | "directoryOffset">; end: number } => {
   const word = (index: number): number => u32(view, offset + 4 * index);
   const name = readString(view, word(0));
   const recordSize = word(2);
@@ -140,7 +142,7 @@ export const parseEaDb = (bytes: Uint8Array): EaDb => {
     if (recordsOffset + rowCount * entry.recordSize > bytes.length) {
       throw new SaveFormatError(`Database rows of ${entry.name} are out of range`);
     }
-    return { ...entry, rowCount, recordsOffset };
+    return { ...entry, directoryOffset: u32(view, block + 4), rowCount, recordsOffset };
   });
   return { view, tables: new Map(tables.map((table) => [table.name, table])) };
 };
@@ -164,12 +166,15 @@ const bitReader = (view: DataView, field: BitField): FieldReader => {
   };
 };
 
-const fieldReader = (view: DataView, field: EaDbField): FieldReader => {
+const fieldReader = (
+  view: DataView,
+  field: EaDbField,
+  stringAt: (ref: number) => string,
+): FieldReader => {
   if (field.kind === "bits") return bitReader(view, field);
   const byteOffset = field.bitOffset / 8;
-  if (field.kind === "string") {
-    return (record) => readString(view, view.getUint32(record + byteOffset, true));
-  }
+  if (field.kind === "string")
+    return (record) => stringAt(view.getUint32(record + byteOffset, true));
   return (record) => view.getUint32(record + byteOffset, true);
 };
 
@@ -177,7 +182,21 @@ const fieldReader = (view: DataView, field: EaDbField): FieldReader => {
 export const readTable = (db: EaDb, name: string): readonly EaDbRow[] => {
   const table = db.tables.get(name);
   if (table === undefined) throw new SaveFormatError(`Database has no table "${name}"`);
-  const readers = table.fields.map((field) => [field.name, fieldReader(db.view, field)] as const);
+  return readRecords(db.view, table, (ref) => readString(db.view, ref));
+};
+
+/**
+ * The records of `table` (`rowCount` from `recordsOffset`) in `view`, which the caller has
+ * bounds-checked; `stringAt` resolves the value of a string field.
+ */
+export const readRecords = (
+  view: DataView,
+  table: EaDbTable,
+  stringAt: (ref: number) => string,
+): readonly EaDbRow[] => {
+  const readers = table.fields.map(
+    (field) => [field.name, fieldReader(view, field, stringAt)] as const,
+  );
   return Array.from({ length: table.rowCount }, (_, row) => {
     const record = table.recordsOffset + row * table.recordSize;
     return Object.freeze(Object.fromEntries(readers.map(([key, read]) => [key, read(record)])));

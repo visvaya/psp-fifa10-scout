@@ -91,7 +91,10 @@ describe("parseEaDb", () => {
     expect(
       parseEaDb(Uint8Array.from([0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 16, 0, 0, 0])).tables.size,
     ).toBe(0);
-    expect(parseEaDb(tightDb(0, 0)).tables.get("t")?.rowCount).toBe(0);
+    expect(parseEaDb(tightDb(0, 0)).tables.get("t")).toMatchObject({
+      rowCount: 0,
+      directoryOffset: 20,
+    });
     expect(readTable(parseEaDb(tightDb(1, 1)), "t")).toEqual([{ id: 0 }]);
     expect(() => parseEaDb(tightDb(2, 1))).toThrow(/rows of t are out of range/);
   });

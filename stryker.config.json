@@ -9,7 +9,8 @@
     "src/data/psp-save-crypto.ts",
     "src/data/param-sfo.ts",
     "src/data/read-save-data.ts",
-    "src/data/ea-db.ts"
+    "src/data/ea-db.ts",
+    "src/data/career-save.ts"
   ],
   "coverageAnalysis": "perTest",
   "ignoreStatic": true,
