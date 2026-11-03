@@ -5,7 +5,8 @@ import { birthdateToDate, parseEaDb, readTable } from "../data/ea-db.ts";
 import {
   baseOverall,
   byPositionCode,
-  careerOverall,
+  cappedOverall,
+  careerAttributes,
   OVR_WEIGHTS,
   potentialDeltas,
   readCurves,
@@ -118,6 +119,21 @@ const skillCurve = (at: Readonly<Record<number, number>>): Curves =>
     [1, curve(50)],
     [3, curve(50, at)],
   ]);
+
+/** OVR at a position on a career date, as players.ts composes it. */
+const careerOverall = (
+  input: CareerRatingInput,
+  positionCode: number,
+  date: Date,
+  curves: Curves,
+): number => cappedOverall(careerAttributes(input, date, curves), positionCode, input.potential);
+
+describe("careerAttributes", () => {
+  it("ages each attribute along its curve, as the game shows them in a career", () => {
+    const aged = careerAttributes(player(), LATER, CURVES);
+    expect([aged("finishing"), aged("sprintspeed"), aged("reflexes")]).toEqual([60, 40, 40]);
+  });
+});
 
 describe("careerOverall", () => {
   it("ages skills and physical attributes along their own curves", () => {
