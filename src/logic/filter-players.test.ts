@@ -88,6 +88,13 @@ describe("filterPlayers", () => {
     ).toEqual([3]);
   });
 
+  it("hides clubless players except academy youth when only players with a club are wanted", () => {
+    const academy = testPlayer({ id: 5, name: "Academy", clubId: null, youth: true });
+    expect(
+      filterPlayers([...PLAYERS, academy], { withClubOnly: true }).map((player) => player.id),
+    ).toEqual([1, 2, 4, 5]);
+  });
+
   it("combines filters with AND", () => {
     expect(ids({ age: { max: 26 }, teamIds: [10], potential: { max: 75 } })).toEqual([1]);
   });

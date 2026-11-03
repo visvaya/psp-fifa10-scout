@@ -1,0 +1,114 @@
+// A small synthetic fifa.db with every table the app reads, and a plain career save for it. Shared
+// by the load tests and scripts/write-synthetic-db.ts, which feeds the browser tests.
+import { buildCareerSave } from "../../data/test-support/synthetic-career-save.ts";
+import { buildEaDb } from "../../data/test-support/synthetic-ea-db.ts";
+import type { TableSpec } from "../../data/test-support/synthetic-ea-db.ts";
+import { buildFileList, buildParamSfo } from "../../data/test-support/synthetic-save.ts";
+import { playerRow, table } from "./player-fixtures.ts";
+
+/** Days since 1582-10-14, the fifa.db birthdate epoch. */
+const born = (year: number): number => (Date.UTC(year, 0, 15) - Date.UTC(1582, 9, 14)) / 86_400_000;
+
+const empty = (name: string): TableSpec => ({ name, u32: ["playerid"], rows: [] });
+
+const CLUBS = [241, 1873, 10];
+/** Positions cycling through every group: GK, CB, LB, CDM, RM, CM, CAM, ST. */
+const POSITIONS = [0, 5, 7, 11, 15, 17, 23, 29];
+
+/** Generated squad players 1000..1059 with varied age, position, potential and club. */
+const generated = Array.from({ length: 60 }, (_, index) =>
+  playerRow({
+    playerid: 1000 + index,
+    firstname: "Gracz",
+    surname: `Numer ${String(index + 1)}`,
+    birthdate: born(1975 + (index % 20)),
+    nationality: index % 2 === 0 ? 37 : 52,
+    preferredposition1: POSITIONS[index % POSITIONS.length] ?? 0,
+    potential: 50 + ((index * 7) % 45),
+    sprintspeed: 40 + ((index * 11) % 55),
+  }),
+);
+
+const PLAYERS = table("players", [
+  playerRow({
+    playerid: 158_023,
+    firstname: "Lionel",
+    surname: "Messi",
+    birthdate: born(1987),
+    nationality: 52,
+    preferredposition1: 14,
+    potential: 95,
+    sprintspeed: 92,
+    dribbling: 96,
+  }),
+  playerRow({
+    playerid: 7,
+    firstname: "Paweł",
+    surname: "Brożek",
+    birthdate: born(1983),
+    nationality: 37,
+    preferredposition1: 29,
+    potential: 74,
+  }),
+  playerRow({
+    playerid: 8,
+    firstname: "Jan",
+    surname: "Wolny",
+    birthdate: born(1990),
+    nationality: 37,
+  }),
+  ...generated,
+]);
+
+export const SCOUT_USER_TEAM_ID = 1873;
+
+export const buildScoutDb = (): Uint8Array =>
+  buildEaDb([
+    table("leagues", [
+      { leagueid: 53, leaguename: "Spain Primera Division (1)", level: 1 },
+      { leagueid: 76, leaguename: "Rest of World", level: 4 },
+    ]),
+    table("teams", [
+      { teamid: 241, teamname: "FC Barcelona" },
+      { teamid: 1873, teamname: "Wisła Kraków" },
+      { teamid: 10, teamname: "Łódzki KS" },
+    ]),
+    table("leagueteamlinks", [
+      { leagueid: 53, teamid: 241 },
+      { leagueid: 76, teamid: 1873 },
+      { leagueid: 76, teamid: 10 },
+    ]),
+    table("country", [
+      { countryid: 52, countryname: "Argentina" },
+      { countryid: 37, countryname: "Poland" },
+    ]),
+    PLAYERS,
+    table("teamplayerlinks", [
+      { teamid: 241, playerid: 158_023, jerseynumber: 10, yearcontractvalidtil: 2014 },
+      { teamid: 1873, playerid: 7, jerseynumber: 9, yearcontractvalidtil: 2010 },
+      ...generated.map((_, index) => ({
+        teamid: CLUBS[index % CLUBS.length] ?? 10,
+        playerid: 1000 + index,
+        jerseynumber: index + 1,
+        yearcontractvalidtil: 2010 + (index % 5),
+      })),
+    ]),
+    table("team_manager", [
+      { team_id: SCOUT_USER_TEAM_ID, firstname: "Anna", surname: "Kariera", last_game_number: 0 },
+    ]),
+    empty("playerstats"),
+    empty("career_youth_accademy"),
+    empty("career_transfer_list"),
+  ]);
+
+/** An unencrypted save with no table chunks: the career as fifa.db stores it. */
+export const buildPlainSave = (): { dataBin: Uint8Array; paramSfo: Uint8Array } => {
+  const params = new Uint8Array(128);
+  return {
+    dataBin: buildCareerSave([]),
+    paramSfo: buildParamSfo([
+      { key: "SAVEDATA_FILE_LIST", value: buildFileList("DATA.BIN", new Uint8Array(16)) },
+      { key: "SAVEDATA_PARAMS", value: params },
+    ]),
+  };
+};

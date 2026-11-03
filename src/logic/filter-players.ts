@@ -22,6 +22,8 @@ export interface PlayerFilters {
   /** Contracts ending in this year or earlier. */
   readonly contractEndsBy?: number;
   readonly freeAgentsOnly?: boolean;
+  /** Leaves out players without a club (legends, national-team-only players), keeping academy youth. */
+  readonly withClubOnly?: boolean;
   /** Leaves out this club's players (the user's own team). */
   readonly excludeTeamId?: number;
 }
@@ -69,6 +71,7 @@ const predicates = (filters: PlayerFilters): readonly (Predicate | null)[] => {
       : (player) => player.contractEndYear !== null && player.contractEndYear <= contractEndsBy,
     // A youth-pool player without a club sits in the user's academy, so he is not on the market.
     filters.freeAgentsOnly === true ? (player) => player.clubId === null && !player.youth : null,
+    filters.withClubOnly === true ? (player) => player.clubId !== null || player.youth : null,
     excludeTeamId === undefined ? null : (player) => player.clubId !== excludeTeamId,
   ];
 };

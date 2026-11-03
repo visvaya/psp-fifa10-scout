@@ -31,6 +31,9 @@ const GROUPS: readonly (readonly [PositionGroup, readonly number[]])[] = [
   ["forwards", [26, 27, 28, 29, 30, 31]],
 ];
 
+/** The groups in pitch order, goalkeeper first. */
+export const POSITION_GROUPS: readonly PositionGroup[] = GROUPS.map(([group]) => group);
+
 /** The short name and group of a preferred position code. */
 export const positionOf = (code: number): { name: string; group: PositionGroup } => {
   const group = GROUPS.find(([, codes]) => codes.includes(code))?.[0];
