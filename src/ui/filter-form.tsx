@@ -371,7 +371,10 @@ export const FilterForm = ({
           }}
         />
       </Section>
-      <Section title={FILTER_SECTION_LABELS.traits}>{PLAY_TRAITS.map(kit.flag)}</Section>
+      <Section title={FILTER_SECTION_LABELS.traits}>
+        <p className="help">{TEXT.traitsNote}</p>
+        {PLAY_TRAITS.map(kit.flag)}
+      </Section>
       {characterSection(kit)}
       {clubSection(kit, myTeamId !== null)}
       {myTeamId === null ? null : careerSection(kit)}

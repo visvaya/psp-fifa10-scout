@@ -183,6 +183,8 @@ const ERRORS: Readonly<Record<LoadErrorKind | "missing-file", string>> = {
 };
 
 export const TEXT = {
+  traitsNote:
+    "Cechy pochodzą z bazy gry. Czy wpływają na rozgrywkę w wersji PSP, nie jest potwierdzone.",
   appTitle: "PSP FIFA 10 Scout",
   showFiles: "Pliki",
   showList: "Lista zawodników",
