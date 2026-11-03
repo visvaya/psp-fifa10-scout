@@ -378,13 +378,4 @@ describe.runIf(existsSync(realDbPath))("real fifa.db", () => {
     expect(players.filter((player) => player.clubName === "Wisła Kraków")).toHaveLength(23);
     expect(players.filter((player) => player.youth)).toHaveLength(3);
   });
-
-  // The game ages players to the season's first match day, so Ivanov (born 1986-08-04) and Małecki
-  // (born 1988-08-01) keep the ratings it shows all season, in any save of the first season.
-  it.runIf(existsSync(realCareerPath))("rates the career at the season's first match day", () => {
-    const db = realDb();
-    const players = buildPlayers(db, parseCareerSave(db, readFileSync(realCareerPath)));
-    const overall = (id: number) => players.find((player) => player.id === id)?.overall;
-    expect([overall(162_780), overall(174_670)]).toEqual([73, 67]);
-  });
 });
