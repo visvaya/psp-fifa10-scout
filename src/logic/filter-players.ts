@@ -67,7 +67,8 @@ const predicates = (filters: PlayerFilters): readonly (Predicate | null)[] => {
     contractEndsBy === undefined
       ? null
       : (player) => player.contractEndYear !== null && player.contractEndYear <= contractEndsBy,
-    filters.freeAgentsOnly === true ? (player) => player.clubId === null : null,
+    // A youth-pool player without a club sits in the user's academy, so he is not on the market.
+    filters.freeAgentsOnly === true ? (player) => player.clubId === null && !player.youth : null,
     excludeTeamId === undefined ? null : (player) => player.clubId !== excludeTeamId,
   ];
 };

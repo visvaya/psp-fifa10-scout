@@ -75,6 +75,19 @@ describe("filterPlayers", () => {
     expect(ids({ excludeTeamId: 10 })).toEqual([2, 3]);
   });
 
+  it("does not count an academy youth player without a club as a free agent", () => {
+    const academy = testPlayer({
+      id: 5,
+      name: "Academy",
+      clubId: null,
+      leagueId: null,
+      youth: true,
+    });
+    expect(
+      filterPlayers([...PLAYERS, academy], { freeAgentsOnly: true }).map((player) => player.id),
+    ).toEqual([3]);
+  });
+
   it("combines filters with AND", () => {
     expect(ids({ age: { max: 26 }, teamIds: [10], potential: { max: 75 } })).toEqual([1]);
   });
