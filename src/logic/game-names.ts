@@ -1,14 +1,17 @@
-// Club, league and country names in a language of the game (from its locale files), applied over the
-// English fifa.db names; any name the game does not have keeps the fifa.db one.
-import { countryKey, leagueKey, teamKey } from "../data/game-locale.ts";
+// Club, league, country and position names in a language of the game (from its locale files), applied
+// over the English fifa.db names; any name the game does not have keeps the fifa.db one.
+import { countryKey, labelKey, leagueKey, teamKey } from "../data/game-locale.ts";
 import { nameCollator, withNameOrder } from "./players.ts";
 import type { Player } from "./players.ts";
+import { POSITION_CODES, positionOf } from "./positions.ts";
 
 /** Names by id; plain records so they store and post as they are. */
 export interface GameNames {
   readonly teams: Readonly<Record<number, string>>;
   readonly leagues: Readonly<Record<number, string>>;
   readonly countries: Readonly<Record<number, string>>;
+  /** Abbreviations by position code. */
+  readonly positions: Readonly<Record<number, string>>;
 }
 
 /** The names of each language read so far, by its code (the .loc file stem, such as "pol_pl"). */
@@ -39,7 +42,10 @@ const named = (
     }),
   );
 
-/** The game's names for the given ids; a league shows its sponsor name with its country if the game has one. */
+/**
+ * The game's names for the given ids and every position; a league shows its sponsor name with its
+ * country if the game has one.
+ */
 export const gameNamesOf = (table: ReadonlyMap<number, string>, ids: NameIds): GameNames => ({
   teams: named(ids.teams, (id) => table.get(teamKey(id, 0))),
   leagues: named(ids.leagues, (id) => {
@@ -47,7 +53,25 @@ export const gameNamesOf = (table: ReadonlyMap<number, string>, ids: NameIds): G
     return name === undefined || country === undefined ? name : `${name} (${country})`;
   }),
   countries: named(ids.countries, (id) => table.get(countryKey(id))),
+  positions: named(POSITION_CODES, (code) => table.get(labelKey(positionOf(code).name))),
 });
+
+const abbreviation = (names: GameNames | null, code: number): string =>
+  names?.positions[code] ?? positionOf(code).name;
+
+/**
+ * A position's abbreviation in the game language, else the game's English name, for choosing a
+ * position: where the language gives two positions one abbreviation (Polish PN for RF and RS), the
+ * English name follows it.
+ */
+export const positionNameIn = (names: GameNames | null, code: number): string => {
+  const name = abbreviation(names, code);
+  const shared = POSITION_CODES.some(
+    (other) => other !== code && abbreviation(names, other) === name,
+  );
+  const english = positionOf(code).name;
+  return shared && name !== english ? `${name} (${english})` : name;
+};
 
 const nameOr = (
   names: Readonly<Record<number, string>>,
@@ -64,6 +88,7 @@ const renamed = (players: readonly Player[], names: GameNames | null): readonly 
         leagueName: nameOr(names.leagues, player.leagueId, player.leagueName),
         nationalTeamName: nameOr(names.teams, player.nationalTeamId, player.nationalTeamName),
         nationalityName: nameOr(names.countries, player.nationalityId, player.nationalityName),
+        positionName: names.positions[player.positionCode] ?? player.positionName,
       }));
 
 /**

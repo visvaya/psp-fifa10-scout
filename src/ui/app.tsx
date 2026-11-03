@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useReducer } from "react";
-import type { JSX } from "react";
-import { collatorFor, localizePlayers } from "../logic/game-names.ts";
+import { useCallback, useEffect, useMemo, useReducer } from "react";
+import type { Dispatch, JSX } from "react";
+import { collatorFor, localizePlayers, positionNameIn } from "../logic/game-names.ts";
 import { activeLanguage, initialScoutState, scoutReducer } from "../logic/scout-state.ts";
-import type { ScoutState } from "../logic/scout-state.ts";
+import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
 import { ListView } from "./list-view.tsx";
 import { PlayerCard } from "./player-card.tsx";
 import { StartScreen } from "./start-screen.tsx";
@@ -14,23 +14,17 @@ import { useScoutFiles } from "./use-scout-files.ts";
 /** Wide layout (table and side panel) from this width; matches --layout-wide in styles.css. */
 const WIDE_QUERY = "(min-width: 60rem)";
 
-/** The players with the names of the active game language, and that language's text order. */
+/** The players with the names of the active game language, its text order and its position names. */
 const useGameNames = (state: ScoutState) => {
   const language = activeLanguage(state, navigator.languages);
-  const { languages } = state;
+  const names = language === null ? null : (state.languages[language] ?? null);
   const collator = useMemo(() => collatorFor(language), [language]);
   const players = useMemo(
-    () =>
-      state.players === null
-        ? null
-        : localizePlayers(
-            state.players,
-            language === null ? null : (languages[language] ?? null),
-            collator,
-          ),
-    [state.players, language, languages, collator],
+    () => (state.players === null ? null : localizePlayers(state.players, names, collator)),
+    [state.players, names, collator],
   );
-  return { language, players, collator };
+  const positionName = useCallback((code: number) => positionNameIn(names, code), [names]);
+  return { language, players, collator, positionName };
 };
 
 /** Stores the preferences and the languages read, once the stored ones were restored. */
@@ -54,31 +48,39 @@ const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFile
   }, [ready, saveLanguages, languages]);
 };
 
+/** The title, with a switch between the list and the files once there is a list (view not null). */
+const TopBar = (props: { view: ScoutState["view"] | null; dispatch: Dispatch<ScoutAction> }) => {
+  const { view, dispatch } = props;
+  return (
+    <header className="topbar">
+      <h1>{TEXT.appTitle}</h1>
+      {view === null ? null : (
+        <button
+          type="button"
+          className="button"
+          onClick={() => {
+            dispatch({ type: "view-changed", view: view === "list" ? "start" : "list" });
+          }}
+        >
+          {view === "list" ? TEXT.showFiles : TEXT.showList}
+        </button>
+      )}
+    </header>
+  );
+};
+
 export const App = (): JSX.Element => {
   const [state, dispatch] = useReducer(scoutReducer, initialScoutState);
   const files = useScoutFiles(dispatch);
   const wide = useMediaQuery(WIDE_QUERY);
-  const { language, players, collator } = useGameNames(state);
+  const { language, players, collator, positionName } = useGameNames(state);
   useStoredState(state, files);
   const { view, showPotential } = state;
 
   const openPlayer = players?.find((player) => player.id === state.openPlayerId);
   return (
     <div className="app">
-      <header className="topbar">
-        <h1>{TEXT.appTitle}</h1>
-        {players === null ? null : (
-          <button
-            type="button"
-            className="button"
-            onClick={() => {
-              dispatch({ type: "view-changed", view: view === "list" ? "start" : "list" });
-            }}
-          >
-            {view === "list" ? TEXT.showFiles : TEXT.showList}
-          </button>
-        )}
-      </header>
+      <TopBar view={players === null ? null : view} dispatch={dispatch} />
       <UpdatePrompt />
       <main className="main">
         {view === "list" && players !== null ? (
@@ -86,6 +88,7 @@ export const App = (): JSX.Element => {
             state={state}
             players={players}
             collator={collator}
+            positionName={positionName}
             wide={wide}
             dispatch={dispatch}
           />

@@ -159,7 +159,7 @@ describe("buildPlayers from fifa.db", () => {
       freeAgent: false,
       age: 22,
       positionCode: 14,
-      positionName: "RW",
+      positionName: "RWM",
       positionGroup: "wide",
       preferredFoot: "left",
       height: 169,
@@ -199,19 +199,19 @@ describe("buildPlayers from fifa.db", () => {
     // jscpd:ignore-end
   });
 
-  it("trims one-name players and names the unconfirmed position codes after their group", () => {
+  it("trims one-name players and names the centre-left positions as the game does", () => {
     expect(byId(players, 7)).toMatchObject({
       name: "Ronaldinho",
       nameOrder: 2,
       age: 19,
-      positionName: "DM12",
+      positionName: "LCDM",
       positionGroup: "defensive-midfield",
       preferredFoot: "right",
       clubName: "FC Barcelona",
       nationalTeamId: null,
     });
     expect(byId(players, 8)).toMatchObject({
-      positionName: "AM24",
+      positionName: "LCAM",
       positionGroup: "attacking-midfield",
     });
   });

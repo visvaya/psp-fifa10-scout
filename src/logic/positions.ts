@@ -13,11 +13,15 @@ export type PositionGroup =
   | "attacking-midfield"
   | "forwards";
 
-// Codes 10, 12, 22 and 24 have no confirmed name: they are named after their group plus the code.
+// The game's own names in code order (a list in its code); each language's abbreviation is keyed by
+// the name (labelKey), so they double as the English labels.
 const NAMES = (
-  "GK SW RWB RB RCB CB LCB LB LWB RDM DM10 CDM DM12 LDM RW RM RCM CM LCM LM LW " +
-  "RAM AM22 CAM AM24 LAM RF CF LF RS ST LS"
+  "GK SW RWB RB RCB CB LCB LB LWB RDM RCDM CDM LCDM LDM RWM RM RCM CM LCM LM LWM " +
+  "RAM RCAM CAM LCAM LAM RF CF LF RS ST LS"
 ).split(" ");
+
+/** Every preferred position code, 0..31. */
+export const POSITION_CODES: readonly number[] = NAMES.map((_, code) => code);
 
 const GROUPS: readonly (readonly [PositionGroup, readonly number[]])[] = [
   ["goalkeeper", [0]],

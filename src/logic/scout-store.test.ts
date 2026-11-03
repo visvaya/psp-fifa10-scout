@@ -38,7 +38,12 @@ describe("scout store", () => {
       gameLanguage: "pol_pl",
     };
     const languages = {
-      pol_pl: { teams: { 1: "Klub" }, leagues: { 2: "Liga" }, countries: { 37: "Polska" } },
+      pol_pl: {
+        teams: { 1: "Klub" },
+        leagues: { 2: "Liga" },
+        countries: { 37: "Polska" },
+        positions: { 0: "BR" },
+      },
     };
     await store.saveGameDb(Uint8Array.of(1, 2, 3), "fifa.iso");
     await store.savePreferences(preferences);
@@ -84,12 +89,13 @@ describe("scout store", () => {
 
   it("drops stored languages of a wrong shape one by one", async () => {
     const backend = memoryBackend();
-    const good = { teams: { 1: "Klub" }, leagues: {}, countries: {} };
+    const good = { teams: { 1: "Klub" }, leagues: {}, countries: {}, positions: { 0: "BR" } };
     await backend.set("languages", {
       schemaVersion: SCHEMA_VERSION.languages,
       value: {
         pol_pl: good,
-        cze_cz: { teams: { 1: 5 }, leagues: {}, countries: {} },
+        cze_cz: { teams: { 1: 5 }, leagues: {}, countries: {}, positions: {} },
+        ger_de: { teams: {}, leagues: {}, countries: {}, positions: { 0: 1 } },
         hun_hu: { teams: {}, leagues: {} },
         eng_us: "junk",
       },
@@ -97,6 +103,15 @@ describe("scout store", () => {
     expect((await createScoutStore(backend).load()).languages).toEqual({ pol_pl: good });
     await backend.set("languages", { schemaVersion: 99, value: { pol_pl: good } });
     expect((await createScoutStore(backend).load()).languages).toEqual({});
+  });
+
+  it("loads languages stored before positions had names, with no position names", async () => {
+    const backend = memoryBackend();
+    const v1 = { teams: { 1: "Klub" }, leagues: {}, countries: {} };
+    await backend.set("languages", { schemaVersion: 1, value: { pol_pl: v1 } });
+    expect((await createScoutStore(backend).load()).languages).toEqual({
+      pol_pl: { ...v1, positions: {} },
+    });
   });
 
   it("ignores records of another schema version or shape", async () => {

@@ -37,9 +37,11 @@ const ResultCount = ({ count }: { count: number }) => {
 
 const SortControls = ({
   state,
+  ratingName,
   dispatch,
 }: {
   state: ScoutState;
+  ratingName: string | null;
   dispatch: Dispatch<ScoutAction>;
 }) => (
   <div className="sort-controls">
@@ -58,7 +60,7 @@ const SortControls = ({
             (key !== "positionRating" || state.filters.positionRating !== undefined),
         ).map((key) => (
           <option key={key} value={key}>
-            {columnLabel(key, state.filters.positionRating?.code ?? null)}
+            {columnLabel(key, ratingName)}
           </option>
         ))}
       </select>
@@ -149,32 +151,74 @@ interface ListViewProps {
   readonly players: readonly Player[];
   /** The order of club, league and country names in the chosen language. */
   readonly collator: Intl.Collator;
+  /** Position names in the chosen language (positionNameIn). */
+  readonly positionName: (code: number) => string;
   readonly wide: boolean;
   readonly dispatch: Dispatch<ScoutAction>;
 }
 
-export const ListView = ({
+/** The filtered and sorted list with its toolbar; the filter form opens from it on phones. */
+const ListResults = ({
   state,
   players,
   collator,
+  positionName,
   wide,
+  form,
   dispatch,
-}: ListViewProps): JSX.Element => {
+}: ListViewProps & { form: JSX.Element }) => {
   const { visible, sort } = useVisiblePlayers(players, state, collator);
+  const ratingCode = state.filters.positionRating?.code ?? null;
+  const ratingName = ratingCode === null ? null : positionName(ratingCode);
   const { ranges } = state.filters;
   const ranged = useMemo(() => rangedAttributes(ranges), [ranges]);
+  const List = wide ? PlayerTable : PlayerCards;
+  return (
+    <section className="results" aria-labelledby="results-title">
+      <h2 id="results-title" className="visually-hidden">
+        {TEXT.showList}
+      </h2>
+      <div className="toolbar">
+        {wide ? null : (
+          <FiltersDialogButton count={activeFilters(state.filters).length}>
+            {form}
+          </FiltersDialogButton>
+        )}
+        <SortControls state={state} ratingName={ratingName} dispatch={dispatch} />
+        <ResultCount count={visible.length} />
+      </div>
+      <FilterChips filters={state.filters} folded={!wide} dispatch={dispatch} />
+      {visible.length === 0 ? (
+        <NoMatches dispatch={dispatch} />
+      ) : (
+        <List
+          players={visible}
+          allPlayers={players}
+          sort={sort}
+          showPotential={state.showPotential}
+          ratingCode={ratingCode}
+          ratingName={ratingName}
+          rangedAttributes={ranged}
+          dispatch={dispatch}
+        />
+      )}
+    </section>
+  );
+};
 
+export const ListView = (props: ListViewProps): JSX.Element => {
+  const { state, players, collator, positionName, wide, dispatch } = props;
   const form = (
     <FilterForm
       players={players}
       collator={collator}
+      positionName={positionName}
       filters={state.filters}
       myTeamId={state.myTeamId}
       showPotential={state.showPotential}
       dispatch={dispatch}
     />
   );
-  const List = wide ? PlayerTable : PlayerCards;
   return (
     <div className={wide ? "list-layout wide" : "list-layout"}>
       {wide ? (
@@ -183,34 +227,7 @@ export const ListView = ({
           {form}
         </aside>
       ) : null}
-      <section className="results" aria-labelledby="results-title">
-        <h2 id="results-title" className="visually-hidden">
-          {TEXT.showList}
-        </h2>
-        <div className="toolbar">
-          {wide ? null : (
-            <FiltersDialogButton count={activeFilters(state.filters).length}>
-              {form}
-            </FiltersDialogButton>
-          )}
-          <SortControls state={state} dispatch={dispatch} />
-          <ResultCount count={visible.length} />
-        </div>
-        <FilterChips filters={state.filters} folded={!wide} dispatch={dispatch} />
-        {visible.length === 0 ? (
-          <NoMatches dispatch={dispatch} />
-        ) : (
-          <List
-            players={visible}
-            allPlayers={players}
-            sort={sort}
-            showPotential={state.showPotential}
-            ratingCode={state.filters.positionRating?.code ?? null}
-            rangedAttributes={ranged}
-            dispatch={dispatch}
-          />
-        )}
-      </section>
+      <ListResults {...props} form={form} />
     </div>
   );
 };
