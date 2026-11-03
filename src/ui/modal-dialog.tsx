@@ -46,12 +46,11 @@ export const ModalDialog = ({
       className={`dialog ${className}`}
       aria-labelledby="dialog-title"
       onClose={onClose}
-      onMouseDown={(event) => {
-        pressedOutside.current = isOutside(event);
+      onPointerDown={(event) => {
+        pressedOutside.current = event.pointerType === "mouse" && isOutside(event);
       }}
       onClick={(event) => {
-        const mouse = globalThis.matchMedia("(pointer: fine)").matches;
-        if (mouse && pressedOutside.current && isOutside(event)) onClose();
+        if (pressedOutside.current && isOutside(event)) onClose();
       }}
     >
       <header className="dialog-header">
