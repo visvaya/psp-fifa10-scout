@@ -139,13 +139,19 @@ const ASCENDING_FIRST = new Set<SortKey>([
 ]);
 
 /** The entries of `keys` in `record` whose value passes `keep`, or undefined when none does. */
+/** The known keys in the order the record holds them: the order filters were added orders the columns. */
+export const inRecordOrder = <K extends PropertyKey>(keys: readonly K[], record: object): K[] => {
+  const order = Object.keys(record);
+  return keys.toSorted((a, b) => order.indexOf(String(a)) - order.indexOf(String(b)));
+};
+
 const pick = <T extends object>(
   record: T | undefined,
   keys: readonly (keyof T)[],
   keep: (value: NonNullable<T[keyof T]>) => boolean,
 ): Partial<T> | undefined => {
   const kept: Partial<T> = {};
-  for (const key of keys) {
+  for (const key of inRecordOrder(keys, record ?? {})) {
     const item = record?.[key];
     if (item !== undefined && item !== null && keep(item)) kept[key] = item;
   }

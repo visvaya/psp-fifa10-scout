@@ -10,7 +10,7 @@ import type { SaveFiles } from "./load-scout.ts";
 import { OVR_WEIGHTS } from "./overall-rating.ts";
 import { ATTRIBUTE_NAMES } from "./players.ts";
 import { POSITION_GROUPS } from "./positions.ts";
-import { compactFilters } from "./scout-state.ts";
+import { compactFilters, inRecordOrder } from "./scout-state.ts";
 import type { ClubStatus, Preferences, ScoutFilters } from "./scout-state.ts";
 import type { SortKey } from "./sort-players.ts";
 
@@ -116,7 +116,7 @@ const entriesOf = <K extends string, V>(
 ): Partial<Record<K, V>> => {
   const record = recordOf(value);
   const parsed: Partial<Record<K, V>> = {};
-  for (const key of keys) {
+  for (const key of inRecordOrder(keys, record)) {
     const item = parse(record[key], key);
     if (item !== undefined) parsed[key] = item;
   }

@@ -181,6 +181,17 @@ test.describe("table and dialogs", () => {
     expect(await widths()).toEqual(before);
   });
 
+  test("shows a column for each attribute with a range filter, after OVR", async ({ page }) => {
+    await loadDatabase(page);
+    await page.getByText("Atrybuty", { exact: true }).click();
+    await page.getByLabel("Dodaj atrybut").selectOption({ label: "Przyspieszenie" });
+    await page.getByRole("group", { name: "Przyspieszenie" }).getByLabel("od").fill("10");
+    const headers = page.getByRole("columnheader");
+    await expect(headers.nth(8)).toHaveText("Przyspieszenie");
+    await page.getByRole("button", { name: "Usuń atrybut: Przyspieszenie" }).click();
+    await expect(page.getByRole("columnheader", { name: "Przyspieszenie" })).toHaveCount(0);
+  });
+
   test("closes a dialog with a click outside it, not inside", async ({ page }) => {
     await loadDatabase(page);
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("messi");
@@ -322,6 +333,23 @@ test.describe("phone", () => {
     expect(await list.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
     // The last row is drawn once the list reaches its end.
     await expect(page.locator(".player-row").last()).toBeInViewport();
+  });
+});
+
+test.describe("phone list with filters", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  test("shows a filtered attribute before OVR when nothing else takes that place", async ({
+    page,
+  }) => {
+    await loadDatabase(page);
+    await page.getByRole("button", { name: "Filtry" }).click();
+    const dialog = page.getByRole("dialog", { name: "Filtry" });
+    await dialog.getByText("Atrybuty", { exact: true }).click();
+    await dialog.getByLabel("Dodaj atrybut").selectOption({ label: "Przyspieszenie" });
+    await dialog.getByRole("group", { name: "Przyspieszenie" }).getByLabel("od").fill("10");
+    await dialog.getByRole("button", { name: "Zamknij" }).click();
+    await expect(page.locator(".player-rows-header > span")).toHaveText(["Przyspieszenie", "OVR"]);
   });
 });
 

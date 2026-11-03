@@ -57,6 +57,16 @@ describe("scout store", () => {
     ).not.toHaveProperty("gameLanguage");
   });
 
+  // Loading runs compactFilters too, so this covers the order in the session as well.
+  it("keeps ranges in the order they were added, which orders the attribute columns", async () => {
+    const value = { filters: { ranges: { finishing: { min: 1 }, dribbling: { max: 2 } } } };
+    const loaded = await loadPreferences({
+      schemaVersion: 3,
+      value: { ...value, sort: DEFAULT_SORT },
+    });
+    expect(Object.keys(loaded?.filters.ranges ?? {})).toEqual(["finishing", "dribbling"]);
+  });
+
   it("saves, loads and forgets the career save", async () => {
     const backend = memoryBackend();
     const store = createScoutStore(backend);

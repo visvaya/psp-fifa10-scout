@@ -120,6 +120,12 @@ const predicates = (filters: PlayerFilters): readonly Predicate[] => {
   ];
 };
 
+/** The attributes with a set range, in the order they were added: the list shows them as columns. */
+export const rangedAttributes = (ranges: PlayerFilters["ranges"]): readonly AttributeName[] =>
+  Object.entries(ranges ?? {}).flatMap(([key, range]) =>
+    isAttributeName(key) && (range?.min !== undefined || range?.max !== undefined) ? [key] : [],
+  );
+
 /** The players that pass every set filter; empty filters return all of them. */
 export const filterPlayers = (
   players: readonly Player[],
