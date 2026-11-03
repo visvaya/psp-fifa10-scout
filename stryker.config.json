@@ -5,7 +5,12 @@
   "vitest": {
     "configFile": "vitest.stryker.config.ts"
   },
-  "mutate": ["src/data/psp-save-crypto.ts", "src/data/param-sfo.ts", "src/data/read-save-data.ts"],
+  "mutate": [
+    "src/data/psp-save-crypto.ts",
+    "src/data/param-sfo.ts",
+    "src/data/read-save-data.ts",
+    "src/data/ea-db.ts"
+  ],
   "coverageAnalysis": "perTest",
   "ignoreStatic": true,
   "reporters": ["clear-text", "progress", "html"],
