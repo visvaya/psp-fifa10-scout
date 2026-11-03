@@ -1,0 +1,30 @@
+name: Bug
+description: Something in the tool does not work as it should.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you saw and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The file you loaded (its kind, not the file itself), the screen and the actions.
+    validations:
+      required: true
+  - type: input
+    id: game
+    attributes:
+      label: Game release
+      description: The disc or download ID, for example ULES01328.
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and device
+  - type: markdown
+    attributes:
+      value: Do not attach disc images, databases or save files; they contain copyrighted game data.

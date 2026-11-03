@@ -1,0 +1,15 @@
+name: Idea
+description: A feature or an improvement.
+labels: [idea]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you want to do
+      description: The task in the game you want help with, and what is hard about it now.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: How the tool could help
