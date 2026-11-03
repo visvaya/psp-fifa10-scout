@@ -124,6 +124,7 @@ test("a new release is offered and installs on request, under a sub-path", async
     });
     const prompt = page.getByRole("status").filter({ hasText: "Dostępna jest nowa wersja." });
     await expect(prompt).toBeVisible();
+    await expect(page.getByLabel(GAME_INPUT)).toBeEnabled();
     const { violations } = await new AxeBuilder({ page }).analyze();
     expect(violations).toEqual([]);
     await expect(page.locator('meta[name="e2e-release"]')).toHaveCount(0);
