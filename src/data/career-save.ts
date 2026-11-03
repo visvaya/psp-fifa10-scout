@@ -115,6 +115,9 @@ const rowsOf = (db: EaDb, save: CareerSave, name: string): readonly EaDbRow[] =>
 export const effectiveRows: (db: EaDb, save: CareerSave, name: CareerTable) => readonly EaDbRow[] =
   rowsOf;
 
+const gameDate = (gameNumber: number): Date =>
+  birthdateToDate(Math.floor(gameNumber / GAME_INDEX_SCALE));
+
 /** The user team, manager name and date of the last played game, from team_manager. */
 export const careerManager = (
   db: EaDb,
@@ -125,6 +128,15 @@ export const careerManager = (
   return {
     teamId: Number(user["team_id"]),
     managerName: `${String(user["firstname"])} ${String(user["surname"])}`.trim(),
-    lastGameDate: birthdateToDate(Math.floor(Number(user["last_game_number"]) / GAME_INDEX_SCALE)),
+    lastGameDate: gameDate(Number(user["last_game_number"])),
   };
+};
+
+/**
+ * The season's first match day: the earliest fixture in the save, else the last played game. The game
+ * ages players to this day for the whole season (docs: career OVR date research), not to today.
+ */
+export const seasonStartDate = (db: EaDb, save: CareerSave): Date => {
+  const games = (save.get("fixtures") ?? []).map((row) => Number(row["game_number"]));
+  return games.length === 0 ? careerManager(db, save).lastGameDate : gameDate(Math.min(...games));
 };
