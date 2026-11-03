@@ -10,6 +10,26 @@ const loadDatabase = async (page: Page) => {
 };
 
 /** The visible count; the status region repeats it once the announcement settles. */
+/** The stored preferences record, read in the page from the app's IndexedDB store. */
+const readStoredPreferences = async (): Promise<unknown> =>
+  new Promise((resolve) => {
+    const open = indexedDB.open("psp-fifa10-scout");
+    open.addEventListener("success", () => {
+      const get = open.result.transaction("kv").objectStore("kv").get("preferences");
+      get.addEventListener("success", () => {
+        resolve(get.result);
+      });
+    });
+  });
+
+/** Waits until the stored preferences include a position group: a reload before the IndexedDB write
+ * commits would restore the previous filters (a fast CI runner reloads within that window). */
+const expectStoredPositionGroup = async (page: Page, group: string) => {
+  await expect
+    .poll(async () => page.evaluate(readStoredPreferences))
+    .toMatchObject({ value: { filters: { positionGroups: [group] } } });
+};
+
 const expectCount = async (page: Page, text: string) => {
   await expect(page.locator("p.count")).toHaveText(text);
 };
@@ -58,6 +78,7 @@ test.describe("wide screen", () => {
   test("keeps the game database and filters after a reload", async ({ page }) => {
     await loadDatabase(page);
     await page.getByRole("checkbox", { name: "Bramkarze" }).check();
+    await expectStoredPositionGroup(page, "goalkeeper");
     await page.reload();
     await expect(page.getByRole("checkbox", { name: "Bramkarze" })).toBeChecked();
     await expect(page.getByRole("table")).toBeVisible();

@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { parseCareerSave } from "../data/career-save.ts";
 import type { CareerSave } from "../data/career-save.ts";
 import { parseEaDb } from "../data/ea-db.ts";
@@ -110,7 +110,11 @@ const byId = (players: ReturnType<typeof buildPlayers>, id: number) =>
   players.find((player) => player.id === id);
 
 describe("buildPlayers from fifa.db", () => {
-  const players = buildPlayers(DB);
+  // Built per test, not in the describe body: Stryker credits only code run inside a test.
+  let players: ReturnType<typeof buildPlayers> = [];
+  beforeEach(() => {
+    players = buildPlayers(DB);
+  });
 
   it("summarises a club player with his club, league, national team and nationality", () => {
     expect(byId(players, 158_023)).toEqual({
@@ -195,7 +199,11 @@ describe("attributesOf", () => {
 });
 
 describe("buildPlayers with a career save", () => {
-  const players = buildPlayers(DB, SAVE);
+  // Built per test, not in the describe body: Stryker credits only code run inside a test.
+  let players: ReturnType<typeof buildPlayers> = [];
+  beforeEach(() => {
+    players = buildPlayers(DB, SAVE);
+  });
 
   it("takes ages on the last game date and links from the save", () => {
     expect(byId(players, 7)).toMatchObject({
