@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://psp-fifa10-scout.visvaya.workers.dev/sitemap.xml

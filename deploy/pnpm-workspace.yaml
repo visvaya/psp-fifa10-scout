@@ -1,0 +1,10 @@
+# A workspace of its own, so the app's install never downloads the deployment tool and the deploy job
+# installs nothing else. Same supply-chain guards as the root pnpm-workspace.yaml.
+minimumReleaseAge: 4320 # minutes, 3 days
+minimumReleaseAgeExclude: []
+trustPolicy: no-downgrade
+pmOnFail: ignore
+# Their install scripts only check or fetch native binaries for local dev; deploying static files needs neither.
+allowBuilds:
+  esbuild: false
+  workerd: false

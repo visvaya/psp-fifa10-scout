@@ -6,8 +6,8 @@ compare players to find the ones worth signing.
 
 ## Status
 
-Early development (November 2026). The tool works end to end but has no public hosted version
-yet; run it locally (see [Development](#development)). The interface is in Polish.
+Early development (November 2026). Use it at **<https://psp-fifa10-scout.visvaya.workers.dev/>**;
+every change merged into `main` is published there after the checks pass. The interface is in Polish.
 
 What it does today:
 
@@ -27,7 +27,7 @@ What it does today:
 - Installs as an app on a phone or a PC and works offline after the first visit. On an iPhone, pick
   the files in the Files app.
 
-Not yet available: transfer price and wage estimates, a hosted version.
+Not yet available: transfer price and wage estimates.
 
 Supported game version: FIFA 10, European release `ULES01328`. Other releases may differ.
 
@@ -54,6 +54,10 @@ pnpm build && pnpm preview   # production build, including the offline service w
 pnpm verify    # the full gate CI runs: format, text rules, typecheck, lint, tests, duplicates, dead code, build, size
 pnpm test:e2e  # browser tests (Chromium and WebKit, with axe), on a synthetic database
 ```
+
+Deployment: the `deploy` job in `.github/workflows/ci.yml` publishes the tested build to Cloudflare
+Workers (configuration in `deploy/`, response headers in `public/_headers`), then
+`scripts/check-deployment.ts` checks that the site serves exactly that build.
 
 Source layout: `src/data` reads files (ISO, database, save decryption), `src/logic` holds the pure
 player model, filters and ratings, and `src/ui` the React interface, with every user-facing text in
