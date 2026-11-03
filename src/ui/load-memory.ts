@@ -29,9 +29,11 @@ export const createSaveMemory = (withStore: WithStore) => {
   let picked: SaveFiles<Blob> | null = null;
   let unsaved: SaveFiles<Blob> | null = null;
   let latest = 0;
+  /** Counts forgets, so a write whose bytes were still being read when the save was forgotten is dropped. */
+  let forgets = 0;
   return {
     forget: () => {
-      [picked, unsaved] = [null, null];
+      [picked, unsaved, forgets] = [null, null, forgets + 1];
       withStore(async (opened) => opened.saveCareerSave(null));
     },
     picked: (save: SaveFiles<Blob> | undefined) => {
@@ -43,11 +45,17 @@ export const createSaveMemory = (withStore: WithStore) => {
     finished: (message: WorkerMessage) => {
       if (message.type === "phase" || message.requestId !== latest) return;
       const save = unsaved;
-      unsaved = null;
-      if (message.type === "failed" && message.error.stage === "save")
-        withStore(async (opened) => opened.saveCareerSave(null));
-      else if (message.type === "done" && save !== null)
-        withStore(async (opened) => opened.saveCareerSave(await bytes(save)));
+      const savesFailed = message.type === "failed" && message.error.stage === "save";
+      // A load that failed before the save keeps it for the next one.
+      if (message.type === "done" || savesFailed) unsaved = null;
+      if (savesFailed) withStore(async (opened) => opened.saveCareerSave(null));
+      else if (message.type === "done" && save !== null) {
+        const before = forgets;
+        withStore(async (opened) => {
+          const data = await bytes(save);
+          if (forgets === before) await opened.saveCareerSave(data);
+        });
+      }
     },
   };
 };
