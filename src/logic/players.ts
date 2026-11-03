@@ -104,7 +104,7 @@ export interface Player {
   readonly name: string;
   /** The name folded by searchKey, for text search. */
   readonly searchName: string;
-  /** Position in Polish alphabetical order of names (ties by id) among the built players. */
+  /** Position in alphabetical order of names (ties by id): Polish, or the chosen game language's. */
   readonly nameOrder: number;
   /** From the generated youth pool (shown only when a save links the player to a team). */
   readonly youth: boolean;
@@ -188,7 +188,7 @@ interface Context {
 
 const num = (row: EaDbRow, key: string): number => Number(row[key]);
 
-/** Polish alphabetical order, shared by every text sort. */
+/** Polish alphabetical order: the default of every text sort. */
 export const nameCollator = new Intl.Collator("pl");
 
 /** Text without case and diacritics (ł included, which has no decomposition), for search. */
@@ -316,10 +316,13 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
 };
 
 /** Each summary frozen with its nameOrder; the order is computed once so sorts stay numeric. */
-const withNameOrder = (players: readonly Omit<Player, "nameOrder">[]): readonly Player[] => {
+export const withNameOrder = (
+  players: readonly Omit<Player, "nameOrder">[],
+  collator: Intl.Collator = nameCollator,
+): readonly Player[] => {
   const order = new Map(
     players
-      .toSorted((a, b) => nameCollator.compare(a.name, b.name) || a.id - b.id)
+      .toSorted((a, b) => collator.compare(a.name, b.name) || a.id - b.id)
       .map((player, index) => [player, index]),
   );
   return Object.freeze(

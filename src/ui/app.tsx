@@ -18,14 +18,18 @@ const WIDE_QUERY = "(min-width: 60rem)";
 const useGameNames = (state: ScoutState) => {
   const language = activeLanguage(state, navigator.languages);
   const { languages } = state;
+  const collator = useMemo(() => collatorFor(language), [language]);
   const players = useMemo(
     () =>
       state.players === null
         ? null
-        : localizePlayers(state.players, language === null ? null : (languages[language] ?? null)),
-    [state.players, language, languages],
+        : localizePlayers(
+            state.players,
+            language === null ? null : (languages[language] ?? null),
+            collator,
+          ),
+    [state.players, language, languages, collator],
   );
-  const collator = useMemo(() => collatorFor(language), [language]);
   return { language, players, collator };
 };
 

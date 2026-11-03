@@ -68,6 +68,19 @@ describe("localizePlayers", () => {
     expect(localizePlayers(players, names)[0]).toMatchObject({ clubName: null, leagueName: null });
     expect(localizePlayers(players, null)).toBe(players);
   });
+
+  it("orders player names in the language's collation", () => {
+    const players = [
+      testPlayer({ id: 1, name: "Hrubý", nameOrder: 1 }),
+      testPlayer({ id: 2, name: "Chalupa", nameOrder: 0 }),
+    ];
+    const czech = localizePlayers(players, null, collatorFor("cze_cz"));
+    expect(czech.map((player) => [player.id, player.nameOrder])).toEqual([
+      [1, 0],
+      [2, 1],
+    ]);
+    expect(localizePlayers(players, null, nameCollator)).toBe(players);
+  });
 });
 
 describe("languages", () => {

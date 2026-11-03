@@ -1,6 +1,6 @@
 // Player ordering by any scalar summary field or attribute; missing values go last either way,
 // and ties fall back to the name, then the id (nameOrder), so the order is total. Every key is
-// turned into a number first: text by its Polish alphabetical rank, the name by nameOrder.
+// turned into a number first: text by its rank in the given collation (Polish by default), the name by nameOrder.
 import { isAttributeName, nameCollator } from "./players.ts";
 import type { AttributeName, Player } from "./players.ts";
 

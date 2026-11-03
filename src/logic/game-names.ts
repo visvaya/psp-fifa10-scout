@@ -1,7 +1,7 @@
 // Club, league and country names in a language of the game (from its locale files), applied over the
 // English fifa.db names; any name the game does not have keeps the fifa.db one.
 import { countryKey, leagueKey, teamKey } from "../data/game-locale.ts";
-import { nameCollator } from "./players.ts";
+import { nameCollator, withNameOrder } from "./players.ts";
 import type { Player } from "./players.ts";
 
 /** Names by id; plain records so they store and post as they are. */
@@ -55,11 +55,7 @@ const nameOr = (
   fallback: string | null,
 ): string | null => (id === null ? fallback : (names[id] ?? fallback));
 
-/** The players with the game's names; the same array without names. */
-export const localizePlayers = (
-  players: readonly Player[],
-  names: GameNames | null,
-): readonly Player[] =>
+const renamed = (players: readonly Player[], names: GameNames | null): readonly Player[] =>
   names === null
     ? players
     : players.map((player) => ({
@@ -69,6 +65,19 @@ export const localizePlayers = (
         nationalTeamName: nameOr(names.teams, player.nationalTeamId, player.nationalTeamName),
         nationalityName: nameOr(names.countries, player.nationalityId, player.nationalityName),
       }));
+
+/**
+ * The players with the game's names, their names ranked in the language's order; the same array when
+ * neither changes anything.
+ */
+export const localizePlayers = (
+  players: readonly Player[],
+  names: GameNames | null,
+  collator: Intl.Collator = nameCollator,
+): readonly Player[] => {
+  const result = renamed(players, names);
+  return collator === nameCollator ? result : withNameOrder(result, collator);
+};
 
 export const languageLabel = (code: string): string => LANGUAGES[code]?.label ?? code;
 
