@@ -630,6 +630,16 @@ input[type="number"] {
   color: var(--color-ink);
 }
 
+/* While a dialog is open nothing behind it scrolls: a swipe past the dialog's end stays in it, and the
+   list and filter panel stop scrolling (iOS Safari otherwise moves them under the backdrop). */
+.dialog {
+  overscroll-behavior: contain;
+}
+
+:root:has(.dialog[open]) :is(.scroll, .filter-panel) {
+  overflow: hidden;
+}
+
 .dialog::backdrop {
   background: rgb(0 0 0 / 0.45);
 }
