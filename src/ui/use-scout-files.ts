@@ -10,15 +10,12 @@ import type { Preferences, ScoutAction } from "../logic/scout-state.ts";
 import { createScoutStore } from "../logic/scout-store.ts";
 import type { ScoutStore, StoredScout } from "../logic/scout-store.ts";
 import { detectBackend } from "./browser-store.ts";
+import { createGameMemory, createSaveMemory } from "./load-memory.ts";
+import type { LoadStarted } from "./load-memory.ts";
 
 const blobs = ({ dataBin, paramSfo }: SaveFiles<Uint8Array>): SaveFiles<Blob> => ({
   dataBin: new Blob([dataBin.slice()]),
   paramSfo: new Blob([paramSfo.slice()]),
-});
-
-const bytes = async ({ dataBin, paramSfo }: SaveFiles<Blob>): Promise<SaveFiles<Uint8Array>> => ({
-  dataBin: new Uint8Array(await dataBin.arrayBuffer()),
-  paramSfo: new Uint8Array(await paramSfo.arrayBuffer()),
 });
 
 const openStore = async () => {
@@ -33,79 +30,13 @@ const restore = (dispatch: Dispatch<ScoutAction>, stored: StoredScout) => {
   }
 };
 
-/** How a load started: a picked file's name, or the stored game with its name. */
-type LoadStarted = Pick<
-  Extract<ScoutAction, { readonly type: "load-started" }>,
-  "restored" | "gameName"
->;
-
-type WithStore = (run: (opened: ScoutStore) => Promise<void>) => void;
-
-/** Keeps the store's career save in step: a picked save is stored once it loads, a failing one is dropped. */
-const createSaveMemory = (withStore: WithStore) => {
-  let picked: SaveFiles<Blob> | null = null;
-  const loading = new Map<number, SaveFiles<Blob>>();
-  const forget = () => {
-    withStore(async (opened) => opened.saveCareerSave(null));
-  };
-  return {
-    forget,
-    picked: (save: SaveFiles<Blob> | undefined) => {
-      picked = save ?? null;
-    },
-    /** The request that loads the picked save. */
-    started: (requestId: number) => {
-      if (picked !== null) loading.set(requestId, picked);
-      picked = null;
-    },
-    finished: (message: WorkerMessage) => {
-      if (message.type === "phase") return;
-      const save = loading.get(message.requestId);
-      loading.delete(message.requestId);
-      if (message.type === "failed" && message.error.stage === "save") forget();
-      else if (message.type === "done" && save !== undefined)
-        withStore(async (opened) => opened.saveCareerSave(await bytes(save)));
-    },
-  };
-};
-
-type GameLoad = { readonly source: Blob; readonly started: LoadStarted };
-
-/**
- * The game to load again when a save or language file is picked (the load in progress, else the last
- * good fifa.db), and the fifa.db of each load from a picked file, stored under that file's name.
- */
-const createGameMemory = (withStore: WithStore) => {
-  const fromFile = new Map<number, string>();
-  let [inFlight, latest, game]: [GameLoad | null, number, Blob | null] = [null, 0, null];
-  return {
-    started: (requestId: number, load: GameLoad) => {
-      [inFlight, latest] = [load, requestId];
-      const { restored, gameName } = load.started;
-      if (restored === undefined && typeof gameName === "string") fromFile.set(requestId, gameName);
-    },
-    finished: (message: WorkerMessage) => {
-      if (message.type === "phase") return;
-      const name = fromFile.get(message.requestId);
-      fromFile.delete(message.requestId);
-      if (message.requestId === latest) inFlight = null;
-      if (message.type !== "done") return;
-      game = new Blob([message.result.gameDb.slice()]);
-      if (name !== undefined)
-        withStore(async (opened) => opened.saveGameDb(message.result.gameDb, name));
-    },
-    reload: (): GameLoad | null =>
-      inFlight ?? (game === null ? null : { source: game, started: {} }),
-  };
-};
-
 const createSession = (dispatch: Dispatch<ScoutAction>) => {
   /** The store once open; saves wait for it, so a game picked before it opens is still kept. */
   let [worker, store]: [Worker | null, Promise<ScoutStore> | null] = [null, null];
   let lastRequestId = 0;
   /** The save for every load; an attached language file for the next load only. */
   let pending: Pick<LoadRequest, "save" | "locale"> = {};
-  const withStore: WithStore = (run) => void store?.then(run);
+  const withStore = (run: (opened: ScoutStore) => Promise<void>) => void store?.then(run);
   const [gameMemory, saveMemory] = [createGameMemory(withStore), createSaveMemory(withStore)];
 
   /** Loads the game; a picked file carries its name, the stored one is restored, a reload has neither. */
