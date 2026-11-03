@@ -17,6 +17,7 @@ describe("scout store", () => {
       gameName: null,
       preferences: null,
       languages: {},
+      careerSave: null,
     });
   });
 
@@ -47,12 +48,28 @@ describe("scout store", () => {
       gameName: "fifa.iso",
       preferences,
       languages,
+      careerSave: null,
     });
     await store.savePreferences({ ...preferences, gameLanguage: null });
     expect((await store.load()).preferences?.gameLanguage).toBeNull();
     expect(
       await loadPreferences({ schemaVersion: 3, value: { ...preferences, gameLanguage: 5 } }),
     ).not.toHaveProperty("gameLanguage");
+  });
+
+  it("saves, loads and forgets the career save", async () => {
+    const backend = memoryBackend();
+    const store = createScoutStore(backend);
+    const save = { dataBin: Uint8Array.of(1, 2), paramSfo: Uint8Array.of(3) };
+    await store.saveCareerSave(save);
+    expect((await store.load()).careerSave).toEqual(save);
+    await store.saveCareerSave(null);
+    expect((await store.load()).careerSave).toBeNull();
+    await backend.set("careerSave", {
+      schemaVersion: SCHEMA_VERSION.careerSave,
+      value: { dataBin: Uint8Array.of(1), paramSfo: "x" },
+    });
+    expect((await store.load()).careerSave).toBeNull();
   });
 
   it("drops stored languages of a wrong shape one by one", async () => {
@@ -87,6 +104,7 @@ describe("scout store", () => {
       gameName: null,
       preferences: null,
       languages: {},
+      careerSave: null,
     });
     await backend.set("gameDb", "junk");
     expect((await createScoutStore(backend).load()).gameDb).toBeNull();
@@ -197,6 +215,7 @@ describe("scout store", () => {
       gameName: null,
       preferences: null,
       languages: {},
+      careerSave: null,
     });
   });
 });

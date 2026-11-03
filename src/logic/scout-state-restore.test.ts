@@ -15,6 +15,7 @@ const succeeded = (state: ScoutState, requestId = 1): ScoutState =>
     requestId,
     players: [testPlayer({ id: 1 })],
     myTeamId: null,
+    career: null,
     languages: {},
     attachedLanguage: null,
   });

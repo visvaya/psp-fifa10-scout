@@ -13,6 +13,7 @@ interface StartScreenProps {
   readonly language: string | null;
   readonly onGame: (file: File) => void;
   readonly onSave: (files: readonly File[]) => void;
+  readonly onForgetSave: () => void;
   readonly onLocale: (files: readonly File[]) => void;
   readonly dispatch: Dispatch<ScoutAction>;
 }
@@ -29,6 +30,8 @@ interface FileStepProps {
   readonly loaded: string | null;
   /** Controls shown between the title and the file input. */
   readonly before?: ReactNode;
+  /** Controls shown after the file input. */
+  readonly after?: ReactNode;
   readonly onFiles: (files: readonly File[]) => void;
   readonly help: ReactNode;
 }
@@ -65,6 +68,7 @@ const FileStep = (props: FileStepProps): JSX.Element => {
       <label className="button file-label" htmlFor={`${stage}-file`}>
         {props.label}
       </label>
+      {props.after}
       <div id={`${stage}-help`} className="help">
         {props.help}
       </div>
@@ -146,6 +150,38 @@ const LanguageStep = ({
   />
 );
 
+/** The career save: what it holds once loaded, and how to forget it. */
+const SaveStep = ({
+  state,
+  ready,
+  onSave,
+  onForgetSave,
+}: Pick<StartScreenProps, "state" | "ready" | "onSave" | "onForgetSave">): JSX.Element => (
+  <FileStep
+    state={state}
+    ready={ready}
+    stage="save"
+    title={TEXT.saveStep}
+    label={TEXT.saveInput}
+    multiple
+    loaded={state.career === null ? null : TEXT.careerLoaded(state.career)}
+    onFiles={onSave}
+    after={
+      state.career === null ? null : (
+        <button type="button" className="button" onClick={onForgetSave}>
+          {TEXT.forgetSave}
+        </button>
+      )
+    }
+    help={
+      <>
+        <p>{TEXT.saveHelp}</p>
+        <p>{TEXT.saveFolders}</p>
+      </>
+    }
+  />
+);
+
 /** Stands in for the list while the stored game loads: rows shaped like the player rows. */
 const ListSkeleton = ({ phase }: { readonly phase: string }): JSX.Element => (
   <div className="restoring">
@@ -183,7 +219,7 @@ const ShowPlayers = ({
 );
 
 export const StartScreen = (props: StartScreenProps): JSX.Element => {
-  const { state, ready, onGame, onSave, dispatch } = props;
+  const { state, ready, onGame, dispatch } = props;
   const { players, loading } = state;
   if (isRestoring(state) && loading !== null)
     return <ListSkeleton phase={TEXT.phase(loading.phase)} />;
@@ -220,16 +256,7 @@ export const StartScreen = (props: StartScreenProps): JSX.Element => {
           </>
         }
       />
-      <FileStep
-        {...shared}
-        stage="save"
-        title={TEXT.saveStep}
-        label={TEXT.saveInput}
-        multiple
-        loaded={state.myTeamId === null ? null : TEXT.saveLoaded}
-        onFiles={onSave}
-        help={<p>{TEXT.saveHelp}</p>}
-      />
+      <SaveStep {...props} />
       <LanguageStep {...props} />
       <section className="step install-help" aria-labelledby="install-title">
         <h3 id="install-title">{TEXT.installHeading}</h3>

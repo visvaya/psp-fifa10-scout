@@ -4,7 +4,7 @@ import { FLAG_KEYS, LIST_FIELDS, RANGE_KEYS } from "./filter-players.ts";
 import type { FlagKey, ListKey, PlayerFilters, Range, RangeKey } from "./filter-players.ts";
 import { defaultLanguage } from "./game-names.ts";
 import type { GameLanguages } from "./game-names.ts";
-import type { LoadError, LoadPhase, WorkerMessage } from "./load-scout.ts";
+import type { CareerSummary, LoadError, LoadPhase, WorkerMessage } from "./load-scout.ts";
 import { nameCollator } from "./players.ts";
 import type { Player } from "./players.ts";
 import type { SortDirection, SortKey } from "./sort-players.ts";
@@ -54,6 +54,7 @@ export type ScoutError =
 export interface ScoutState extends Preferences {
   readonly players: readonly Player[] | null;
   readonly myTeamId: number | null;
+  readonly career: CareerSummary | null;
   readonly loading: {
     readonly requestId: number;
     readonly phase: LoadPhase;
@@ -84,6 +85,7 @@ type LoadAction =
       readonly requestId: number;
       readonly players: readonly Player[];
       readonly myTeamId: number | null;
+      readonly career: CareerSummary | null;
       readonly languages: GameLanguages;
       /** An attached language file's code; it becomes the chosen language. */
       readonly attachedLanguage: string | null;
@@ -113,6 +115,7 @@ const POTENTIAL_KEYS: ReadonlySet<SortKey> = new Set(["potential", "growth"]);
 export const initialScoutState: ScoutState = {
   players: null,
   myTeamId: null,
+  career: null,
   gameName: null,
   loading: null,
   error: null,
@@ -247,6 +250,7 @@ const loadReducer = (state: ScoutState, action: LoadAction): ScoutState => {
         ...state,
         players: action.players,
         myTeamId: action.myTeamId,
+        career: action.career,
         // Without a career these filters do nothing, so they would leave a chip that does not apply.
         ...(action.myTeamId === null
           ? {
@@ -328,8 +332,8 @@ export const actionOf = (message: WorkerMessage): ScoutAction => {
   const { requestId } = message;
   if (message.type === "phase") return { type: "load-phase", requestId, phase: message.phase };
   if (message.type === "failed") return { type: "load-failed", requestId, error: message.error };
-  const { players, myTeamId, languages, attachedLanguage } = message.result;
-  return { type: "load-succeeded", requestId, players, myTeamId, languages, attachedLanguage };
+  const { gameDb: _gameDb, ...result } = message.result;
+  return { type: "load-succeeded", requestId, ...result };
 };
 
 /** The game language whose names show: the chosen one while known, else the browser's, else none. */

@@ -1,5 +1,5 @@
 /** Every text the user reads, in one module, with the Polish number and plural helpers. */
-import type { LoadErrorKind, LoadPhase, LoadStage } from "../logic/load-scout.ts";
+import type { CareerSummary, LoadErrorKind, LoadPhase, LoadStage } from "../logic/load-scout.ts";
 import type { FlagKey, ListKey, RangeFields, RangeKey } from "../logic/filter-players.ts";
 import { isAttributeName } from "../logic/players.ts";
 import type { AttributeName } from "../logic/players.ts";
@@ -24,6 +24,12 @@ export const plural = (count: number, forms: PluralForms): string => {
 };
 
 export const formatNumber = (value: number): string => numberFormat.format(value);
+
+/** Game dates are calendar days, stored as UTC midnight. */
+const dateFormat = new Intl.DateTimeFormat("pl", { dateStyle: "long", timeZone: "UTC" });
+
+/** A game date the Polish way: "8 sierpnia 2009". */
+const formatDate = (date: Date): string => dateFormat.format(date);
 
 const count = (value: number, forms: PluralForms): string =>
   `${formatNumber(value)}${NBSP}${plural(value, forms)}`;
@@ -176,6 +182,8 @@ const PHASES: Readonly<Record<LoadPhase, string>> = {
 const ERRORS: Readonly<Record<LoadErrorKind | "missing-file", string>> = {
   "wrong-game": "To plik innej gry. Narzędzie obsługuje FIFA 10 na PSP (ULES01328).",
   "wrong-file": "To nie jest właściwy plik. Sprawdź, czy wybrano dobry plik.",
+  "not-career":
+    "To zapis profilu albo składów, nie kariery. Wybierz pliki z folderu kariery, zwykle ULES01328081.",
   damaged: "Plik jest uszkodzony albo niepełny. Skopiuj go jeszcze raz.",
   unexpected: "Nie udało się odczytać pliku. Spróbuj ponownie.",
   "missing-file": "Wybierz oba pliki naraz: DATA.BIN i PARAM.SFO.",
@@ -210,8 +218,12 @@ export const TEXT = {
   saveStep: "2. Zapis kariery (opcjonalnie)",
   saveInput: "Wybierz DATA.BIN i PARAM.SFO",
   saveHelp:
-    "Oba pliki są w folderze PSP/SAVEDATA/ULES01328… (iPhone: Pliki, folder PPSSPP). Zaznacz je razem.",
-  saveLoaded: "Zapis kariery wczytany.",
+    "Zapis kariery jest zwykle w folderze PSP/SAVEDATA/ULES01328081 (iPhone: Pliki, folder PPSSPP). Zaznacz razem DATA.BIN i PARAM.SFO. Zapis zostaje na tym urządzeniu do usunięcia albo wyboru innego.",
+  saveFolders:
+    "DATA.BIN kariery ma około 540 KB. Foldery kończące się na 001 (profil, około 36 KB) i 021 (składy, około 270 KB) to inne zapisy.",
+  careerLoaded: ({ managerName, clubName, lastGameDate }: CareerSummary): string =>
+    `Kariera: ${managerName}, ${clubName ?? "bez klubu"}, ostatni mecz ${formatDate(lastGameDate)}`,
+  forgetSave: "Usuń zapis kariery",
   phase: (phase: LoadPhase): string => PHASES[phase],
   error: (error: ScoutError): string =>
     `${STAGES[error.stage]}: ${
