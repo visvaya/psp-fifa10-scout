@@ -5,6 +5,7 @@ import { ListView } from "./list-view.tsx";
 import { PlayerCard } from "./player-card.tsx";
 import { StartScreen } from "./start-screen.tsx";
 import { TEXT } from "./text.ts";
+import { UpdatePrompt } from "./update-prompt.tsx";
 import { useMediaQuery } from "./use-media-query.ts";
 import { useScoutFiles } from "./use-scout-files.ts";
 
@@ -40,6 +41,7 @@ export const App = (): JSX.Element => {
           </button>
         )}
       </header>
+      <UpdatePrompt />
       <main className="main">
         {view === "list" && players !== null ? (
           <ListView state={state} players={players} wide={wide} dispatch={dispatch} />

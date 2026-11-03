@@ -2,6 +2,8 @@ import react from "@vitejs/plugin-react";
 import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
+  // Relative URLs: the same build works at the site root and under a sub-path (GitHub Pages).
+  base: "./",
   plugins: [react()],
   test: {
     environment: "node",

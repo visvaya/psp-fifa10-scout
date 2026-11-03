@@ -137,6 +137,16 @@ export const TEXT = {
   error: (error: ScoutError): string =>
     `${error.stage === "game" ? "Plik gry" : "Zapis kariery"}: ${ERRORS[error.kind]}`,
   resultCount: (value: number): string => count(value, PLAYERS),
+  installHeading: "Aplikacja na ekranie początkowym",
+  installHelp:
+    "Po pierwszym otwarciu narzędzie działa też bez internetu. iPhone: w Safari wybierz Udostępnij, potem Do ekranu początkowego. Chrome i Edge: menu przeglądarki, potem Zainstaluj aplikację.",
+  update: {
+    waiting: "Dostępna jest nowa wersja.",
+    installing: "Instalowanie nowej wersji…",
+    outdated: "Nowa wersja została zainstalowana w innym oknie.",
+    failed: "Nie udało się pobrać nowej wersji. Spróbuj później.",
+    reload: "Odśwież",
+  },
   noData: "Nie wczytano jeszcze bazy gry.",
   noMatches: "Żaden zawodnik nie spełnia filtrów.",
   filters: "Filtry",

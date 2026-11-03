@@ -103,6 +103,10 @@ export const StartScreen = ({
         onFiles={onSave}
         help={<p>{state.myTeamId === null ? TEXT.saveHelp : TEXT.saveLoaded}</p>}
       />
+      <section className="step install-help" aria-labelledby="install-title">
+        <h3 id="install-title">{TEXT.installHeading}</h3>
+        <p className="help">{TEXT.installHelp}</p>
+      </section>
       <output className="status">
         {state.loading === null ? "" : TEXT.phase(state.loading.phase)}
       </output>

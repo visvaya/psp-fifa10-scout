@@ -16,7 +16,7 @@ export default defineConfig({
     { name: "webkit", use: { ...devices["Desktop Safari"] } },
   ],
   webServer: {
-    command: `node scripts/write-synthetic-db.ts && vite build && vite preview --port ${String(PORT)} --strictPort`,
+    command: `node scripts/write-synthetic-db.ts && vite build && node scripts/write-service-worker.ts && vite preview --port ${String(PORT)} --strictPort`,
     port: PORT,
     reuseExistingServer: !CI,
   },

@@ -95,6 +95,8 @@ for (const colorScheme of ["light", "dark"] as const) {
       await page.emulateMedia({ colorScheme });
       await page.setViewportSize({ width, height: 844 });
       await page.goto("/");
+      // A stable state: the file inputs are disabled only while the store opens.
+      await expect(page.getByLabel("Wybierz obraz ISO lub fifa.db")).toBeEnabled();
       await expectNoAxeViolations(page);
       await loadDatabase(page);
       await expectNoAxeViolations(page);
