@@ -65,10 +65,10 @@ const createSession = (dispatch: Dispatch<ScoutAction>) => {
   };
 
   const onMessage = ({ data: message }: MessageEvent<WorkerMessage>) => {
-    // A bad save must not block the next game load.
-    if (message.type === "failed" && message.error.stage === "save") pending = {};
-    gameMemory.finished(message);
-    saveMemory.finished(message);
+    // A bad save must not block the next game load; an older load's failure says nothing about it.
+    const latest = message.requestId === lastRequestId;
+    if (latest && message.type === "failed" && message.error.stage === "save") pending = {};
+    for (const memory of [gameMemory, saveMemory]) memory.finished(message);
     dispatch(actionOf(message));
   };
 

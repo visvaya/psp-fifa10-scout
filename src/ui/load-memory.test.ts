@@ -61,6 +61,29 @@ describe("createSaveMemory", () => {
     expect(writes).toEqual([null]);
   });
 
+  it("does not write a save whose bytes were still being read when it was forgotten", async () => {
+    const { writes, withStore, settled } = recordingStore();
+    const memory = createSaveMemory(withStore);
+    memory.picked(save(1));
+    memory.started(1);
+    memory.finished(done(1));
+    memory.forget();
+    await settled();
+    expect(writes).toEqual([null]);
+  });
+
+  it("keeps a picked save for the next load when the game, not the save, fails", async () => {
+    const { writes, withStore, settled } = recordingStore();
+    const memory = createSaveMemory(withStore);
+    memory.picked(save(1));
+    memory.started(1);
+    memory.finished({ type: "failed", requestId: 1, error: { stage: "game", kind: "wrong-file" } });
+    memory.started(2);
+    memory.finished(done(2));
+    await settled();
+    expect(writes).toEqual([[1]]);
+  });
+
   it("forgets the stored save when the latest load fails on the save", async () => {
     const { writes, withStore, settled } = recordingStore();
     const memory = createSaveMemory(withStore);
