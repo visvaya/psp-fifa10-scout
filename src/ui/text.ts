@@ -4,7 +4,7 @@ import type { FlagKey, ListKey, RangeFields, RangeKey } from "../logic/filter-pl
 import { isAttributeName } from "../logic/players.ts";
 import type { AttributeName } from "../logic/players.ts";
 import type { PositionGroup } from "../logic/positions.ts";
-import type { ClubStatus, ScoutError } from "../logic/scout-state.ts";
+import type { ClubStatus, MyClub, ScoutError } from "../logic/scout-state.ts";
 
 const NBSP = " ";
 
@@ -168,6 +168,12 @@ export const FILTER_SECTION_LABELS = {
 
 // jscpd:ignore-end
 
+export const MY_CLUB_LABELS: Readonly<Record<"all" | MyClub, string>> = {
+  all: "wszyscy zawodnicy",
+  hide: "ukryj zawodników mojego klubu",
+  only: "tylko zawodnicy mojego klubu",
+};
+
 export const CLUB_STATUS_LABELS: Readonly<Record<ClubStatus, string>> = {
   available: "do sprowadzenia (z klubem i wolni)",
   "free-agents": "tylko wolni zawodnicy",
@@ -259,7 +265,7 @@ export const TEXT = {
   ratingAt: (position: string): string => `OVR ${position}`,
   text: "Nazwisko",
   clubStatus: "Zawodnicy",
-  excludeMyClub: "Ukryj zawodników mojego klubu",
+  myClub: "Mój klub",
   addAttribute: "Dodaj atrybut",
   chooseAttribute: "Wybierz atrybut",
   removeAttribute: (label: string): string => `Usuń atrybut: ${label}`,

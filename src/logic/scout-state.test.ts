@@ -37,7 +37,7 @@ describe("scoutReducer loading", () => {
   });
 
   it("drops the career-only filters when a load brings no career", () => {
-    const filters = { text: "a", clubStatus: "free-agents", excludeMyClub: true } as const;
+    const filters = { text: "a", clubStatus: "free-agents", myClub: "only" } as const;
     expect(loaded(null, { ...loading, filters }).filters).toEqual({ text: "a" });
     expect(loaded(5, { ...loading, filters }).filters).toEqual(filters);
   });
@@ -319,13 +319,14 @@ describe("effectiveFilters", () => {
     expect(effectiveFilters({ clubStatus: "free-agents" }, null)).toEqual({ availableOnly: true });
   });
 
-  it("turns 'exclude my club' into the club id, only with a career", () => {
-    expect(effectiveFilters({ excludeMyClub: true, text: "a" }, 7)).toEqual({
+  it("turns 'my club' into the club id to hide or keep, only with a career", () => {
+    expect(effectiveFilters({ myClub: "hide", text: "a" }, 7)).toEqual({
       text: "a",
       availableOnly: true,
       excludeTeamId: 7,
     });
-    expect(effectiveFilters({ excludeMyClub: true }, null)).toEqual({ availableOnly: true });
+    expect(effectiveFilters({ myClub: "only" }, 7)).toEqual({ availableOnly: true, onlyTeamId: 7 });
+    expect(effectiveFilters({ myClub: "hide" }, null)).toEqual({ availableOnly: true });
   });
 });
 
@@ -340,13 +341,13 @@ describe("activeFilters", () => {
     ).toEqual(["ranges.age", "ranges.finishing"]);
     expect(
       activeFilters({
-        excludeMyClub: true,
+        myClub: "hide",
         clubStatus: "free-agents",
         text: "a",
         lists: { leagueId: [1], clubId: [] },
         flags: { selfish: false, transferListed: undefined },
       }),
-    ).toEqual(["text", "lists.leagueId", "flags.selfish", "clubStatus", "excludeMyClub"]);
+    ).toEqual(["text", "lists.leagueId", "flags.selfish", "clubStatus", "myClub"]);
   });
 });
 

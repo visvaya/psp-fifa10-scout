@@ -228,6 +228,22 @@ test.describe("career save", () => {
     await page.getByRole("button", { name: "Pliki" }).click();
     await expect(page.getByText(/^Kariera: /u)).toHaveCount(0);
   });
+
+  // Wisła Kraków, the career's club, has Paweł Brożek and 20 of the 60 generated players.
+  test("shows only my club or hides it", async ({ page }) => {
+    await page.goto("/");
+    await pickGame(page, SYNTHETIC_DB_PATH);
+    await page.getByLabel("Wybierz DATA.BIN i PARAM.SFO").setInputFiles([...SYNTHETIC_SAVE_PATHS]);
+    await page.getByRole("button", { name: /^Pokaż zawodników/u }).click();
+    await page.getByText("Klub i kontrakt").click();
+    await expect(page.getByRole("radio", { name: "wszyscy zawodnicy" })).toBeChecked();
+    await page.getByRole("radio", { name: "tylko zawodnicy mojego klubu" }).check();
+    await expectCount(page, "21 zawodników");
+    await page.getByRole("radio", { name: "ukryj zawodników mojego klubu" }).check();
+    await expectCount(page, "41 zawodników");
+    await page.getByRole("button", { name: "Usuń filtr: ukryj zawodników mojego klubu" }).click();
+    await expectCount(page, "62 zawodników");
+  });
 });
 
 test.describe("filter panel", () => {

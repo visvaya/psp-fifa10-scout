@@ -61,8 +61,10 @@ export interface PlayerFilters {
   /** Players one can sign: with a club, free agents and academy youth; leaves out legends and
    * national-team-only players. */
   readonly availableOnly?: boolean;
-  /** Leaves out this club's players (the user's own team). */
+  /** Leaves out the user's club (its players and the academy youth). */
   readonly excludeTeamId?: number;
+  /** Keeps only the user's club (its players and the academy youth). */
+  readonly onlyTeamId?: number;
 }
 
 export interface PositionRating extends Range {
@@ -90,9 +92,13 @@ const inRange =
     return current !== null && current !== undefined && current >= min && current <= max;
   };
 
+/** In the user's club: linked to it, or a youth-pool player without a club, who sits in its academy. */
+const inClub = (player: Player, teamId: number): boolean =>
+  player.clubId === teamId || (player.clubId === null && player.youth && !player.freeAgent);
+
 const predicates = (filters: PlayerFilters): readonly Predicate[] => {
   const text = searchKey(filters.text?.trim() ?? "");
-  const { excludeTeamId } = filters;
+  const { excludeTeamId, onlyTeamId } = filters;
   const rating = filters.positionRating;
   return [
     ...(text === "" ? [] : [(player: Player) => player.searchName.includes(text)]),
@@ -116,7 +122,8 @@ const predicates = (filters: PlayerFilters): readonly Predicate[] => {
     ...(filters.availableOnly === true
       ? [(player: Player) => player.clubId !== null || player.youth || player.freeAgent]
       : []),
-    ...(excludeTeamId === undefined ? [] : [(player: Player) => player.clubId !== excludeTeamId]),
+    ...(excludeTeamId === undefined ? [] : [(player: Player) => !inClub(player, excludeTeamId)]),
+    ...(onlyTeamId === undefined ? [] : [(player: Player) => inClub(player, onlyTeamId)]),
   ];
 };
 
