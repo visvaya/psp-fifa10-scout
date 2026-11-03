@@ -148,7 +148,7 @@ const LanguageStep = ({
 
 /** Stands in for the list while the stored game loads: rows shaped like the player rows. */
 const ListSkeleton = ({ phase }: { readonly phase: string }): JSX.Element => (
-  <div className="restoring" aria-busy="true">
+  <div className="restoring">
     <output className="status">{phase}</output>
     <ol className="player-rows" aria-hidden="true">
       {Array.from({ length: SKELETON_ROWS }, (_, row) => (
