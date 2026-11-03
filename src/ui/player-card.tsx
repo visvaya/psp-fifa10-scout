@@ -41,7 +41,10 @@ const Facts = ({ facts }: { facts: readonly (readonly [string, ReactNode])[] }) 
 const optional = (value: number | string | null): ReactNode =>
   value === null ? TEXT.card.none : typeof value === "number" ? formatNumber(value) : value;
 
-const basics = (player: Player): readonly (readonly [string, ReactNode])[] => [
+const basics = (
+  player: Player,
+  showPotential: boolean,
+): readonly (readonly [string, ReactNode])[] => [
   [TEXT.card.position, player.positionName],
   [TEXT.card.age, TEXT.years(player.age)],
   [TEXT.card.club, player.clubName ?? (player.youth ? TEXT.youth : TEXT.noClub)],
@@ -49,7 +52,9 @@ const basics = (player: Player): readonly (readonly [string, ReactNode])[] => [
   [TEXT.card.nationality, optional(player.nationalityName)],
   [TEXT.card.contract, player.contractEndYear ?? TEXT.card.none],
   [TEXT.columns.overall, <AttributeValue key="overall" value={player.overall} />],
-  [TEXT.card.potential, <AttributeValue key="potential" value={player.potential} />],
+  ...(showPotential
+    ? [[TEXT.card.potential, <AttributeValue key="potential" value={player.potential} />] as const]
+    : []),
   [TEXT.card.foot, player.preferredFoot === "left" ? TEXT.card.left : TEXT.card.right],
   [TEXT.card.height, TEXT.card.heightValue(player.height)],
   [TEXT.card.weight, TEXT.card.weightValue(player.weight)],
@@ -58,16 +63,17 @@ const basics = (player: Player): readonly (readonly [string, ReactNode])[] => [
 export const PlayerCard = (props: {
   player: Player;
   career: boolean;
+  showPotential: boolean;
   onClose: () => void;
 }): JSX.Element => {
-  const { player, career, onClose } = props;
+  const { player, career, showPotential, onClose } = props;
   const returnFocus = useCallback(
     () => document.querySelector<HTMLElement>(`[data-player-id="${String(player.id)}"]`),
     [player.id],
   );
   return (
     <ModalDialog title={player.name} className="card" onClose={onClose} returnFocus={returnFocus}>
-      <Facts facts={basics(player)} />
+      <Facts facts={basics(player, showPotential)} />
       {career ? (
         <section aria-labelledby="career-title">
           <h3 id="career-title">{TEXT.card.career}</h3>

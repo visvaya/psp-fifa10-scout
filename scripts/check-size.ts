@@ -16,11 +16,13 @@ export interface BuildSizes {
 
 // Just above the sizes measured on 2026-11-03 (JS 98 206, CSS 2 090, worker 10 316, precache 343 323). A
 // budget is raised only by a decision that names the reason, never to make a failing build pass.
+// Raised 2026-11-03 for the stage 2 filters (JS 103 970, precache 361 563): their Polish labels for
+// traits, ranges and lists and the sectioned panel add about 5.8 kB of gzipped JavaScript.
 export const SIZE_BUDGETS: BuildSizes = {
-  jsGzipBytes: 100 * 1024,
+  jsGzipBytes: 104 * 1024,
   cssGzipBytes: 2.5 * 1024,
   serviceWorkerBytes: 11 * 1024,
-  precacheBytes: 352 * 1024,
+  precacheBytes: 362 * 1024,
 };
 
 const SIZE_KEYS = [

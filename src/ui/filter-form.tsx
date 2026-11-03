@@ -1,8 +1,11 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { Dispatch, JSX } from "react";
-import type { Player } from "../logic/players.ts";
-import { POSITION_GROUPS } from "../logic/positions.ts";
-import { activeFilterKeys, facetOptions } from "../logic/scout-state.ts";
+import type { FlagKey, ListKey, PositionRating, Range, RangeKey } from "../logic/filter-players.ts";
+import { OVR_WEIGHTS } from "../logic/overall-rating.ts";
+import { ATTRIBUTE_NAMES, TRAIT_NAMES } from "../logic/players.ts";
+import type { AttributeName, Player, TraitName } from "../logic/players.ts";
+import { POSITION_GROUPS, positionOf } from "../logic/positions.ts";
+import { activeFilters, facetOptions } from "../logic/scout-state.ts";
 import type {
   ClubStatus,
   FacetOption,
@@ -10,116 +13,57 @@ import type {
   ScoutAction,
   ScoutFilters,
 } from "../logic/scout-state.ts";
-import { CLUB_STATUS_LABELS, FILTER_LABELS, POSITION_GROUP_LABELS, TEXT } from "./text.ts";
+import {
+  ChoiceField,
+  FlagField,
+  numberOrUndefined,
+  RangeField,
+  Section,
+} from "./filter-fields.tsx";
+import type { Choice } from "./filter-fields.tsx";
+import {
+  ATTRIBUTE_LABELS,
+  CLUB_STATUS_LABELS,
+  FILTER_SECTION_LABELS,
+  FLAG_LABELS,
+  LIST_LABELS,
+  POSITION_GROUP_LABELS,
+  rangeLabel,
+  TEXT,
+} from "./text.ts";
 
 interface FilterFormProps {
   readonly players: readonly Player[];
   readonly filters: ScoutFilters;
   readonly myTeamId: number | null;
+  readonly showPotential: boolean;
   readonly dispatch: Dispatch<ScoutAction>;
 }
 
 type Change = (filters: FilterChange) => void;
-type RangeKey = "age" | "potential" | "overall";
-type IdsKey = "leagueIds" | "teamIds" | "nationalityIds";
 
-const numberOrUndefined = (text: string): number | undefined =>
-  text.trim() === "" || Number.isNaN(Number(text)) ? undefined : Number(text);
-
-const RangeField = ({
-  name,
-  filters,
-  change,
-}: {
-  name: RangeKey;
-  filters: ScoutFilters;
-  change: Change;
-}) => {
-  const range = filters[name] ?? {};
-  const input = (bound: "min" | "max") => (
-    <label className="range-input">
-      <span>{TEXT[bound]}</span>
-      <input
-        type="number"
-        inputMode="numeric"
-        min={0}
-        max={99}
-        value={range[bound] ?? ""}
-        onChange={(event) => {
-          change({ [name]: { ...range, [bound]: numberOrUndefined(event.currentTarget.value) } });
-        }}
-      />
-    </label>
-  );
-  return (
-    <fieldset className="field">
-      <legend>{FILTER_LABELS[name]}</legend>
-      <div className="range">
-        {input("min")}
-        {input("max")}
-      </div>
-    </fieldset>
-  );
-};
-
-const SelectField = (props: {
-  name: IdsKey;
-  options: readonly FacetOption[];
-  filters: ScoutFilters;
-  change: Change;
-}) => {
-  const { name, options, filters, change } = props;
-  return (
-    <label className="field">
-      <span>{FILTER_LABELS[name]}</span>
-      <select
-        value={filters[name]?.[0] ?? ""}
-        onChange={(event) => {
-          const id = numberOrUndefined(event.currentTarget.value);
-          change({ [name]: id === undefined ? [] : [id] });
-        }}
-      >
-        <option value="">{name === "teamIds" ? TEXT.anyClub : TEXT.anyOption}</option>
-        {options.map((option) => (
-          <option key={option.id} value={option.id}>
-            {option.name}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-};
-
-const PositionsField = ({ filters, change }: { filters: ScoutFilters; change: Change }) => {
-  const chosen = filters.positionGroups ?? [];
-  return (
-    <fieldset className="field">
-      <legend>{FILTER_LABELS.positionGroups}</legend>
-      {POSITION_GROUPS.map((group) => (
-        <label key={group} className="check">
-          <input
-            type="checkbox"
-            checked={chosen.includes(group)}
-            onChange={(event) => {
-              const on = event.currentTarget.checked;
-              change({
-                positionGroups: on ? [...chosen, group] : chosen.filter((item) => item !== group),
-              });
-            }}
-          />
-          {POSITION_GROUP_LABELS[group]}
-        </label>
-      ))}
-    </fieldset>
-  );
-};
+/** Traits about character and renown; the other traits describe play. */
+const CHARACTER_TRAITS: readonly TraitName[] = [
+  "adaptability",
+  "flexibility",
+  "inflexible",
+  "ambition",
+  "highclubidentification",
+  "lowclubidentification",
+  "hightrainingworkrate",
+  "lowtrainingworkrate",
+  "lowconcentration",
+  "mediadarling",
+  "scandalprone",
+];
+const PLAY_TRAITS = TRAIT_NAMES.filter((trait) => !CHARACTER_TRAITS.includes(trait));
 
 const CLUB_STATUSES: readonly ClubStatus[] = ["with-club", "all", "free-agents"];
 
 /** One control for the three club states, so "free agents" and "hide clubless" cannot contradict. */
 const ClubStatusField = ({ filters, change }: { filters: ScoutFilters; change: Change }) => (
   <fieldset className="field">
-    <legend>{FILTER_LABELS.clubStatus}</legend>
+    <legend>{TEXT.clubStatus}</legend>
     {CLUB_STATUSES.map((status) => (
       <label key={status} className="check">
         <input
@@ -136,38 +80,59 @@ const ClubStatusField = ({ filters, change }: { filters: ScoutFilters; change: C
   </fieldset>
 );
 
-const CheckField = (props: { name: "excludeMyClub"; filters: ScoutFilters; change: Change }) => (
-  <label className="check">
-    <input
-      type="checkbox"
-      checked={props.filters[props.name] === true}
-      onChange={(event) => {
-        props.change({ [props.name]: event.currentTarget.checked });
-      }}
-    />
-    {FILTER_LABELS[props.name]}
-  </label>
-);
+const POSITION_CODES = OVR_WEIGHTS.map((_, code) => code);
 
-const ContractField = ({
-  years,
-  filters,
-  change,
-}: {
+/** A position (any of the 32 codes) and a range of the OVR there. */
+const PositionRatingField = (props: { rating: PositionRating | undefined; change: Change }) => {
+  const { rating, change } = props;
+  return (
+    <fieldset className="field">
+      <legend>{TEXT.positionRating}</legend>
+      <label className="field">
+        <span>{TEXT.position}</span>
+        <select
+          value={rating?.code ?? ""}
+          onChange={(event) => {
+            const code = numberOrUndefined(event.currentTarget.value);
+            change({ positionRating: code === undefined ? undefined : { ...rating, code } });
+          }}
+        >
+          <option value="">{TEXT.anyOption}</option>
+          {POSITION_CODES.map((code) => (
+            <option key={code} value={code}>
+              {positionOf(code).name}
+            </option>
+          ))}
+        </select>
+      </label>
+      {rating === undefined ? null : (
+        <RangeField
+          label={TEXT.ratingAt(positionOf(rating.code).name)}
+          range={rating}
+          onChange={(range) => {
+            change({ positionRating: { ...range, code: rating.code } });
+          }}
+        />
+      )}
+    </fieldset>
+  );
+};
+
+const ContractField = (props: {
   years: readonly number[];
-  filters: ScoutFilters;
-  change: Change;
+  range: Range | undefined;
+  onChange: (range: Range) => void;
 }) => (
   <label className="field">
     <span>{TEXT.contractEndsBy}</span>
     <select
-      value={filters.contractEndsBy ?? ""}
+      value={props.range?.max ?? ""}
       onChange={(event) => {
-        change({ contractEndsBy: numberOrUndefined(event.currentTarget.value) });
+        props.onChange({ max: numberOrUndefined(event.currentTarget.value) });
       }}
     >
       <option value="">{TEXT.anyOption}</option>
-      {years.map((year) => (
+      {props.years.map((year) => (
         <option key={year} value={year}>
           {year}
         </option>
@@ -176,43 +141,247 @@ const ContractField = ({
   </label>
 );
 
+/** Ranges for the attributes the user adds from a list, instead of one input pair per attribute. */
+const AttributeRanges = (props: {
+  ranges: ScoutFilters["ranges"];
+  onChange: (name: AttributeName, range: Range | undefined) => void;
+}) => {
+  const [added, setAdded] = useState<readonly AttributeName[]>([]);
+  const shown = ATTRIBUTE_NAMES.filter(
+    (name) => added.includes(name) || props.ranges?.[name] !== undefined,
+  );
+  return (
+    <>
+      {shown.map((name) => (
+        <div key={name} className="attribute-range">
+          <RangeField
+            label={ATTRIBUTE_LABELS[name]}
+            range={props.ranges?.[name]}
+            onChange={(range) => {
+              props.onChange(name, range);
+            }}
+          />
+          <button
+            type="button"
+            className="button"
+            aria-label={TEXT.removeAttribute(ATTRIBUTE_LABELS[name])}
+            onClick={() => {
+              setAdded(added.filter((item) => item !== name));
+              props.onChange(name, undefined);
+            }}
+          >
+            {TEXT.removeMark}
+          </button>
+        </div>
+      ))}
+      <label className="field">
+        <span>{TEXT.addAttribute}</span>
+        <select
+          value=""
+          onChange={(event) => {
+            const name = ATTRIBUTE_NAMES.find((item) => item === event.currentTarget.value);
+            if (name !== undefined) setAdded([...added, name]);
+          }}
+        >
+          <option value="">{TEXT.chooseAttribute}</option>
+          {ATTRIBUTE_NAMES.filter((name) => !shown.includes(name)).map((name) => (
+            <option key={name} value={name}>
+              {ATTRIBUTE_LABELS[name]}
+            </option>
+          ))}
+        </select>
+      </label>
+    </>
+  );
+};
+
+const facetChoices = (options: readonly FacetOption[]): readonly Choice<number>[] =>
+  options.map((option) => ({ value: option.id, label: option.name }));
+
+const codeChoices = (codes: readonly number[], prefix: string): readonly Choice<number>[] =>
+  codes.map((code) => ({ value: code, label: TEXT.code(prefix, code) }));
+
+/** Builders for one control of each kind, bound to the current filters. */
+const controls = (filters: ScoutFilters, change: Change) => ({
+  range: (key: RangeKey) => (
+    <RangeField
+      key={key}
+      label={rangeLabel(key)}
+      range={filters.ranges?.[key]}
+      onChange={(range) => {
+        change({ ranges: { ...filters.ranges, [key]: range } });
+      }}
+    />
+  ),
+  list: <K extends ListKey>(key: K, choices: readonly Choice<NonNullable<Player[K]>>[]) => (
+    <ChoiceField
+      label={LIST_LABELS[key]}
+      choices={choices}
+      chosen={filters.lists?.[key]}
+      onChange={(chosen) => {
+        change({ lists: { ...filters.lists, [key]: chosen } });
+      }}
+    />
+  ),
+  flag: (key: FlagKey) => (
+    <FlagField
+      key={key}
+      label={FLAG_LABELS[key]}
+      wanted={filters.flags?.[key]}
+      onChange={(wanted) => {
+        change({ flags: { ...filters.flags, [key]: wanted } });
+      }}
+    />
+  ),
+});
+
+type Kit = ReturnType<typeof controls> & {
+  readonly filters: ScoutFilters;
+  readonly change: Change;
+  readonly facets: ReturnType<typeof facetOptions>;
+};
+
+const basicSection = ({ filters, change, facets, range, list }: Kit, showPotential: boolean) => (
+  <Section title={FILTER_SECTION_LABELS.basic} initiallyOpen>
+    <label className="field">
+      <span>{TEXT.text}</span>
+      <input
+        type="search"
+        value={filters.text ?? ""}
+        onChange={(event) => {
+          change({ text: event.currentTarget.value });
+        }}
+      />
+    </label>
+    {list(
+      "positionGroup",
+      POSITION_GROUPS.map((group) => ({ value: group, label: POSITION_GROUP_LABELS[group] })),
+    )}
+    {list(
+      "positionCode",
+      facets.codes.positionCode.map((code) => ({ value: code, label: positionOf(code).name })),
+    )}
+    {range("age")}
+    {range("overall")}
+    <PositionRatingField rating={filters.positionRating} change={change} />
+    {showPotential ? [range("potential"), range("growth")] : null}
+  </Section>
+);
+
+const physiqueSection = ({ facets, range, list }: Kit) => (
+  <Section title={FILTER_SECTION_LABELS.physique}>
+    {range("height")}
+    {range("weight")}
+    {list("bodyType", codeChoices(facets.codes.bodyType, TEXT.codePrefix.bodyType))}
+    {list("preferredFoot", [
+      { value: "left", label: TEXT.card.left },
+      { value: "right", label: TEXT.card.right },
+    ])}
+    {range("weakFoot")}
+  </Section>
+);
+
+const characterSection = ({ facets, range, list, flag }: Kit) => (
+  <Section title={FILTER_SECTION_LABELS.character}>
+    {CHARACTER_TRAITS.map(flag)}
+    {range("internationalReputation")}
+    {range("learningSpeed")}
+    {range("retirementAge")}
+    {list(
+      "developmentType",
+      codeChoices(facets.codes.developmentType, TEXT.codePrefix.developmentType),
+    )}
+    {list(
+      "developmentStyle",
+      codeChoices(facets.codes.developmentStyle, TEXT.codePrefix.developmentStyle),
+    )}
+  </Section>
+);
+
+const clubSection = ({ filters, change, facets, range, list, flag }: Kit, career: boolean) => (
+  <Section title={FILTER_SECTION_LABELS.club}>
+    {list("leagueId", facetChoices(facets.leagues))}
+    {list("clubId", facetChoices(facets.clubs))}
+    {list("nationalityId", facetChoices(facets.nationalities))}
+    {range("clubRating")}
+    <ContractField
+      years={facets.contractYears}
+      range={filters.ranges?.contractEndYear}
+      onChange={(next) => {
+        change({ ranges: { ...filters.ranges, contractEndYear: next } });
+      }}
+    />
+    {flag("nationalTeam")}
+    <ClubStatusField filters={filters} change={change} />
+    {career ? (
+      <label className="check">
+        <input
+          type="checkbox"
+          checked={filters.excludeMyClub === true}
+          onChange={(event) => {
+            change({ excludeMyClub: event.currentTarget.checked });
+          }}
+        />
+        {TEXT.excludeMyClub}
+      </label>
+    ) : null}
+  </Section>
+);
+
+const careerSection = ({ range, flag }: Kit) => (
+  <Section title={FILTER_SECTION_LABELS.career}>
+    {range("form")}
+    {range("morale")}
+    {range("injuryDays")}
+    {flag("transferListed")}
+  </Section>
+);
+
 export const FilterForm = ({
   players,
   filters,
   myTeamId,
+  showPotential,
   dispatch,
 }: FilterFormProps): JSX.Element => {
   const facets = useMemo(() => facetOptions(players, filters), [players, filters]);
   const change: Change = (next) => {
     dispatch({ type: "filters-changed", filters: next });
   };
-  const shared = { filters, change };
+  const kit: Kit = { ...controls(filters, change), filters, change, facets };
   return (
     <form className="filter-form" onSubmit={(event) => event.preventDefault()}>
-      <label className="field">
-        <span>{FILTER_LABELS.text}</span>
+      <label className="check">
         <input
-          type="search"
-          value={filters.text ?? ""}
+          type="checkbox"
+          checked={showPotential}
           onChange={(event) => {
-            change({ text: event.currentTarget.value });
+            dispatch({ type: "potential-shown", shown: event.currentTarget.checked });
           }}
         />
+        {TEXT.showPotential}
       </label>
-      <PositionsField {...shared} />
-      <RangeField name="age" {...shared} />
-      <RangeField name="overall" {...shared} />
-      <RangeField name="potential" {...shared} />
-      <SelectField name="leagueIds" options={facets.leagues} {...shared} />
-      <SelectField name="teamIds" options={facets.clubs} {...shared} />
-      <SelectField name="nationalityIds" options={facets.nationalities} {...shared} />
-      <ContractField years={facets.contractYears} {...shared} />
-      <ClubStatusField {...shared} />
-      {myTeamId === null ? null : <CheckField name="excludeMyClub" {...shared} />}
+      {basicSection(kit, showPotential)}
+      {physiqueSection(kit)}
+      <Section title={FILTER_SECTION_LABELS.attributes}>
+        <AttributeRanges
+          ranges={filters.ranges}
+          onChange={(name, next) => {
+            change({ ranges: { ...filters.ranges, [name]: next } });
+          }}
+        />
+      </Section>
+      <Section title={FILTER_SECTION_LABELS.traits}>
+        <p className="help">{TEXT.traitsNote}</p>
+        {PLAY_TRAITS.map(kit.flag)}
+      </Section>
+      {characterSection(kit)}
+      {clubSection(kit, myTeamId !== null)}
+      {myTeamId === null ? null : careerSection(kit)}
       <button
         type="button"
         className="button"
-        disabled={activeFilterKeys(filters).length === 0}
+        disabled={activeFilters(filters).length === 0}
         onClick={() => {
           dispatch({ type: "filters-reset" });
         }}
@@ -220,32 +389,5 @@ export const FilterForm = ({
         {TEXT.resetFilters}
       </button>
     </form>
-  );
-};
-
-export const FilterChips = (props: {
-  filters: ScoutFilters;
-  dispatch: Dispatch<ScoutAction>;
-}): JSX.Element | null => {
-  const keys = activeFilterKeys(props.filters);
-  if (keys.length === 0) return null;
-  return (
-    <ul className="chips" aria-label={TEXT.activeFilters}>
-      {keys.map((key) => (
-        <li key={key}>
-          <button
-            type="button"
-            className="chip"
-            aria-label={TEXT.removeFilter(FILTER_LABELS[key])}
-            onClick={() => {
-              props.dispatch({ type: "filter-removed", key });
-            }}
-          >
-            {FILTER_LABELS[key]}
-            <span aria-hidden="true">{TEXT.removeMark}</span>
-          </button>
-        </li>
-      ))}
-    </ul>
   );
 };

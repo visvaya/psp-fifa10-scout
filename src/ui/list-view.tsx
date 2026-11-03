@@ -2,11 +2,12 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } f
 import type { Dispatch, JSX, ReactNode } from "react";
 import { filterPlayers } from "../logic/filter-players.ts";
 import type { Player } from "../logic/players.ts";
-import { activeFilterKeys, effectiveFilters } from "../logic/scout-state.ts";
+import { activeFilters, effectiveFilters } from "../logic/scout-state.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
 import { SORTABLE_KEYS } from "../logic/scout-store.ts";
 import { sortPlayers } from "../logic/sort-players.ts";
-import { FilterChips, FilterForm } from "./filter-form.tsx";
+import { FilterChips } from "./filter-chips.tsx";
+import { FilterForm } from "./filter-form.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
 import { columnLabel, PlayerCards, PlayerTable } from "./player-list.tsx";
 import { TEXT } from "./text.ts";
@@ -51,9 +52,13 @@ const SortControls = ({
           if (key !== undefined) dispatch({ type: "sort-changed", key });
         }}
       >
-        {SORTABLE_KEYS.map((key) => (
+        {SORTABLE_KEYS.filter(
+          (key) =>
+            (state.showPotential || (key !== "potential" && key !== "growth")) &&
+            (key !== "positionRating" || state.filters.positionRating !== undefined),
+        ).map((key) => (
           <option key={key} value={key}>
-            {columnLabel(key)}
+            {columnLabel(key, state.filters.positionRating?.code ?? null)}
           </option>
         ))}
       </select>
@@ -95,6 +100,7 @@ const useVisiblePlayers = (players: readonly Player[], state: ScoutState) => {
         filterPlayers(players, effectiveFilters(filters, state.myTeamId)),
         sort.key,
         sort.direction,
+        filters.positionRating?.code,
       ),
     [players, filters, sort, state.myTeamId],
   );
@@ -149,6 +155,7 @@ export const ListView = ({ state, players, wide, dispatch }: ListViewProps): JSX
       players={players}
       filters={state.filters}
       myTeamId={state.myTeamId}
+      showPotential={state.showPotential}
       dispatch={dispatch}
     />
   );
@@ -167,18 +174,24 @@ export const ListView = ({ state, players, wide, dispatch }: ListViewProps): JSX
         </h2>
         <div className="toolbar">
           {wide ? null : (
-            <FiltersDialogButton count={activeFilterKeys(state.filters).length}>
+            <FiltersDialogButton count={activeFilters(state.filters).length}>
               {form}
             </FiltersDialogButton>
           )}
-          {wide ? null : <SortControls state={state} dispatch={dispatch} />}
+          <SortControls state={state} dispatch={dispatch} />
           <ResultCount count={visible.length} />
         </div>
         <FilterChips filters={state.filters} dispatch={dispatch} />
         {visible.length === 0 ? (
           <NoMatches dispatch={dispatch} />
         ) : (
-          <List players={visible} sort={sort} dispatch={dispatch} />
+          <List
+            players={visible}
+            sort={sort}
+            showPotential={state.showPotential}
+            ratingCode={state.filters.positionRating?.code ?? null}
+            dispatch={dispatch}
+          />
         )}
       </section>
     </div>

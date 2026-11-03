@@ -116,6 +116,16 @@ export const OVR_WEIGHTS: readonly WeightRow[] = [
   Array.from({ length: 6 }, () => FORWARD),
 ].flat();
 
+/** A value per position code 0..31, computed once per distinct weight row (codes sharing one rate alike). */
+export const byPositionCode = (value: (code: number) => number): readonly number[] => {
+  const known = new Map<WeightRow, number>();
+  return OVR_WEIGHTS.map((row, code) => {
+    const cached = known.get(row) ?? value(code);
+    known.set(row, cached);
+    return cached;
+  });
+};
+
 /** fifa.db `curves`: per curve id, the values for ages 15..45 (columns a..ee). */
 export type Curves = ReadonlyMap<number, readonly number[]>;
 

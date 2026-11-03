@@ -9,11 +9,14 @@ type ScalarKey = {
   [K in keyof Player]: Player[K] extends Scalar ? K : never;
 }[keyof Player];
 
-export type SortKey = ScalarKey | AttributeName;
+/** positionRating: the OVR at a chosen position code. */
+export type SortKey = ScalarKey | AttributeName | "positionRating";
 export type SortDirection = "ascending" | "descending";
 
-const valueOf = (player: Player, key: SortKey): Scalar => {
+const valueOf = (player: Player, key: SortKey, ratingCode: number | undefined): Scalar => {
   if (key === "name") return player.nameOrder;
+  if (key === "positionRating")
+    return player.overallByCode[ratingCode ?? player.positionCode] ?? null;
   return isAttributeName(key) ? player.attributes[key] : player[key];
 };
 
@@ -30,9 +33,11 @@ export const sortPlayers = (
   players: readonly Player[],
   key: SortKey,
   direction: SortDirection,
+  /** The position code of positionRating; the preferred position without one. */
+  ratingCode?: number,
 ): readonly Player[] => {
   const sign = direction === "ascending" ? 1 : -1;
-  const values = numericValues(players.map((player) => valueOf(player, key)));
+  const values = numericValues(players.map((player) => valueOf(player, key, ratingCode)));
   const primary = values.map((value) => (value === null ? null : sign * value));
   const present = primary.filter((value) => value !== null);
   // Missing values sort after every present one, whatever the direction.

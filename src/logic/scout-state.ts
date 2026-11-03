@@ -1,6 +1,7 @@
 // The app state as a reducer with pure transitions, and the pure view helpers the screens share.
 import { SCOUT_CONFIG } from "./config.ts";
-import type { PlayerFilters } from "./filter-players.ts";
+import { FLAG_KEYS, LIST_FIELDS, RANGE_KEYS } from "./filter-players.ts";
+import type { FlagKey, ListKey, PlayerFilters, Range, RangeKey } from "./filter-players.ts";
 import type { LoadError, LoadPhase, WorkerMessage } from "./load-scout.ts";
 import { nameCollator } from "./players.ts";
 import type { Player } from "./players.ts";
@@ -17,9 +18,18 @@ export type ScoutFilters = Omit<
   readonly clubStatus?: ClubStatus;
   readonly excludeMyClub?: boolean;
 };
-export type FilterKey = keyof ScoutFilters;
+type FilterKey = keyof ScoutFilters;
 /** A change to some filters; undefined clears one. */
 export type FilterChange = { readonly [K in FilterKey]?: ScoutFilters[K] | undefined };
+/** One filter as the chips show it: a top-level key, or one entry of the ranges, lists or flags. */
+export type FilterId =
+  | "text"
+  | "clubStatus"
+  | "excludeMyClub"
+  | "positionRating"
+  | `ranges.${RangeKey}`
+  | `lists.${ListKey}`
+  | `flags.${FlagKey}`;
 
 export interface ScoutSort {
   readonly key: SortKey;
@@ -29,6 +39,8 @@ export interface ScoutSort {
 export interface Preferences {
   readonly filters: ScoutFilters;
   readonly sort: ScoutSort;
+  /** Potential, growth room and their filters and sort show only when the user asks. */
+  readonly showPotential: boolean;
 }
 
 export type ScoutError = LoadError | { readonly stage: "save"; readonly kind: "missing-file" };
@@ -58,14 +70,18 @@ export type ScoutAction =
   | { readonly type: "save-incomplete" }
   | { readonly type: "view-changed"; readonly view: ScoutState["view"] }
   | { readonly type: "filters-changed"; readonly filters: FilterChange }
-  | { readonly type: "filter-removed"; readonly key: FilterKey }
+  | { readonly type: "filter-removed"; readonly id: FilterId }
+  | { readonly type: "potential-shown"; readonly shown: boolean }
   | { readonly type: "filters-reset" }
   | { readonly type: "sort-changed"; readonly key: SortKey }
   | { readonly type: "preferences-restored"; readonly preferences: Preferences }
   | { readonly type: "player-opened"; readonly id: number }
   | { readonly type: "player-closed" };
 
-export const DEFAULT_SORT: ScoutSort = { key: "potential", direction: "descending" };
+export const DEFAULT_SORT: ScoutSort = { key: "overall", direction: "descending" };
+
+/** The ranges and sort keys that reveal potential. */
+const POTENTIAL_KEYS: ReadonlySet<SortKey> = new Set(["potential", "growth"]);
 
 export const initialScoutState: ScoutState = {
   players: null,
@@ -76,6 +92,7 @@ export const initialScoutState: ScoutState = {
   openPlayerId: null,
   filters: {},
   sort: DEFAULT_SORT,
+  showPotential: false,
 };
 
 /** Keys whose first click sorts ascending (text, age, position, contract); numbers start high. */
@@ -89,36 +106,92 @@ const ASCENDING_FIRST = new Set<SortKey>([
   "contractEndYear",
 ]);
 
-const isSet = (value: ScoutFilters[FilterKey]): boolean => {
-  if (value === undefined || value === false || value === "with-club") return false;
-  if (typeof value === "string") return value.trim() !== "";
-  if (Array.isArray(value)) return value.length > 0;
-  if (typeof value === "object") return Object.values(value).some((item) => item !== undefined);
-  return true;
+/** The entries of `keys` in `record` whose value passes `keep`, or undefined when none does. */
+const pick = <T extends object>(
+  record: T | undefined,
+  keys: readonly (keyof T)[],
+  keep: (value: NonNullable<T[keyof T]>) => boolean,
+): Partial<T> | undefined => {
+  const kept: Partial<T> = {};
+  for (const key of keys) {
+    const item = record?.[key];
+    if (item !== undefined && item !== null && keep(item)) kept[key] = item;
+  }
+  return Object.keys(kept).length === 0 ? undefined : kept;
 };
 
-const FILTER_KEYS: readonly FilterKey[] = [
-  "text",
-  "positionGroups",
-  "age",
-  "potential",
-  "overall",
-  "attributeMin",
-  "leagueIds",
-  "teamIds",
-  "nationalityIds",
-  "contractEndsBy",
-  "clubStatus",
-  "excludeMyClub",
+const isRangeSet = (range: Range | undefined): boolean =>
+  range?.min !== undefined || range?.max !== undefined;
+const isNonEmpty = (values: readonly unknown[] | undefined): boolean =>
+  values !== undefined && values.length > 0;
+const isDefined = (value: unknown): boolean => value !== undefined;
+
+/** Each filter that narrows the list, in a fixed order (for chips and the count on the button). */
+export const activeFilters = (filters: FilterChange): readonly FilterId[] => [
+  ...(filters.text === undefined || filters.text.trim() === "" ? [] : ["text" as const]),
+  ...RANGE_KEYS.filter((key) => isRangeSet(filters.ranges?.[key])).map(
+    (key) => `ranges.${key}` as const,
+  ),
+  ...(filters.positionRating === undefined ? [] : ["positionRating" as const]),
+  ...LIST_FIELDS.filter((key) => isNonEmpty(filters.lists?.[key])).map(
+    (key) => `lists.${key}` as const,
+  ),
+  ...FLAG_KEYS.filter((key) => isDefined(filters.flags?.[key])).map(
+    (key) => `flags.${key}` as const,
+  ),
+  ...(filters.clubStatus === undefined || filters.clubStatus === "with-club"
+    ? []
+    : ["clubStatus" as const]),
+  ...(filters.excludeMyClub === true ? ["excludeMyClub" as const] : []),
 ];
 
-/** The filters that narrow the list, in a fixed order (for chips and the count on the button). */
-export const activeFilterKeys = (filters: FilterChange): readonly FilterKey[] =>
-  FILTER_KEYS.filter((key) => isSet(filters[key]));
-
 /** Only the active filters, so empty values never linger in state or storage. */
-const compact = (filters: FilterChange): ScoutFilters =>
-  Object.fromEntries(activeFilterKeys(filters).map((key) => [key, filters[key]]));
+export const compactFilters = (filters: FilterChange): ScoutFilters => {
+  const { text, clubStatus, excludeMyClub, positionRating } = filters;
+  const ranges = pick(filters.ranges, RANGE_KEYS, isRangeSet);
+  const lists = pick(filters.lists, LIST_FIELDS, isNonEmpty);
+  const flags = pick(filters.flags, FLAG_KEYS, isDefined);
+  return {
+    ...(text === undefined || text.trim() === "" ? {} : { text }),
+    ...(ranges === undefined ? {} : { ranges }),
+    ...(positionRating === undefined ? {} : { positionRating }),
+    ...(lists === undefined ? {} : { lists }),
+    ...(flags === undefined ? {} : { flags }),
+    ...(clubStatus === undefined || clubStatus === "with-club" ? {} : { clubStatus }),
+    ...(excludeMyClub === true ? { excludeMyClub } : {}),
+  };
+};
+
+/** The filters without one of them. */
+const withoutFilter = (filters: ScoutFilters, id: FilterId): ScoutFilters => {
+  const [group, key = ""] = id.split(".");
+  if (group === "ranges")
+    return compactFilters({ ...filters, ranges: { ...filters.ranges, [key]: undefined } });
+  if (group === "lists")
+    return compactFilters({ ...filters, lists: { ...filters.lists, [key]: undefined } });
+  if (group === "flags")
+    return compactFilters({ ...filters, flags: { ...filters.flags, [key]: undefined } });
+  return compactFilters({ ...filters, [id]: undefined });
+};
+
+/** Preferences without potential filters and sort when potential is hidden. */
+const withPotential = (preferences: Preferences): Preferences => {
+  if (preferences.showPotential) return preferences;
+  const ranges = { ...preferences.filters.ranges, potential: undefined, growth: undefined };
+  return {
+    ...preferences,
+    filters: compactFilters({ ...preferences.filters, ranges }),
+    sort: POTENTIAL_KEYS.has(preferences.sort.key) ? DEFAULT_SORT : preferences.sort,
+  };
+};
+
+/** Preferences whose sort fits the filters: by position rating only while a position is chosen. */
+const consistent = (preferences: Preferences): Preferences => {
+  const shown = withPotential(preferences);
+  return shown.sort.key === "positionRating" && shown.filters.positionRating === undefined
+    ? { ...shown, sort: DEFAULT_SORT }
+    : shown;
+};
 
 const isCurrent = (state: ScoutState, requestId: number): boolean =>
   state.loading?.requestId === requestId;
@@ -165,9 +238,20 @@ export const scoutReducer = (state: ScoutState, action: ScoutAction): ScoutState
     case "view-changed":
       return { ...state, view: action.view };
     case "filters-changed":
-      return { ...state, filters: compact({ ...state.filters, ...action.filters }) };
+      return {
+        ...state,
+        ...consistent({
+          ...state,
+          filters: compactFilters({ ...state.filters, ...action.filters }),
+        }),
+      };
     case "filter-removed":
-      return { ...state, filters: compact({ ...state.filters, [action.key]: undefined }) };
+      return {
+        ...state,
+        ...consistent({ ...state, filters: withoutFilter(state.filters, action.id) }),
+      };
+    case "potential-shown":
+      return { ...state, ...consistent({ ...state, showPotential: action.shown }) };
     case "filters-reset":
       return { ...state, filters: {}, sort: DEFAULT_SORT };
     case "sort-changed":
@@ -175,12 +259,13 @@ export const scoutReducer = (state: ScoutState, action: ScoutAction): ScoutState
         ...state,
         sort: { key: action.key, direction: nextDirection(state.sort, action.key) },
       };
-    case "preferences-restored":
+    case "preferences-restored": {
+      const { filters, sort, showPotential } = action.preferences;
       return {
         ...state,
-        filters: compact(action.preferences.filters),
-        sort: action.preferences.sort,
+        ...consistent({ filters: compactFilters(filters), sort, showPotential }),
       };
+    }
     case "player-opened":
       return { ...state, openPlayerId: action.id };
     case "player-closed":
@@ -236,9 +321,12 @@ const options = (pairs: readonly (readonly [number | null, string | null])[]): F
     .map(([id, name]) => ({ id, name }))
     .toSorted((a, b) => nameCollator.compare(a.name, b.name));
 
+const distinct = (values: readonly number[]): readonly number[] =>
+  [...new Set(values)].toSorted((a, b) => a - b);
+
 /** The choices for the league, club, nationality and contract filters; clubs within the chosen leagues. */
 export const facetOptions = (players: readonly Player[], filters: ScoutFilters) => {
-  const leagues = new Set(filters.leagueIds ?? []);
+  const leagues = new Set(filters.lists?.leagueId ?? []);
   const inLeagues = players.filter(
     (player) => leagues.size === 0 || (player.leagueId !== null && leagues.has(player.leagueId)),
   );
@@ -246,8 +334,12 @@ export const facetOptions = (players: readonly Player[], filters: ScoutFilters) 
     leagues: options(players.map((player) => [player.leagueId, player.leagueName])),
     clubs: options(inLeagues.map((player) => [player.clubId, player.clubName])),
     nationalities: options(players.map((player) => [player.nationalityId, player.nationalityName])),
-    contractYears: [...new Set(players.flatMap((player) => player.contractEndYear ?? []))].toSorted(
-      (a, b) => a - b,
-    ),
+    contractYears: distinct(players.flatMap((player) => player.contractEndYear ?? [])),
+    codes: {
+      positionCode: distinct(players.map((player) => player.positionCode)),
+      bodyType: distinct(players.map((player) => player.bodyType)),
+      developmentType: distinct(players.map((player) => player.developmentType)),
+      developmentStyle: distinct(players.map((player) => player.developmentStyle)),
+    },
   };
 };

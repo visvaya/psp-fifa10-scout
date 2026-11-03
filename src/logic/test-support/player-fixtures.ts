@@ -1,6 +1,6 @@
 // Hand-made inputs for the player logic tests: databases from plain rows and complete summaries.
 import type { TableSpec } from "../../data/test-support/synthetic-ea-db.ts";
-import { ATTRIBUTE_NAMES, attributesOf, searchKey } from "../players.ts";
+import { ATTRIBUTE_NAMES, attributesOf, searchKey, TRAIT_NAMES } from "../players.ts";
 import type { Attributes, Player } from "../players.ts";
 import { CURVE_COLUMNS } from "../overall-rating.ts";
 import { byGroup } from "../positions.ts";
@@ -50,6 +50,12 @@ export const playerRow = (overrides: Row): Row => ({
   potential: 70,
   developmenttypecode: 1,
   developmentstylecode: 2,
+  bodysizecode: 2,
+  weakfootability: 2,
+  internationalreputation: 1,
+  learningspeed: 3,
+  retirementage: 35,
+  ...Object.fromEntries(TRAIT_NAMES.map((name) => [name, 0])),
   ...attributes(50),
   ...overrides,
 });
@@ -71,10 +77,21 @@ export const testPlayer = (overrides: Partial<Player> = {}): Player => {
     weight: 75,
     potential: 70,
     overall: 50,
+    growth: 20,
+    bodyType: 2,
+    weakFoot: 3,
+    internationalReputation: 1,
+    learningSpeed: 3,
+    retirementAge: 35,
+    developmentType: 1,
+    developmentStyle: 2,
+    traits: [],
     overallByGroup: byGroup(() => 50),
+    overallByCode: Array.from({ length: 32 }, () => 50),
     attributes: attributes(50),
     clubId: 10,
     clubName: "Club",
+    clubRating: 60,
     leagueId: 100,
     leagueName: "League",
     contractEndYear: 2012,
@@ -87,6 +104,8 @@ export const testPlayer = (overrides: Partial<Player> = {}): Player => {
     morale: null,
     goals: null,
     appearances: null,
+    injuryDays: null,
+    transferListed: false,
     ...overrides,
   };
   return { ...player, searchName: searchKey(player.name) };

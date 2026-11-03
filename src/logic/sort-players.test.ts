@@ -58,6 +58,29 @@ describe("sortPlayers", () => {
     expect(ids("youth", "ascending")).toEqual([2, 3, 1, 5]);
   });
 
+  it("sorts a number with missing values last in either direction", () => {
+    const rated = PLAYERS.map((player) => ({
+      ...player,
+      clubRating: player.clubName === null ? null : player.id,
+    }));
+    const order = (direction: SortDirection) =>
+      sortPlayers(rated, "clubRating", direction).map((player) => player.id);
+    expect(order("ascending")).toEqual([1, 3, 5, 2]);
+    expect(order("descending")).toEqual([5, 3, 1, 2]);
+  });
+
+  it("sorts by the OVR at a chosen position, or at the preferred one without a choice", () => {
+    const rated = PLAYERS.map((player) => ({
+      ...player,
+      positionCode: player.id,
+      overallByCode: player.overallByCode.map((_, code) => (code === 4 ? 90 - player.id : code)),
+    }));
+    const order = (code?: number) =>
+      sortPlayers(rated, "positionRating", "descending", code).map((player) => player.id);
+    expect(order(4)).toEqual([1, 2, 3, 5]);
+    expect(order()).toEqual([5, 3, 2, 1]);
+  });
+
   it("sorts by an attribute", () => {
     expect(ids("dribbling", "descending")).toEqual([2, 3, 5, 1]);
   });

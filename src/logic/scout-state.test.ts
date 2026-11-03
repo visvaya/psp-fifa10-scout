@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   actionOf,
-  activeFilterKeys,
+  activeFilters,
   attributeBand,
   DEFAULT_SORT,
   effectiveFilters,
@@ -9,7 +9,7 @@ import {
   initialScoutState,
   scoutReducer,
 } from "./scout-state.ts";
-import type { ScoutState } from "./scout-state.ts";
+import type { FilterId, ScoutState } from "./scout-state.ts";
 import { testPlayer } from "./test-support/player-fixtures.ts";
 
 const PLAYERS = [testPlayer({ id: 1 }), testPlayer({ id: 2, clubId: 7 })];
@@ -71,24 +71,52 @@ describe("scoutReducer loading", () => {
   });
 });
 
+const remove = (current: ScoutState, id: FilterId) =>
+  scoutReducer(current, { type: "filter-removed", id });
+
 describe("scoutReducer filters, sort and card", () => {
   it("merges filter changes and removes one filter", () => {
     const state = scoutReducer(initialScoutState, {
       type: "filters-changed",
       filters: { text: "mes", clubStatus: "free-agents" },
     });
-    const removed = scoutReducer(state, { type: "filter-removed", key: "text" });
+    const removed = scoutReducer(state, { type: "filter-removed", id: "text" });
     expect(removed.filters).toEqual({ clubStatus: "free-agents" });
+  });
+
+  it("removes one range, list or flag and keeps the others", () => {
+    const state = scoutReducer(initialScoutState, {
+      type: "filters-changed",
+      filters: {
+        ranges: { age: { max: 23 }, dribbling: { min: 80 } },
+        lists: { leagueId: [1] },
+        flags: { leadership: true, diver: false },
+      },
+    });
+    expect(remove(state, "ranges.dribbling").filters).toEqual({
+      ranges: { age: { max: 23 } },
+      lists: { leagueId: [1] },
+      flags: { leadership: true, diver: false },
+    });
+    expect(remove(remove(state, "lists.leagueId"), "flags.diver").filters).toEqual({
+      ranges: { age: { max: 23 }, dribbling: { min: 80 } },
+      flags: { leadership: true },
+    });
   });
 
   it("drops a change back to an empty value", () => {
     const state = scoutReducer(initialScoutState, {
       type: "filters-changed",
-      filters: { text: "a", leagueIds: [1] },
+      filters: { text: "a", lists: { leagueId: [1] }, flags: { diver: true } },
     });
     const cleared = scoutReducer(state, {
       type: "filters-changed",
-      filters: { text: "", leagueIds: [], age: {} },
+      filters: {
+        text: "",
+        lists: { leagueId: [] },
+        ranges: { age: {}, height: { min: undefined } },
+        flags: { diver: undefined },
+      },
     });
     expect(cleared.filters).toEqual({});
   });
@@ -108,6 +136,7 @@ describe("scoutReducer filters, sort and card", () => {
     const byName = scoutReducer(initialScoutState, { type: "sort-changed", key: "name" });
     expect(byName.sort).toEqual({ key: "name", direction: "ascending" });
     const byPotential = scoutReducer(byName, { type: "sort-changed", key: "potential" });
+    expect(DEFAULT_SORT).toEqual({ key: "overall", direction: "descending" });
     expect(byPotential.sort).toEqual({ key: "potential", direction: "descending" });
     expect(scoutReducer(byPotential, { type: "sort-changed", key: "potential" }).sort).toEqual({
       key: "potential",
@@ -119,9 +148,65 @@ describe("scoutReducer filters, sort and card", () => {
     const sort = { key: "age", direction: "ascending" } as const;
     const state = scoutReducer(initialScoutState, {
       type: "preferences-restored",
-      preferences: { filters: { text: "x" }, sort },
+      preferences: { filters: { text: "x" }, sort, showPotential: true },
     });
-    expect(state).toMatchObject({ filters: { text: "x" }, sort });
+    expect(state).toMatchObject({ filters: { text: "x" }, sort, showPotential: true });
+  });
+
+  it("hides potential by default and drops its filters and sort when hidden", () => {
+    expect(initialScoutState.showPotential).toBe(false);
+    const shown = scoutReducer(initialScoutState, { type: "potential-shown", shown: true });
+    const filtered = scoutReducer(
+      scoutReducer(shown, {
+        type: "filters-changed",
+        filters: { ranges: { potential: { min: 80 }, growth: { min: 10 }, age: { max: 21 } } },
+      }),
+      { type: "sort-changed", key: "growth" },
+    );
+    expect(filtered).toMatchObject({ showPotential: true, sort: { key: "growth" } });
+    const hidden = scoutReducer(filtered, { type: "potential-shown", shown: false });
+    expect(hidden).toMatchObject({
+      showPotential: false,
+      filters: { ranges: { age: { max: 21 } } },
+      sort: DEFAULT_SORT,
+    });
+    const byAge = scoutReducer(filtered, { type: "sort-changed", key: "age" });
+    expect(scoutReducer(byAge, { type: "potential-shown", shown: false }).sort.key).toBe("age");
+  });
+
+  it("restores hidden potential without its filters and sort", () => {
+    const state = scoutReducer(initialScoutState, {
+      type: "preferences-restored",
+      preferences: {
+        filters: { ranges: { potential: { min: 80 } } },
+        sort: { key: "potential", direction: "ascending" },
+        showPotential: false,
+      },
+    });
+    expect(state).toMatchObject({ filters: {}, sort: DEFAULT_SORT, showPotential: false });
+  });
+
+  it("sorts by the position rating only while that filter is set", () => {
+    const rated = scoutReducer(
+      scoutReducer(initialScoutState, {
+        type: "filters-changed",
+        filters: { positionRating: { code: 3, min: 70 } },
+      }),
+      { type: "sort-changed", key: "positionRating" },
+    );
+    expect(rated.sort).toEqual({ key: "positionRating", direction: "descending" });
+    expect(activeFilters(rated.filters)).toEqual(["positionRating"]);
+    expect(remove(rated, "positionRating")).toMatchObject({ filters: {}, sort: DEFAULT_SORT });
+    const restored = scoutReducer(initialScoutState, {
+      type: "preferences-restored",
+      preferences: { filters: {}, sort: rated.sort, showPotential: true },
+    });
+    expect(restored.sort).toEqual(DEFAULT_SORT);
+  });
+
+  it("keeps the potential setting when filters are reset", () => {
+    const shown = scoutReducer(initialScoutState, { type: "potential-shown", shown: true });
+    expect(scoutReducer(shown, { type: "filters-reset" }).showPotential).toBe(true);
   });
 
   it("opens and closes the player card", () => {
@@ -171,15 +256,24 @@ describe("effectiveFilters", () => {
   });
 });
 
-describe("activeFilterKeys", () => {
-  it("lists the filters that narrow the list", () => {
+describe("activeFilters", () => {
+  it("lists each filter that narrows the list", () => {
     expect(
-      activeFilterKeys({ text: " ", age: { min: 18 }, potential: {}, clubStatus: "with-club" }),
-    ).toEqual(["age"]);
-    expect(activeFilterKeys({ excludeMyClub: true, leagueIds: [1] })).toEqual([
-      "leagueIds",
-      "excludeMyClub",
-    ]);
+      activeFilters({
+        text: " ",
+        ranges: { age: { min: 18 }, potential: {}, finishing: { max: 0 } },
+        clubStatus: "with-club",
+      }),
+    ).toEqual(["ranges.age", "ranges.finishing"]);
+    expect(
+      activeFilters({
+        excludeMyClub: true,
+        clubStatus: "all",
+        text: "a",
+        lists: { leagueId: [1], clubId: [] },
+        flags: { selfish: false, transferListed: undefined },
+      }),
+    ).toEqual(["text", "lists.leagueId", "flags.selfish", "clubStatus", "excludeMyClub"]);
   });
 });
 
@@ -229,6 +323,14 @@ describe("facetOptions", () => {
     expect(all.clubs.map((club) => club.name)).toEqual(["Sokół", "Śląsk"]);
     expect(all.nationalities).toEqual([{ id: 1, name: "Country" }]);
     expect(all.contractYears).toEqual([2011, 2012]);
-    expect(facetOptions(players, { leagueIds: [2] }).clubs).toEqual([{ id: 5, name: "Śląsk" }]);
+    expect(all.codes).toEqual({
+      positionCode: [17],
+      bodyType: [2],
+      developmentType: [1],
+      developmentStyle: [2],
+    });
+    expect(facetOptions(players, { lists: { leagueId: [2] } }).clubs).toEqual([
+      { id: 5, name: "Śląsk" },
+    ]);
   });
 });

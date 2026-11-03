@@ -40,6 +40,7 @@ const PLAYERS = table("players", [
     potential: 95,
     sprintspeed: 92,
     dribbling: 96,
+    technicaldribbler: 1,
   }),
   playerRow({
     playerid: 7,
@@ -69,9 +70,9 @@ export const buildScoutDb = (): Uint8Array =>
       { leagueid: 76, leaguename: "Rest of World", level: 4 },
     ]),
     table("teams", [
-      { teamid: 241, teamname: "FC Barcelona" },
-      { teamid: 1873, teamname: "Wisła Kraków" },
-      { teamid: 10, teamname: "Łódzki KS" },
+      { teamid: 241, teamname: "FC Barcelona", overallrating: 84 },
+      { teamid: 1873, teamname: "Wisła Kraków", overallrating: 66 },
+      { teamid: 10, teamname: "Łódzki KS", overallrating: 58 },
     ]),
     table("leagueteamlinks", [
       { leagueid: 53, teamid: 241 },

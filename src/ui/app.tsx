@@ -17,12 +17,12 @@ export const App = (): JSX.Element => {
   const files = useScoutFiles(dispatch);
   const wide = useMediaQuery(WIDE_QUERY);
   const { ready, savePreferences } = files;
-  const { players, view, filters, sort } = state;
+  const { players, view, filters, sort, showPotential } = state;
 
   useEffect(() => {
     // Only after the stored preferences were restored, so defaults never overwrite them.
-    if (ready) savePreferences({ filters, sort });
-  }, [ready, savePreferences, filters, sort]);
+    if (ready) savePreferences({ filters, sort, showPotential });
+  }, [ready, savePreferences, filters, sort, showPotential]);
 
   const openPlayer = players?.find((player) => player.id === state.openPlayerId);
   return (
@@ -59,6 +59,7 @@ export const App = (): JSX.Element => {
         <PlayerCard
           player={openPlayer}
           career={state.myTeamId !== null}
+          showPotential={showPotential}
           onClose={() => {
             dispatch({ type: "player-closed" });
           }}

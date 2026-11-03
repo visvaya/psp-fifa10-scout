@@ -1,28 +1,62 @@
-// Declarative player filters: each set field adds one predicate, and a player must pass them all.
-import { ATTRIBUTE_NAMES, searchKey } from "./players.ts";
-import type { AttributeName, Player } from "./players.ts";
-import type { PositionGroup } from "./positions.ts";
+// Declarative player filters: each set filter adds one predicate, and a player must pass them all.
+// Lists keep any of the chosen values, ranges are inclusive, flags require a trait or its absence.
+import { ATTRIBUTE_NAMES, isAttributeName, searchKey, TRAIT_NAMES } from "./players.ts";
+import type { AttributeName, Player, TraitName } from "./players.ts";
 
-interface Range {
-  readonly min?: number;
-  readonly max?: number;
+export interface Range {
+  readonly min?: number | undefined;
+  readonly max?: number | undefined;
 }
+
+/** Number fields a range can apply to; a player without the value (null) never passes. */
+const RANGE_FIELDS = [
+  "age",
+  "overall",
+  "potential",
+  "growth",
+  "height",
+  "weight",
+  "weakFoot",
+  "internationalReputation",
+  "learningSpeed",
+  "retirementAge",
+  "clubRating",
+  "contractEndYear",
+  "form",
+  "morale",
+  "injuryDays",
+] as const satisfies readonly (keyof Player)[];
+
+export type RangeFields = (typeof RANGE_FIELDS)[number];
+export type RangeKey = RangeFields | AttributeName;
+export const RANGE_KEYS: readonly RangeKey[] = [...RANGE_FIELDS, ...ATTRIBUTE_NAMES];
+
+/** Fields chosen from a list of values. */
+export const LIST_FIELDS = [
+  "positionCode",
+  "positionGroup",
+  "bodyType",
+  "preferredFoot",
+  "developmentType",
+  "developmentStyle",
+  "leagueId",
+  "clubId",
+  "nationalityId",
+] as const satisfies readonly (keyof Player)[];
+
+export type ListKey = (typeof LIST_FIELDS)[number];
+export type FlagKey = TraitName | "nationalTeam" | "transferListed";
+export const FLAG_KEYS: readonly FlagKey[] = [...TRAIT_NAMES, "nationalTeam", "transferListed"];
 
 export interface PlayerFilters {
   /** Part of the name, ignoring case and diacritics. */
   readonly text?: string;
-  readonly positionGroups?: readonly PositionGroup[];
-  readonly age?: Range;
-  readonly potential?: Range;
-  /** OVR at the preferred position. */
-  readonly overall?: Range;
-  readonly attributeMin?: Readonly<Partial<Record<AttributeName, number>>>;
-  readonly leagueIds?: readonly number[];
-  /** Club ids. */
-  readonly teamIds?: readonly number[];
-  readonly nationalityIds?: readonly number[];
-  /** Contracts ending in this year or earlier. */
-  readonly contractEndsBy?: number;
+  readonly ranges?: { readonly [K in RangeKey]?: Range | undefined };
+  readonly lists?: { readonly [K in ListKey]?: readonly NonNullable<Player[K]>[] | undefined };
+  /** true: the player has it; false: he does not. */
+  readonly flags?: { readonly [K in FlagKey]?: boolean | undefined };
+  /** OVR at one position code, whatever the preferred position. */
+  readonly positionRating?: PositionRating;
   readonly freeAgentsOnly?: boolean;
   /** Leaves out players without a club (legends, national-team-only players), keeping academy youth. */
   readonly withClubOnly?: boolean;
@@ -30,52 +64,61 @@ export interface PlayerFilters {
   readonly excludeTeamId?: number;
 }
 
+export interface PositionRating extends Range {
+  readonly code: number;
+}
+
 type Predicate = (player: Player) => boolean;
 
-const inRange =
-  (range: Range, value: (player: Player) => number): Predicate =>
-  (player) =>
-    value(player) >= (range.min ?? -Infinity) && value(player) <= (range.max ?? Infinity);
+const rangeValue = (player: Player, key: RangeKey): number | null =>
+  isAttributeName(key) ? player.attributes[key] : player[key];
 
-const oneOf = (
-  ids: readonly number[] | undefined,
-  value: (player: Player) => number | null,
-): Predicate | null => {
-  if (ids === undefined || ids.length === 0) return null;
-  const wanted = new Set<number | null>(ids);
-  return (player) => wanted.has(value(player));
+const hasFlag = (player: Player, flag: FlagKey): boolean => {
+  if (flag === "nationalTeam") return player.nationalTeamId !== null;
+  return flag === "transferListed" ? player.transferListed : player.traits.includes(flag);
 };
 
-const predicates = (filters: PlayerFilters): readonly (Predicate | null)[] => {
+/** Keeps players whose value is set and within the inclusive range. */
+const inRange =
+  (
+    { min = -Infinity, max = Infinity }: Range,
+    value: (player: Player) => number | null | undefined,
+  ): Predicate =>
+  (player) => {
+    const current = value(player);
+    return current !== null && current !== undefined && current >= min && current <= max;
+  };
+
+const predicates = (filters: PlayerFilters): readonly Predicate[] => {
   const text = searchKey(filters.text?.trim() ?? "");
-  const groups = filters.positionGroups ?? [];
-  const minimums = ATTRIBUTE_NAMES.flatMap((name) => {
-    const min = filters.attributeMin?.[name];
-    return min === undefined ? [] : [[name, min] as const];
-  });
-  const { contractEndsBy, excludeTeamId } = filters;
-  // Unset filters add no predicate (null), which keeps a full scan of 13 000 players cheap.
+  const { excludeTeamId } = filters;
+  const rating = filters.positionRating;
   return [
-    text === "" ? null : (player) => player.searchName.includes(text),
-    groups.length === 0 ? null : (player) => groups.includes(player.positionGroup),
-    filters.age === undefined ? null : inRange(filters.age, (player) => player.age),
-    filters.potential === undefined
-      ? null
-      : inRange(filters.potential, (player) => player.potential),
-    filters.overall === undefined ? null : inRange(filters.overall, (player) => player.overall),
-    minimums.length === 0
-      ? null
-      : (player) => minimums.every(([name, min]) => player.attributes[name] >= min),
-    oneOf(filters.leagueIds, (player) => player.leagueId),
-    oneOf(filters.teamIds, (player) => player.clubId),
-    oneOf(filters.nationalityIds, (player) => player.nationalityId),
-    contractEndsBy === undefined
-      ? null
-      : (player) => player.contractEndYear !== null && player.contractEndYear <= contractEndsBy,
+    ...(text === "" ? [] : [(player: Player) => player.searchName.includes(text)]),
+    ...RANGE_KEYS.flatMap((key) => {
+      const range = filters.ranges?.[key];
+      return range === undefined ? [] : [inRange(range, (player) => rangeValue(player, key))];
+    }),
+    ...LIST_FIELDS.flatMap((key) => {
+      const values: readonly unknown[] = filters.lists?.[key] ?? [];
+      const wanted = new Set(values);
+      return values.length === 0 ? [] : [(player: Player) => wanted.has(player[key])];
+    }),
+    ...(rating === undefined
+      ? []
+      : [inRange(rating, (player) => player.overallByCode[rating.code])]),
+    ...FLAG_KEYS.flatMap((flag) => {
+      const wanted = filters.flags?.[flag];
+      return wanted === undefined ? [] : [(player: Player) => hasFlag(player, flag) === wanted];
+    }),
     // A youth-pool player without a club sits in the user's academy, so he is not on the market.
-    filters.freeAgentsOnly === true ? (player) => player.clubId === null && !player.youth : null,
-    filters.withClubOnly === true ? (player) => player.clubId !== null || player.youth : null,
-    excludeTeamId === undefined ? null : (player) => player.clubId !== excludeTeamId,
+    ...(filters.freeAgentsOnly === true
+      ? [(player: Player) => player.clubId === null && !player.youth]
+      : []),
+    ...(filters.withClubOnly === true
+      ? [(player: Player) => player.clubId !== null || player.youth]
+      : []),
+    ...(excludeTeamId === undefined ? [] : [(player: Player) => player.clubId !== excludeTeamId]),
   ];
 };
 
@@ -84,6 +127,6 @@ export const filterPlayers = (
   players: readonly Player[],
   filters: PlayerFilters,
 ): readonly Player[] => {
-  const active = predicates(filters).filter((predicate) => predicate !== null);
+  const active = predicates(filters);
   return players.filter((player) => active.every((predicate) => predicate(player)));
 };
