@@ -299,15 +299,18 @@ test.describe("open dialog", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
   // A swipe that reaches the end of a dialog must not move the list behind it.
-  test("locks the list while a dialog is open", async ({ page }) => {
+  // iOS Safari also drags the whole page (its overscroll bounce), so the document is locked too.
+  test("locks the list and the page while a dialog is open", async ({ page }) => {
     await loadDatabase(page);
-    const list = page.locator(".scroll");
+    const [list, root] = [page.locator(".scroll"), page.locator("html")];
     await expect(list).toHaveCSS("overflow-y", "auto");
     await page.locator(".player-row").first().click();
     const card = page.getByRole("dialog");
     await expect(list).toHaveCSS("overflow-y", "hidden");
+    await expect(root).toHaveCSS("overflow-y", "hidden");
     await card.getByRole("button", { name: "Zamknij" }).click();
     await expect(list).toHaveCSS("overflow-y", "auto");
+    await expect(root).toHaveCSS("overflow-y", "visible");
   });
 });
 
