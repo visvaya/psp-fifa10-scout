@@ -23,10 +23,11 @@ describe("scout store", () => {
         ranges: { age: { min: 18, max: 23 }, dribbling: { min: 80 } },
         lists: { positionGroup: ["wide"], preferredFoot: ["left"], leagueId: [53] },
         flags: { leadership: true, diver: false },
+        positionRating: { code: 7, min: 70 },
         clubStatus: "all",
         excludeMyClub: true,
       },
-      sort: { key: "height", direction: "ascending" },
+      sort: { key: "positionRating", direction: "ascending" },
       showPotential: true,
     };
     await store.saveGameDb(Uint8Array.of(1, 2, 3));
@@ -53,6 +54,7 @@ describe("scout store", () => {
       await loadPreferences({ schemaVersion: 3, value: { filters: {}, sort: { key: "age" } } }),
     ).toBeNull();
     expect(await loadPreferences({ schemaVersion: 3, value: [] })).toBeNull();
+    expect(await loadPreferences({ schemaVersion: 2, value: "junk" })).toBeNull();
   });
 
   it("drops unknown and malformed filter values", async () => {
@@ -75,10 +77,19 @@ describe("scout store", () => {
         flags: { leadership: true, diver: "yes", cheater: true },
         clubStatus: "some",
         excludeMyClub: "yes",
+        positionRating: { code: 32, min: 1 },
       },
       sort: DEFAULT_SORT,
       showPotential: "yes",
     };
+    const rating = (positionRating: unknown) =>
+      loadPreferences({
+        schemaVersion: 3,
+        value: { filters: { positionRating }, sort: DEFAULT_SORT },
+      });
+    expect((await rating({ code: 0, max: "9" }))?.filters).toEqual({ positionRating: { code: 0 } });
+    expect((await rating({ code: 1.5 }))?.filters).toEqual({});
+    expect((await rating(5))?.filters).toEqual({});
     expect(await loadPreferences({ schemaVersion: 3, value })).toEqual({
       filters: {
         ranges: { age: { max: 23 } },

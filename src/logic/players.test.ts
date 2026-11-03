@@ -8,6 +8,7 @@ import { buildEaDb } from "../data/test-support/synthetic-ea-db.ts";
 import { filterPlayers } from "./filter-players.ts";
 import { attributesOf, buildPlayers, searchKey } from "./players.ts";
 import { sortPlayers } from "./sort-players.ts";
+import { baseOverall, byPositionCode } from "./overall-rating.ts";
 import { byGroup } from "./positions.ts";
 import { attributes, flatCurves, playerRow, table } from "./test-support/player-fixtures.ts";
 
@@ -41,6 +42,7 @@ const DB = parseEaDb(
       { countryid: 52, countryname: "Argentina" },
       { countryid: 37, countryname: "Poland" },
     ]),
+    // Data rows, alike by nature. jscpd:ignore-start
     table("players", [
       playerRow({
         playerid: 158_023,
@@ -79,6 +81,7 @@ const DB = parseEaDb(
       playerRow({ playerid: 400_003, nationality: 37 }),
       playerRow({ playerid: 400_004, nationality: 37 }),
     ]),
+    // jscpd:ignore-end
     table("teamplayerlinks", [
       { teamid: 9999, playerid: 158_023, jerseynumber: 1, yearcontractvalidtil: 2020 },
       { teamid: 241, playerid: 158_023, jerseynumber: 10, yearcontractvalidtil: 2014 },
@@ -132,6 +135,8 @@ const SAVE: CareerSave = new Map([
   ],
 ]);
 
+const MESSI_ATTRIBUTES = attributes(50, { acceleration: 94, reflexes: 9, crossing: 90 });
+
 const byId = (players: ReturnType<typeof buildPlayers>, id: number) =>
   players.find((player) => player.id === id);
 
@@ -143,6 +148,7 @@ describe("buildPlayers from fifa.db", () => {
   });
 
   it("summarises a club player with his club, league, national team and nationality", () => {
+    // The full summary, alike the fixture's by nature. jscpd:ignore-start
     expect(byId(players, 158_023)).toEqual({
       id: 158_023,
       name: "Lionel Messi",
@@ -168,7 +174,8 @@ describe("buildPlayers from fifa.db", () => {
       developmentStyle: 5,
       traits: ["playmaker", "technicaldribbler"],
       overallByGroup: { ...byGroup(() => 50), goalkeeper: 41, wide: 60, "wing-backs": 54 },
-      attributes: attributes(50, { acceleration: 94, reflexes: 9, crossing: 90 }),
+      overallByCode: byPositionCode((code) => baseOverall(MESSI_ATTRIBUTES, code)),
+      attributes: MESSI_ATTRIBUTES,
       clubId: 241,
       clubName: "FC Barcelona",
       clubRating: 84,
@@ -187,6 +194,7 @@ describe("buildPlayers from fifa.db", () => {
       injuryDays: null,
       transferListed: false,
     });
+    // jscpd:ignore-end
   });
 
   it("trims one-name players and names the unconfirmed position codes after their group", () => {
@@ -273,6 +281,7 @@ describe("buildPlayers with a career save", () => {
   it("rates players in career mode, capped at the career potential", () => {
     expect(byId(players, 158_023)?.overall).toBe(60);
     expect(byId(players, 7)).toMatchObject({ overall: 45, overallByGroup: { goalkeeper: 45 } });
+    expect(byId(players, 7)?.overallByCode[0]).toBe(45);
   });
 
   it("adds career stats where the save has them", () => {
@@ -337,6 +346,14 @@ describe.runIf(existsSync(realDbPath))("real fifa.db", () => {
     );
     timed("sortPlayers all by name", () => sortPlayers(players, "name", "ascending"));
     timed("sortPlayers all by age", () => sortPlayers(players, "age", "descending"));
+    timed("filter + sort by position rating", () =>
+      sortPlayers(
+        filterPlayers(players, { positionRating: { code: 3, min: 50 }, withClubOnly: true }),
+        "positionRating",
+        "descending",
+        3,
+      ),
+    );
     timed("filter + sort", () =>
       sortPlayers(
         filterPlayers(players, { ranges: { potential: { min: 60 } }, flags: { selfish: false } }),

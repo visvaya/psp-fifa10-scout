@@ -4,6 +4,7 @@ import { effectiveRows, careerManager, parseCareerSave } from "../data/career-sa
 import { birthdateToDate, parseEaDb, readTable } from "../data/ea-db.ts";
 import {
   baseOverall,
+  byPositionCode,
   careerOverall,
   OVR_WEIGHTS,
   potentialDeltas,
@@ -40,6 +41,21 @@ describe("OVR weights", () => {
     expect(OVR_WEIGHTS[2]).toBe(OVR_WEIGHTS[8]);
     expect(OVR_WEIGHTS[14]).toBe(OVR_WEIGHTS[20]);
     expect(OVR_WEIGHTS[16]).toBe(OVR_WEIGHTS[CM]);
+  });
+});
+
+describe("byPositionCode", () => {
+  it("rates each code once per distinct weight row", () => {
+    const rated: number[] = [];
+    const values = byPositionCode((code) => {
+      rated.push(code);
+      return code * 2;
+    });
+    expect(rated).toEqual([0, 1, 2, 3, 4, 9, 14, 16, 21, 26]);
+    expect(values).toHaveLength(32);
+    expect(values.slice(0, 9)).toEqual([0, 2, 4, 6, 8, 8, 8, 6, 4]);
+    expect(values.slice(14, 21)).toEqual([28, 28, 32, 32, 32, 28, 28]);
+    expect(values[31]).toBe(52);
   });
 });
 

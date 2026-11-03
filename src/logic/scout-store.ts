@@ -3,7 +3,8 @@
 // Nothing leaves the device. Preferences 2 migrate to 3; any other version or shape is ignored, and
 // unknown or malformed filter values are dropped one by one.
 import { FLAG_KEYS, LIST_FIELDS, RANGE_KEYS } from "./filter-players.ts";
-import type { ListKey } from "./filter-players.ts";
+import type { ListKey, PositionRating, Range } from "./filter-players.ts";
+import { OVR_WEIGHTS } from "./overall-rating.ts";
 import { ATTRIBUTE_NAMES } from "./players.ts";
 import { POSITION_GROUPS } from "./positions.ts";
 import { compactFilters } from "./scout-state.ts";
@@ -48,6 +49,7 @@ export const SORTABLE_KEYS: readonly SortKey[] = [
   "form",
   "morale",
   "injuryDays",
+  "positionRating",
   ...ATTRIBUTE_NAMES,
 ];
 
@@ -78,8 +80,23 @@ const CLUB_STATUSES: readonly unknown[] = [
 ] satisfies ClubStatus[];
 const isClubStatus = (value: unknown): value is ClubStatus => CLUB_STATUSES.includes(value);
 
-const isBound = (value: unknown): value is number | undefined =>
-  value === undefined || Number.isFinite(value);
+const isFiniteNumber = (value: unknown): value is number => Number.isFinite(value);
+
+const parseRange = (value: unknown): Range => {
+  const { min, max } = recordOf(value);
+  return {
+    ...(isFiniteNumber(min) ? { min } : {}),
+    ...(isFiniteNumber(max) ? { max } : {}),
+  };
+};
+
+/** A position rating filter with a known position code 0..31, or undefined. */
+const parsePositionRating = (value: unknown): PositionRating | undefined => {
+  const { code } = recordOf(value);
+  return Number.isInteger(code) && isFiniteNumber(code) && code >= 0 && code < OVR_WEIGHTS.length
+    ? { code, ...parseRange(value) }
+    : undefined;
+};
 
 /** Which stored values each list accepts: a known name or an integer code. */
 const LIST_VALUES: Readonly<Partial<Record<ListKey, readonly unknown[]>>> = {
@@ -103,16 +120,11 @@ const entriesOf = <K extends string, V>(
 };
 
 const parseFilters = (value: unknown): ScoutFilters => {
-  const { text, ranges, lists, flags, clubStatus, excludeMyClub } = recordOf(value);
+  const { text, ranges, lists, flags, clubStatus, excludeMyClub, positionRating } = recordOf(value);
+  const rating = parsePositionRating(positionRating);
   return {
     ...(typeof text === "string" ? { text } : {}),
-    ranges: entriesOf(ranges, RANGE_KEYS, (item) => {
-      const { min, max } = recordOf(item);
-      return {
-        ...(isBound(min) && min !== undefined ? { min } : {}),
-        ...(isBound(max) && max !== undefined ? { max } : {}),
-      };
-    }),
+    ranges: entriesOf(ranges, RANGE_KEYS, parseRange),
     lists: entriesOf(lists, LIST_FIELDS, (item, key) => {
       const allowed = LIST_VALUES[key];
       return Array.isArray(item)
@@ -120,6 +132,7 @@ const parseFilters = (value: unknown): ScoutFilters => {
         : undefined;
     }),
     flags: entriesOf(flags, FLAG_KEYS, (item) => (typeof item === "boolean" ? item : undefined)),
+    ...(rating === undefined ? {} : { positionRating: rating }),
     ...(isClubStatus(clubStatus) ? { clubStatus } : {}),
     ...(typeof excludeMyClub === "boolean" ? { excludeMyClub } : {}),
   };

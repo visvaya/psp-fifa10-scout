@@ -6,10 +6,17 @@ import { ageOn, birthdateToDate, readTable } from "../data/ea-db.ts";
 import type { EaDb, EaDbRow } from "../data/ea-db.ts";
 import { SaveFormatError } from "../data/save-format-error.ts";
 import { SCOUT_CONFIG } from "./config.ts";
-import { baseOverall, careerOverall, potentialDeltas, readCurves } from "./overall-rating.ts";
+import {
+  baseOverall,
+  byPositionCode,
+  careerOverall,
+  potentialDeltas,
+  readCurves,
+} from "./overall-rating.ts";
 import { byGroup, positionOf } from "./positions.ts";
 import type { PositionGroup } from "./positions.ts";
 
+// Column names, alike by nature. jscpd:ignore-start
 /** The attribute columns of `players`, in table order (potential is a separate field). */
 export const ATTRIBUTE_NAMES = [
   "acceleration",
@@ -75,6 +82,7 @@ export const TRAIT_NAMES = [
   "technicaldribbler",
 ] as const;
 
+// jscpd:ignore-end
 export type TraitName = (typeof TRAIT_NAMES)[number];
 export type Attributes = Readonly<Record<AttributeName, number>>;
 
@@ -130,6 +138,8 @@ export interface Player {
   readonly traits: readonly TraitName[];
   /** OVR at each position group, rated the same way. */
   readonly overallByGroup: Readonly<Record<PositionGroup, number>>;
+  /** OVR at each position code 0..31, rated the same way. */
+  readonly overallByCode: readonly number[];
   readonly attributes: Attributes;
   readonly clubId: number | null;
   readonly clubName: string | null;
@@ -271,7 +281,8 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
   const nationalityId = num(row, "nationality");
   const name = `${String(row["firstname"])} ${String(row["surname"])}`.trim();
   const attributes = attributesOf(row);
-  const rate = (code: number): number => context.rate(row, attributes, code);
+  const overallByCode = byPositionCode((code) => context.rate(row, attributes, code));
+  const rate = (code: number): number => overallByCode[code] ?? 0;
   const [potential, overall] = [num(row, "potential"), rate(num(row, "preferredposition1"))];
   return {
     id,
@@ -290,6 +301,7 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
     growth: potential - overall,
     ...profileFields(row),
     overallByGroup: byGroup(rate),
+    overallByCode,
     attributes,
     ...teamFields(context.placements.get(id) ?? {}),
     nationalityId,

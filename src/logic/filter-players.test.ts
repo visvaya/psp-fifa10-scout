@@ -100,6 +100,19 @@ describe("filterPlayers", () => {
     expect(ids({ ranges: { form: { min: 0 } } })).toEqual([4]);
   });
 
+  it("ranges the OVR at a chosen position, whatever the preferred one", () => {
+    const rated = PLAYERS.map((player) => ({
+      ...player,
+      overallByCode: player.overallByCode.map((value, code) =>
+        code === 1 ? player.id * 10 : value,
+      ),
+    }));
+    const at = (filters: PlayerFilters) => filterPlayers(rated, filters).map((player) => player.id);
+    expect(at({ positionRating: { code: 1, min: 20, max: 30 } })).toEqual([2, 3]);
+    expect(at({ positionRating: { code: 1 } })).toEqual([1, 2, 3, 4]);
+    expect(at({ positionRating: { code: 2, max: 49 } })).toEqual([]);
+  });
+
   it("requires a trait or its absence", () => {
     expect(ids({ flags: { playmaker: true } })).toEqual([2]);
     expect(ids({ flags: { playmaker: false } })).toEqual([1, 3, 4]);

@@ -87,6 +87,7 @@ export const testPlayer = (overrides: Partial<Player> = {}): Player => {
     developmentStyle: 2,
     traits: [],
     overallByGroup: byGroup(() => 50),
+    overallByCode: Array.from({ length: 32 }, () => 50),
     attributes: attributes(50),
     clubId: 10,
     clubName: "Club",

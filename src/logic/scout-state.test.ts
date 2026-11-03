@@ -186,6 +186,24 @@ describe("scoutReducer filters, sort and card", () => {
     expect(state).toMatchObject({ filters: {}, sort: DEFAULT_SORT, showPotential: false });
   });
 
+  it("sorts by the position rating only while that filter is set", () => {
+    const rated = scoutReducer(
+      scoutReducer(initialScoutState, {
+        type: "filters-changed",
+        filters: { positionRating: { code: 3, min: 70 } },
+      }),
+      { type: "sort-changed", key: "positionRating" },
+    );
+    expect(rated.sort).toEqual({ key: "positionRating", direction: "descending" });
+    expect(activeFilters(rated.filters)).toEqual(["positionRating"]);
+    expect(remove(rated, "positionRating")).toMatchObject({ filters: {}, sort: DEFAULT_SORT });
+    const restored = scoutReducer(initialScoutState, {
+      type: "preferences-restored",
+      preferences: { filters: {}, sort: rated.sort, showPotential: true },
+    });
+    expect(restored.sort).toEqual(DEFAULT_SORT);
+  });
+
   it("keeps the potential setting when filters are reset", () => {
     const shown = scoutReducer(initialScoutState, { type: "potential-shown", shown: true });
     expect(scoutReducer(shown, { type: "filters-reset" }).showPotential).toBe(true);

@@ -26,6 +26,7 @@ export type FilterId =
   | "text"
   | "clubStatus"
   | "excludeMyClub"
+  | "positionRating"
   | `ranges.${RangeKey}`
   | `lists.${ListKey}`
   | `flags.${FlagKey}`;
@@ -131,6 +132,7 @@ export const activeFilters = (filters: FilterChange): readonly FilterId[] => [
   ...RANGE_KEYS.filter((key) => isRangeSet(filters.ranges?.[key])).map(
     (key) => `ranges.${key}` as const,
   ),
+  ...(filters.positionRating === undefined ? [] : ["positionRating" as const]),
   ...LIST_FIELDS.filter((key) => isNonEmpty(filters.lists?.[key])).map(
     (key) => `lists.${key}` as const,
   ),
@@ -145,13 +147,14 @@ export const activeFilters = (filters: FilterChange): readonly FilterId[] => [
 
 /** Only the active filters, so empty values never linger in state or storage. */
 export const compactFilters = (filters: FilterChange): ScoutFilters => {
-  const { text, clubStatus, excludeMyClub } = filters;
+  const { text, clubStatus, excludeMyClub, positionRating } = filters;
   const ranges = pick(filters.ranges, RANGE_KEYS, isRangeSet);
   const lists = pick(filters.lists, LIST_FIELDS, isNonEmpty);
   const flags = pick(filters.flags, FLAG_KEYS, isDefined);
   return {
     ...(text === undefined || text.trim() === "" ? {} : { text }),
     ...(ranges === undefined ? {} : { ranges }),
+    ...(positionRating === undefined ? {} : { positionRating }),
     ...(lists === undefined ? {} : { lists }),
     ...(flags === undefined ? {} : { flags }),
     ...(clubStatus === undefined || clubStatus === "with-club" ? {} : { clubStatus }),
@@ -180,6 +183,14 @@ const withPotential = (preferences: Preferences): Preferences => {
     filters: compactFilters({ ...preferences.filters, ranges }),
     sort: POTENTIAL_KEYS.has(preferences.sort.key) ? DEFAULT_SORT : preferences.sort,
   };
+};
+
+/** Preferences whose sort fits the filters: by position rating only while a position is chosen. */
+const consistent = (preferences: Preferences): Preferences => {
+  const shown = withPotential(preferences);
+  return shown.sort.key === "positionRating" && shown.filters.positionRating === undefined
+    ? { ...shown, sort: DEFAULT_SORT }
+    : shown;
 };
 
 const isCurrent = (state: ScoutState, requestId: number): boolean =>
@@ -227,11 +238,20 @@ export const scoutReducer = (state: ScoutState, action: ScoutAction): ScoutState
     case "view-changed":
       return { ...state, view: action.view };
     case "filters-changed":
-      return { ...state, filters: compactFilters({ ...state.filters, ...action.filters }) };
+      return {
+        ...state,
+        ...consistent({
+          ...state,
+          filters: compactFilters({ ...state.filters, ...action.filters }),
+        }),
+      };
     case "filter-removed":
-      return { ...state, filters: withoutFilter(state.filters, action.id) };
+      return {
+        ...state,
+        ...consistent({ ...state, filters: withoutFilter(state.filters, action.id) }),
+      };
     case "potential-shown":
-      return { ...state, ...withPotential({ ...state, showPotential: action.shown }) };
+      return { ...state, ...consistent({ ...state, showPotential: action.shown }) };
     case "filters-reset":
       return { ...state, filters: {}, sort: DEFAULT_SORT };
     case "sort-changed":
@@ -243,7 +263,7 @@ export const scoutReducer = (state: ScoutState, action: ScoutAction): ScoutState
       const { filters, sort, showPotential } = action.preferences;
       return {
         ...state,
-        ...withPotential({ filters: compactFilters(filters), sort, showPotential }),
+        ...consistent({ filters: compactFilters(filters), sort, showPotential }),
       };
     }
     case "player-opened":
