@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+    # edited: a corrected pull request title is checked again without a new push.
+    types: [opened, synchronize, reopened, edited]
   workflow_dispatch:
 
 permissions:

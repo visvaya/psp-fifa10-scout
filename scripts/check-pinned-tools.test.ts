@@ -28,6 +28,11 @@ describe("extractPins", () => {
     expect(pins.map((pin) => pin.rule.name)).toEqual(PIN_RULES.map((rule) => rule.name));
   });
 
+  it("ignores a commented-out pin before the active one", () => {
+    const workflow = "# GITLEAKS_VERSION: 8.0.0\n      GITLEAKS_VERSION: 8.30.1";
+    expect(extractPins(workflow).pins[0]?.pinned).toBe("8.30.1");
+  });
+
   it("reports a rule whose pin is gone", () => {
     expect(extractPins("GITLEAKS_VERSION: 8.30.1").missing).toEqual(["actionlint", "zizmor"]);
   });
