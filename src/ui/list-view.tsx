@@ -200,6 +200,7 @@ export const ListView = ({
         ) : (
           <List
             players={visible}
+            allPlayers={players}
             sort={sort}
             showPotential={state.showPotential}
             ratingCode={state.filters.positionRating?.code ?? null}

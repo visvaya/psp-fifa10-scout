@@ -49,6 +49,12 @@ const centre = async (locator: Locator): Promise<number> => {
   return box === null ? Number.NaN : box.x + box.width / 2;
 };
 
+/** The widths of the table's header cells. */
+const headerWidths = async (page: Page): Promise<number[]> =>
+  page
+    .locator("table.players thead th")
+    .evaluateAll((cells) => cells.map((cell) => cell.getBoundingClientRect().width));
+
 const expectCount = async (page: Page, text: string) => {
   await expect(page.locator("p.count")).toHaveText(text);
 };
@@ -153,6 +159,33 @@ test.describe("without JavaScript", () => {
     await expect(page.getByRole("heading", { name: "PSP FIFA 10 Scout" })).toBeVisible();
     await expect(page.getByText("Wczytywanie…")).toBeVisible();
     await expect(page.locator(".skeleton").first()).toBeVisible();
+  });
+});
+
+test.describe("table and dialogs", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  // The table draws only the rows in view, so widths taken from the drawn rows would change on scroll.
+  test("keeps the column widths while the list scrolls", async ({ page }) => {
+    await loadDatabase(page);
+    const widths = async () => headerWidths(page);
+    const before = await widths();
+    await page.locator(".scroll").evaluate((element) => {
+      element.scrollTo(0, element.scrollHeight);
+    });
+    await expect(page.getByRole("button", { name: "Paweł Brożek" })).toBeInViewport();
+    expect(await widths()).toEqual(before);
+  });
+
+  test("closes a dialog with a click outside it, not inside", async ({ page }) => {
+    await loadDatabase(page);
+    await page.getByRole("searchbox", { name: "Nazwisko" }).fill("messi");
+    await page.getByRole("button", { name: "Lionel Messi" }).click();
+    const card = page.getByRole("dialog", { name: "Lionel Messi" });
+    await card.getByRole("heading", { name: "Lionel Messi" }).click();
+    await expect(card).toBeVisible();
+    await page.mouse.click(8, 400);
+    await expect(card).toBeHidden();
   });
 });
 

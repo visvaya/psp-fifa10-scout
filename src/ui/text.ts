@@ -306,7 +306,7 @@ export const TEXT = {
     weightValue: (kg: number): string => `${formatNumber(kg)}${NBSP}kg`,
     career: "W tym sezonie kariery",
     careerNote:
-      "Gra prowadzi te statystyki tylko w lidze Twojego klubu; zawodnik sprzedany do innej ligi je zachowuje.",
+      "Gra prowadzi te statystyki tylko w lidze twojego klubu. U zawodnika, który z niej odszedł, to archiwalne liczby z czasu gry w tej lidze.",
     form: "Forma",
     morale: "Morale",
     goals: "Gole",

@@ -17,12 +17,13 @@ const CLUBS = [241, 1873, 10];
 /** Positions cycling through every group: GK, CB, LB, CDM, RM, CM, CAM, ST. */
 const POSITIONS = [0, 5, 7, 11, 15, 17, 23, 29];
 
-/** Generated squad players 1000..1059 with varied age, position, potential and club. */
+/** Generated squad players 1000..1059 with varied age, position, potential and club; one long name
+ * near the end of the list, so the table's column widths are tested against it. */
 const generated = Array.from({ length: 60 }, (_, index) =>
   playerRow({
     playerid: 1000 + index,
     firstname: "Gracz",
-    surname: `Numer ${String(index + 1)}`,
+    surname: index === 8 ? "Numer 9 Bardzo-Długie-Nazwisko-Testowe" : `Numer ${String(index + 1)}`,
     birthdate: born(1975 + (index % 20)),
     nationality: index % 2 === 0 ? 37 : 52,
     preferredposition1: POSITIONS[index % POSITIONS.length] ?? 0,
