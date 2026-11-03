@@ -50,6 +50,8 @@ jobs:
             dist.sha256
           if-no-files-found: error
           retention-days: 7
+          # A rerun of this job uploads the same name again.
+          overwrite: true
       - name: Audit production dependencies
         run: pnpm audit --prod
       - name: Audit all dependencies (report only)
