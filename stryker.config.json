@@ -10,7 +10,8 @@
     "src/data/param-sfo.ts",
     "src/data/read-save-data.ts",
     "src/data/ea-db.ts",
-    "src/data/career-save.ts"
+    "src/data/career-save.ts",
+    "src/data/iso9660.ts"
   ],
   "coverageAnalysis": "perTest",
   "ignoreStatic": true,
