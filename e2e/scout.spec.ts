@@ -201,6 +201,13 @@ test.describe("phone", () => {
     await loadDatabase(page);
     const pageHeight = await page.evaluate(() => document.scrollingElement?.scrollHeight);
     expect(pageHeight).toBe(page.viewportSize()?.height);
+    const list = page.locator(".scroll");
+    await list.evaluate((element) => {
+      element.scrollTo(0, element.scrollHeight);
+    });
+    expect(await list.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+    // The last row is drawn once the list reaches its end.
+    await expect(page.locator(".player-row").last()).toBeInViewport();
   });
 });
 
