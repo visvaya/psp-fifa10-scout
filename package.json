@@ -1,0 +1,57 @@
+{
+  "name": "psp-fifa10-scout",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Player search for the FIFA 10 (PSP) manager mode, reading the game database and career saves in the browser",
+  "license": "GPL-3.0-or-later",
+  "author": "visvaya (https://github.com/visvaya)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/visvaya/psp-fifa10-scout.git"
+  },
+  "type": "module",
+  "scripts": {
+    "prepare": "node scripts/install-git-hooks.ts",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "check:text": "node scripts/check-text.ts",
+    "check:unused": "cross-env KNIP_DISABLE_RAW_TRANSFER=1 knip",
+    "check:duplicates": "jscpd . --ignore-identifiers --ignore-literals",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "verify:fast": "pnpm lint && pnpm format:check",
+    "verify": "pnpm format:check && pnpm check:text && pnpm typecheck && pnpm lint && pnpm test:coverage && pnpm check:duplicates && pnpm check:unused && pnpm build"
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4",
+    "@types/node": "26.6.6",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "@vitest/coverage-v8": "5.0.5",
+    "cross-env": "10.1.0",
+    "jscpd": "5.4.2",
+    "knip": "6.43.0",
+    "oxfmt": "0.74.0",
+    "oxlint": "1.89.0",
+    "oxlint-tsgolint": "7.0.2005",
+    "typescript": "7.0.2",
+    "vite": "8.3.5",
+    "vitest": "5.0.5"
+  },
+  "engines": {
+    "node": "^26.13.0"
+  },
+  "packageManager": "pnpm@12.15.0"
+}

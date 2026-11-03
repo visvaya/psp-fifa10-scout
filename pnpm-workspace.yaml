@@ -1,0 +1,15 @@
+# Supply-chain guards. Most malicious npm versions are pulled within days of publication,
+# so a three-day delay keeps them out of the lockfile. Dependabot uses the same window
+# (`cooldown` in .github/dependabot.yml).
+minimumReleaseAge: 4320 # minutes, 3 days
+# A critical security fix younger than that: add the package here with the advisory id,
+# the date and the removal date, after checking the publisher. Remove it when the window passes.
+minimumReleaseAgeExclude: []
+
+# Refuse a version published with weaker provenance than an earlier one of the same package.
+trustPolicy: no-downgrade
+
+# pnpm 12 writes its own resolved version as a leading YAML document of pnpm-lock.yaml when
+# packageManager pins it. GitHub's dependency graph reads only the first document, so it would
+# see no dependencies and raise no alerts. "ignore" drops that document.
+pmOnFail: ignore

@@ -1,0 +1,6 @@
+#!/bin/sh
+#
+# Quality gate for every commit. The logic lives in scripts/git-hooks.ts.
+# Enabled by scripts/install-git-hooks.ts, which the package.json "prepare" script runs.
+
+exec node scripts/git-hooks.ts pre-commit

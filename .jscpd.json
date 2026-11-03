@@ -1,0 +1,9 @@
+{
+  "minLines": 12,
+  "minTokens": 60,
+  "threshold": 0,
+  "reporters": ["console"],
+  "gitignore": true,
+  "format": ["typescript", "tsx", "javascript", "css"],
+  "ignore": ["**/pnpm-lock.yaml", "**/*.md", "LICENSE", "node_modules/**", "dist/**", "coverage/**"]
+}

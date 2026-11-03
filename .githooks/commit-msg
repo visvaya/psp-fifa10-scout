@@ -1,0 +1,6 @@
+#!/bin/sh
+#
+# Conventional commits (commitlint), no co-author or generated-by lines, no emoji, no em dash.
+# Activated together with pre-commit via core.hooksPath.
+
+exec node scripts/git-hooks.ts commit-msg "$1"
