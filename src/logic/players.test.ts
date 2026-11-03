@@ -330,15 +330,19 @@ describe.runIf(existsSync(realDbPath))("real fifa.db", () => {
     const filtered = timed("filterPlayers", () =>
       filterPlayers(players, {
         text: "a",
-        positionGroups: ["forwards", "wide", "attacking-midfield"],
-        age: { min: 18, max: 30 },
-        attributeMin: { sprintspeed: 60 },
+        lists: { positionGroup: ["forwards", "wide", "attacking-midfield"], bodyType: [1, 2] },
+        ranges: { age: { min: 18, max: 30 }, sprintspeed: { min: 60 }, height: { min: 170 } },
+        flags: { injuryprone: false, technicaldribbler: true },
       }),
     );
     timed("sortPlayers all by name", () => sortPlayers(players, "name", "ascending"));
     timed("sortPlayers all by age", () => sortPlayers(players, "age", "descending"));
     timed("filter + sort", () =>
-      sortPlayers(filterPlayers(players, { potential: { min: 60 } }), "clubName", "ascending"),
+      sortPlayers(
+        filterPlayers(players, { ranges: { potential: { min: 60 } }, flags: { selfish: false } }),
+        "clubName",
+        "ascending",
+      ),
     );
     expect(filtered.length).toBeGreaterThan(0);
   });

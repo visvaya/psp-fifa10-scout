@@ -58,6 +58,17 @@ describe("sortPlayers", () => {
     expect(ids("youth", "ascending")).toEqual([2, 3, 1, 5]);
   });
 
+  it("sorts a number with missing values last in either direction", () => {
+    const rated = PLAYERS.map((player) => ({
+      ...player,
+      clubRating: player.clubName === null ? null : player.id,
+    }));
+    const order = (direction: SortDirection) =>
+      sortPlayers(rated, "clubRating", direction).map((player) => player.id);
+    expect(order("ascending")).toEqual([1, 3, 5, 2]);
+    expect(order("descending")).toEqual([5, 3, 1, 2]);
+  });
+
   it("sorts by an attribute", () => {
     expect(ids("dribbling", "descending")).toEqual([2, 3, 5, 1]);
   });
