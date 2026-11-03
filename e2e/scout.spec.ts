@@ -246,6 +246,18 @@ test.describe("phone", () => {
     });
   });
 
+  // A swipe that reaches the end of a dialog must not move the list behind it.
+  test("locks the list while a dialog is open", async ({ page }) => {
+    await loadDatabase(page);
+    const list = page.locator(".scroll");
+    await expect(list).toHaveCSS("overflow-y", "auto");
+    await page.locator(".player-row").first().click();
+    const card = page.getByRole("dialog");
+    await expect(list).toHaveCSS("overflow-y", "hidden");
+    await card.getByRole("button", { name: "Zamknij" }).click();
+    await expect(list).toHaveCSS("overflow-y", "auto");
+  });
+
   // Only the list scrolls: if the page scrolled instead, the virtual list would not draw the rows the user
   // scrolls to and would leave blank space below them.
   test("scrolls the list, not the page", async ({ page }) => {
