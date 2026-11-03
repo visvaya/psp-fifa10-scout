@@ -229,6 +229,7 @@ test.describe("game language", () => {
     await expect(language).toHaveValue("pol_pl");
     await page.getByRole("button", { name: /^Pokaż zawodników/u }).click();
     await expect(page.getByRole("table")).toBeVisible();
+    await expect(page.getByRole("checkbox", { name: "BR", exact: true })).toBeVisible();
     await page.getByText("Klub i kontrakt").click();
     await expect(page.getByRole("checkbox", { name: "Polska" })).toBeVisible();
     await expect(page.getByRole("checkbox", { name: "Liga BBVA (Hiszpania)" })).toBeVisible();
@@ -247,6 +248,7 @@ test.describe("game language", () => {
     await expectNoAxeViolations(page);
     await language.selectOption({ label: "Angielskie z bazy fifa.db" });
     await page.getByRole("button", { name: "Lista zawodników" }).click();
+    await expect(page.getByRole("checkbox", { name: "GK", exact: true })).toBeVisible();
     await page.getByText("Klub i kontrakt").click();
     await expect(page.getByRole("checkbox", { name: "Poland" })).toBeVisible();
   });

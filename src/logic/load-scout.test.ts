@@ -31,6 +31,7 @@ describe("loadScout", () => {
     teams: { 10: "ŁKS Łódź" },
     leagues: { 53: "Liga BBVA (Hiszpania)", 76: "Reszta Świata" },
     countries: { 37: "Polska", 52: "Argentyna" },
+    positions: { 0: "BR" },
   };
 
   it("reads every language of a disc image for the database's ids", async () => {

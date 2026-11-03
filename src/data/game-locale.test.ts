@@ -3,6 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   countryKey,
+  labelKey,
   MAX_IDX_BYTES,
   MAX_LOC_BYTES,
   leagueKey,
@@ -139,6 +140,18 @@ describe("name keys", () => {
   });
 });
 
+describe("labelKey", () => {
+  it("keys a label by its English name, as in the game's string index", () => {
+    expect(labelKey("GK")).toBe(0x3c6b871);
+    expect(labelKey("CB")).toBe(0x3c6b7e4);
+    expect(labelKey("RWB")).toBe(0x7c9df72a);
+  });
+
+  it("wraps modulo 2^32 for longer names", () => {
+    expect(labelKey("RCDM")).toBe(0x105c87e5);
+  });
+});
+
 // The game files never enter the repository. Point GAME_LOCALE_DIR at an extracted
 // PSP_GAME/USRDIR/data/gui/locale directory to check them locally.
 const realLocaleDir = process.env["GAME_LOCALE_DIR"] ?? "";
@@ -149,6 +162,9 @@ const table = (lang: string) =>
     readFileSync(path.join(realLocaleDir, "string.idx")),
   );
 
+const positionNames = (label: string) =>
+  ["eng_us", "pol_pl", "cze_cz", "hun_hu"].map((lang) => table(lang).get(labelKey(label)));
+
 describe.runIf(realLocaleDir !== "" && existsSync(realLocaleDir))("real locale files", () => {
   it("names countries, clubs and cups in Polish and Czech", () => {
     const polish = table("pol_pl");
@@ -156,5 +172,11 @@ describe.runIf(realLocaleDir !== "" && existsSync(realLocaleDir))("real locale f
     expect(polish.get(teamKey(21, 0))).toBe("Bayern Monachium");
     expect(polish.get(leagueKey(1, 2))).toBe("Puchar Danii");
     expect(table("cze_cz").get(teamKey(1873, 0))).toBe("Visla Krakov");
+  });
+
+  it("names positions in every language by their English names", () => {
+    expect(positionNames("ST")).toEqual(["ST", "N", "ST", "CS"]);
+    expect(positionNames("RCDM")).toEqual(["RCDM", "PŚPD", "PSSZ", "JKVK"]);
+    expect(positionNames("LWM")).toEqual(["LWM", "LS", "ZLK", "BOK"]);
   });
 });

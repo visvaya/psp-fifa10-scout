@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { countryKey, leagueKey, teamKey } from "../data/game-locale.ts";
+import { countryKey, labelKey, leagueKey, teamKey } from "../data/game-locale.ts";
 import {
   collatorFor,
   defaultLanguage,
   gameNamesOf,
   languageLabel,
   localizePlayers,
+  positionNameIn,
 } from "./game-names.ts";
 import { nameCollator } from "./players.ts";
 import { testPlayer } from "./test-support/player-fixtures.ts";
@@ -19,6 +20,8 @@ const TABLE = new Map([
   [leagueKey(76, 0), "Reszta Świata"],
   [leagueKey(8, 3), "Kraj bez ligi"],
   [countryKey(37), "Polska"],
+  [labelKey("GK"), "BR"],
+  [labelKey("RCDM"), "PŚPD"],
 ]);
 
 describe("gameNamesOf", () => {
@@ -29,7 +32,26 @@ describe("gameNamesOf", () => {
       teams: { 21: "Bayern Monachium", 1353: "Polska" },
       leagues: { 19: "Bundesliga (Niemcy)", 76: "Reszta Świata" },
       countries: { 37: "Polska" },
+      positions: { 0: "BR", 10: "PŚPD" },
     });
+  });
+});
+
+describe("positionNameIn", () => {
+  it("names a position in the game language, else by the game's English name", () => {
+    const names = { teams: {}, leagues: {}, countries: {}, positions: { 0: "BR" } };
+    expect(positionNameIn(names, 0)).toBe("BR");
+    expect(positionNameIn(names, 10)).toBe("RCDM");
+    expect(positionNameIn(null, 0)).toBe("GK");
+  });
+
+  it("adds the English name where the language gives two positions one abbreviation", () => {
+    const names = { teams: {}, leagues: {}, countries: {}, positions: { 26: "PN", 29: "PN" } };
+    expect(positionNameIn(names, 26)).toBe("PN (RF)");
+    expect(positionNameIn(names, 29)).toBe("PN (RS)");
+    const partial = { teams: {}, leagues: {}, countries: {}, positions: { 20: "LS" } };
+    expect(positionNameIn(partial, 20)).toBe("LS (LWM)");
+    expect(positionNameIn(partial, 31)).toBe("LS");
   });
 });
 
@@ -38,9 +60,10 @@ describe("localizePlayers", () => {
     teams: { 21: "Bayern Monachium", 1353: "Polska" },
     leagues: { 19: "Bundesliga (Niemcy)" },
     countries: { 37: "Polska" },
+    positions: { 17: "ŚP" },
   };
 
-  it("replaces the club, league, national team and nationality names it knows", () => {
+  it("replaces the club, league, national team, nationality and position names it knows", () => {
     const players = [
       testPlayer({
         clubId: 21,
@@ -48,8 +71,17 @@ describe("localizePlayers", () => {
         nationalTeamId: 1353,
         nationalTeamName: "Poland",
         nationalityId: 37,
+        positionCode: 17,
       }),
-      testPlayer({ id: 2, clubId: 5, clubName: "Other", leagueId: 7, nationalityId: 9 }),
+      testPlayer({
+        id: 2,
+        clubId: 5,
+        clubName: "Other",
+        leagueId: 7,
+        nationalityId: 9,
+        positionCode: 0,
+        positionName: "GK",
+      }),
     ];
     const [known, unknown] = localizePlayers(players, names);
     expect(known).toMatchObject({
@@ -57,6 +89,7 @@ describe("localizePlayers", () => {
       leagueName: "Bundesliga (Niemcy)",
       nationalTeamName: "Polska",
       nationalityName: "Polska",
+      positionName: "ŚP",
     });
     expect(unknown).toEqual(players[1]);
   });

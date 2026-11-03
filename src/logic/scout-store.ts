@@ -1,7 +1,7 @@
 // The one load/save adapter: the extracted fifa.db, the career save and the filter and sort preferences, each stored
 // as { schemaVersion, value } in a key-value backend (IndexedDB in the browser, memory otherwise).
-// Nothing leaves the device. Preferences 2 migrate to 3 and a fifa.db 1 (bare bytes) to 2 (bytes and the
-// game file's name); any other version or shape is ignored, and
+// Nothing leaves the device. Preferences 2 migrate to 3, a fifa.db 1 (bare bytes) to 2 (bytes and the
+// game file's name) and languages 1 to 2 (no position names); any other version or shape is ignored, and
 // unknown or malformed filter values are dropped one by one.
 import type { GameLanguages, GameNames } from "./game-names.ts";
 import { FLAG_KEYS, LIST_FIELDS, RANGE_KEYS } from "./filter-players.ts";
@@ -16,9 +16,10 @@ import type { SortKey } from "./sort-players.ts";
 
 /**
  * Per record, so a change to the preferences keeps the stored fifa.db. Preferences 2: clubStatus;
- * 3: ranges, lists and flags, showPotential. Game database 2: the game file's name.
+ * 3: ranges, lists and flags, showPotential. Game database 2: the game file's name. Languages 2:
+ * position names.
  */
-export const SCHEMA_VERSION = { gameDb: 2, preferences: 3, languages: 1, careerSave: 1 } as const;
+export const SCHEMA_VERSION = { gameDb: 2, preferences: 3, languages: 2, careerSave: 1 } as const;
 
 export interface StorageBackend {
   readonly get: (key: string) => Promise<unknown>;
@@ -203,15 +204,20 @@ const isNameRecord = (value: unknown): boolean =>
   isRecord(value) && Object.values(value).every((name) => typeof name === "string");
 
 const isGameNames = (value: unknown): value is GameNames =>
-  isRecord(value) && [value["teams"], value["leagues"], value["countries"]].every(isNameRecord);
+  isRecord(value) &&
+  [value["teams"], value["leagues"], value["countries"], value["positions"]].every(isNameRecord);
 
-/** The stored languages whose names have the expected shape. */
-const parseLanguages = (value: unknown): GameLanguages =>
-  Object.fromEntries(
-    Object.entries(recordOf(value)).flatMap(([code, names]) =>
-      isGameNames(names) ? [[code, names] as const] : [],
-    ),
+/** The stored languages whose names have the expected shape; version 1 had no position names. */
+const parseLanguages = (record: unknown): GameLanguages => {
+  const v1 = versioned(record, 1);
+  const value = v1 ?? versioned(record, SCHEMA_VERSION.languages);
+  return Object.fromEntries(
+    Object.entries(recordOf(value)).flatMap(([code, stored]) => {
+      const names = v1 === undefined ? stored : { ...recordOf(stored), positions: {} };
+      return isGameNames(names) ? [[code, names] as const] : [];
+    }),
   );
+};
 
 /** The stored fifa.db and its file name; version 1 stored the bytes alone. */
 const gameDbOf = (record: unknown): Pick<StoredScout, "gameDb" | "gameName"> => {
@@ -236,9 +242,7 @@ export const createScoutStore = (backend: StorageBackend) => ({
     return {
       ...gameDbOf(await backend.get("gameDb")),
       preferences: preferencesOf(await backend.get("preferences")),
-      languages: parseLanguages(
-        versioned(await backend.get("languages"), SCHEMA_VERSION.languages),
-      ),
+      languages: parseLanguages(await backend.get("languages")),
       careerSave: careerSaveOf(await backend.get("careerSave")),
     };
   },

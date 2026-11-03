@@ -31,11 +31,13 @@ export interface BuildSizes {
 // precache 376 235 -> 378 573; the stored save, its summary, the forget button and the folder help.
 // Raised 2026-11-03 for the "Mój klub" field (all, hide or only the user's club): precache 378 806 ->
 // 379 158 (JS gzip 108 825 -> 109 024, within its budget).
+// Raised 2026-11-03 for position names in the game language (read from its locale files): precache
+// 379 676 -> 380 529 (JS gzip 109 112 -> 109 360, within its budget).
 export const SIZE_BUDGETS: BuildSizes = {
   jsGzipBytes: 107 * 1024,
   cssGzipBytes: 2600,
   serviceWorkerBytes: 11 * 1024,
-  precacheBytes: 371 * 1024,
+  precacheBytes: 372 * 1024,
 };
 
 const SIZE_KEYS = [

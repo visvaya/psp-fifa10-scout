@@ -29,7 +29,7 @@ const SUCCEEDED = {
 const loaded = (myTeamId: number | null = null, from: ScoutState = loading): ScoutState =>
   scoutReducer(from, { ...SUCCEEDED, myTeamId });
 
-const NAMES = { teams: { 1: "Klub" }, leagues: {}, countries: {} };
+const NAMES = { teams: { 1: "Klub" }, leagues: {}, countries: {}, positions: {} };
 
 describe("scoutReducer loading", () => {
   it("starts empty on the start view", () => {

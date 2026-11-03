@@ -8,7 +8,6 @@ import type { AttributeName, Player } from "../logic/players.ts";
 import type { ScoutAction, ScoutSort } from "../logic/scout-state.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 import { AttributeValue } from "./attribute-value.tsx";
-import { positionOf } from "../logic/positions.ts";
 import { ATTRIBUTE_LABELS, RANGE_LABELS, TEXT } from "./text.ts";
 import { useColumnWidths } from "./use-column-widths.ts";
 
@@ -41,9 +40,10 @@ const isTextColumn = (key: string): key is TextColumn => key in TEXT.columns;
 
 const isRangeField = (key: string): key is keyof typeof RANGE_LABELS => key in RANGE_LABELS;
 
-export const columnLabel = (key: SortKey, ratingCode: number | null = null): string => {
+/** ratingName: the name of the position rating filter's position, in the game language. */
+export const columnLabel = (key: SortKey, ratingName: string | null = null): string => {
   if (key === "positionRating") {
-    return ratingCode === null ? TEXT.columns.overall : TEXT.ratingAt(positionOf(ratingCode).name);
+    return ratingName === null ? TEXT.columns.overall : TEXT.ratingAt(ratingName);
   }
   if (isAttributeName(key)) return ATTRIBUTE_LABELS[key];
   if (isTextColumn(key)) return TEXT.columns[key];
@@ -58,6 +58,8 @@ interface ListProps {
   readonly showPotential: boolean;
   /** The position of the position rating filter, shown as a column; null without that filter. */
   readonly ratingCode: number | null;
+  /** That position's name in the game language; null without that filter. */
+  readonly ratingName: string | null;
   /** Attributes with a range filter, shown as columns after OVR (rangedAttributes). */
   readonly rangedAttributes: readonly AttributeName[];
   readonly dispatch: Dispatch<ScoutAction>;
@@ -101,9 +103,9 @@ const ratingIn = (player: Player, column: SortKey, ratingCode: number | null): n
 const HeaderCell = ({
   column,
   sort,
-  ratingCode,
+  ratingName,
   dispatch,
-}: { column: SortKey } & Pick<ListProps, "sort" | "ratingCode" | "dispatch">) => (
+}: { column: SortKey } & Pick<ListProps, "sort" | "ratingName" | "dispatch">) => (
   <th
     scope="col"
     aria-sort={sort.key === column ? sort.direction : undefined}
@@ -116,7 +118,7 @@ const HeaderCell = ({
         dispatch({ type: "sort-changed", key: column });
       }}
     >
-      {columnLabel(column, ratingCode)}
+      {columnLabel(column, ratingName)}
       <span aria-hidden="true" className="sort-mark">
         {sort.key === column ? TEXT.sortMark[sort.direction] : ""}
       </span>
@@ -183,9 +185,10 @@ const widthText = (player: Player, column: SortKey): string | null =>
  * attributes stay. */
 const useTableColumns = ({
   ratingCode,
+  ratingName,
   showPotential,
   rangedAttributes: ranged,
-}: Pick<ListProps, "ratingCode" | "showPotential" | "rangedAttributes">) => {
+}: Pick<ListProps, "ratingCode" | "ratingName" | "showPotential" | "rangedAttributes">) => {
   const columns = useMemo(
     (): readonly SortKey[] => [
       ...TEXT_COLUMNS.slice(0, -2),
@@ -197,7 +200,7 @@ const useTableColumns = ({
     ],
     [ratingCode, showPotential, ranged],
   );
-  const label = useCallback((column: SortKey) => columnLabel(column, ratingCode), [ratingCode]);
+  const label = useCallback((column: SortKey) => columnLabel(column, ratingName), [ratingName]);
   return { columns, label };
 };
 
@@ -212,7 +215,7 @@ const ColumnGroup = ({ widths }: { widths: readonly number[] | null }) =>
   );
 
 export const PlayerTable = (props: ListProps): JSX.Element => {
-  const { players, allPlayers, sort, ratingCode, dispatch } = props;
+  const { players, allPlayers, sort, ratingCode, ratingName, dispatch } = props;
   const { scrollRef, items, before, after } = useRows(players.length, ROW_HEIGHT_PX.table);
   const { columns, label } = useTableColumns(props);
   const tableRef = useRef<HTMLTableElement>(null);
@@ -239,7 +242,7 @@ export const PlayerTable = (props: ListProps): JSX.Element => {
                 key={column}
                 column={column}
                 sort={sort}
-                ratingCode={ratingCode}
+                ratingName={ratingName}
                 dispatch={dispatch}
               />
             ))}
@@ -281,23 +284,23 @@ const keyColumn = ({
 /** Labels over the phone rows' numbers; visual only, as each row names its numbers for screen readers. */
 const RowsHeader = ({
   column,
-  ratingCode,
+  ratingName,
   showPotential,
-}: { column: SortKey | null } & Pick<ListProps, "ratingCode" | "showPotential">) => (
+}: { column: SortKey | null } & Pick<ListProps, "ratingName" | "showPotential">) => (
   <div className="player-rows-header" aria-hidden="true">
-    {column === null ? null : <span>{columnLabel(column, ratingCode)}</span>}
+    {column === null ? null : <span>{columnLabel(column, ratingName)}</span>}
     <span>{TEXT.columns.overall}</span>
     {showPotential ? <span>{TEXT.potentialShort}</span> : null}
   </div>
 );
 
 export const PlayerCards = (props: ListProps): JSX.Element => {
-  const { players, showPotential, ratingCode, dispatch } = props;
+  const { players, showPotential, ratingCode, ratingName, dispatch } = props;
   const column = keyColumn(props);
   const { scrollRef, items, before, after } = useRows(players.length, ROW_HEIGHT_PX.list);
   return (
     <>
-      <RowsHeader column={column} ratingCode={ratingCode} showPotential={showPotential} />
+      <RowsHeader column={column} ratingName={ratingName} showPotential={showPotential} />
       <div ref={scrollRef} className="scroll">
         <ol className="player-rows" style={{ paddingTop: before, paddingBottom: after }}>
           {items.map((item) => {
@@ -324,7 +327,7 @@ export const PlayerCards = (props: ListProps): JSX.Element => {
                     {extra === null ? null : (
                       <>
                         <span className="visually-hidden">
-                          {column === null ? null : columnLabel(column, ratingCode)}
+                          {column === null ? null : columnLabel(column, ratingName)}
                         </span>
                         <AttributeValue value={extra} />
                       </>
