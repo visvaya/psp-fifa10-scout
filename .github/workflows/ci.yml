@@ -124,7 +124,7 @@ jobs:
           name: dist-${{ github.sha }}
       - name: Check the build against its checksums
         run: |
-          sha256sum --check --quiet dist.sha256
+          (cd dist && sha256sum --check --quiet ../dist.sha256)
           test "$(find dist -type f | wc -l)" -eq "$(wc -l < dist.sha256)"
       # A slower run of an older commit must not replace a newer release.
       - name: Skip unless this commit is still the head of main
