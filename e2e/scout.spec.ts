@@ -56,6 +56,7 @@ test.describe("wide screen", () => {
     await name.click();
     const card = page.getByRole("dialog", { name: "Paweł Brożek" });
     await expect(card.getByText("Wisła Kraków")).toBeVisible();
+    await expect(card.getByRole("heading", { name: "OVR na pozycjach" })).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(card).toBeHidden();
     await expect(name).toBeFocused();

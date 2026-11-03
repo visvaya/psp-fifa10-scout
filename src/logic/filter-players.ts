@@ -14,6 +14,8 @@ export interface PlayerFilters {
   readonly positionGroups?: readonly PositionGroup[];
   readonly age?: Range;
   readonly potential?: Range;
+  /** OVR at the preferred position. */
+  readonly overall?: Range;
   readonly attributeMin?: Readonly<Partial<Record<AttributeName, number>>>;
   readonly leagueIds?: readonly number[];
   /** Club ids. */
@@ -60,6 +62,7 @@ const predicates = (filters: PlayerFilters): readonly (Predicate | null)[] => {
     filters.potential === undefined
       ? null
       : inRange(filters.potential, (player) => player.potential),
+    filters.overall === undefined ? null : inRange(filters.overall, (player) => player.overall),
     minimums.length === 0
       ? null
       : (player) => minimums.every(([name, min]) => player.attributes[name] >= min),

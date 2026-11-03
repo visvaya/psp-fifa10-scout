@@ -4,7 +4,7 @@ import { buildCareerSave } from "../../data/test-support/synthetic-career-save.t
 import { buildEaDb } from "../../data/test-support/synthetic-ea-db.ts";
 import type { TableSpec } from "../../data/test-support/synthetic-ea-db.ts";
 import { buildFileList, buildParamSfo } from "../../data/test-support/synthetic-save.ts";
-import { playerRow, table } from "./player-fixtures.ts";
+import { flatCurves, playerRow, table } from "./player-fixtures.ts";
 
 /** Days since 1582-10-14, the fifa.db birthdate epoch. */
 const born = (year: number): number => (Date.UTC(year, 0, 15) - Date.UTC(1582, 9, 14)) / 86_400_000;
@@ -99,6 +99,8 @@ export const buildScoutDb = (): Uint8Array =>
     empty("playerstats"),
     empty("career_youth_accademy"),
     empty("career_transfer_list"),
+    empty("career_players_grown_attributes"),
+    flatCurves(),
   ]);
 
 /** An unencrypted save with no table chunks: the career as fifa.db stores it. */

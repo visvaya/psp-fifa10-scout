@@ -2,6 +2,8 @@
 import type { TableSpec } from "../../data/test-support/synthetic-ea-db.ts";
 import { ATTRIBUTE_NAMES, attributesOf, searchKey } from "../players.ts";
 import type { Attributes, Player } from "../players.ts";
+import { CURVE_COLUMNS } from "../overall-rating.ts";
+import { byGroup } from "../positions.ts";
 
 type Row = Readonly<Record<string, number | string>>;
 
@@ -22,6 +24,12 @@ export const table = (name: string, rows: readonly Row[]): TableSpec => {
   };
 };
 
+/** fifa.db `curves` with one flat curve (id 1, the game's fallback), so career ratings age nothing. */
+export const flatCurves = (): TableSpec =>
+  table("curves", [
+    Object.fromEntries([["id", 1], ...CURVE_COLUMNS.map((column) => [column, 50])]),
+  ]);
+
 /** Every attribute at `value`, with `overrides` on top. */
 export const attributes = (value: number, overrides: Partial<Attributes> = {}): Attributes => ({
   ...attributesOf(Object.fromEntries(ATTRIBUTE_NAMES.map((name) => [name, value]))),
@@ -40,6 +48,8 @@ export const playerRow = (overrides: Row): Row => ({
   height: 180,
   weight: 75,
   potential: 70,
+  developmenttypecode: 1,
+  developmentstylecode: 2,
   ...attributes(50),
   ...overrides,
 });
@@ -60,6 +70,8 @@ export const testPlayer = (overrides: Partial<Player> = {}): Player => {
     height: 180,
     weight: 75,
     potential: 70,
+    overall: 50,
+    overallByGroup: byGroup(() => 50),
     attributes: attributes(50),
     clubId: 10,
     clubName: "Club",

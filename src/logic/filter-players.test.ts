@@ -27,7 +27,7 @@ const PLAYERS = [
     leagueId: null,
     contractEndYear: null,
   }),
-  testPlayer({ id: 4, name: "Young", age: 17, potential: 80, contractEndYear: 2010 }),
+  testPlayer({ id: 4, name: "Young", age: 17, potential: 80, overall: 62, contractEndYear: 2010 }),
 ];
 
 const ids = (filters: PlayerFilters): readonly number[] =>
@@ -53,6 +53,7 @@ describe("filterPlayers", () => {
     expect(ids({ age: { min: 22, max: 26 } })).toEqual([1, 2]);
     expect(ids({ age: { max: 22 } })).toEqual([2, 4]);
     expect(ids({ potential: { min: 80 } })).toEqual([2, 4]);
+    expect(ids({ overall: { min: 51, max: 62 } })).toEqual([4]);
   });
 
   it("requires every attribute minimum", () => {

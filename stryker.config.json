@@ -14,6 +14,7 @@
     "src/data/iso9660.ts",
     "src/logic/config.ts",
     "src/logic/positions.ts",
+    "src/logic/overall-rating.ts",
     "src/logic/players.ts",
     "src/logic/filter-players.ts",
     "src/logic/sort-players.ts"

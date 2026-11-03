@@ -29,6 +29,7 @@ export const SORTABLE_KEYS: readonly SortKey[] = [
   "nationalityName",
   "contractEndYear",
   "potential",
+  "overall",
   ...ATTRIBUTE_NAMES,
 ];
 

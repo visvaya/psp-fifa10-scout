@@ -23,6 +23,7 @@ const TEXT_COLUMNS: readonly TextColumn[] = [
   "leagueName",
   "nationalityName",
   "contractEndYear",
+  "overall",
   "potential",
 ];
 const TABLE_ATTRIBUTES: readonly AttributeName[] = [
@@ -119,11 +120,14 @@ const TableRow = ({
         {player.name}
       </button>
     </th>
-    {TEXT_COLUMNS.slice(1, -1).map((key) => (
+    {TEXT_COLUMNS.slice(1, -2).map((key) => (
       <td key={key} className={key.endsWith("Name") ? "" : "num"}>
         {cellText(player, key)}
       </td>
     ))}
+    <td className="num">
+      <AttributeValue value={player.overall} />
+    </td>
     <td className="num">
       <AttributeValue value={player.potential} />
     </td>
@@ -172,7 +176,7 @@ export const PlayerTable = ({ players, sort, dispatch }: ListProps): JSX.Element
   );
 };
 
-/** The number the phone row shows next to potential: the sorted attribute, when sorting by one. */
+/** The number the phone row shows before OVR and potential: the sorted attribute, when sorting by one. */
 const keyNumber = (player: Player, sort: ScoutSort): number | null =>
   isAttributeName(sort.key) ? player.attributes[sort.key] : null;
 
@@ -208,6 +212,8 @@ export const PlayerCards = ({ players, sort, dispatch }: ListProps): JSX.Element
                       <AttributeValue value={extra} />
                     </>
                   )}
+                  <span className="visually-hidden">{TEXT.columns.overall}</span>
+                  <AttributeValue value={player.overall} />
                   <span className="visually-hidden">{TEXT.columns.potential}</span>
                   <AttributeValue value={player.potential} />
                 </span>

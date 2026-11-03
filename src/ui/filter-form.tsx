@@ -20,7 +20,7 @@ interface FilterFormProps {
 }
 
 type Change = (filters: FilterChange) => void;
-type RangeKey = "age" | "potential";
+type RangeKey = "age" | "potential" | "overall";
 type IdsKey = "leagueIds" | "teamIds" | "nationalityIds";
 
 const numberOrUndefined = (text: string): number | undefined =>
@@ -149,6 +149,33 @@ const CheckField = (props: { name: "excludeMyClub"; filters: ScoutFilters; chang
   </label>
 );
 
+const ContractField = ({
+  years,
+  filters,
+  change,
+}: {
+  years: readonly number[];
+  filters: ScoutFilters;
+  change: Change;
+}) => (
+  <label className="field">
+    <span>{TEXT.contractEndsBy}</span>
+    <select
+      value={filters.contractEndsBy ?? ""}
+      onChange={(event) => {
+        change({ contractEndsBy: numberOrUndefined(event.currentTarget.value) });
+      }}
+    >
+      <option value="">{TEXT.anyOption}</option>
+      {years.map((year) => (
+        <option key={year} value={year}>
+          {year}
+        </option>
+      ))}
+    </select>
+  </label>
+);
+
 export const FilterForm = ({
   players,
   filters,
@@ -174,26 +201,12 @@ export const FilterForm = ({
       </label>
       <PositionsField {...shared} />
       <RangeField name="age" {...shared} />
+      <RangeField name="overall" {...shared} />
       <RangeField name="potential" {...shared} />
       <SelectField name="leagueIds" options={facets.leagues} {...shared} />
       <SelectField name="teamIds" options={facets.clubs} {...shared} />
       <SelectField name="nationalityIds" options={facets.nationalities} {...shared} />
-      <label className="field">
-        <span>{TEXT.contractEndsBy}</span>
-        <select
-          value={filters.contractEndsBy ?? ""}
-          onChange={(event) => {
-            change({ contractEndsBy: numberOrUndefined(event.currentTarget.value) });
-          }}
-        >
-          <option value="">{TEXT.anyOption}</option>
-          {facets.contractYears.map((year) => (
-            <option key={year} value={year}>
-              {year}
-            </option>
-          ))}
-        </select>
-      </label>
+      <ContractField years={facets.contractYears} {...shared} />
       <ClubStatusField {...shared} />
       {myTeamId === null ? null : <CheckField name="excludeMyClub" {...shared} />}
       <button
