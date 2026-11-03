@@ -102,6 +102,7 @@ const FILTER_KEYS: readonly FilterKey[] = [
   "positionGroups",
   "age",
   "potential",
+  "overall",
   "attributeMin",
   "leagueIds",
   "teamIds",

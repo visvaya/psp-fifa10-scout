@@ -1,0 +1,230 @@
+import { existsSync, readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
+import { effectiveRows, careerManager, parseCareerSave } from "../data/career-save.ts";
+import { birthdateToDate, parseEaDb, readTable } from "../data/ea-db.ts";
+import {
+  baseOverall,
+  careerOverall,
+  OVR_WEIGHTS,
+  potentialDeltas,
+  readCurves,
+} from "./overall-rating.ts";
+import type { CareerRatingInput, Curves } from "./overall-rating.ts";
+import { attributesOf } from "./players.ts";
+import { attributes, flatCurves, table } from "./test-support/player-fixtures.ts";
+import { buildEaDb } from "../data/test-support/synthetic-ea-db.ts";
+
+const GK = 0;
+const CB = 5;
+const CDM = 11;
+const LM = 19;
+const CM = 17;
+const CAM = 23;
+const ST = 30;
+
+describe("OVR weights", () => {
+  it("has 32 position codes, each summing to 1 within float32 precision", () => {
+    expect(OVR_WEIGHTS).toHaveLength(32);
+    for (const row of OVR_WEIGHTS) {
+      expect(row.length).toBeLessThanOrEqual(7);
+      const sum = row.reduce((total, [, weight]) => total + Math.fround(weight), 0);
+      expect(Math.abs(sum - 1)).toBeLessThan(1e-6);
+    }
+  });
+
+  it("holds the stored weights of each group", () => {
+    expect(OVR_WEIGHTS[ST]).toContainEqual(["finishing", 0.267]);
+    expect(OVR_WEIGHTS[CB]).toContainEqual(["heading", 0.2]);
+    expect(OVR_WEIGHTS[1]?.[3]).toEqual(["shortpassing", 0.1]);
+    expect(OVR_WEIGHTS[3]?.[3]).toEqual(["ballcontrol", 0.2]);
+    expect(OVR_WEIGHTS[2]).toBe(OVR_WEIGHTS[8]);
+    expect(OVR_WEIGHTS[14]).toBe(OVR_WEIGHTS[20]);
+    expect(OVR_WEIGHTS[16]).toBe(OVR_WEIGHTS[CM]);
+  });
+});
+
+describe("baseOverall", () => {
+  it("rates even attributes at their value at every position", () => {
+    for (const code of OVR_WEIGHTS.keys()) expect(baseOverall(attributes(64), code)).toBe(64);
+  });
+
+  it("weights the attributes of each position group", () => {
+    expect(baseOverall(attributes(50, { handling: 90 }), GK)).toBe(59);
+    expect(baseOverall(attributes(50, { marking: 90 }), CB)).toBe(60);
+    expect(baseOverall(attributes(50, { tackling: 90 }), CDM)).toBe(58);
+    expect(baseOverall(attributes(50, { dribbling: 90 }), LM)).toBe(58);
+    expect(baseOverall(attributes(50, { longpassing: 90 }), CM)).toBe(55);
+    expect(baseOverall(attributes(50, { shortpassing: 90 }), CAM)).toBe(60);
+    expect(baseOverall(attributes(50, { finishing: 90 }), ST)).toBe(61);
+    expect(baseOverall(attributes(50, { gkdiving: 90 }), ST)).toBe(50);
+  });
+
+  it("rounds half up", () => {
+    expect(baseOverall(attributes(50, { crossing: 52 }), LM)).toBe(51);
+    expect(baseOverall(attributes(50, { crossing: 51 }), LM)).toBe(50);
+    expect(baseOverall(attributes(50, { crossing: 53 }), LM)).toBe(51);
+  });
+
+  it("clamps to 0..99", () => {
+    expect(baseOverall(attributes(150), ST)).toBe(99);
+    expect(baseOverall(attributes(-20), ST)).toBe(0);
+  });
+
+  it("rejects a code without weights", () => {
+    expect(() => baseOverall(attributes(50), 32)).toThrow(/No OVR weights for position 32/);
+  });
+});
+
+// Curve values for ages 15..45, with `at` overriding single ages.
+const curve = (value: number, at: Readonly<Record<number, number>> = {}): readonly number[] =>
+  Array.from({ length: 31 }, (_, index) => at[index + 15] ?? value);
+
+// Born 1989-01-01: 20 on 2009-01-01, 21 on 2010-03-01.
+const player = (overrides: Partial<CareerRatingInput> = {}): CareerRatingInput => ({
+  attributes: attributes(50),
+  potential: 99,
+  birthdate: new Date("1989-01-01"),
+  developmentTypeCode: 1,
+  developmentStyleCode: 2,
+  ...overrides,
+});
+const LATER = new Date("2010-03-01");
+// Type 1, style 2: skills follow curve 3 * 2 + 1 - 4 = 3, physical attributes curve 1 + 14 = 15.
+const CURVES: Curves = new Map([
+  [1, curve(50)],
+  [3, curve(50, { 21: 60 })],
+  [15, curve(50, { 21: 40 })],
+]);
+
+/** Curve 3 for skills with `at` overrides; everything else on the flat fallback curve 1. */
+const skillCurve = (at: Readonly<Record<number, number>>): Curves =>
+  new Map([
+    [1, curve(50)],
+    [3, curve(50, at)],
+  ]);
+
+describe("careerOverall", () => {
+  it("ages skills and physical attributes along their own curves", () => {
+    // Striker: skills 0.8 x 60, sprintspeed and stamina 0.2 x 40.
+    expect(careerOverall(player(), ST, LATER, CURVES)).toBe(56);
+    expect(careerOverall(player(), GK, LATER, CURVES)).toBe(54); // reflexes count as physical
+  });
+
+  it("leaves the attributes as they are on the reference date", () => {
+    expect(careerOverall(player(), ST, new Date("2009-06-01"), CURVES)).toBe(50);
+  });
+
+  it("falls back to curve 1 for an unknown curve id", () => {
+    expect(careerOverall(player({ developmentStyleCode: 9 }), ST, LATER, CURVES)).toBe(48);
+  });
+
+  it("clamps ages to the curve's 15..44 range", () => {
+    const young = player({ birthdate: new Date("2000-01-01") });
+    expect(careerOverall(young, ST, LATER, skillCurve({ 15: 25 }))).toBe(50);
+    const old = player({ birthdate: new Date("1950-01-01") });
+    expect(careerOverall(old, ST, LATER, skillCurve({ 44: 25 }))).toBe(50);
+  });
+
+  it("caps the rating and each aged attribute at the potential", () => {
+    expect(careerOverall(player({ potential: 55 }), ST, LATER, CURVES)).toBe(52); // skills 55, physical 40
+    // Skills would reach 60 but stop at max(potential, value) = 52.
+    const capped = player({ potential: 52 });
+    expect(careerOverall(capped, CAM, LATER, skillCurve({ 21: 60 }))).toBe(52);
+  });
+
+  it("keeps an attribute above the potential and aged ones at 10..99", () => {
+    expect(
+      careerOverall(player({ attributes: attributes(80), potential: 70 }), ST, LATER, CURVES),
+    ).toBe(70);
+    const falling = new Map([
+      [3, curve(50, { 21: 5 })],
+      [15, curve(50, { 21: 5 })],
+    ]);
+    expect(careerOverall(player(), ST, LATER, falling)).toBe(10);
+    const rising = new Map([
+      [3, curve(20, { 21: 60 })],
+      [15, curve(20, { 21: 60 })],
+    ]);
+    expect(careerOverall(player(), ST, LATER, rising)).toBe(99);
+  });
+});
+
+describe("readCurves and potentialDeltas", () => {
+  it("read the curves by id and the save's potential deltas by player", () => {
+    const db = parseEaDb(
+      buildEaDb([
+        flatCurves(),
+        table("career_players_grown_attributes", [{ playerid: 3, potential_delta: 0 }]),
+      ]),
+    );
+    expect(readCurves(db)).toEqual(new Map([[1, curve(50)]]));
+    const save = new Map([
+      ["career_players_grown_attributes", [{ playerid: 7, potential_delta: 6 }]],
+    ]);
+    expect(potentialDeltas(db, save)).toEqual(new Map([[7, 6]]));
+  });
+});
+
+// Game data never enters the repository. FIFA_DB_PATH and PSP_CAREER_SAVE (plain DATA.BIN) point at
+// local copies.
+const realDbPath = process.env["FIFA_DB_PATH"] ?? "";
+const realCareerPath = process.env["PSP_CAREER_SAVE"] ?? "";
+
+const loadReal = () => {
+  const db = parseEaDb(readFileSync(realDbPath));
+  return {
+    db,
+    players: new Map(readTable(db, "players").map((row) => [Number(row["playerid"]), row])),
+  };
+};
+
+describe.runIf(existsSync(realDbPath))("real fifa.db", () => {
+  it("gives the known base ratings", () => {
+    const { players } = loadReal();
+    const byName = (name: string) =>
+      [...players.values()].find(
+        (row) => `${String(row["firstname"])} ${String(row["surname"])}` === name,
+      );
+    const rate = (name: string) => {
+      const row = byName(name);
+      return row && baseOverall(attributesOf(row), Number(row["preferredposition1"]));
+    };
+    expect(rate("Lionel Messi")).toBe(89);
+    expect(rate("Wayne Rooney")).toBe(90);
+    expect(rate("Robert Lewandowski")).toBe(73);
+  });
+
+  it.runIf(existsSync(realCareerPath))("matches the save's stored ratings", () => {
+    const { db, players } = loadReal();
+    const save = parseCareerSave(db, readFileSync(realCareerPath));
+    const curves = readCurves(db);
+    const deltas = potentialDeltas(db, save);
+    const now = careerManager(db, save).lastGameDate;
+    const rate = (id: number): number => {
+      const row = players.get(id);
+      if (row === undefined) throw new Error(`No player ${String(id)}`);
+      const input: CareerRatingInput = {
+        attributes: attributesOf(row),
+        potential: Number(row["potential"]) + (deltas.get(id) ?? 0),
+        birthdate: birthdateToDate(Number(row["birthdate"])),
+        developmentTypeCode: Number(row["developmenttypecode"]),
+        developmentStyleCode: Number(row["developmentstylecode"]),
+      };
+      return careerOverall(input, Number(row["preferredposition1"]), now, curves);
+    };
+    const exact = (refs: readonly (readonly [number, number])[]) =>
+      refs.filter(([id, stored]) => rate(id) === stored).length;
+    const squad = effectiveRows(db, save, "career_overall_history").map(
+      (row) => [Number(row["playerid"]), Number(row["season0"])] as const,
+    );
+    const listed = effectiveRows(db, save, "career_transfer_list").map(
+      (row) => [Number(row["playerid"]), Number(row["overall_rating"])] as const,
+    );
+    expect(exact(squad)).toBe(23);
+    const total = exact([...squad, ...listed]);
+    process.stdout.write(
+      `OVR exact at the preferred position: ${String(total)} of ${String(squad.length + listed.length)}\n`,
+    );
+    expect(total).toBeGreaterThanOrEqual(302);
+  });
+});

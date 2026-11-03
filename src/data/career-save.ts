@@ -23,7 +23,8 @@ type CareerTable =
   | "career_overall_history"
   | "career_extra_user_team_info"
   | "career_transfer_list"
-  | "career_youth_accademy";
+  | "career_youth_accademy"
+  | "career_players_grown_attributes";
 
 /** How many of the first `count` bits from `offset` are set, LSB first. */
 const setBits = (view: DataView, offset: number, count: number): number =>

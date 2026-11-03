@@ -8,7 +8,8 @@ import { buildEaDb } from "../data/test-support/synthetic-ea-db.ts";
 import { filterPlayers } from "./filter-players.ts";
 import { attributesOf, buildPlayers, searchKey } from "./players.ts";
 import { sortPlayers } from "./sort-players.ts";
-import { attributes, playerRow, table } from "./test-support/player-fixtures.ts";
+import { byGroup } from "./positions.ts";
+import { attributes, flatCurves, playerRow, table } from "./test-support/player-fixtures.ts";
 
 const daysSince1582 = (year: number, month: number, day: number): number =>
   (Date.UTC(year, month - 1, day) - Date.UTC(1582, 9, 14)) / 86_400_000;
@@ -53,6 +54,7 @@ const DB = parseEaDb(
         potential: 95,
         acceleration: 94,
         reflexes: 9,
+        crossing: 90,
       }),
       playerRow({
         playerid: 7,
@@ -75,6 +77,8 @@ const DB = parseEaDb(
       { teamid: 241, playerid: 7, jerseynumber: 30, yearcontractvalidtil: 2011 },
       { teamid: 5000, playerid: 8, jerseynumber: 4, yearcontractvalidtil: 2013 },
     ]),
+    table("career_players_grown_attributes", [{ playerid: 0, potential_delta: 0 }]),
+    flatCurves(),
   ]),
 );
 
@@ -103,6 +107,7 @@ const SAVE: CareerSave = new Map([
   ],
   ["career_youth_accademy", [row({ playerid: 400_001, dummy: 0 })]],
   ["career_transfer_list", [row({ playerid: 400_003 })]],
+  ["career_players_grown_attributes", [row({ playerid: 7, potential_delta: -25 })]],
   ["playerstats", [row({ playerid: 158_023, form: 3, morale: 4, goals: 12, appearances: 20 })]],
 ]);
 
@@ -131,7 +136,9 @@ describe("buildPlayers from fifa.db", () => {
       height: 169,
       weight: 67,
       potential: 95,
-      attributes: attributes(50, { acceleration: 94, reflexes: 9 }),
+      overall: 60,
+      overallByGroup: { ...byGroup(() => 50), goalkeeper: 41, wide: 60, "wing-backs": 54 },
+      attributes: attributes(50, { acceleration: 94, reflexes: 9, crossing: 90 }),
       clubId: 241,
       clubName: "FC Barcelona",
       leagueId: 53,
@@ -227,6 +234,11 @@ describe("buildPlayers with a career save", () => {
       [400_003, true],
     ]);
     expect(byId(players, 400_002)).toMatchObject({ positionName: "ST", positionGroup: "forwards" });
+  });
+
+  it("rates players in career mode, capped at the career potential", () => {
+    expect(byId(players, 158_023)?.overall).toBe(60);
+    expect(byId(players, 7)).toMatchObject({ overall: 45, overallByGroup: { goalkeeper: 45 } });
   });
 
   it("adds career stats where the save has them", () => {

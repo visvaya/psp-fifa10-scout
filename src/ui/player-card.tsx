@@ -1,9 +1,16 @@
 import { useCallback } from "react";
 import type { JSX, ReactNode } from "react";
 import type { AttributeName, Player } from "../logic/players.ts";
+import { POSITION_GROUPS } from "../logic/positions.ts";
 import { AttributeValue } from "./attribute-value.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
-import { ATTRIBUTE_GROUP_LABELS, ATTRIBUTE_LABELS, formatNumber, TEXT } from "./text.ts";
+import {
+  ATTRIBUTE_GROUP_LABELS,
+  ATTRIBUTE_LABELS,
+  formatNumber,
+  POSITION_GROUP_LABELS,
+  TEXT,
+} from "./text.ts";
 
 const ATTRIBUTE_GROUPS: readonly (readonly [
   keyof typeof ATTRIBUTE_GROUP_LABELS,
@@ -41,6 +48,7 @@ const basics = (player: Player): readonly (readonly [string, ReactNode])[] => [
   [TEXT.card.league, optional(player.leagueName)],
   [TEXT.card.nationality, optional(player.nationalityName)],
   [TEXT.card.contract, player.contractEndYear ?? TEXT.card.none],
+  [TEXT.columns.overall, <AttributeValue key="overall" value={player.overall} />],
   [TEXT.card.potential, <AttributeValue key="potential" value={player.potential} />],
   [TEXT.card.foot, player.preferredFoot === "left" ? TEXT.card.left : TEXT.card.right],
   [TEXT.card.height, TEXT.card.heightValue(player.height)],
@@ -73,6 +81,15 @@ export const PlayerCard = (props: {
           />
         </section>
       ) : null}
+      <section aria-labelledby="overall-title">
+        <h3 id="overall-title">{TEXT.card.overallByGroup}</h3>
+        <Facts
+          facts={POSITION_GROUPS.map((group) => [
+            POSITION_GROUP_LABELS[group],
+            <AttributeValue key={group} value={player.overallByGroup[group]} />,
+          ])}
+        />
+      </section>
       <div className="attribute-groups">
         {ATTRIBUTE_GROUPS.map(([group, names]) => (
           <section key={group} aria-labelledby={`group-${group}`}>

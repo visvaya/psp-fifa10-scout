@@ -6,7 +6,8 @@ import { ageOn, birthdateToDate, readTable } from "../data/ea-db.ts";
 import type { EaDb, EaDbRow } from "../data/ea-db.ts";
 import { SaveFormatError } from "../data/save-format-error.ts";
 import { SCOUT_CONFIG } from "./config.ts";
-import { positionOf } from "./positions.ts";
+import { baseOverall, careerOverall, potentialDeltas, readCurves } from "./overall-rating.ts";
+import { byGroup, positionOf } from "./positions.ts";
 import type { PositionGroup } from "./positions.ts";
 
 /** The attribute columns of `players`, in table order (potential is a separate field). */
@@ -73,6 +74,10 @@ export interface Player {
   /** Kilograms. */
   readonly weight: number;
   readonly potential: number;
+  /** OVR at the preferred position: aged to the career date with a save, from fifa.db without. */
+  readonly overall: number;
+  /** OVR at each position group, rated the same way. */
+  readonly overallByGroup: Readonly<Record<PositionGroup, number>>;
   readonly attributes: Attributes;
   readonly clubId: number | null;
   readonly clubName: string | null;
@@ -108,6 +113,7 @@ interface Context {
   readonly placements: ReadonlyMap<number, Placement>;
   readonly countries: ReadonlyMap<number, string>;
   readonly stats: ReadonlyMap<number, EaDbRow>;
+  readonly rate: (row: EaDbRow, attributes: Attributes, positionCode: number) => number;
 }
 
 const num = (row: EaDbRow, key: string): number => Number(row[key]);
@@ -177,6 +183,8 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
   const stats = context.stats.get(id);
   const nationalityId = num(row, "nationality");
   const name = `${String(row["firstname"])} ${String(row["surname"])}`.trim();
+  const attributes = attributesOf(row);
+  const rate = (code: number): number => context.rate(row, attributes, code);
   return {
     id,
     name,
@@ -190,7 +198,9 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
     height: num(row, "height"),
     weight: num(row, "weight"),
     potential: num(row, "potential"),
-    attributes: attributesOf(row),
+    overall: rate(num(row, "preferredposition1")),
+    overallByGroup: byGroup(rate),
+    attributes,
     ...teamFields(context.placements.get(id) ?? {}),
     nationalityId,
     nationalityName: context.countries.get(nationalityId) ?? null,
@@ -213,6 +223,27 @@ const withNameOrder = (players: readonly Omit<Player, "nameOrder">[]): readonly 
   );
 };
 
+/** OVR from fifa.db without a save; with one, aged to its last game date (overall-rating.md). */
+const rater = (db: EaDb, save: CareerSave | undefined): Context["rate"] => {
+  if (save === undefined) return (_row, attributes, code) => baseOverall(attributes, code);
+  const curves = readCurves(db);
+  const deltas = potentialDeltas(db, save);
+  const date = careerManager(db, save).lastGameDate;
+  return (row, attributes, code) =>
+    careerOverall(
+      {
+        attributes,
+        potential: num(row, "potential") + (deltas.get(num(row, "playerid")) ?? 0),
+        birthdate: birthdateToDate(num(row, "birthdate")),
+        developmentTypeCode: num(row, "developmenttypecode"),
+        developmentStyleCode: num(row, "developmentstylecode"),
+      },
+      code,
+      date,
+      curves,
+    );
+};
+
 /**
  * Every player with his club and nationality; youth-pool players only when a team link, or the
  * save's youth academy or transfer list, places them. With a save, links and stats come from it and ages are taken on its last game date.
@@ -233,6 +264,7 @@ export const buildPlayers = (db: EaDb, save?: CareerSave): readonly Player[] => 
       readTable(db, "country").map((row) => [num(row, "countryid"), String(row["countryname"])]),
     ),
     stats: new Map(stats.map((row) => [num(row, "playerid"), row])),
+    rate: rater(db, save),
   };
   // The game keeps generated players out of the leagues until it places them (overall-rating.md, F2).
   const placed = new Set(
