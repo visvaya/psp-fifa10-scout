@@ -91,7 +91,11 @@ const NoMatches = ({ dispatch }: { dispatch: Dispatch<ScoutAction> }) => (
 );
 
 /** The filtered and sorted players; deferred so typing stays responsive. */
-const useVisiblePlayers = (players: readonly Player[], state: ScoutState) => {
+const useVisiblePlayers = (
+  players: readonly Player[],
+  state: ScoutState,
+  collator: Intl.Collator,
+) => {
   const filters = useDeferredValue(state.filters);
   const sort = useDeferredValue(state.sort);
   const visible = useMemo(
@@ -100,9 +104,9 @@ const useVisiblePlayers = (players: readonly Player[], state: ScoutState) => {
         filterPlayers(players, effectiveFilters(filters, state.myTeamId)),
         sort.key,
         sort.direction,
-        filters.positionRating?.code,
+        { ratingCode: filters.positionRating?.code, collator },
       ),
-    [players, filters, sort, state.myTeamId],
+    [players, filters, sort, state.myTeamId, collator],
   );
   return { visible, sort };
 };
@@ -143,16 +147,25 @@ const FiltersDialogButton = ({ count, children }: { count: number; children: Rea
 interface ListViewProps {
   readonly state: ScoutState;
   readonly players: readonly Player[];
+  /** The order of club, league and country names in the chosen language. */
+  readonly collator: Intl.Collator;
   readonly wide: boolean;
   readonly dispatch: Dispatch<ScoutAction>;
 }
 
-export const ListView = ({ state, players, wide, dispatch }: ListViewProps): JSX.Element => {
-  const { visible, sort } = useVisiblePlayers(players, state);
+export const ListView = ({
+  state,
+  players,
+  collator,
+  wide,
+  dispatch,
+}: ListViewProps): JSX.Element => {
+  const { visible, sort } = useVisiblePlayers(players, state, collator);
 
   const form = (
     <FilterForm
       players={players}
+      collator={collator}
       filters={state.filters}
       myTeamId={state.myTeamId}
       showPotential={state.showPotential}

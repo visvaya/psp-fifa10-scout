@@ -58,6 +58,19 @@ describe("sortPlayers", () => {
     expect(ids("youth", "ascending")).toEqual([2, 3, 1, 5]);
   });
 
+  it("sorts text with the given collation", () => {
+    const clubs = [
+      testPlayer({ id: 1, clubName: "Hradec" }),
+      testPlayer({ id: 2, clubName: "Chrudim" }),
+    ];
+    const order = (collator?: Intl.Collator) =>
+      sortPlayers(clubs, "clubName", "ascending", collator && { collator }).map(
+        (player) => player.id,
+      );
+    expect(order()).toEqual([2, 1]);
+    expect(order(new Intl.Collator("cs"))).toEqual([1, 2]);
+  });
+
   it("sorts a number with missing values last in either direction", () => {
     const rated = PLAYERS.map((player) => ({
       ...player,
@@ -76,7 +89,9 @@ describe("sortPlayers", () => {
       overallByCode: player.overallByCode.map((_, code) => (code === 4 ? 90 - player.id : code)),
     }));
     const order = (code?: number) =>
-      sortPlayers(rated, "positionRating", "descending", code).map((player) => player.id);
+      sortPlayers(rated, "positionRating", "descending", { ratingCode: code }).map(
+        (player) => player.id,
+      );
     expect(order(4)).toEqual([1, 2, 3, 5]);
     expect(order()).toEqual([5, 3, 2, 1]);
   });

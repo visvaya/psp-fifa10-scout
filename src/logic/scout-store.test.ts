@@ -12,7 +12,7 @@ const loadPreferences = async (record: unknown) => {
 describe("scout store", () => {
   it("loads nothing from an empty backend", async () => {
     const store = createScoutStore(memoryBackend());
-    expect(await store.load()).toEqual({ gameDb: null, preferences: null });
+    expect(await store.load()).toEqual({ gameDb: null, preferences: null, languages: {} });
   });
 
   it("saves and loads the game database and the preferences", async () => {
@@ -29,10 +29,41 @@ describe("scout store", () => {
       },
       sort: { key: "positionRating", direction: "ascending" },
       showPotential: true,
+      gameLanguage: "pol_pl",
+    };
+    const languages = {
+      pol_pl: { teams: { 1: "Klub" }, leagues: { 2: "Liga" }, countries: { 37: "Polska" } },
     };
     await store.saveGameDb(Uint8Array.of(1, 2, 3));
     await store.savePreferences(preferences);
-    expect(await store.load()).toEqual({ gameDb: Uint8Array.of(1, 2, 3), preferences });
+    await store.saveLanguages(languages);
+    expect(await store.load()).toEqual({
+      gameDb: Uint8Array.of(1, 2, 3),
+      preferences,
+      languages,
+    });
+    await store.savePreferences({ ...preferences, gameLanguage: null });
+    expect((await store.load()).preferences?.gameLanguage).toBeNull();
+    expect(
+      await loadPreferences({ schemaVersion: 3, value: { ...preferences, gameLanguage: 5 } }),
+    ).not.toHaveProperty("gameLanguage");
+  });
+
+  it("drops stored languages of a wrong shape one by one", async () => {
+    const backend = memoryBackend();
+    const good = { teams: { 1: "Klub" }, leagues: {}, countries: {} };
+    await backend.set("languages", {
+      schemaVersion: SCHEMA_VERSION.languages,
+      value: {
+        pol_pl: good,
+        cze_cz: { teams: { 1: 5 }, leagues: {}, countries: {} },
+        hun_hu: { teams: {}, leagues: {} },
+        eng_us: "junk",
+      },
+    });
+    expect((await createScoutStore(backend).load()).languages).toEqual({ pol_pl: good });
+    await backend.set("languages", { schemaVersion: 99, value: { pol_pl: good } });
+    expect((await createScoutStore(backend).load()).languages).toEqual({});
   });
 
   it("ignores records of another schema version or shape", async () => {
@@ -45,7 +76,11 @@ describe("scout store", () => {
       schemaVersion: SCHEMA_VERSION.preferences,
       value: { filters: 3 },
     });
-    expect(await createScoutStore(backend).load()).toEqual({ gameDb: null, preferences: null });
+    expect(await createScoutStore(backend).load()).toEqual({
+      gameDb: null,
+      preferences: null,
+      languages: {},
+    });
     await backend.set("gameDb", "junk");
     expect((await createScoutStore(backend).load()).gameDb).toBeNull();
     const unsorted = { filters: {}, sort: { key: "salary", direction: "ascending" } };
@@ -152,6 +187,7 @@ describe("scout store", () => {
     expect(await createScoutStore(backend).load()).toEqual({
       gameDb: Uint8Array.of(7),
       preferences: null,
+      languages: {},
     });
   });
 });

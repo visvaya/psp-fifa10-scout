@@ -1,7 +1,7 @@
 import { AxeBuilder } from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { SYNTHETIC_DB_PATH } from "../scripts/write-synthetic-db.ts";
+import { SYNTHETIC_DB_PATH, SYNTHETIC_LOCALE_PATHS } from "../scripts/write-synthetic-db.ts";
 
 const loadDatabase = async (page: Page) => {
   await page.goto("/");
@@ -10,13 +10,15 @@ const loadDatabase = async (page: Page) => {
 };
 
 /** The visible count; the status region repeats it once the announcement settles. */
-/** The stored preferences record, read in the page from the app's IndexedDB store. */
-const readStoredPreferences = async (): Promise<unknown> =>
+/** A stored record, read in the page from the app's IndexedDB store. */
+const readStored = async (key: string): Promise<unknown> =>
   new Promise((resolve) => {
     const open = indexedDB.open("psp-fifa10-scout");
     open.addEventListener("success", () => {
-      const get = open.result.transaction("kv").objectStore("kv").get("preferences");
+      const get = open.result.transaction("kv").objectStore("kv").get(key);
       get.addEventListener("success", () => {
+        // A connection left open can hold WebKit's store on an old state across a reload.
+        open.result.close();
         resolve(get.result);
       });
     });
@@ -26,7 +28,7 @@ const readStoredPreferences = async (): Promise<unknown> =>
  * commits would restore the previous filters (a fast CI runner reloads within that window). */
 const expectStoredPositionGroup = async (page: Page, group: string) => {
   await expect
-    .poll(async () => page.evaluate(readStoredPreferences))
+    .poll(async () => page.evaluate(readStored, "preferences"))
     .toMatchObject({ value: { filters: { lists: { positionGroup: [group] } } } });
 };
 
@@ -163,6 +165,52 @@ test.describe("phone", () => {
     await expect(page.getByRole("button", { name: "Filtry (1)" })).toBeFocused();
     await page.getByRole("button", { name: /^Paweł Brożek/u }).click();
     await expect(page.getByRole("dialog", { name: "Paweł Brożek" })).toBeVisible();
+  });
+});
+
+test.describe("game language", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  test("names countries and leagues in an attached game language and keeps the choice", async ({
+    page,
+  }) => {
+    await loadDatabase(page);
+    await page.getByRole("button", { name: "Pliki" }).click();
+    const language = page.getByLabel("Nazwy klubów, lig i krajów");
+    await expect(language).toHaveValue("");
+    await page
+      .getByLabel("Albo dołącz plik języka i string.idx")
+      .setInputFiles([...SYNTHETIC_LOCALE_PATHS]);
+    await expect(page.getByRole("table")).toBeVisible();
+    await page.getByText("Klub i kontrakt").click();
+    await expect(page.getByRole("checkbox", { name: "Polska" })).toBeVisible();
+    await expect(page.getByRole("checkbox", { name: "Liga BBVA (Hiszpania)" })).toBeVisible();
+    await expectNoAxeViolations(page);
+    await expect
+      .poll(async () => page.evaluate(readStored, "preferences"))
+      .toMatchObject({ value: { gameLanguage: "pol_pl" } });
+    await expect
+      .poll(async () => page.evaluate(readStored, "languages"))
+      .toMatchObject({ value: { pol_pl: { countries: { 52: "Argentyna" } } } });
+    await page.reload();
+    await page.getByText("Klub i kontrakt").click();
+    await expect(page.getByRole("checkbox", { name: "Argentyna" })).toBeVisible();
+    await page.getByRole("button", { name: "Pliki" }).click();
+    await expect(language).toHaveValue("pol_pl");
+    await expectNoAxeViolations(page);
+    await language.selectOption({ label: "Angielskie z bazy fifa.db" });
+    await page.getByRole("button", { name: "Lista zawodników" }).click();
+    await page.getByText("Klub i kontrakt").click();
+    await expect(page.getByRole("checkbox", { name: "Poland" })).toBeVisible();
+  });
+
+  test("asks for both language files", async ({ page }) => {
+    await loadDatabase(page);
+    await page.getByRole("button", { name: "Pliki" }).click();
+    await page
+      .getByLabel("Albo dołącz plik języka i string.idx")
+      .setInputFiles(SYNTHETIC_LOCALE_PATHS[0]);
+    await expect(page.getByRole("alert")).toContainText("plik .loc i string.idx");
   });
 });
 

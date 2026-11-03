@@ -351,7 +351,7 @@ describe.runIf(existsSync(realDbPath))("real fifa.db", () => {
         filterPlayers(players, { positionRating: { code: 3, min: 50 }, withClubOnly: true }),
         "positionRating",
         "descending",
-        3,
+        { ratingCode: 3 },
       ),
     );
     timed("filter + sort", () =>

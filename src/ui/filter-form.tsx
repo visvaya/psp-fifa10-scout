@@ -34,6 +34,7 @@ import {
 
 interface FilterFormProps {
   readonly players: readonly Player[];
+  readonly collator: Intl.Collator;
   readonly filters: ScoutFilters;
   readonly myTeamId: number | null;
   readonly showPotential: boolean;
@@ -339,12 +340,16 @@ const careerSection = ({ range, flag }: Kit) => (
 
 export const FilterForm = ({
   players,
+  collator,
   filters,
   myTeamId,
   showPotential,
   dispatch,
 }: FilterFormProps): JSX.Element => {
-  const facets = useMemo(() => facetOptions(players, filters), [players, filters]);
+  const facets = useMemo(
+    () => facetOptions(players, filters, collator),
+    [players, filters, collator],
+  );
   const change: Change = (next) => {
     dispatch({ type: "filters-changed", filters: next });
   };

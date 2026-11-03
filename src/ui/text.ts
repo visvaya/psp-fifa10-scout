@@ -1,5 +1,5 @@
 /** Every text the user reads, in one module, with the Polish number and plural helpers. */
-import type { LoadErrorKind, LoadPhase } from "../logic/load-scout.ts";
+import type { LoadErrorKind, LoadPhase, LoadStage } from "../logic/load-scout.ts";
 import type { FlagKey, ListKey, RangeFields, RangeKey } from "../logic/filter-players.ts";
 import { isAttributeName } from "../logic/players.ts";
 import type { AttributeName } from "../logic/players.ts";
@@ -182,6 +182,14 @@ const ERRORS: Readonly<Record<LoadErrorKind | "missing-file", string>> = {
   "missing-file": "Wybierz oba pliki naraz: DATA.BIN i PARAM.SFO.",
 };
 
+const STAGES: Readonly<Record<LoadStage, string>> = {
+  game: "Plik gry",
+  save: "Zapis kariery",
+  locale: "Plik języka",
+};
+
+const LOCALE_MISSING = "Wybierz oba pliki naraz: plik .loc i string.idx z tego samego folderu.";
+
 export const TEXT = {
   traitsNote:
     "Cechy pochodzą z bazy gry. Czy wpływają na rozgrywkę w wersji PSP, nie jest potwierdzone.",
@@ -203,7 +211,19 @@ export const TEXT = {
   saveLoaded: "Zapis kariery wczytany.",
   phase: (phase: LoadPhase): string => PHASES[phase],
   error: (error: ScoutError): string =>
-    `${error.stage === "game" ? "Plik gry" : "Zapis kariery"}: ${ERRORS[error.kind]}`,
+    `${STAGES[error.stage]}: ${
+      error.stage === "locale" && error.kind === "missing-file"
+        ? LOCALE_MISSING
+        : ERRORS[error.kind]
+    }`,
+  languageStep: "3. Język nazw",
+  languageSelect: "Nazwy klubów, lig i krajów",
+  languageFromDb: "Angielskie z bazy fifa.db",
+  languageHelp:
+    "Obraz ISO zawiera nazwy we wszystkich językach gry; po jego wczytaniu wybierz język z listy.",
+  localeInput: "Albo dołącz plik języka i string.idx",
+  localeHelp:
+    "Pliki leżą w obrazie ISO w PSP_GAME/USRDIR/data/gui/locale, np. pol_pl.loc. Zaznacz plik języka razem ze string.idx z tego samego folderu.",
   resultCount: (value: number): string => count(value, PLAYERS),
   installHeading: "Aplikacja na ekranie początkowym",
   installHelp:

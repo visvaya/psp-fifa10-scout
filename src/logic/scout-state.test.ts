@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   actionOf,
   activeFilters,
+  activeLanguage,
   attributeBand,
   DEFAULT_SORT,
   effectiveFilters,
@@ -21,7 +22,11 @@ const loaded = (myTeamId: number | null = null): ScoutState =>
     requestId: 1,
     players: PLAYERS,
     myTeamId,
+    languages: {},
+    attachedLanguage: null,
   });
+
+const NAMES = { teams: { 1: "Klub" }, leagues: {}, countries: {} };
 
 describe("scoutReducer loading", () => {
   it("starts empty on the start view", () => {
@@ -38,7 +43,14 @@ describe("scoutReducer loading", () => {
     const newer = scoutReducer(loading, { type: "load-started", requestId: 2 });
     for (const action of [
       { type: "load-phase", requestId: 1, phase: "players" },
-      { type: "load-succeeded", requestId: 1, players: PLAYERS, myTeamId: null },
+      {
+        type: "load-succeeded",
+        requestId: 1,
+        players: PLAYERS,
+        myTeamId: null,
+        languages: {},
+        attachedLanguage: null,
+      },
       { type: "load-failed", requestId: 1, error: { stage: "game", kind: "damaged" } },
     ] as const) {
       expect(scoutReducer(newer, action)).toBe(newer);
@@ -61,9 +73,52 @@ describe("scoutReducer loading", () => {
     expect(scoutReducer(failed, { type: "load-started", requestId: 2 }).error).toBeNull();
   });
 
-  it("reports a save picked without both files", () => {
-    const state = scoutReducer(initialScoutState, { type: "save-incomplete" });
-    expect(state.error).toEqual({ stage: "save", kind: "missing-file" });
+  it("reports a save or language picked without both files", () => {
+    for (const stage of ["save", "locale"] as const) {
+      const state = scoutReducer(initialScoutState, { type: "files-incomplete", stage });
+      expect(state.error).toEqual({ stage, kind: "missing-file" });
+    }
+  });
+
+  it("adds the languages of a load and of the store to those known", () => {
+    const restored = scoutReducer(loading, {
+      type: "languages-restored",
+      languages: { eng_us: NAMES },
+    });
+    const added = scoutReducer(restored, {
+      type: "load-succeeded",
+      requestId: 1,
+      players: PLAYERS,
+      myTeamId: null,
+      languages: { pol_pl: NAMES },
+      attachedLanguage: null,
+    });
+    expect(Object.keys(added.languages)).toEqual(["eng_us", "pol_pl"]);
+    expect(added).not.toHaveProperty("gameLanguage");
+    const attached = scoutReducer(scoutReducer(added, { type: "load-started", requestId: 2 }), {
+      type: "load-succeeded",
+      requestId: 2,
+      players: PLAYERS,
+      myTeamId: null,
+      languages: { cze_cz: NAMES },
+      attachedLanguage: "cze_cz",
+    });
+    expect(attached.gameLanguage).toBe("cze_cz");
+  });
+
+  it("chooses the game language, the browser's by default", () => {
+    const known = scoutReducer(initialScoutState, {
+      type: "languages-restored",
+      languages: { pol_pl: NAMES, cze_cz: NAMES },
+    });
+    expect(activeLanguage(known, ["cs-CZ"])).toBe("cze_cz");
+    expect(activeLanguage(known, ["de"])).toBeNull();
+    const english = scoutReducer(known, { type: "language-chosen", language: null });
+    expect(english.gameLanguage).toBeNull();
+    expect(activeLanguage(english, ["cs-CZ"])).toBeNull();
+    const polish = scoutReducer(known, { type: "language-chosen", language: "pol_pl" });
+    expect(activeLanguage(polish, ["cs-CZ"])).toBe("pol_pl");
+    expect(activeLanguage({ ...polish, languages: {} }, ["pl"])).toBeNull();
   });
 
   it("switches views", () => {
@@ -148,9 +203,14 @@ describe("scoutReducer filters, sort and card", () => {
     const sort = { key: "age", direction: "ascending" } as const;
     const state = scoutReducer(initialScoutState, {
       type: "preferences-restored",
-      preferences: { filters: { text: "x" }, sort, showPotential: true },
+      preferences: { filters: { text: "x" }, sort, showPotential: true, gameLanguage: "pol_pl" },
     });
-    expect(state).toMatchObject({ filters: { text: "x" }, sort, showPotential: true });
+    expect(state).toMatchObject({
+      filters: { text: "x" },
+      sort,
+      showPotential: true,
+      gameLanguage: "pol_pl",
+    });
   });
 
   it("hides potential by default and drops its filters and sort when hidden", () => {
@@ -229,12 +289,21 @@ describe("actionOf", () => {
       requestId: 3,
       error,
     });
-    const result = { players: PLAYERS, myTeamId: 7, gameDb: Uint8Array.of(1) };
+    const languages = { pol_pl: NAMES };
+    const result = {
+      players: PLAYERS,
+      myTeamId: 7,
+      gameDb: Uint8Array.of(1),
+      languages,
+      attachedLanguage: "pol_pl",
+    };
     expect(actionOf({ type: "done", requestId: 3, result })).toEqual({
       type: "load-succeeded",
       requestId: 3,
       players: PLAYERS,
       myTeamId: 7,
+      languages,
+      attachedLanguage: "pol_pl",
     });
   });
 });
@@ -332,5 +401,16 @@ describe("facetOptions", () => {
     expect(facetOptions(players, { lists: { leagueId: [2] } }).clubs).toEqual([
       { id: 5, name: "Śląsk" },
     ]);
+  });
+
+  it("orders names with the given collation", () => {
+    const players = [
+      testPlayer({ id: 1, clubId: 1, clubName: "Hradec" }),
+      testPlayer({ id: 2, clubId: 2, clubName: "Chrudim" }),
+    ];
+    const names = (collator?: Intl.Collator) =>
+      facetOptions(players, {}, collator).clubs.map((club) => club.name);
+    expect(names()).toEqual(["Chrudim", "Hradec"]);
+    expect(names(new Intl.Collator("cs"))).toEqual(["Hradec", "Chrudim"]);
   });
 });

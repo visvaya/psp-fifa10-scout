@@ -2,6 +2,7 @@
 // as { schemaVersion, value } in a key-value backend (IndexedDB in the browser, memory otherwise).
 // Nothing leaves the device. Preferences 2 migrate to 3; any other version or shape is ignored, and
 // unknown or malformed filter values are dropped one by one.
+import type { GameLanguages, GameNames } from "./game-names.ts";
 import { FLAG_KEYS, LIST_FIELDS, RANGE_KEYS } from "./filter-players.ts";
 import type { ListKey, PositionRating, Range } from "./filter-players.ts";
 import { OVR_WEIGHTS } from "./overall-rating.ts";
@@ -15,7 +16,7 @@ import type { SortKey } from "./sort-players.ts";
  * Per record, so a change to the preferences keeps the stored fifa.db. Preferences 2: clubStatus;
  * 3: ranges, lists and flags, showPotential.
  */
-export const SCHEMA_VERSION = { gameDb: 1, preferences: 3 } as const;
+export const SCHEMA_VERSION = { gameDb: 1, preferences: 3, languages: 1 } as const;
 
 export interface StorageBackend {
   readonly get: (key: string) => Promise<unknown>;
@@ -25,6 +26,7 @@ export interface StorageBackend {
 export interface StoredScout {
   readonly gameDb: Uint8Array | null;
   readonly preferences: Preferences | null;
+  readonly languages: GameLanguages;
 }
 
 /** The sort keys the screens offer; anything else in storage is dropped. */
@@ -149,6 +151,9 @@ const parsePreferences = (value: unknown): Preferences | null => {
     filters: compactFilters(parseFilters(value["filters"])),
     sort: { key: sortKey, direction },
     showPotential: value["showPotential"] === true,
+    ...(typeof value["gameLanguage"] === "string" || value["gameLanguage"] === null
+      ? { gameLanguage: value["gameLanguage"] }
+      : {}),
   };
 };
 
@@ -187,18 +192,37 @@ const preferencesOf = (record: unknown): Preferences | null => {
   return parsePreferences(versioned(record, SCHEMA_VERSION.preferences));
 };
 
+const isNameRecord = (value: unknown): boolean =>
+  isRecord(value) && Object.values(value).every((name) => typeof name === "string");
+
+const isGameNames = (value: unknown): value is GameNames =>
+  isRecord(value) && [value["teams"], value["leagues"], value["countries"]].every(isNameRecord);
+
+/** The stored languages whose names have the expected shape. */
+const parseLanguages = (value: unknown): GameLanguages =>
+  Object.fromEntries(
+    Object.entries(recordOf(value)).flatMap(([code, names]) =>
+      isGameNames(names) ? [[code, names] as const] : [],
+    ),
+  );
+
 export const createScoutStore = (backend: StorageBackend) => ({
   load: async (): Promise<StoredScout> => {
     const gameDb = versioned(await backend.get("gameDb"), SCHEMA_VERSION.gameDb);
     return {
       gameDb: gameDb instanceof Uint8Array ? gameDb : null,
       preferences: preferencesOf(await backend.get("preferences")),
+      languages: parseLanguages(
+        versioned(await backend.get("languages"), SCHEMA_VERSION.languages),
+      ),
     };
   },
   saveGameDb: async (gameDb: Uint8Array): Promise<void> =>
     backend.set("gameDb", { schemaVersion: SCHEMA_VERSION.gameDb, value: gameDb }),
   savePreferences: async (preferences: Preferences): Promise<void> =>
     backend.set("preferences", { schemaVersion: SCHEMA_VERSION.preferences, value: preferences }),
+  saveLanguages: async (languages: GameLanguages): Promise<void> =>
+    backend.set("languages", { schemaVersion: SCHEMA_VERSION.languages, value: languages }),
 });
 
 export type ScoutStore = ReturnType<typeof createScoutStore>;
