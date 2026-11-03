@@ -30,12 +30,12 @@ describe("loadScout", () => {
 
   it("tags a failure with the file that caused it", async () => {
     await expect(loadScout({ game: blob(new Uint8Array(8)) }, () => undefined)).rejects.toEqual(
-      expect.objectContaining({ stage: "game", kind: "wrong-file" }),
+      expect.objectContaining({ error: { stage: "game", kind: "wrong-file" } }),
     );
     const bad = { dataBin: blob(new Uint8Array(4)), paramSfo: blob(new Uint8Array(4)) };
     await expect(
       loadScout({ game: blob(buildScoutDb()), save: bad }, () => undefined),
-    ).rejects.toEqual(expect.objectContaining({ stage: "save", kind: "wrong-file" }));
+    ).rejects.toEqual(expect.objectContaining({ error: { stage: "save", kind: "wrong-file" } }));
   });
 });
 

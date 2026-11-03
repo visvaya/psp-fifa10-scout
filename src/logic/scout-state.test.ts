@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  actionOf,
   activeFilterKeys,
   attributeBand,
   DEFAULT_SORT,
@@ -130,6 +131,29 @@ describe("scoutReducer filters, sort and card", () => {
   });
 });
 
+describe("actionOf", () => {
+  it("maps each worker message to its load action", () => {
+    expect(actionOf({ type: "phase", requestId: 3, phase: "save" })).toEqual({
+      type: "load-phase",
+      requestId: 3,
+      phase: "save",
+    });
+    const error = { stage: "game", kind: "damaged" } as const;
+    expect(actionOf({ type: "failed", requestId: 3, error })).toEqual({
+      type: "load-failed",
+      requestId: 3,
+      error,
+    });
+    const result = { players: PLAYERS, myTeamId: 7, gameDb: Uint8Array.of(1) };
+    expect(actionOf({ type: "done", requestId: 3, result })).toEqual({
+      type: "load-succeeded",
+      requestId: 3,
+      players: PLAYERS,
+      myTeamId: 7,
+    });
+  });
+});
+
 describe("effectiveFilters", () => {
   it("turns 'exclude my club' into the club id, only with a career", () => {
     expect(effectiveFilters({ excludeMyClub: true, text: "a" }, 7)).toEqual({
@@ -153,17 +177,17 @@ describe("activeFilterKeys", () => {
 });
 
 describe("attributeBand", () => {
-  it.each([
-    [99, "high"],
-    [80, "high"],
-    [79, "good"],
-    [70, "good"],
-    [69, "average"],
-    [50, "average"],
-    [49, "low"],
-    [1, "low"],
-  ])("%d is %s", (value, band) => {
-    expect(attributeBand(value)).toBe(band);
+  it("bands values at 80, 70 and 50", () => {
+    expect([99, 80, 79, 70, 69, 50, 49, 1].map((value) => attributeBand(value))).toEqual([
+      "high",
+      "high",
+      "good",
+      "good",
+      "average",
+      "average",
+      "low",
+      "low",
+    ]);
   });
 });
 

@@ -1,7 +1,7 @@
 // The app state as a reducer with pure transitions, and the pure view helpers the screens share.
 import { SCOUT_CONFIG } from "./config.ts";
 import type { PlayerFilters } from "./filter-players.ts";
-import type { LoadError, LoadPhase } from "./load-scout.ts";
+import type { LoadError, LoadPhase, WorkerMessage } from "./load-scout.ts";
 import { nameCollator } from "./players.ts";
 import type { Player } from "./players.ts";
 import type { SortDirection, SortKey } from "./sort-players.ts";
@@ -11,6 +11,8 @@ export type ScoutFilters = Omit<PlayerFilters, "excludeTeamId"> & {
   readonly excludeMyClub?: boolean;
 };
 export type FilterKey = keyof ScoutFilters;
+/** A change to some filters; undefined clears one. */
+export type FilterChange = { readonly [K in FilterKey]?: ScoutFilters[K] | undefined };
 
 export interface ScoutSort {
   readonly key: SortKey;
@@ -48,7 +50,7 @@ export type ScoutAction =
   | LoadAction
   | { readonly type: "save-incomplete" }
   | { readonly type: "view-changed"; readonly view: ScoutState["view"] }
-  | { readonly type: "filters-changed"; readonly filters: ScoutFilters }
+  | { readonly type: "filters-changed"; readonly filters: FilterChange }
   | { readonly type: "filter-removed"; readonly key: FilterKey }
   | { readonly type: "filters-reset" }
   | { readonly type: "sort-changed"; readonly key: SortKey }
@@ -103,11 +105,11 @@ const FILTER_KEYS: readonly FilterKey[] = [
 ];
 
 /** The filters that narrow the list, in a fixed order (for chips and the count on the button). */
-export const activeFilterKeys = (filters: ScoutFilters): readonly FilterKey[] =>
+export const activeFilterKeys = (filters: FilterChange): readonly FilterKey[] =>
   FILTER_KEYS.filter((key) => isSet(filters[key]));
 
 /** Only the active filters, so empty values never linger in state or storage. */
-const compact = (filters: ScoutFilters): ScoutFilters =>
+const compact = (filters: FilterChange): ScoutFilters =>
   Object.fromEntries(activeFilterKeys(filters).map((key) => [key, filters[key]]));
 
 const isCurrent = (state: ScoutState, requestId: number): boolean =>
@@ -177,6 +179,15 @@ export const scoutReducer = (state: ScoutState, action: ScoutAction): ScoutState
     default:
       return { ...state, openPlayerId: null };
   }
+};
+
+/** The reducer action for a worker message. */
+export const actionOf = (message: WorkerMessage): ScoutAction => {
+  const { requestId } = message;
+  if (message.type === "phase") return { type: "load-phase", requestId, phase: message.phase };
+  if (message.type === "failed") return { type: "load-failed", requestId, error: message.error };
+  const { players, myTeamId } = message.result;
+  return { type: "load-succeeded", requestId, players, myTeamId };
 };
 
 /** The filters filterPlayers takes. */

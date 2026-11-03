@@ -57,17 +57,26 @@ export const classifyLoadError = (stage: LoadStage, error: unknown): LoadError =
 
 const bytesOf = async (blob: Blob): Promise<Uint8Array> => new Uint8Array(await blob.arrayBuffer());
 
+/** A load that failed, with what went wrong in user terms. */
+export class LoadFailure extends Error {
+  override readonly name = "LoadFailure";
+  readonly error: LoadError;
+
+  constructor(error: LoadError, cause: unknown) {
+    super(`Load failed at ${error.stage}: ${error.kind}`, { cause });
+    this.error = error;
+  }
+}
+
 const atStage = async <T>(stage: LoadStage, run: () => T | Promise<T>): Promise<T> => {
   try {
     return await run();
   } catch (error) {
-    throw Object.assign(new Error(`Load failed at ${stage}`, { cause: error }), {
-      ...classifyLoadError(stage, error),
-    });
+    throw new LoadFailure(classifyLoadError(stage, error), error);
   }
 };
 
-/** Reads the game database and the optional save; a failure is an Error carrying a LoadError. */
+/** Reads the game database and the optional save; throws LoadFailure. */
 export const loadScout = async (
   request: LoadRequest,
   onPhase: (phase: LoadPhase) => void,
