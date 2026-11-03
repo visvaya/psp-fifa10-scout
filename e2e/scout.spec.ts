@@ -1,101 +1,23 @@
-import { AxeBuilder } from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
-import type { Locator, Page } from "@playwright/test";
 import path from "node:path";
 import {
   SYNTHETIC_DB_PATH,
   SYNTHETIC_LOCALE_PATHS,
   SYNTHETIC_SAVE_PATHS,
 } from "../scripts/write-synthetic-db.ts";
+import {
+  expandSections,
+  expectCount,
+  expectNoAxeViolations,
+  expectStoredPositionGroup,
+  guardSecurityPolicy,
+  headerWidths,
+  loadDatabase,
+  pickGame,
+  readStored,
+} from "./support.ts";
 
-/** Picks a game file once the input is enabled: setInputFiles also fills a disabled input, and a pick
- * made before the app opens its worker is lost (a user cannot pick there). */
-const pickGame = async (page: Page, files: Parameters<Locator["setInputFiles"]>[0]) => {
-  const input = page.getByLabel("Wybierz obraz ISO lub fifa.db");
-  await expect(input).toBeEnabled();
-  await input.setInputFiles(files);
-};
-
-const loadDatabase = async (page: Page) => {
-  await page.goto("/");
-  await pickGame(page, SYNTHETIC_DB_PATH);
-  // A picked game stays on the start screen, so a save or language can follow.
-  await page.getByRole("button", { name: /^Pokaż zawodników/u }).click();
-  await expectCount(page, "62\u00a0zawodników");
-};
-
-/** The visible count; the status region repeats it once the announcement settles. */
-/** A stored record, read in the page from the app's IndexedDB store. */
-const readStored = async (key: string): Promise<unknown> =>
-  new Promise((resolve) => {
-    const open = indexedDB.open("psp-fifa10-scout");
-    open.addEventListener("success", () => {
-      const get = open.result.transaction("kv").objectStore("kv").get(key);
-      get.addEventListener("success", () => {
-        // A connection left open can hold WebKit's store on an old state across a reload.
-        open.result.close();
-        resolve(get.result);
-      });
-    });
-  });
-
-/** Waits until the stored preferences include a position group: a reload before the IndexedDB write
- * commits would restore the previous filters (a fast CI runner reloads within that window). */
-const expectStoredPositionGroup = async (page: Page, group: string) => {
-  await expect
-    .poll(async () => page.evaluate(readStored, "preferences"))
-    .toMatchObject({ value: { filters: { lists: { positionGroup: [group] } } } });
-};
-
-/** The horizontal centre of an element, NaN when it is not shown. */
-const centre = async (locator: Locator): Promise<number> => {
-  const box = await locator.boundingBox();
-  return box === null ? Number.NaN : box.x + box.width / 2;
-};
-
-/** The widths of the table's header cells. */
-const headerWidths = async (page: Page): Promise<number[]> =>
-  page
-    .locator("table.players thead th")
-    .evaluateAll((cells) => cells.map((cell) => cell.getBoundingClientRect().width));
-
-const expectCount = async (page: Page, text: string) => {
-  await expect(page.locator("p.count")).toHaveText(text);
-};
-
-/** Opens every collapsed filter section. */
-const expandSections = async (page: Page) => {
-  await page.locator("details.filter-section").evaluateAll((sections) => {
-    for (const section of sections) section.setAttribute("open", "");
-  });
-  const sections = await page.locator("details.filter-section").count();
-  await expect(page.locator(".filter-section-body")).toHaveCount(sections);
-};
-
-const expectNoAxeViolations = async (page: Page) => {
-  const { violations } = await new AxeBuilder({ page }).analyze();
-  expect(violations).toEqual([]);
-};
-
-// The preview serves the production headers (public/_headers): every journey must run without breaking
-// the security policy. Records what the browser blocks on the last page the test opened.
-test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => {
-    const blocked: string[] = [];
-    Reflect.set(window, "cspViolations", blocked);
-    document.addEventListener("securitypolicyviolation", (event) => {
-      // WebKit reports the inline styles of a <select>'s own internal parts as blocked; the element
-      // renders pixel for pixel the same with and without the policy (checked 2026-11-03).
-      const webKitSelect =
-        event.effectiveDirective === "style-src-attr" && event.target instanceof HTMLSelectElement;
-      if (!webKitSelect) blocked.push(`${event.effectiveDirective} ${event.blockedURI}`);
-    });
-  });
-});
-
-test.afterEach(async ({ page }) => {
-  expect(await page.evaluate((): unknown => Reflect.get(window, "cspViolations"))).toEqual([]);
-});
+guardSecurityPolicy();
 
 test.describe("wide screen", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
@@ -288,104 +210,6 @@ test.describe("filter panel", () => {
     await expectCount(page, "1 zawodnik");
     await page.getByRole("button", { name: "Usuń filtr: Drybler techniczny: tak" }).click();
     await expectCount(page, "62 zawodników");
-  });
-});
-
-test.describe("phone", () => {
-  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
-
-  test("keeps the start screen within the viewport, before and after loading a game", async ({
-    page,
-  }) => {
-    const pageHeight = async () =>
-      page.evaluate(() => document.scrollingElement?.scrollHeight ?? 0);
-    await page.goto("/");
-    await expect(page.getByLabel("Wybierz obraz ISO lub fifa.db")).toBeEnabled();
-    expect(await pageHeight()).toBe(844);
-    await loadDatabase(page);
-    await page.getByRole("button", { name: "Pliki" }).click();
-    await expect(page.getByText(/^Wczytano: /u)).toBeVisible();
-    expect(await pageHeight()).toBe(844);
-  });
-
-  test("filters in a full-screen dialog and opens a card", async ({ page }) => {
-    await loadDatabase(page);
-    await page.getByRole("button", { name: "Filtry" }).click();
-    const dialog = page.getByRole("dialog", { name: "Filtry" });
-    await dialog.getByRole("checkbox", { name: "Napastnicy" }).check();
-    await dialog.getByRole("button", { name: "Zamknij" }).click();
-    await expect(page.getByRole("button", { name: "Filtry (1)" })).toBeFocused();
-    await page.getByRole("button", { name: /^Paweł Brożek/u }).click();
-    await expect(page.getByRole("dialog", { name: "Paweł Brożek" })).toBeVisible();
-  });
-
-  test("labels the numbers above the rows, each over its column", async ({ page }) => {
-    await loadDatabase(page);
-    await page.getByRole("button", { name: "Filtry" }).click();
-    await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
-    await page.getByRole("button", { name: "Zamknij" }).click();
-    const labels = page.locator(".player-rows-header > span");
-    await expect(labels).toHaveText(["OVR", "POT"]);
-    const numbers = page.locator(".player-row").first().locator(".rating");
-    const [labelCentres, numberCentres] = await Promise.all([
-      Promise.all([0, 1].map(async (index) => centre(labels.nth(index)))),
-      Promise.all([0, 1].map(async (index) => centre(numbers.nth(index)))),
-    ]);
-    labelCentres.forEach((label, index) => {
-      expect(Math.abs(label - (numberCentres[index] ?? Number.NaN))).toBeLessThan(1);
-    });
-  });
-
-  // Only the list scrolls: if the page scrolled instead, the virtual list would not draw the rows the user
-  // scrolls to and would leave blank space below them.
-  test("scrolls the list, not the page", async ({ page }) => {
-    await loadDatabase(page);
-    const pageHeight = await page.evaluate(() => document.scrollingElement?.scrollHeight);
-    expect(pageHeight).toBe(page.viewportSize()?.height);
-    const list = page.locator(".scroll");
-    await list.evaluate((element) => {
-      element.scrollTo(0, element.scrollHeight);
-    });
-    expect(await list.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
-    // The last row is drawn once the list reaches its end.
-    await expect(page.locator(".player-row").last()).toBeInViewport();
-  });
-});
-
-test.describe("phone list with filters", () => {
-  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
-
-  test("shows a filtered attribute before OVR when nothing else takes that place", async ({
-    page,
-  }) => {
-    await loadDatabase(page);
-    await page.getByRole("button", { name: "Filtry" }).click();
-    const dialog = page.getByRole("dialog", { name: "Filtry" });
-    await dialog.getByText("Atrybuty", { exact: true }).click();
-    await dialog.getByLabel("Dodaj atrybut").selectOption({ label: "Przyspieszenie" });
-    await dialog.getByRole("group", { name: "Przyspieszenie" }).getByLabel("od").fill("10");
-    await dialog.getByRole("button", { name: "Zamknij" }).click();
-    await expect(page.locator(".player-rows-header > span")).toHaveText(["Przyspieszenie", "OVR"]);
-  });
-});
-
-test.describe("open dialog", () => {
-  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
-
-  // A swipe that reaches the end of a dialog must not move the list behind it.
-  // iOS Safari also drags the whole page (its overscroll bounce), so the document is locked too.
-  test("locks the list and the page while a dialog is open", async ({ page }) => {
-    await loadDatabase(page);
-    const [list, root] = [page.locator(".scroll"), page.locator("html")];
-    await expect(list).toHaveCSS("overflow-y", "auto");
-    await page.locator(".player-row").first().click();
-    const card = page.getByRole("dialog");
-    await expect(list).toHaveCSS("overflow-y", "hidden");
-    await expect(root).toHaveCSS("overflow-y", "hidden");
-    // WebKit in Playwright does not report overscroll-behavior, so the dialog's containment is not checked.
-    await card.getByRole("button", { name: "Zamknij" }).click();
-    await expect(list).toHaveCSS("overflow-y", "auto");
-    await expect(root).toHaveCSS("overflow-y", "visible");
   });
 });
 
