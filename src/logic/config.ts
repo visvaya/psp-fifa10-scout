@@ -7,4 +7,6 @@ export const SCOUT_CONFIG = {
   nationalLeagueLevel: 5,
   /** Player ids from this one up form the generated youth pool. */
   youthPlayerIdStart: 400_000,
+  /** Lowest value of each attribute colour band, as the game colours them; below average is low. */
+  attributeBandMin: { high: 80, good: 70, average: 50 },
 } as const;
