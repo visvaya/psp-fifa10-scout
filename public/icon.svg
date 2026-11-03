@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- An original mark: a pitch seen through a scout's magnifying glass. -->
+  <rect width="512" height="512" fill="#1d6b3c"/>
+  <g fill="none" stroke="#fffdf7" stroke-width="28" stroke-linecap="round">
+    <circle cx="220" cy="220" r="118"/>
+    <path d="M305 305l105 105"/>
+  </g>
+  <g fill="none" stroke="#9ad39a" stroke-width="12">
+    <path d="M220 118v204"/>
+    <circle cx="220" cy="220" r="36"/>
+  </g>
+</svg>

@@ -72,7 +72,10 @@ export const StartScreen = ({
 }: StartScreenProps): JSX.Element => {
   const shared = { state, ready };
   return (
-    <section className="start" aria-labelledby="start-title">
+    // Focusable: on a short screen the section scrolls, and Safari scrolls with the keyboard only what can
+    // take focus (axe scrollable-region-focusable; the file inputs stay disabled until the store opens).
+    // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+    <section className="start" aria-labelledby="start-title" tabIndex={0}>
       <h2 id="start-title">{TEXT.startHeading}</h2>
       <p className="muted">
         {state.players === null ? `${TEXT.noData} ${TEXT.startIntro}` : TEXT.startIntro}
@@ -103,6 +106,10 @@ export const StartScreen = ({
         onFiles={onSave}
         help={<p>{state.myTeamId === null ? TEXT.saveHelp : TEXT.saveLoaded}</p>}
       />
+      <section className="step install-help" aria-labelledby="install-title">
+        <h3 id="install-title">{TEXT.installHeading}</h3>
+        <p className="help">{TEXT.installHelp}</p>
+      </section>
       <output className="status">
         {state.loading === null ? "" : TEXT.phase(state.loading.phase)}
       </output>

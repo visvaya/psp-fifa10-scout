@@ -13,7 +13,7 @@
   "scripts": {
     "prepare": "node scripts/install-git-hooks.ts",
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && node scripts/write-service-worker.ts",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint",
@@ -22,11 +22,13 @@
     "format:check": "oxfmt --check",
     "check:text": "node scripts/check-text.ts",
     "check:unused": "cross-env KNIP_DISABLE_RAW_TRANSFER=1 knip",
+    "check:size": "node scripts/check-size.ts",
+    "make:icons": "node scripts/make-icons.ts",
     "check:duplicates": "jscpd . --ignore-identifiers --ignore-literals",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "verify:fast": "pnpm lint && pnpm format:check",
-    "verify": "pnpm format:check && pnpm check:text && pnpm typecheck && pnpm lint && pnpm test:coverage && pnpm check:duplicates && pnpm check:unused && pnpm build",
+    "verify": "pnpm format:check && pnpm check:text && pnpm typecheck && pnpm lint && pnpm test:coverage && pnpm check:duplicates && pnpm check:unused && pnpm build && pnpm check:size",
     "test:e2e": "playwright test",
     "mutation": "stryker run"
   },

@@ -1,0 +1,18 @@
+{
+  "id": "./",
+  "name": "PSP FIFA 10 Scout",
+  "short_name": "FIFA 10 Scout",
+  "description": "Wyszukiwarka zawodników do trybu menedżera FIFA 10 na PSP.",
+  "lang": "pl",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f3ea",
+  "theme_color": "#fffdf7",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
