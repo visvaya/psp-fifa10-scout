@@ -640,16 +640,16 @@ input[type="number"] {
   border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-ink);
-}
-
-/* While a dialog is open nothing behind it scrolls: a swipe past the dialog's end stays in it, and the
-   list and filter panel stop scrolling (iOS Safari otherwise moves them under the backdrop). */
-.dialog {
+  /* A swipe past the dialog's end stays in it. */
   overscroll-behavior: contain;
 }
 
-:root:has(.dialog[open]) :is(.scroll, .filter-panel) {
+/* While a dialog is open nothing behind it scrolls or bounces: the page, the list and the filter panel
+   (iOS Safari otherwise moves them under the backdrop). */
+:root:has(.dialog[open]),
+:root:has(.dialog[open]) :is(body, .scroll, .filter-panel) {
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 .dialog::backdrop {

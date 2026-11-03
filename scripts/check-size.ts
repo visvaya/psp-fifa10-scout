@@ -24,11 +24,14 @@ export interface BuildSizes {
 // 106 778 -> 107 022, within its budget); the free agent flag and filter, and the labels over the rows.
 // Raised 2026-11-03 for stable table columns and closing dialogs from outside: JS 107 022 -> 107 810,
 // precache 373 722 -> 375 751; the column widths measured from every player and the backdrop click.
+// Raised 2026-11-03 for locking the page behind a dialog on iOS, as Chrome's guidance on scrolling under
+// a modal dialog describes (root locked, dialog overscroll contained): CSS gzip 2 556 -> 2 569 (budget
+// 2 560 -> 2 600), precache 375 761 -> 375 857.
 export const SIZE_BUDGETS: BuildSizes = {
   jsGzipBytes: 106 * 1024,
-  cssGzipBytes: 2.5 * 1024,
+  cssGzipBytes: 2600,
   serviceWorkerBytes: 11 * 1024,
-  precacheBytes: 367 * 1024,
+  precacheBytes: 368 * 1024,
 };
 
 const SIZE_KEYS = [
