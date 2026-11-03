@@ -25,7 +25,8 @@ const restore = (dispatch: Dispatch<ScoutAction>, stored: StoredScout) => {
 
 const createSession = (dispatch: Dispatch<ScoutAction>) => {
   let worker: Worker | null = null;
-  let store: ScoutStore | null = null;
+  /** The store once open; saves wait for it, so a game picked before it opens is still kept. */
+  let store: Promise<ScoutStore> | null = null;
   let lastRequestId = 0;
   /** The fifa.db of the last good load. */
   let game: Blob | null = null;
@@ -58,7 +59,8 @@ const createSession = (dispatch: Dispatch<ScoutAction>) => {
     if (message.type === "failed" && message.error.stage === "save") pending = {};
     if (message.type === "done") {
       game = new Blob([message.result.gameDb.slice()]);
-      if (fromFile.delete(message.requestId)) void store?.saveGameDb(message.result.gameDb);
+      if (fromFile.delete(message.requestId))
+        void store?.then(async (opened) => opened.saveGameDb(message.result.gameDb));
     }
     dispatch(actionOf(message));
   };
@@ -68,11 +70,13 @@ const createSession = (dispatch: Dispatch<ScoutAction>) => {
     open: async (isCancelled: () => boolean): Promise<boolean | null> => {
       worker = new Worker(new URL("scout-worker.ts", import.meta.url), { type: "module" });
       worker.addEventListener("message", onMessage);
-      const { store: opened, stored } = await openStore();
+      const opening = openStore();
+      store = opening.then(({ store: opened }) => opened);
+      const { stored } = await opening;
       if (isCancelled()) return null;
-      store = opened;
       restore(dispatch, stored);
-      if (stored.gameDb !== null) start(new Blob([stored.gameDb.slice()]));
+      // A game picked while the store opened wins over the stored one.
+      if (stored.gameDb !== null && lastRequestId === 0) start(new Blob([stored.gameDb.slice()]));
       return stored.gameDb !== null;
     },
     close: () => worker?.terminate(),
@@ -84,10 +88,10 @@ const createSession = (dispatch: Dispatch<ScoutAction>) => {
       pickFiles("locale", pickLocaleFiles(files));
     },
     savePreferences: (preferences: Preferences) => {
-      void store?.savePreferences(preferences);
+      void store?.then(async (opened) => opened.savePreferences(preferences));
     },
     saveLanguages: (languages: GameLanguages) => {
-      void store?.saveLanguages(languages);
+      void store?.then(async (opened) => opened.saveLanguages(languages));
     },
   };
 };
