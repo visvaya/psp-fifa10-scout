@@ -35,11 +35,13 @@ export interface BuildSizes {
 // 379 676 -> 380 529 (JS gzip 109 112 -> 109 360, within its budget).
 // Raised 2026-11-03 for the position groups of the owner's list and the card rows that open to their
 // positions: JS gzip 109 360 -> 109 665, CSS gzip 2 587 -> 2 605, precache 380 529 -> 381 818.
+// Raised 2026-11-04 for the "~" before a card row whose groups rate differently: precache 381 818 ->
+// 382 254.
 export const SIZE_BUDGETS: BuildSizes = {
   jsGzipBytes: 108 * 1024,
   cssGzipBytes: 2650,
   serviceWorkerBytes: 11 * 1024,
-  precacheBytes: 373 * 1024,
+  precacheBytes: 374 * 1024,
 };
 
 const SIZE_KEYS = [

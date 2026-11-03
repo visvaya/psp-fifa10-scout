@@ -318,6 +318,8 @@ export const TEXT = {
     contract: "Kontrakt do",
     potential: "Potencjał",
     overallByGroup: "OVR na pozycjach",
+    approximately: "około ",
+    approximateMark: "~",
     groupPositions: (group: string, positions: readonly string[], overall: number | null): string =>
       `${group}: ${positions.join(", ")}${overall === null ? "" : ` · OVR ${String(overall)}`}`,
     foot: "Lepsza noga",

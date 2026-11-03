@@ -1,7 +1,8 @@
 import { useCallback } from "react";
 import type { JSX, ReactNode } from "react";
 import type { AttributeName, Player } from "../logic/players.ts";
-import { POSITION_GROUP_ROWS, positionCodesOf } from "../logic/positions.ts";
+import { POSITION_GROUP_ROWS, positionCodesOf, rowRating } from "../logic/positions.ts";
+import type { PositionGroup } from "../logic/positions.ts";
 import { AttributeValue } from "./attribute-value.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
 import { clubText } from "./player-list.tsx";
@@ -61,6 +62,25 @@ const basics = (
   [TEXT.card.weight, TEXT.card.weightValue(player.weight)],
 ];
 
+/** A row's OVR, after "~" where its groups rate differently (the sweeper's rounding). */
+const RowRating = (props: {
+  ratings: Readonly<Record<PositionGroup, number>>;
+  row: readonly [PositionGroup, ...PositionGroup[]];
+}) => {
+  const { value, approximate } = rowRating(props.ratings, props.row);
+  return (
+    <>
+      {approximate ? (
+        <>
+          <span aria-hidden="true">{TEXT.card.approximateMark}</span>
+          <span className="visually-hidden">{TEXT.card.approximately}</span>
+        </>
+      ) : null}
+      <AttributeValue value={value} />
+    </>
+  );
+};
+
 /** OVR per card row; each row opens to its groups and their positions in the game language. */
 const GroupRatings = (props: { player: Player; positionName: (code: number) => string }) => {
   const { player, positionName } = props;
@@ -83,7 +103,7 @@ const GroupRatings = (props: { player: Player; positionName: (code: number) => s
             </details>
           </dt>
           <dd>
-            <AttributeValue value={player.overallByGroup[row[0]]} />
+            <RowRating ratings={player.overallByGroup} row={row} />
           </dd>
         </div>
       ))}

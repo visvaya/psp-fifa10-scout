@@ -67,6 +67,15 @@ export const POSITION_GROUP_ROWS: readonly (readonly [PositionGroup, ...Position
   ["forwards"],
 ];
 
+/** A card row's OVR: its first group's, approximate where another group of the row rates otherwise. */
+export const rowRating = (
+  ratings: Readonly<Record<PositionGroup, number>>,
+  row: readonly [PositionGroup, ...PositionGroup[]],
+): { value: number; approximate: boolean } => {
+  const value = ratings[row[0]];
+  return { value, approximate: row.some((group) => ratings[group] !== value) };
+};
+
 /** A value per position group, from one code of the group (its codes share their OVR weights). */
 export const byGroup = <T>(value: (code: number) => T): Readonly<Record<PositionGroup, T>> => ({
   goalkeeper: value(0),
