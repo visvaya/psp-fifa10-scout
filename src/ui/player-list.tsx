@@ -1,7 +1,7 @@
 // The filtered players, virtualized with fixed row heights: a sortable native table on wide
 // screens, a two-line list on phones.
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import type { Dispatch, JSX } from "react";
 import { isAttributeName } from "../logic/players.ts";
 import type { AttributeName, Player } from "../logic/players.ts";
@@ -10,6 +10,7 @@ import type { SortKey } from "../logic/sort-players.ts";
 import { AttributeValue } from "./attribute-value.tsx";
 import { positionOf } from "../logic/positions.ts";
 import { ATTRIBUTE_LABELS, RANGE_LABELS, TEXT } from "./text.ts";
+import { useColumnWidths } from "./use-column-widths.ts";
 
 const ROW_HEIGHT_PX = { table: 40, list: 64 } as const;
 const OVERSCAN_ROWS = 12;
@@ -51,6 +52,8 @@ export const columnLabel = (key: SortKey, ratingCode: number | null = null): str
 
 interface ListProps {
   readonly players: readonly Player[];
+  /** Every player of the game: the table's column widths fit them all, whatever the filters. */
+  readonly allPlayers: readonly Player[];
   readonly sort: ScoutSort;
   readonly showPotential: boolean;
   /** The position of the position rating filter, shown as a column; null without that filter. */
@@ -168,19 +171,59 @@ const Spacer = ({ height, columns }: { height: number; columns: number }) =>
     </tr>
   ) : null;
 
+/** A cell's text for its width, null for a rating cell. */
+const widthText = (player: Player, column: SortKey): string | null =>
+  isTextColumn(column) && column !== "overall" && column !== "potential"
+    ? String(cellText(player, column))
+    : null;
+
+/** The table's columns and their labels, stable while the position rating and potential stay. */
+const useTableColumns = (ratingCode: number | null, showPotential: boolean) => {
+  const columns = useMemo(
+    (): readonly SortKey[] => [
+      ...TEXT_COLUMNS.slice(0, -2),
+      "overall",
+      ...(ratingCode === null ? [] : ["positionRating" as const]),
+      ...(showPotential ? ["potential" as const] : []),
+      ...TABLE_ATTRIBUTES,
+    ],
+    [ratingCode, showPotential],
+  );
+  const label = useCallback((column: SortKey) => columnLabel(column, ratingCode), [ratingCode]);
+  return { columns, label };
+};
+
+const ColumnGroup = ({ widths }: { widths: readonly number[] | null }) =>
+  widths === null ? null : (
+    <colgroup>
+      {widths.map((width, index) => (
+        // oxlint-disable-next-line react/no-array-index-key -- one col per column, in column order
+        <col key={index} style={{ width }} />
+      ))}
+    </colgroup>
+  );
+
 export const PlayerTable = (props: ListProps): JSX.Element => {
-  const { players, sort, showPotential, ratingCode, dispatch } = props;
+  const { players, allPlayers, sort, showPotential, ratingCode, dispatch } = props;
   const { scrollRef, items, before, after } = useRows(players.length, ROW_HEIGHT_PX.table);
-  const columns: readonly SortKey[] = [
-    ...TEXT_COLUMNS.slice(0, -2),
-    "overall",
-    ...(ratingCode === null ? [] : ["positionRating" as const]),
-    ...(showPotential ? ["potential" as const] : []),
-    ...TABLE_ATTRIBUTES,
-  ];
+  const { columns, label } = useTableColumns(ratingCode, showPotential);
+  const tableRef = useRef<HTMLTableElement>(null);
+  const widths = useColumnWidths({
+    table: tableRef,
+    drawn: items.length > 0,
+    rows: allPlayers,
+    columns,
+    label,
+    text: widthText,
+  });
   return (
     <div ref={scrollRef} className="scroll table-scroll">
-      <table className="players" aria-rowcount={players.length + 1}>
+      <table
+        ref={tableRef}
+        className={widths === null ? "players" : "players measured"}
+        aria-rowcount={players.length + 1}
+      >
+        <ColumnGroup widths={widths} />
         <thead>
           <tr aria-rowindex={1}>
             {columns.map((column) => (

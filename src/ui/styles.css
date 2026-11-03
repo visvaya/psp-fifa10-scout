@@ -384,6 +384,11 @@ input[type="number"] {
   border-spacing: 0;
 }
 
+/* Set once the column widths are measured (column-widths.ts). */
+.players.measured {
+  table-layout: fixed;
+}
+
 .players thead th {
   position: sticky;
   top: 0;
@@ -396,16 +401,23 @@ input[type="number"] {
 .players td {
   height: 2.5rem;
   padding: 0 var(--space-2);
+  overflow: hidden;
   white-space: nowrap;
+  text-overflow: ellipsis;
   text-align: left;
   border-bottom: 1px solid var(--color-line);
 }
 
 .players tbody th {
   font-weight: 400;
-  max-width: 14rem;
+}
+
+/* A name longer than its column ends with an ellipsis, like the other cells. */
+.players .link-button {
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
+  vertical-align: middle;
 }
 
 .players .num {

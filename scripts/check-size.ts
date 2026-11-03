@@ -22,11 +22,13 @@ export interface BuildSizes {
 // before, the branch after); the list skeleton, the "show players" button and the loaded file names.
 // Raised 2026-11-03 for free agents and the phone column labels: precache 372 496 -> 373 626 (JS gzip
 // 106 778 -> 107 022, within its budget); the free agent flag and filter, and the labels over the rows.
+// Raised 2026-11-03 for stable table columns and closing dialogs from outside: JS 107 022 -> 107 810,
+// precache 373 722 -> 375 751; the column widths measured from every player and the backdrop click.
 export const SIZE_BUDGETS: BuildSizes = {
-  jsGzipBytes: 105 * 1024,
+  jsGzipBytes: 106 * 1024,
   cssGzipBytes: 2.5 * 1024,
   serviceWorkerBytes: 11 * 1024,
-  precacheBytes: 365 * 1024,
+  precacheBytes: 367 * 1024,
 };
 
 const SIZE_KEYS = [
