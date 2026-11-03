@@ -194,6 +194,21 @@ test.describe("phone", () => {
     await page.getByRole("button", { name: /^Paweł Brożek/u }).click();
     await expect(page.getByRole("dialog", { name: "Paweł Brożek" })).toBeVisible();
   });
+
+  // Only the list scrolls: if the page scrolled instead, the virtual list would not draw the rows the user
+  // scrolls to and would leave blank space below them.
+  test("scrolls the list, not the page", async ({ page }) => {
+    await loadDatabase(page);
+    const pageHeight = await page.evaluate(() => document.scrollingElement?.scrollHeight);
+    expect(pageHeight).toBe(page.viewportSize()?.height);
+    const list = page.locator(".scroll");
+    await list.evaluate((element) => {
+      element.scrollTo(0, element.scrollHeight);
+    });
+    expect(await list.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+    // The last row is drawn once the list reaches its end.
+    await expect(page.locator(".player-row").last()).toBeInViewport();
+  });
 });
 
 test.describe("game language", () => {
