@@ -196,7 +196,7 @@ export const ListView = ({
           <SortControls state={state} dispatch={dispatch} />
           <ResultCount count={visible.length} />
         </div>
-        <FilterChips filters={state.filters} dispatch={dispatch} />
+        <FilterChips filters={state.filters} folded={!wide} dispatch={dispatch} />
         {visible.length === 0 ? (
           <NoMatches dispatch={dispatch} />
         ) : (

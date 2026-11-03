@@ -355,6 +355,13 @@ input[type="number"] {
   list-style: none;
 }
 
+.chips-fold > summary {
+  padding: 0 var(--space-4) var(--space-2);
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
 .chip {
   display: inline-flex;
   align-items: center;

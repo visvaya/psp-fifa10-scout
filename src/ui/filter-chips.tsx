@@ -26,11 +26,13 @@ const chipText = (id: FilterId, filters: ScoutFilters): string => {
 
 export const FilterChips = (props: {
   filters: ScoutFilters;
+  /** Folded into one line that opens them, where the list needs the room (phones). */
+  folded: boolean;
   dispatch: Dispatch<ScoutAction>;
 }): JSX.Element | null => {
   const ids = activeFilters(props.filters);
   if (ids.length === 0) return null;
-  return (
+  const chips = (
     <ul className="chips" aria-label={TEXT.activeFilters}>
       {ids.map((id) => {
         const text = chipText(id, props.filters);
@@ -51,5 +53,13 @@ export const FilterChips = (props: {
         );
       })}
     </ul>
+  );
+  return props.folded ? (
+    <details className="chips-fold">
+      <summary>{TEXT.activeFiltersCount(ids.length)}</summary>
+      {chips}
+    </details>
+  ) : (
+    chips
   );
 };

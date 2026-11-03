@@ -279,6 +279,7 @@ export const TEXT = {
   resetFilters: "Wyczyść filtry",
   removeFilter: (label: string): string => `Usuń filtr: ${label}`,
   activeFilters: "Aktywne filtry",
+  activeFiltersCount: (value: number): string => `Aktywne filtry (${String(value)})`,
   removeMark: "×",
   sortMark: { ascending: "▲", descending: "▼" },
   rowMeta: (club: string, position: string, age: string): string =>
