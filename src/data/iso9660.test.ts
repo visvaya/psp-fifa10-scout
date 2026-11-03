@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { open } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { parseEaDb } from "./ea-db.ts";
-import { type ReadRange, readGameDatabase, readIsoFile } from "./iso9660.ts";
+import { type ReadRange, readGameDatabase, readIsoFile, readIsoLocales } from "./iso9660.ts";
 import { SaveFormatError } from "./save-format-error.ts";
 import { buildIso } from "./test-support/synthetic-iso.ts";
 import { buildParamSfo, syntheticBytes } from "./test-support/synthetic-save.ts";
@@ -288,6 +288,57 @@ describe("readGameDatabase", () => {
   });
 });
 
+describe("readIsoLocales", () => {
+  const LOCALE = "PSP_GAME/USRDIR/data/gui/locale";
+  const localeIso = (extra: readonly { path: string; bytes: Uint8Array }[] = []) =>
+    buildIso([
+      { path: DB_PATH, bytes: database },
+      { path: `${LOCALE}/string.idx`, bytes: Uint8Array.of(1, 2) },
+      { path: `${LOCALE}/pol_pl.loc`, bytes: Uint8Array.of(3) },
+      { path: `${LOCALE}/ENG_US.LOC`, bytes: Uint8Array.of(4) },
+      { path: `${LOCALE}/notes.txt`, bytes: Uint8Array.of(5) },
+      { path: `${LOCALE}/trivia/cze_cz.loc`, bytes: Uint8Array.of(6) },
+      ...extra,
+    ]);
+
+  it("lists the main directory's languages and reads their files with the index", async () => {
+    const image = localeIso();
+    expect(await readIsoLocales(reader(image).read, image.length)).toEqual({
+      idx: Uint8Array.of(1, 2),
+      languages: [
+        ["eng_us", Uint8Array.of(4)],
+        ["pol_pl", Uint8Array.of(3)],
+      ],
+    });
+  });
+
+  it("returns null for a bare database, an image without the directory or without an index", async () => {
+    const bare = [
+      Uint8Array.of(1),
+      database,
+      new Uint8Array(16 * SECTOR + 100),
+      new Uint8Array(17 * SECTOR),
+    ];
+    const results = await Promise.all(
+      bare.map(async (bytes) => readIsoLocales(reader(bytes).read, bytes.length)),
+    );
+    expect(results).toEqual([null, null, null, null]);
+    const noLocale = gameIso();
+    expect(await readIsoLocales(reader(noLocale).read, noLocale.length)).toBeNull();
+    const noIdx = buildIso([{ path: `${LOCALE}/pol_pl.loc`, bytes: Uint8Array.of(3) }]);
+    expect(await readIsoLocales(reader(noIdx).read, noIdx.length)).toBeNull();
+    const noLoc = buildIso([{ path: `${LOCALE}/string.idx`, bytes: Uint8Array.of(3) }]);
+    expect(await readIsoLocales(reader(noLoc).read, noLoc.length)).toBeNull();
+  });
+
+  it("reports a damaged image instead of hiding it", async () => {
+    const image = localeIso();
+    // Point the root directory record's extent past the end of the image.
+    new DataView(image.buffer).setUint32(16 * SECTOR + 156 + 2, 1_000_000, true);
+    await expect(readIsoLocales(reader(image).read, image.length)).rejects.toThrow(SaveFormatError);
+  });
+});
+
 // The game ISO never enters the repository. Point FIFA_ISO_PATH at it to check it locally.
 const realIsoPath = process.env["FIFA_ISO_PATH"] ?? "";
 
@@ -309,6 +360,13 @@ describe.runIf(realIsoPath !== "" && existsSync(realIsoPath))("real ISO from FIF
       expect(db).toHaveLength(2_750_882);
       expect(parseEaDb(db).tables.size).toBe(88);
       expect(bytesRead).toBeLessThan(3_000_000);
+      const locales = await readIsoLocales(read, size);
+      expect(locales?.languages.map(([code]) => code)).toEqual([
+        "cze_cz",
+        "eng_us",
+        "hun_hu",
+        "pol_pl",
+      ]);
       process.stdout.write(
         `real ISO: ${size} bytes, read ${bytesRead} bytes in ${elapsedMs.toFixed(0)} ms`,
       );

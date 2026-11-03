@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { SaveFormatError } from "../data/save-format-error.ts";
-import { classifyLoadError, loadScout, pickSaveFiles } from "./load-scout.ts";
+import { buildIso } from "../data/test-support/synthetic-iso.ts";
+import { buildParamSfo } from "../data/test-support/synthetic-save.ts";
+import { classifyLoadError, loadScout, pickLocaleFiles, pickSaveFiles } from "./load-scout.ts";
 import type { LoadPhase } from "./load-scout.ts";
-import { buildPlainSave, buildScoutDb, SCOUT_USER_TEAM_ID } from "./test-support/scout-db.ts";
+import {
+  buildPlainSave,
+  buildScoutDb,
+  buildScoutLocale,
+  SCOUT_USER_TEAM_ID,
+} from "./test-support/scout-db.ts";
 
 const blob = (bytes: Uint8Array): Blob => new Blob([bytes.slice()]);
 
@@ -15,6 +22,49 @@ describe("loadScout", () => {
     expect(result.players).toHaveLength(63);
     expect(result.myTeamId).toBeNull();
     expect(result.gameDb).toEqual(db);
+    expect(result.languages).toEqual({});
+    expect(result.attachedLanguage).toBeNull();
+  });
+
+  const POLISH = {
+    teams: { 10: "ŁKS Łódź" },
+    leagues: { 53: "Liga BBVA (Hiszpania)", 76: "Reszta Świata" },
+    countries: { 37: "Polska", 52: "Argentyna" },
+  };
+
+  it("reads every language of a disc image for the database's ids", async () => {
+    const { loc, idx } = buildScoutLocale();
+    const locale = "PSP_GAME/USRDIR/data/gui/locale";
+    const iso = buildIso([
+      {
+        path: "PSP_GAME/PARAM.SFO",
+        bytes: buildParamSfo([{ key: "DISC_ID", value: "ULES01328" }]),
+      },
+      { path: "PSP_GAME/USRDIR/data/cmn/fifa.db", bytes: buildScoutDb() },
+      { path: `${locale}/string.idx`, bytes: idx },
+      { path: `${locale}/pol_pl.loc`, bytes: loc },
+      { path: `${locale}/eng_us.loc`, bytes: loc },
+    ]);
+    const result = await loadScout({ game: blob(iso) }, () => undefined);
+    expect(result.languages).toEqual({ eng_us: POLISH, pol_pl: POLISH });
+  });
+
+  it("reads an attached language file with its index", async () => {
+    const { loc, idx } = buildScoutLocale();
+    const result = await loadScout(
+      { game: blob(buildScoutDb()), locale: { code: "pol_pl", loc: blob(loc), idx: blob(idx) } },
+      () => undefined,
+    );
+    expect(result.languages).toEqual({ pol_pl: POLISH });
+    expect(result.attachedLanguage).toBe("pol_pl");
+  });
+
+  it("tags a bad language file with its own stage", async () => {
+    const { idx } = buildScoutLocale();
+    const locale = { code: "pol_pl", loc: blob(new Uint8Array(32)), idx: blob(idx) };
+    await expect(
+      loadScout({ game: blob(buildScoutDb()), locale }, () => undefined),
+    ).rejects.toEqual(expect.objectContaining({ error: { stage: "locale", kind: "wrong-file" } }));
   });
 
   it("applies a career save and names the user's team", async () => {
@@ -73,5 +123,17 @@ describe("pickSaveFiles", () => {
 
   it("returns null when one of them is missing", () => {
     expect(pickSaveFiles([file("DATA.BIN")])).toBeNull();
+  });
+});
+
+describe("pickLocaleFiles", () => {
+  it("finds a .loc and string.idx and takes the language code from the file name", () => {
+    const files = [file("string.IDX"), file("POL_PL.loc"), file("notes.txt")];
+    expect(pickLocaleFiles(files)).toEqual({ code: "pol_pl", loc: files[1], idx: files[0] });
+  });
+
+  it("returns null when one of them is missing", () => {
+    expect(pickLocaleFiles([file("pol_pl.loc")])).toBeNull();
+    expect(pickLocaleFiles([file("string.idx")])).toBeNull();
   });
 });

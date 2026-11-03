@@ -3,6 +3,8 @@
 import { buildCareerSave } from "../../data/test-support/synthetic-career-save.ts";
 import { buildEaDb } from "../../data/test-support/synthetic-ea-db.ts";
 import type { TableSpec } from "../../data/test-support/synthetic-ea-db.ts";
+import { countryKey, leagueKey, teamKey } from "../../data/game-locale.ts";
+import { buildLocale } from "../../data/test-support/synthetic-locale.ts";
 import { buildFileList, buildParamSfo } from "../../data/test-support/synthetic-save.ts";
 import { flatCurves, playerRow, table } from "./player-fixtures.ts";
 
@@ -102,6 +104,17 @@ export const buildScoutDb = (): Uint8Array =>
     empty("career_transfer_list"),
     empty("career_players_grown_attributes"),
     flatCurves(),
+  ]);
+
+/** Polish game names for part of the synthetic database: a pol_pl.loc and its string.idx. */
+export const buildScoutLocale = (): { readonly loc: Uint8Array; readonly idx: Uint8Array } =>
+  buildLocale([
+    [countryKey(37), "Polska"],
+    [countryKey(52), "Argentyna"],
+    [leagueKey(53, 0), "Liga BBVA"],
+    [leagueKey(53, 3), "Hiszpania"],
+    [leagueKey(76, 0), "Reszta Świata"],
+    [teamKey(10, 0), "ŁKS Łódź"],
   ]);
 
 /** An unencrypted save with no table chunks: the career as fifa.db stores it. */

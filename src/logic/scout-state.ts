@@ -2,6 +2,8 @@
 import { SCOUT_CONFIG } from "./config.ts";
 import { FLAG_KEYS, LIST_FIELDS, RANGE_KEYS } from "./filter-players.ts";
 import type { FlagKey, ListKey, PlayerFilters, Range, RangeKey } from "./filter-players.ts";
+import { defaultLanguage } from "./game-names.ts";
+import type { GameLanguages } from "./game-names.ts";
 import type { LoadError, LoadPhase, WorkerMessage } from "./load-scout.ts";
 import { nameCollator } from "./players.ts";
 import type { Player } from "./players.ts";
@@ -41,9 +43,13 @@ export interface Preferences {
   readonly sort: ScoutSort;
   /** Potential, growth room and their filters and sort show only when the user asks. */
   readonly showPotential: boolean;
+  /** The game language of club, league and country names; null the fifa.db names, unset the browser's. */
+  readonly gameLanguage?: string | null;
 }
 
-export type ScoutError = LoadError | { readonly stage: "save"; readonly kind: "missing-file" };
+export type ScoutError =
+  | LoadError
+  | { readonly stage: "save" | "locale"; readonly kind: "missing-file" };
 
 export interface ScoutState extends Preferences {
   readonly players: readonly Player[] | null;
@@ -52,6 +58,8 @@ export interface ScoutState extends Preferences {
   readonly error: ScoutError | null;
   readonly view: "start" | "list";
   readonly openPlayerId: number | null;
+  /** The names of each game language read so far. */
+  readonly languages: GameLanguages;
 }
 
 type LoadAction =
@@ -62,12 +70,17 @@ type LoadAction =
       readonly requestId: number;
       readonly players: readonly Player[];
       readonly myTeamId: number | null;
+      readonly languages: GameLanguages;
+      /** An attached language file's code; it becomes the chosen language. */
+      readonly attachedLanguage: string | null;
     }
   | { readonly type: "load-failed"; readonly requestId: number; readonly error: LoadError };
 
 export type ScoutAction =
   | LoadAction
-  | { readonly type: "save-incomplete" }
+  | { readonly type: "files-incomplete"; readonly stage: "save" | "locale" }
+  | { readonly type: "languages-restored"; readonly languages: GameLanguages }
+  | { readonly type: "language-chosen"; readonly language: string | null }
   | { readonly type: "view-changed"; readonly view: ScoutState["view"] }
   | { readonly type: "filters-changed"; readonly filters: FilterChange }
   | { readonly type: "filter-removed"; readonly id: FilterId }
@@ -93,6 +106,7 @@ export const initialScoutState: ScoutState = {
   filters: {},
   sort: DEFAULT_SORT,
   showPotential: false,
+  languages: {},
 };
 
 /** Keys whose first click sorts ascending (text, age, position, contract); numbers start high. */
@@ -217,6 +231,8 @@ const loadReducer = (state: ScoutState, action: LoadAction): ScoutState => {
             ...state,
             players: action.players,
             myTeamId: action.myTeamId,
+            languages: { ...state.languages, ...action.languages },
+            ...(action.attachedLanguage === null ? {} : { gameLanguage: action.attachedLanguage }),
             loading: null,
             view: "list",
             openPlayerId: null,
@@ -233,8 +249,12 @@ const loadReducer = (state: ScoutState, action: LoadAction): ScoutState => {
 export const scoutReducer = (state: ScoutState, action: ScoutAction): ScoutState => {
   if (isLoadAction(action)) return loadReducer(state, action);
   switch (action.type) {
-    case "save-incomplete":
-      return { ...state, error: { stage: "save", kind: "missing-file" } };
+    case "files-incomplete":
+      return { ...state, error: { stage: action.stage, kind: "missing-file" } };
+    case "languages-restored":
+      return { ...state, languages: { ...state.languages, ...action.languages } };
+    case "language-chosen":
+      return { ...state, gameLanguage: action.language };
     case "view-changed":
       return { ...state, view: action.view };
     case "filters-changed":
@@ -260,10 +280,11 @@ export const scoutReducer = (state: ScoutState, action: ScoutAction): ScoutState
         sort: { key: action.key, direction: nextDirection(state.sort, action.key) },
       };
     case "preferences-restored": {
-      const { filters, sort, showPotential } = action.preferences;
+      const { filters, sort, showPotential, gameLanguage } = action.preferences;
       return {
         ...state,
         ...consistent({ filters: compactFilters(filters), sort, showPotential }),
+        ...(gameLanguage === undefined ? {} : { gameLanguage }),
       };
     }
     case "player-opened":
@@ -279,8 +300,17 @@ export const actionOf = (message: WorkerMessage): ScoutAction => {
   const { requestId } = message;
   if (message.type === "phase") return { type: "load-phase", requestId, phase: message.phase };
   if (message.type === "failed") return { type: "load-failed", requestId, error: message.error };
-  const { players, myTeamId } = message.result;
-  return { type: "load-succeeded", requestId, players, myTeamId };
+  const { players, myTeamId, languages, attachedLanguage } = message.result;
+  return { type: "load-succeeded", requestId, players, myTeamId, languages, attachedLanguage };
+};
+
+/** The game language whose names show: the chosen one while known, else the browser's, else none. */
+export const activeLanguage = (
+  { gameLanguage, languages }: Pick<ScoutState, "gameLanguage" | "languages">,
+  browserLanguages: readonly string[],
+): string | null => {
+  if (gameLanguage === undefined) return defaultLanguage(Object.keys(languages), browserLanguages);
+  return gameLanguage !== null && gameLanguage in languages ? gameLanguage : null;
 };
 
 /** The filters filterPlayers takes. */
@@ -312,28 +342,44 @@ export interface FacetOption {
   readonly name: string;
 }
 
-const options = (pairs: readonly (readonly [number | null, string | null])[]): FacetOption[] =>
+const options = (
+  pairs: readonly (readonly [number | null, string | null])[],
+  collator: Intl.Collator,
+): FacetOption[] =>
   [
     ...new Map(
       pairs.flatMap(([id, name]) => (id === null || name === null ? [] : [[id, name] as const])),
     ),
   ]
     .map(([id, name]) => ({ id, name }))
-    .toSorted((a, b) => nameCollator.compare(a.name, b.name));
+    .toSorted((a, b) => collator.compare(a.name, b.name));
 
 const distinct = (values: readonly number[]): readonly number[] =>
   [...new Set(values)].toSorted((a, b) => a - b);
 
 /** The choices for the league, club, nationality and contract filters; clubs within the chosen leagues. */
-export const facetOptions = (players: readonly Player[], filters: ScoutFilters) => {
+export const facetOptions = (
+  players: readonly Player[],
+  filters: ScoutFilters,
+  collator: Intl.Collator = nameCollator,
+) => {
   const leagues = new Set(filters.lists?.leagueId ?? []);
   const inLeagues = players.filter(
     (player) => leagues.size === 0 || (player.leagueId !== null && leagues.has(player.leagueId)),
   );
   return {
-    leagues: options(players.map((player) => [player.leagueId, player.leagueName])),
-    clubs: options(inLeagues.map((player) => [player.clubId, player.clubName])),
-    nationalities: options(players.map((player) => [player.nationalityId, player.nationalityName])),
+    leagues: options(
+      players.map((player) => [player.leagueId, player.leagueName]),
+      collator,
+    ),
+    clubs: options(
+      inLeagues.map((player) => [player.clubId, player.clubName]),
+      collator,
+    ),
+    nationalities: options(
+      players.map((player) => [player.nationalityId, player.nationalityName]),
+      collator,
+    ),
     contractYears: distinct(players.flatMap((player) => player.contractEndYear ?? [])),
     codes: {
       positionCode: distinct(players.map((player) => player.positionCode)),

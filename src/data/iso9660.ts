@@ -3,6 +3,7 @@
 // sector 16 ("CD001", volume size at 80, block size at 128, root directory record at 156), directory
 // records (length, extent sector at 2, data length at 10, flags at 25, name length at 32, name at 33)
 // that never cross a sector boundary; a zero length byte pads to the next sector.
+import { MAX_IDX_BYTES, MAX_LOC_BYTES } from "./game-locale.ts";
 import { parseParamSfo } from "./param-sfo.ts";
 import { SaveFormatError } from "./save-format-error.ts";
 
@@ -20,6 +21,7 @@ const MAX_DATABASE_BYTES = 16 * 1024 * 1024;
 const GAME_ID = "ULES01328";
 const SFO_PATH = "PSP_GAME/PARAM.SFO";
 const DATABASE_PATH = "PSP_GAME/USRDIR/data/cmn/fifa.db";
+const LOCALE_PATH = "PSP_GAME/USRDIR/data/gui/locale";
 const DATABASE_HEADER = [0, 0, 0, 0, 4, 0, 0, 0];
 
 interface Extent {
@@ -75,9 +77,14 @@ const readExtentBytes = (volume: Volume, extent: Extent, maxBytes: number): Prom
 const normalName = (name: string): string =>
   name.replace(/;\d+$/, "").replace(/\.$/, "").toUpperCase();
 
-const findEntry = (directory: Uint8Array, name: string): Extent | undefined => {
+interface Entry extends Extent {
+  readonly name: string;
+}
+
+/** The records of a directory, names normalised (".", ".." and the version suffix stripped). */
+const directoryEntries = (directory: Uint8Array): readonly Entry[] => {
   const view = new DataView(directory.buffer, directory.byteOffset, directory.length);
-  const wanted = name.toUpperCase();
+  const entries: Entry[] = [];
   let offset = 0;
   while (offset < directory.length) {
     const length = directory[offset] ?? 0;
@@ -97,10 +104,27 @@ const findEntry = (directory: Uint8Array, name: string): Extent | undefined => {
     const entryName = new TextDecoder("latin1").decode(
       directory.subarray(start, start + nameLength),
     );
-    if (normalName(entryName) === wanted) return readExtent(view, offset);
+    entries.push({ name: normalName(entryName), ...readExtent(view, offset) });
     offset += length;
   }
-  return undefined;
+  return entries;
+};
+
+const findEntry = (directory: Uint8Array, name: string): Extent | undefined =>
+  directoryEntries(directory).find((entry) => entry.name === name.toUpperCase());
+
+const notFound = (path: string) => new SaveFormatError(`Not found in the disc image: ${path}`);
+
+const resolvePath = async (volume: Volume, path: string): Promise<Extent> => {
+  const parts = path.split("/").filter((part) => part !== "");
+  if (parts.length > MAX_PATH_DEPTH) throw new SaveFormatError("Disc image path is too deep");
+  return parts.reduce(async (parent: Promise<Extent>, part) => {
+    const directory = await parent;
+    if (!directory.directory) throw notFound(path);
+    const found = findEntry(await readExtentBytes(volume, directory, MAX_DIRECTORY_BYTES), part);
+    if (found === undefined) throw notFound(path);
+    return found;
+  }, Promise.resolve(volume.root));
 };
 
 const readVolumeFile = async (
@@ -108,15 +132,7 @@ const readVolumeFile = async (
   path: string,
   maxBytes: number,
 ): Promise<Uint8Array> => {
-  const parts = path.split("/").filter((part) => part !== "");
-  if (parts.length > MAX_PATH_DEPTH) throw new SaveFormatError("Disc image path is too deep");
-  const extent = await parts.reduce(async (parent: Promise<Extent>, part) => {
-    const directory = await parent;
-    if (!directory.directory) throw new SaveFormatError(`Not found in the disc image: ${path}`);
-    const found = findEntry(await readExtentBytes(volume, directory, MAX_DIRECTORY_BYTES), part);
-    if (found === undefined) throw new SaveFormatError(`Not found in the disc image: ${path}`);
-    return found;
-  }, Promise.resolve(volume.root));
+  const extent = await resolvePath(volume, path);
   if (extent.directory) throw new SaveFormatError(`Not a file in the disc image: ${path}`);
   return readExtentBytes(volume, extent, maxBytes);
 };
@@ -137,6 +153,51 @@ const readDatabaseFromIso = async (read: ReadRange): Promise<Uint8Array> => {
     throw new SaveFormatError(`Disc image is not FIFA 10 ${GAME_ID}: found ${String(discId)}`);
   }
   return readVolumeFile(volume, DATABASE_PATH, MAX_DATABASE_BYTES);
+};
+
+export interface IsoLocales {
+  /** The string.idx shared by every language of the directory. */
+  readonly idx: Uint8Array;
+  /** Each <lang>.loc by its language code (the file name stem), in name order. */
+  readonly languages: readonly (readonly [string, Uint8Array])[];
+}
+
+/**
+ * The main text tables (data/gui/locale) of a disc image, or null when the file is no disc image or
+ * has no such directory (a bare fifa.db). Throws SaveFormatError on a malformed image or file.
+ */
+export const readIsoLocales = async (
+  read: ReadRange,
+  fileBytes: number,
+): Promise<IsoLocales | null> => {
+  if (fileBytes < PVD_OFFSET + SECTOR_BYTES) return null;
+  if (!isIsoVolume(await readExactly(read, PVD_OFFSET, 6))) return null;
+  const volume = await openVolume(read);
+  const directory = await resolvePath(volume, LOCALE_PATH).catch((error: unknown) => {
+    if (error instanceof SaveFormatError && error.message === notFound(LOCALE_PATH).message) {
+      return null;
+    }
+    throw error;
+  });
+  if (directory?.directory !== true) return null;
+  const entries = directoryEntries(await readExtentBytes(volume, directory, MAX_DIRECTORY_BYTES));
+  const idx = entries.find((entry) => entry.name === "STRING.IDX");
+  const locs = entries
+    .filter((entry) => !entry.directory && entry.name.endsWith(".LOC"))
+    .toSorted((a, b) => a.name.localeCompare(b.name));
+  if (idx === undefined || locs.length === 0) return null;
+  return {
+    idx: await readExtentBytes(volume, idx, MAX_IDX_BYTES),
+    languages: await Promise.all(
+      locs.map(
+        async (entry) =>
+          [
+            entry.name.slice(0, -".LOC".length).toLowerCase(),
+            await readExtentBytes(volume, entry, MAX_LOC_BYTES),
+          ] as const,
+      ),
+    ),
+  };
 };
 
 /**
