@@ -165,8 +165,12 @@ describe("parseCareerSave", () => {
     expect(() => parse([{ ...LINKS, length: 20 }])).toThrow(/length of teamplayerlinks/);
   });
 
-  it("rejects an unknown table index and a repeated table", () => {
-    expect(() => parse([{ ...LINKS, index: 4 }])).toThrow(/unknown table 4/);
+  it("skips a block that matches a table but lacks the chunk tag", () => {
+    expect(parse([{ ...LINKS, tag: 5 }]).size).toBe(0);
+  });
+
+  it("skips a tag with an unknown table index and rejects a repeated table", () => {
+    expect(parse([{ ...LINKS, index: 4 }]).size).toBe(0);
     expect(() => parse([LINKS, LINKS])).toThrow(/teamplayerlinks twice/);
   });
 

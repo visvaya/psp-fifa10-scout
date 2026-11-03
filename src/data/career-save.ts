@@ -75,7 +75,8 @@ const parseChunk = (
 
 /**
  * The tables a save replaces. Chunks are found by scanning 4-byte steps for the tag; a chunk whose
- * directory offset is not its fifa.db table's (the trailing language.db chunk) is skipped.
+ * table index is unknown or whose directory offset is not its fifa.db table's (the trailing
+ * language.db chunk) is skipped.
  */
 export const parseCareerSave = (db: EaDb, bytes: Uint8Array): CareerSave => {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.length);
@@ -90,9 +91,9 @@ export const parseCareerSave = (db: EaDb, bytes: Uint8Array): CareerSave => {
     }
     const index = view.getUint32(offset + 4, true);
     const table = tables[index];
-    if (table === undefined)
-      throw new SaveFormatError(`Save chunk names an unknown table ${index}`);
-    if (view.getUint32(offset + 16, true) !== table.directoryOffset) {
+    // Not a chunk unless the block also points at its table's directory entry: a stray tag in the
+    // padding is skipped instead of rejecting the whole save.
+    if (table === undefined || view.getUint32(offset + 16, true) !== table.directoryOffset) {
       offset += 4;
       continue;
     }

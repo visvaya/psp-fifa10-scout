@@ -13,6 +13,8 @@ export interface ChunkSpec {
   readonly length?: number;
   /** Zero bytes before the chunk. */
   readonly padding?: number;
+  /** Overrides the chunk tag 4, for blocks that only look like chunks. */
+  readonly tag?: number;
 }
 
 /** A u32 as four little-endian bytes. */
@@ -28,7 +30,7 @@ export const poolString = (text: string): readonly number[] => {
 const chunkBytes = (chunk: ChunkSpec): readonly number[] => {
   const pool = chunk.pool ?? [];
   const body = [
-    ...le32(4),
+    ...le32(chunk.tag ?? 4),
     ...le32(chunk.index),
     ...le32(chunk.length ?? 8 + chunk.records.length),
     ...le32(chunk.rows),
