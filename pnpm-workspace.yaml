@@ -13,3 +13,14 @@ trustPolicy: no-downgrade
 # packageManager pins it. GitHub's dependency graph reads only the first document, so it would
 # see no dependencies and raise no alerts. "ignore" drops that document.
 pmOnFail: ignore
+
+# Development-only advisories pulled in by Stryker 10.1.1, fixed by the smallest version that clears them.
+# Remove each entry once the pinned Stryker no longer depends on the vulnerable version (check at every
+# Stryker update, and by 2027-02-01 at the latest).
+# - typed-rest-client (used only by Stryker's dashboard reporter, not used here) pins qs 6.15.1:
+#   GHSA-q8mj-m7cp-5q26, GHSA-x5fp-wj9c-mxmx, GHSA-4mjr-xmp4-gh2g, GHSA-6pq8-jhm2-2vcw, fixed in 6.16.1.
+# - minimatch 10.2.6: GHSA-g3hv-75wg-m249, fixed in 11.0.1; 11.0.3 is the newest release older than the
+#   three-day release-age window on 2026-11-03.
+overrides:
+  "qs@6.15.1": 6.16.1
+  "minimatch@10.2.6": 11.0.3

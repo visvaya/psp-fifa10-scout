@@ -65,7 +65,7 @@ export const applyKeystream = (
 };
 
 /** Doubling in GF(2^128) as CMAC uses it for its subkey. */
-const doubleBlock = (block: Uint8Array): Uint8Array =>
+export const doubleBlock = (block: Uint8Array): Uint8Array =>
   block.map((value, index) => {
     const carry = (block[index + 1] ?? 0) >> 7;
     const shifted = ((value << 1) | (index === BLOCK_BYTES - 1 ? 0 : carry)) & 0xff;
@@ -76,8 +76,9 @@ const doubleBlock = (block: Uint8Array): Uint8Array =>
 export const computeSaveHash = (file: Uint8Array, gameKey: Uint8Array): Uint8Array => {
   const head = file.subarray(0, file.length - BLOCK_BYTES);
   const last = file.subarray(file.length - BLOCK_BYTES);
-  const chain =
-    head.length === 0 ? ZERO_BLOCK : cbcEncrypt(KIRK_KEY_MAC, ZERO_BLOCK, head).slice(-BLOCK_BYTES);
+  // CBC-MAC over everything but the last block. A one-block file gives an empty chain, which
+  // xorBytes treats as the zero block, as PPSSPP's zeroed context does.
+  const chain = cbcEncrypt(KIRK_KEY_MAC, ZERO_BLOCK, head).slice(-BLOCK_BYTES);
   const subkey = doubleBlock(cbcEncrypt(KIRK_KEY_MAC, ZERO_BLOCK, ZERO_BLOCK));
   const mac = cbcEncrypt(KIRK_KEY_MAC, ZERO_BLOCK, xorBytes(xorBytes(last, subkey), chain));
   return cbcEncrypt(KIRK_KEY_MAC, ZERO_BLOCK, xorBytes(xorBytes(mac, HASH_MASK), gameKey));

@@ -27,7 +27,7 @@ export const readSaveData = (dataBin: Uint8Array, paramSfo: Uint8Array): Uint8Ar
     throw new SaveFormatError("PARAM.SFO does not describe a save");
   }
   const flag = params[0];
-  if (flag === CRYPT_FLAG_NONE) return dataBin.slice();
+  if (flag === CRYPT_FLAG_NONE) return dataBin;
   if (flag !== CRYPT_FLAG_MODE5) {
     throw new SaveFormatError(`Unsupported save encryption (flag 0x${(flag ?? 0).toString(16)})`);
   }
