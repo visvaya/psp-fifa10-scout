@@ -24,7 +24,7 @@ test.describe("phone", () => {
     await loadDatabase(page);
     await page.getByRole("button", { name: "Filtry" }).click();
     const dialog = page.getByRole("dialog", { name: "Filtry" });
-    await dialog.getByRole("checkbox", { name: "Napastnicy" }).check();
+    await dialog.getByRole("checkbox", { name: "Napastnik" }).check();
     await dialog.getByRole("button", { name: "Zamknij" }).click();
     await expect(page.getByRole("button", { name: "Filtry (1)" })).toBeFocused();
     await page.getByRole("button", { name: /^Paweł Brożek/u }).click();
@@ -72,7 +72,7 @@ test.describe("phone list with filters", () => {
     await page.getByRole("button", { name: "Filtry" }).click();
     await page
       .getByRole("dialog", { name: "Filtry" })
-      .getByRole("checkbox", { name: "Napastnicy" })
+      .getByRole("checkbox", { name: "Napastnik" })
       .check();
     await page.getByRole("button", { name: "Zamknij" }).click();
     const chip = page.getByRole("button", { name: /^Usuń filtr: /u });

@@ -1,11 +1,34 @@
 import { describe, expect, it } from "vitest";
-import { POSITION_CODES, positionOf } from "./positions.ts";
+import {
+  POSITION_CODES,
+  POSITION_GROUP_ROWS,
+  POSITION_GROUPS,
+  positionCodesOf,
+  positionOf,
+} from "./positions.ts";
 
 describe("positionOf", () => {
   it("names codes and groups them, rejecting codes outside 0..31", () => {
     expect(positionOf(0)).toEqual({ name: "GK", group: "goalkeeper" });
     expect(positionOf(31)).toEqual({ name: "LS", group: "forwards" });
     expect(() => positionOf(32)).toThrow(/Unknown position code 32/);
+  });
+
+  it("puts every code in one group and every group in one card row", () => {
+    expect(POSITION_GROUPS.flatMap(positionCodesOf).toSorted((a, b) => a - b)).toEqual(
+      POSITION_CODES,
+    );
+    expect(POSITION_GROUP_ROWS.flat()).toHaveLength(POSITION_GROUPS.length);
+    expect(new Set(POSITION_GROUP_ROWS.flat())).toEqual(new Set(POSITION_GROUPS));
+  });
+
+  it("separates the sweeper, the side midfielders and the wingers", () => {
+    expect(positionOf(1).group).toBe("sweeper");
+    expect(positionCodesOf("full-backs")).toEqual([3, 7]);
+    expect(positionCodesOf("side-midfield")).toEqual([15, 19]);
+    expect(positionCodesOf("wingers")).toEqual([14, 20]);
+    expect(POSITION_GROUP_ROWS).toContainEqual(["full-backs", "sweeper"]);
+    expect(POSITION_GROUP_ROWS).toContainEqual(["side-midfield", "wingers"]);
   });
 
   it("uses the game's own names, which key the abbreviation of every language", () => {

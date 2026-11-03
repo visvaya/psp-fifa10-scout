@@ -9,6 +9,15 @@ const loadPreferences = async (record: unknown) => {
   return (await createScoutStore(backend).load()).preferences;
 };
 
+/** The position groups of version 3 preferences, as loaded. */
+const loadV3Groups = async (positionGroup: unknown) =>
+  (
+    await loadPreferences({
+      schemaVersion: 3,
+      value: { filters: { lists: { positionGroup } }, sort: DEFAULT_SORT },
+    })
+  )?.filters.lists?.positionGroup;
+
 describe("scout store", () => {
   it("loads nothing from an empty backend", async () => {
     const store = createScoutStore(memoryBackend());
@@ -27,7 +36,7 @@ describe("scout store", () => {
       filters: {
         text: "mes",
         ranges: { age: { min: 18, max: 23 }, dribbling: { min: 80 } },
-        lists: { positionGroup: ["wide"], preferredFoot: ["left"], leagueId: [53] },
+        lists: { positionGroup: ["wingers"], preferredFoot: ["left"], leagueId: [53] },
         flags: { leadership: true, diver: false },
         positionRating: { code: 7, min: 70 },
         clubStatus: "free-agents",
@@ -180,12 +189,26 @@ describe("scout store", () => {
     expect(await loadPreferences({ schemaVersion: 3, value })).toEqual({
       filters: {
         ranges: { age: { max: 23 } },
-        lists: { positionGroup: ["wide"], preferredFoot: ["left"], leagueId: [53] },
+        lists: {
+          positionGroup: ["side-midfield", "wingers"],
+          preferredFoot: ["left"],
+          leagueId: [53],
+        },
         flags: { leadership: true },
       },
       sort: DEFAULT_SORT,
       showPotential: false,
     });
+  });
+
+  it("splits the position groups of version 3 as they are now", async () => {
+    expect(await loadV3Groups(["full-backs", "goalkeeper"])).toEqual([
+      "full-backs",
+      "sweeper",
+      "goalkeeper",
+    ]);
+    expect(await loadV3Groups(["wide", 5])).toEqual(["side-midfield", "wingers"]);
+    expect(await loadV3Groups("wide")).toBeUndefined();
   });
 
   it("migrates preferences of version 2 to ranges and lists, with potential hidden", async () => {
@@ -236,7 +259,7 @@ describe("scout store", () => {
       value: { filters: { freeAgentsOnly: false }, sort: DEFAULT_SORT },
     });
     await backend.set("gameDb", { schemaVersion: 1, value: Uint8Array.of(7) });
-    expect(SCHEMA_VERSION.preferences).toBe(3);
+    expect(SCHEMA_VERSION.preferences).toBe(4);
     expect(await createScoutStore(backend).load()).toEqual({
       gameDb: Uint8Array.of(7),
       gameName: null,

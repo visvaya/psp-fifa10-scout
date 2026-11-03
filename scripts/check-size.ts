@@ -33,11 +33,13 @@ export interface BuildSizes {
 // 379 158 (JS gzip 108 825 -> 109 024, within its budget).
 // Raised 2026-11-03 for position names in the game language (read from its locale files): precache
 // 379 676 -> 380 529 (JS gzip 109 112 -> 109 360, within its budget).
+// Raised 2026-11-03 for the position groups of the owner's list and the card rows that open to their
+// positions: JS gzip 109 360 -> 109 665, CSS gzip 2 587 -> 2 605, precache 380 529 -> 381 818.
 export const SIZE_BUDGETS: BuildSizes = {
-  jsGzipBytes: 107 * 1024,
-  cssGzipBytes: 2600,
+  jsGzipBytes: 108 * 1024,
+  cssGzipBytes: 2650,
   serviceWorkerBytes: 11 * 1024,
-  precacheBytes: 372 * 1024,
+  precacheBytes: 373 * 1024,
 };
 
 const SIZE_KEYS = [

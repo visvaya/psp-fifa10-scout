@@ -160,7 +160,7 @@ describe("buildPlayers from fifa.db", () => {
       age: 22,
       positionCode: 14,
       positionName: "RWM",
-      positionGroup: "wide",
+      positionGroup: "wingers",
       preferredFoot: "left",
       height: 169,
       weight: 67,
@@ -175,7 +175,13 @@ describe("buildPlayers from fifa.db", () => {
       developmentType: 3,
       developmentStyle: 5,
       traits: ["playmaker", "technicaldribbler"],
-      overallByGroup: { ...byGroup(() => 50), goalkeeper: 41, wide: 60, "wing-backs": 54 },
+      overallByGroup: {
+        ...byGroup(() => 50),
+        goalkeeper: 41,
+        "side-midfield": 60,
+        wingers: 60,
+        "wing-backs": 54,
+      },
       overallByCode: byPositionCode((code) => baseOverall(MESSI_ATTRIBUTES, code)),
       attributes: MESSI_ATTRIBUTES,
       clubId: 241,
@@ -347,7 +353,7 @@ describe.runIf(existsSync(realDbPath))("real fifa.db", () => {
     const filtered = timed("filterPlayers", () =>
       filterPlayers(players, {
         text: "a",
-        lists: { positionGroup: ["forwards", "wide", "attacking-midfield"], bodyType: [1, 2] },
+        lists: { positionGroup: ["forwards", "wingers", "attacking-midfield"], bodyType: [1, 2] },
         ranges: { age: { min: 18, max: 30 }, sprintspeed: { min: 60 }, height: { min: 170 } },
         flags: { injuryprone: false, technicaldribbler: true },
       }),
