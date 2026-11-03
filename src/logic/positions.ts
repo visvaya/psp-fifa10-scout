@@ -27,19 +27,22 @@ export const POSITION_CODES: readonly number[] = NAMES.map((_, code) => code);
 
 const GROUPS: readonly (readonly [PositionGroup, readonly number[]])[] = [
   ["goalkeeper", [0]],
-  ["full-backs", [3, 7]],
-  ["wing-backs", [2, 8]],
   ["sweeper", [1]],
+  ["wing-backs", [2, 8]],
+  ["full-backs", [3, 7]],
   ["centre-backs", [4, 5, 6]],
   ["defensive-midfield", [9, 10, 11, 12, 13]],
+  ["wingers", [14, 20]],
+  ["side-midfield", [15, 19]],
   ["central-midfield", [16, 17, 18]],
   ["attacking-midfield", [21, 22, 23, 24, 25]],
-  ["side-midfield", [15, 19]],
-  ["wingers", [14, 20]],
   ["forwards", [26, 27, 28, 29, 30, 31]],
 ];
 
-/** The groups in the order the filter lists them, goalkeeper first. */
+/**
+ * The groups by their first code: the game lists positions in code order (its position names, the OVR
+ * table and the scouting screen's costs), line by line from the goal, each line from the right wing.
+ */
 export const POSITION_GROUPS: readonly PositionGroup[] = GROUPS.map(([group]) => group);
 
 /** The codes of a group, in code order. */
@@ -47,9 +50,10 @@ export const positionCodesOf = (group: PositionGroup): readonly number[] =>
   GROUPS.find(([candidate]) => candidate === group)?.[1] ?? [];
 
 /**
- * The rows of OVR by group on the player card: a group with the groups it rates like. Wingers share
- * the side midfielders' weights; the sweeper's weights are the full-backs' in another order, which
- * changes the rounded OVR of 144 of the 26 090 fifa.db players.
+ * The rows of OVR by group on the player card, in the groups' order: a group, which names the row,
+ * with the groups it rates like. Wingers share the side midfielders' weights; the sweeper's weights
+ * are the full-backs' in another order, which changes the rounded OVR of 144 of the 26 090 fifa.db
+ * players.
  */
 export const POSITION_GROUP_ROWS: readonly (readonly [PositionGroup, ...PositionGroup[]])[] = [
   ["goalkeeper"],
@@ -57,9 +61,9 @@ export const POSITION_GROUP_ROWS: readonly (readonly [PositionGroup, ...Position
   ["wing-backs"],
   ["centre-backs"],
   ["defensive-midfield"],
+  ["side-midfield", "wingers"],
   ["central-midfield"],
   ["attacking-midfield"],
-  ["side-midfield", "wingers"],
   ["forwards"],
 ];
 

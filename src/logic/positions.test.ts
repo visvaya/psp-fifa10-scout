@@ -6,6 +6,10 @@ import {
   positionCodesOf,
   positionOf,
 } from "./positions.ts";
+import type { PositionGroup } from "./positions.ts";
+
+const firstCode = (groups: readonly PositionGroup[]): number =>
+  Math.min(...groups.flatMap(positionCodesOf));
 
 describe("positionOf", () => {
   it("names codes and groups them, rejecting codes outside 0..31", () => {
@@ -20,6 +24,13 @@ describe("positionOf", () => {
     );
     expect(POSITION_GROUP_ROWS.flat()).toHaveLength(POSITION_GROUPS.length);
     expect(new Set(POSITION_GROUP_ROWS.flat())).toEqual(new Set(POSITION_GROUPS));
+  });
+
+  it("orders groups and card rows as the game orders its codes (scouting screen, code list)", () => {
+    const groupCodes = POSITION_GROUPS.map((group) => firstCode([group]));
+    const rowCodes = POSITION_GROUP_ROWS.map(firstCode);
+    expect(groupCodes).toEqual(groupCodes.toSorted((a, b) => a - b));
+    expect(rowCodes).toEqual(rowCodes.toSorted((a, b) => a - b));
   });
 
   it("separates the sweeper, the side midfielders and the wingers", () => {
