@@ -1,0 +1,31 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# Pull request review settings. Defaults apply to everything not listed here.
+language: en-US
+reviews:
+  profile: chill
+  # The pull request description is the author's text; the summary goes to the walkthrough comment.
+  high_level_summary_in_walkthrough: true
+  poem: false
+  # `CodeRabbit` is a required check on main: pending while the review runs, success when it ends, is
+  # skipped or rate limited, failure when the review stops on an error.
+  commit_status: true
+  fail_commit_status: true
+  path_filters:
+    - "!**/pnpm-lock.yaml"
+  path_instructions:
+    - path: "**"
+      instructions: >-
+        Project rules: the repository must never contain game data (disc images, fifa.db, saves, anything
+        extracted from them; tests use synthetic data). No em dash (U+2014) or emoji in code, comments or
+        documents. Lean code: reuse existing helpers, no option or abstraction without a current user.
+        Prefix comments on problems this pull request did not cause with "Pre-existing:". Do not comment on
+        what the gate already enforces: formatting (oxfmt), lint (oxlint, type-aware), types (tsc strict),
+        dead code (knip), duplication (jscpd), size budgets, text rules (scripts/check-text.ts).
+    - path: "src/logic/**"
+      instructions: >-
+        Pure functions and immutable state (a reducer), no classes, no browser APIs; every behaviour change
+        needs a unit test.
+    - path: "src/ui/**"
+      instructions: >-
+        User-facing text only in src/ui/text.ts (Polish); styling only from CSS tokens in styles.css, no
+        inline styles (the Content Security Policy in public/_headers blocks them); accessible markup.
