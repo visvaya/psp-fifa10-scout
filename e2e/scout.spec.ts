@@ -201,6 +201,20 @@ test.describe("filter panel", () => {
 test.describe("phone", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
+  test("keeps the start screen within the viewport, before and after loading a game", async ({
+    page,
+  }) => {
+    const pageHeight = async () =>
+      page.evaluate(() => document.scrollingElement?.scrollHeight ?? 0);
+    await page.goto("/");
+    await expect(page.getByLabel("Wybierz obraz ISO lub fifa.db")).toBeEnabled();
+    expect(await pageHeight()).toBe(844);
+    await loadDatabase(page);
+    await page.getByRole("button", { name: "Pliki" }).click();
+    await expect(page.getByText(/^Wczytano: /u)).toBeVisible();
+    expect(await pageHeight()).toBe(844);
+  });
+
   test("filters in a full-screen dialog and opens a card", async ({ page }) => {
     await loadDatabase(page);
     await page.getByRole("button", { name: "Filtry" }).click();
