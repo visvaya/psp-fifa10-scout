@@ -247,6 +247,16 @@ const loadReducer = (state: ScoutState, action: LoadAction): ScoutState => {
         ...state,
         players: action.players,
         myTeamId: action.myTeamId,
+        // Without a career these filters do nothing, so they would leave a chip that does not apply.
+        ...(action.myTeamId === null
+          ? {
+              filters: compactFilters({
+                ...state.filters,
+                clubStatus: undefined,
+                excludeMyClub: undefined,
+              }),
+            }
+          : {}),
         gameName: loading.gameName === undefined ? state.gameName : loading.gameName,
         languages: { ...state.languages, ...action.languages },
         ...(action.attachedLanguage === null ? {} : { gameLanguage: action.attachedLanguage }),

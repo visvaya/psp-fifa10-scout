@@ -16,8 +16,8 @@ import { testPlayer } from "./test-support/player-fixtures.ts";
 const PLAYERS = [testPlayer({ id: 1 }), testPlayer({ id: 2, clubId: 7 })];
 const loading = scoutReducer(initialScoutState, { type: "load-started", requestId: 1 });
 
-const loaded = (myTeamId: number | null = null): ScoutState =>
-  scoutReducer(loading, {
+const loaded = (myTeamId: number | null = null, from: ScoutState = loading): ScoutState =>
+  scoutReducer(from, {
     type: "load-succeeded",
     requestId: 1,
     players: PLAYERS,
@@ -31,6 +31,12 @@ const NAMES = { teams: { 1: "Klub" }, leagues: {}, countries: {} };
 describe("scoutReducer loading", () => {
   it("starts empty on the start view", () => {
     expect(initialScoutState).toMatchObject({ players: null, loading: null, view: "start" });
+  });
+
+  it("drops the career-only filters when a load brings no career", () => {
+    const filters = { text: "a", clubStatus: "free-agents", excludeMyClub: true } as const;
+    expect(loaded(null, { ...loading, filters }).filters).toEqual({ text: "a" });
+    expect(loaded(5, { ...loading, filters }).filters).toEqual(filters);
   });
 
   it("tracks the phase of the current load and stays on the start view after a picked file", () => {

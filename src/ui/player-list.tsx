@@ -73,9 +73,9 @@ const useRows = (count: number, rowHeight: number) => {
   return { scrollRef, items, before, after };
 };
 
-/** The club name, or what stands in for it: a junior of the user's academy, or a free agent. */
+/** The club name, or what stands in for it: a free agent, or a junior of the user's academy. */
 export const clubText = (player: Player): string =>
-  player.clubName ?? (player.youth ? TEXT.youth : TEXT.freeAgent);
+  player.clubName ?? (player.youth && !player.freeAgent ? TEXT.youth : TEXT.freeAgent);
 
 const cellText = (player: Player, key: TextColumn): string | number =>
   key === "positionCode"
