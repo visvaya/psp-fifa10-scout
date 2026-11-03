@@ -4,6 +4,7 @@ import type { AttributeName, Player } from "../logic/players.ts";
 import { POSITION_GROUPS } from "../logic/positions.ts";
 import { AttributeValue } from "./attribute-value.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
+import { clubText } from "./player-list.tsx";
 import {
   ATTRIBUTE_GROUP_LABELS,
   ATTRIBUTE_LABELS,
@@ -47,7 +48,7 @@ const basics = (
 ): readonly (readonly [string, ReactNode])[] => [
   [TEXT.card.position, player.positionName],
   [TEXT.card.age, TEXT.years(player.age)],
-  [TEXT.card.club, player.clubName ?? (player.youth ? TEXT.youth : TEXT.noClub)],
+  [TEXT.card.club, clubText(player)],
   [TEXT.card.league, optional(player.leagueName)],
   [TEXT.card.nationality, optional(player.nationalityName)],
   [TEXT.card.contract, player.contractEndYear ?? TEXT.card.none],
@@ -77,6 +78,7 @@ export const PlayerCard = (props: {
       {career ? (
         <section aria-labelledby="career-title">
           <h3 id="career-title">{TEXT.card.career}</h3>
+          <p className="help">{TEXT.card.careerNote}</p>
           <Facts
             facts={[
               [TEXT.card.form, optional(player.form)],

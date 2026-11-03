@@ -314,19 +314,21 @@ describe("actionOf", () => {
 });
 
 describe("effectiveFilters", () => {
-  it("hides clubless players by default, shows all, or only free agents", () => {
-    expect(effectiveFilters({}, null)).toEqual({ withClubOnly: true });
-    expect(effectiveFilters({ clubStatus: "with-club" }, null)).toEqual({ withClubOnly: true });
-    expect(effectiveFilters({ clubStatus: "all" }, null)).toEqual({});
-    expect(effectiveFilters({ clubStatus: "free-agents" }, null)).toEqual({ freeAgentsOnly: true });
+  it("keeps the players one can sign, or only free agents in a career", () => {
+    expect(effectiveFilters({}, null)).toEqual({ availableOnly: true });
+    expect(effectiveFilters({}, 7)).toEqual({ availableOnly: true });
+    expect(effectiveFilters({ clubStatus: "free-agents" }, 7)).toEqual({ freeAgentsOnly: true });
+    // Without a career fifa.db has no free agents, so the option does not apply.
+    expect(effectiveFilters({ clubStatus: "free-agents" }, null)).toEqual({ availableOnly: true });
   });
 
   it("turns 'exclude my club' into the club id, only with a career", () => {
-    expect(effectiveFilters({ excludeMyClub: true, text: "a", clubStatus: "all" }, 7)).toEqual({
+    expect(effectiveFilters({ excludeMyClub: true, text: "a" }, 7)).toEqual({
       text: "a",
+      availableOnly: true,
       excludeTeamId: 7,
     });
-    expect(effectiveFilters({ excludeMyClub: true, clubStatus: "all" }, null)).toEqual({});
+    expect(effectiveFilters({ excludeMyClub: true }, null)).toEqual({ availableOnly: true });
   });
 });
 
@@ -336,13 +338,13 @@ describe("activeFilters", () => {
       activeFilters({
         text: " ",
         ranges: { age: { min: 18 }, potential: {}, finishing: { max: 0 } },
-        clubStatus: "with-club",
+        clubStatus: "available",
       }),
     ).toEqual(["ranges.age", "ranges.finishing"]);
     expect(
       activeFilters({
         excludeMyClub: true,
-        clubStatus: "all",
+        clubStatus: "free-agents",
         text: "a",
         lists: { leagueId: [1], clubId: [] },
         flags: { selfish: false, transferListed: undefined },

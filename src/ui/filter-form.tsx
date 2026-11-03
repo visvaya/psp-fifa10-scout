@@ -59,9 +59,9 @@ const CHARACTER_TRAITS: readonly TraitName[] = [
 ];
 const PLAY_TRAITS = TRAIT_NAMES.filter((trait) => !CHARACTER_TRAITS.includes(trait));
 
-const CLUB_STATUSES: readonly ClubStatus[] = ["with-club", "all", "free-agents"];
+const CLUB_STATUSES: readonly ClubStatus[] = ["available", "free-agents"];
 
-/** One control for the three club states, so "free agents" and "hide clubless" cannot contradict. */
+/** Players one can sign or only free agents; shown with a career, as fifa.db has no free agents. */
 const ClubStatusField = ({ filters, change }: { filters: ScoutFilters; change: Change }) => (
   <fieldset className="field">
     <legend>{TEXT.clubStatus}</legend>
@@ -70,7 +70,7 @@ const ClubStatusField = ({ filters, change }: { filters: ScoutFilters; change: C
         <input
           type="radio"
           name="club-status"
-          checked={(filters.clubStatus ?? "with-club") === status}
+          checked={(filters.clubStatus ?? "available") === status}
           onChange={() => {
             change({ clubStatus: status });
           }}
@@ -313,18 +313,20 @@ const clubSection = ({ filters, change, facets, range, list, flag }: Kit, career
       }}
     />
     {flag("nationalTeam")}
-    <ClubStatusField filters={filters} change={change} />
     {career ? (
-      <label className="check">
-        <input
-          type="checkbox"
-          checked={filters.excludeMyClub === true}
-          onChange={(event) => {
-            change({ excludeMyClub: event.currentTarget.checked });
-          }}
-        />
-        {TEXT.excludeMyClub}
-      </label>
+      <>
+        <ClubStatusField filters={filters} change={change} />
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={filters.excludeMyClub === true}
+            onChange={(event) => {
+              change({ excludeMyClub: event.currentTarget.checked });
+            }}
+          />
+          {TEXT.excludeMyClub}
+        </label>
+      </>
     ) : null}
   </Section>
 );

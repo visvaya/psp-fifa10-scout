@@ -29,7 +29,7 @@ describe("scout store", () => {
         lists: { positionGroup: ["wide"], preferredFoot: ["left"], leagueId: [53] },
         flags: { leadership: true, diver: false },
         positionRating: { code: 7, min: 70 },
-        clubStatus: "all",
+        clubStatus: "free-agents",
         excludeMyClub: true,
       },
       sort: { key: "positionRating", direction: "ascending" },
@@ -117,7 +117,8 @@ describe("scout store", () => {
           clubId: "241",
         },
         flags: { leadership: true, diver: "yes", cheater: true },
-        clubStatus: "some",
+        // "all" was an option of earlier versions.
+        clubStatus: "all",
         excludeMyClub: "yes",
         positionRating: { code: 32, min: 1 },
       },

@@ -163,9 +163,8 @@ export const FILTER_SECTION_LABELS = {
 // jscpd:ignore-end
 
 export const CLUB_STATUS_LABELS: Readonly<Record<ClubStatus, string>> = {
-  "with-club": "z klubem",
-  all: "wszyscy, także bez klubu",
-  "free-agents": "tylko bez klubu",
+  available: "do sprowadzenia (z klubem i wolni)",
+  "free-agents": "tylko wolni zawodnicy",
 };
 
 const PHASES: Readonly<Record<LoadPhase, string>> = {
@@ -248,7 +247,7 @@ export const TEXT = {
   ratingAt: (position: string): string => `OVR ${position}`,
   text: "Nazwisko",
   clubStatus: "Zawodnicy",
-  excludeMyClub: "Bez mojego klubu",
+  excludeMyClub: "Ukryj zawodników mojego klubu",
   addAttribute: "Dodaj atrybut",
   chooseAttribute: "Wybierz atrybut",
   removeAttribute: (label: string): string => `Usuń atrybut: ${label}`,
@@ -285,7 +284,7 @@ export const TEXT = {
     potential: "Potencjał",
   },
   potentialShort: "POT",
-  noClub: "bez klubu",
+  freeAgent: "wolny zawodnik",
   youth: "junior",
   years: (value: number): string => count(value, YEARS),
   close: "Zamknij",
@@ -306,6 +305,8 @@ export const TEXT = {
     heightValue: (cm: number): string => `${formatNumber(cm)}${NBSP}cm`,
     weightValue: (kg: number): string => `${formatNumber(kg)}${NBSP}kg`,
     career: "W tym sezonie kariery",
+    careerNote:
+      "Gra prowadzi te statystyki tylko w lidze Twojego klubu; zawodnik sprzedany do innej ligi je zachowuje.",
     form: "Forma",
     morale: "Morale",
     goals: "Gole",

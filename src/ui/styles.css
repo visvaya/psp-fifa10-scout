@@ -373,6 +373,7 @@ input[type="number"] {
   flex: 1;
   min-height: 0;
   overflow: auto;
+  scrollbar-gutter: stable;
   border-top: 1px solid var(--color-line);
 }
 
@@ -483,9 +484,28 @@ input[type="number"] {
   font-size: var(--font-size-sm);
 }
 
-.player-row-numbers {
+.player-row-numbers,
+.player-rows-header {
   display: flex;
   gap: var(--space-2);
+}
+
+/* Labels over the phone rows' numbers, outside the scroller so they stay put; the gutter keeps them
+   aligned where scrollbars take space. */
+.player-rows-header {
+  justify-content: flex-end;
+  padding: var(--space-1) var(--space-4);
+  overflow: hidden;
+  scrollbar-gutter: stable;
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.player-rows-header > span {
+  min-width: var(--rating-width);
+  text-align: center;
 }
 
 /* Ratings: the number always shows; the band colour only adds to it. */
