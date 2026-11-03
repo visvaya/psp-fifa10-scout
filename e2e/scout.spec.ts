@@ -58,6 +58,26 @@ const expectNoAxeViolations = async (page: Page) => {
   expect(violations).toEqual([]);
 };
 
+// The preview serves the production headers (public/_headers): every journey must run without breaking
+// the security policy. Records what the browser blocks on the last page the test opened.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    const blocked: string[] = [];
+    Reflect.set(window, "cspViolations", blocked);
+    document.addEventListener("securitypolicyviolation", (event) => {
+      // WebKit reports the inline styles of a <select>'s own internal parts as blocked; the element
+      // renders pixel for pixel the same with and without the policy (checked 2026-11-03).
+      const webKitSelect =
+        event.effectiveDirective === "style-src-attr" && event.target instanceof HTMLSelectElement;
+      if (!webKitSelect) blocked.push(`${event.effectiveDirective} ${event.blockedURI}`);
+    });
+  });
+});
+
+test.afterEach(async ({ page }) => {
+  expect(await page.evaluate((): unknown => Reflect.get(window, "cspViolations"))).toEqual([]);
+});
+
 test.describe("wide screen", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 

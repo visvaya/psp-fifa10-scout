@@ -67,6 +67,11 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* The loading note in index.html, shown until the app replaces it. */
+.boot-note {
+  padding: var(--space-4);
+}
+
 h1,
 h2,
 h3 {

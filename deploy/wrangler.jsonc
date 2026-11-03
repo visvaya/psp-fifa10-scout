@@ -1,0 +1,14 @@
+// The app is static files only: no Worker script, Cloudflare serves the build as it is.
+// Headers (security policy, manifest type) come from public/_headers, copied into the build.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "psp-fifa10-scout",
+  "compatibility_date": "2026-11-03",
+  "assets": {
+    "directory": "../dist",
+  },
+  // Served at https://psp-fifa10-scout.visvaya.workers.dev/.
+  "workers_dev": true,
+  // No per-version preview addresses: they would serve the same pages under other indexable hosts.
+  "preview_urls": false,
+}

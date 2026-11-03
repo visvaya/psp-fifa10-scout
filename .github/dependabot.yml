@@ -40,6 +40,24 @@ updates:
         update-types: [minor, patch]
         exclude-patterns: ["vitest", "@vitest/*", "oxlint", "oxfmt", "oxlint-*"]
 
+  # The deployment tool only (deploy/, its own lockfile): Wrangler, alone in its group.
+  - package-ecosystem: npm
+    directory: /deploy
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Europe/Warsaw
+    open-pull-requests-limit: 2
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: build
+      prefix-development: build
+      include: scope
+    groups:
+      deploy:
+        patterns: ["*"]
+
   - package-ecosystem: github-actions
     directory: /
     schedule:

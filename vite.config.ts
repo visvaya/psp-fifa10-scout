@@ -1,10 +1,14 @@
+import { readFileSync } from "node:fs";
 import react from "@vitejs/plugin-react";
 import { configDefaults, defineConfig } from "vitest/config";
+import { headersForAllPaths } from "./scripts/check-deployment.ts";
 
 export default defineConfig({
   // Relative URLs: the same build works at the site root and under a sub-path (GitHub Pages).
   base: "./",
   plugins: [react()],
+  // The host's headers (public/_headers), so the browser tests run under the production security policy.
+  preview: { headers: headersForAllPaths(readFileSync("public/_headers", "utf8")) },
   test: {
     environment: "node",
     // Browser tests run under Playwright (pnpm test:e2e).
