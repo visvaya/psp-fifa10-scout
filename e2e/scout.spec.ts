@@ -308,6 +308,7 @@ test.describe("open dialog", () => {
     const card = page.getByRole("dialog");
     await expect(list).toHaveCSS("overflow-y", "hidden");
     await expect(root).toHaveCSS("overflow-y", "hidden");
+    // WebKit in Playwright does not report overscroll-behavior, so the dialog's containment is not checked.
     await card.getByRole("button", { name: "Zamknij" }).click();
     await expect(list).toHaveCSS("overflow-y", "auto");
     await expect(root).toHaveCSS("overflow-y", "visible");

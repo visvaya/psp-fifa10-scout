@@ -640,6 +640,8 @@ input[type="number"] {
   border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-ink);
+  /* A swipe past the dialog's end stays in it. */
+  overscroll-behavior: contain;
 }
 
 /* While a dialog is open nothing behind it scrolls or bounces: the page, the list and the filter panel
