@@ -194,7 +194,10 @@ export const StartScreen = (props: StartScreenProps): JSX.Element => {
       <p className="muted">
         {players === null ? `${TEXT.noData} ${TEXT.startIntro}` : TEXT.startIntro}
       </p>
-      {players === null ? null : <ShowPlayers count={players.length} dispatch={dispatch} />}
+      {/* Hidden while another game loads: the count and the list would be the previous game's. */}
+      {players === null || loading !== null ? null : (
+        <ShowPlayers count={players.length} dispatch={dispatch} />
+      )}
       <output className="status">
         {loading === null ? (ready ? "" : TEXT.preparing) : TEXT.phase(loading.phase)}
       </output>
