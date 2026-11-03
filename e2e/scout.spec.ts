@@ -27,11 +27,20 @@ const readStoredPreferences = async (): Promise<unknown> =>
 const expectStoredPositionGroup = async (page: Page, group: string) => {
   await expect
     .poll(async () => page.evaluate(readStoredPreferences))
-    .toMatchObject({ value: { filters: { positionGroups: [group] } } });
+    .toMatchObject({ value: { filters: { lists: { positionGroup: [group] } } } });
 };
 
 const expectCount = async (page: Page, text: string) => {
   await expect(page.locator("p.count")).toHaveText(text);
+};
+
+/** Opens every collapsed filter section. */
+const expandSections = async (page: Page) => {
+  await page.locator("details.filter-section").evaluateAll((sections) => {
+    for (const section of sections) section.setAttribute("open", "");
+  });
+  const sections = await page.locator("details.filter-section").count();
+  await expect(page.locator(".filter-section-body")).toHaveCount(sections);
 };
 
 const expectNoAxeViolations = async (page: Page) => {
@@ -66,6 +75,7 @@ test.describe("wide screen", () => {
 
   test("hides clubless players by default and shows only them on request", async ({ page }) => {
     await loadDatabase(page);
+    await page.getByText("Klub i kontrakt").click();
     await expect(page.getByRole("radio", { name: "z klubem" })).toBeChecked();
     await page.getByRole("radio", { name: "tylko bez klubu" }).check();
     await expectCount(page, "1 zawodnik");
@@ -93,6 +103,51 @@ test.describe("wide screen", () => {
       buffer: Buffer.from("not a game"),
     });
     await expect(page.getByRole("alert")).toContainText("To nie jest właściwy plik");
+  });
+});
+
+test.describe("filter panel", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  test("hides potential until asked", async ({ page }) => {
+    await loadDatabase(page);
+    await expect(page.getByRole("columnheader", { name: /^Potencjał/u })).toHaveCount(0);
+    await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
+    await expect(page.getByRole("columnheader", { name: /^Potencjał/u })).toBeVisible();
+    await expect(page.getByRole("group", { name: "Zapas rozwoju" })).toBeVisible();
+  });
+
+  test("rates players at a chosen position and sorts by it", async ({ page }) => {
+    await loadDatabase(page);
+    const rating = page.getByRole("group", { name: "Ocena na pozycji" });
+    await rating.getByLabel("Pozycja").selectOption({ label: "LB" });
+    const header = page.getByRole("columnheader", { name: /^OVR LB/u });
+    await header.getByRole("button").click();
+    await expect(header).toHaveAttribute("aria-sort", "descending");
+    await rating.getByRole("group", { name: "OVR LB" }).getByLabel("od").fill("99");
+    await expect(page.getByText("Żaden zawodnik nie spełnia filtrów.")).toBeVisible();
+    await page.getByRole("button", { name: "Usuń filtr: Ocena na pozycji" }).click();
+    await expect(header).toHaveCount(0);
+    await expectCount(page, "62 zawodników");
+  });
+
+  test("filters by several nationalities, an attribute range and a trait", async ({ page }) => {
+    await loadDatabase(page);
+    await page.getByText("Klub i kontrakt").click();
+    await page.getByRole("checkbox", { name: "Argentina" }).check();
+    await expectCount(page, "31 zawodników");
+    await page.getByRole("checkbox", { name: "Poland" }).check();
+    await expectCount(page, "62 zawodników");
+    await page.getByText("Atrybuty", { exact: true }).click();
+    await page.getByLabel("Dodaj atrybut").selectOption({ label: "Szybkość" });
+    await page.getByRole("group", { name: "Szybkość" }).getByLabel("od").fill("90");
+    await expectCount(page, "1 zawodnik");
+    await page.getByRole("button", { name: "Usuń atrybut: Szybkość" }).click();
+    await page.getByText("Cechy", { exact: true }).click();
+    await page.getByLabel("Drybler techniczny").selectOption("yes");
+    await expectCount(page, "1 zawodnik");
+    await page.getByRole("button", { name: "Usuń filtr: Drybler techniczny: tak" }).click();
+    await expectCount(page, "62 zawodników");
   });
 });
 
@@ -124,10 +179,13 @@ for (const colorScheme of ["light", "dark"] as const) {
       await expectNoAxeViolations(page);
       if (width < 960) {
         await page.getByRole("button", { name: "Filtry" }).click();
+        await expandSections(page);
         await expectNoAxeViolations(page);
         await page.getByRole("button", { name: "Zamknij" }).click();
         await page.getByRole("button", { name: /^Lionel Messi/u }).click();
       } else {
+        await expandSections(page);
+        await expectNoAxeViolations(page);
         await page.getByRole("button", { name: "Lionel Messi" }).click();
       }
       await expect(page.getByRole("dialog")).toBeVisible();

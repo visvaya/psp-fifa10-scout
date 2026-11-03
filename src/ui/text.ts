@@ -1,8 +1,10 @@
 /** Every text the user reads, in one module, with the Polish number and plural helpers. */
 import type { LoadErrorKind, LoadPhase } from "../logic/load-scout.ts";
+import type { FlagKey, ListKey, RangeFields, RangeKey } from "../logic/filter-players.ts";
+import { isAttributeName } from "../logic/players.ts";
 import type { AttributeName } from "../logic/players.ts";
 import type { PositionGroup } from "../logic/positions.ts";
-import type { ClubStatus, FilterKey, ScoutError } from "../logic/scout-state.ts";
+import type { ClubStatus, ScoutError } from "../logic/scout-state.ts";
 
 const NBSP = " ";
 
@@ -80,20 +82,83 @@ export const ATTRIBUTE_GROUP_LABELS = {
   goalkeeping: "Bramkarz",
 } as const;
 
-export const FILTER_LABELS: Readonly<Record<FilterKey, string>> = {
-  text: "Nazwisko",
-  positionGroups: "Pozycje",
+export const RANGE_LABELS: Readonly<Record<RangeFields, string>> = {
   age: "Wiek",
-  potential: "Potencjał",
   overall: "OVR",
-  attributeMin: "Atrybuty",
-  leagueIds: "Liga",
-  teamIds: "Klub",
-  nationalityIds: "Narodowość",
-  contractEndsBy: "Kontrakt",
-  clubStatus: "Zawodnicy",
-  excludeMyClub: "Bez mojego klubu",
+  potential: "Potencjał",
+  growth: "Zapas rozwoju",
+  height: "Wzrost (cm)",
+  weight: "Waga (kg)",
+  weakFoot: "Słabsza noga (1–5)",
+  internationalReputation: "Reputacja międzynarodowa (1–5)",
+  learningSpeed: "Szybkość nauki (1–5)",
+  retirementAge: "Wiek zakończenia kariery",
+  clubRating: "Siła klubu",
+  contractEndYear: "Kontrakt",
+  form: "Forma",
+  morale: "Morale",
+  injuryDays: "Kontuzja (dni)",
 };
+
+export const rangeLabel = (key: RangeKey): string =>
+  isAttributeName(key) ? ATTRIBUTE_LABELS[key] : RANGE_LABELS[key];
+
+export const LIST_LABELS: Readonly<Record<ListKey, string>> = {
+  positionGroup: "Pozycje",
+  positionCode: "Pozycje szczegółowe",
+  bodyType: "Typ budowy",
+  preferredFoot: "Lepsza noga",
+  developmentType: "Typ rozwoju",
+  developmentStyle: "Styl rozwoju",
+  leagueId: "Liga",
+  clubId: "Klub",
+  nationalityId: "Narodowość",
+};
+
+export const FLAG_LABELS: Readonly<Record<FlagKey, string>> = {
+  injuryprone: "Podatny na kontuzje",
+  adaptability: "Łatwo się aklimatyzuje",
+  ambition: "Ambitny",
+  comesforcrosses: "Wychodzi do dośrodkowań",
+  diver: "Symulant",
+  divesintotackles: "Ryzykowne wślizgi",
+  earlycrosser: "Wczesne dośrodkowania",
+  fansfavourite: "Ulubieniec kibiców",
+  flexibility: "Elastyczny",
+  highclubidentification: "Silnie związany z klubem",
+  hightrainingworkrate: "Pracowity na treningu",
+  holdsup: "Utrzymuje piłkę",
+  inflexible: "Mało elastyczny",
+  latecrosser: "Późne dośrodkowania",
+  leadership: "Lider",
+  longshottaker: "Często strzela z dystansu",
+  longthrows: "Długie wrzuty z autu",
+  lowclubidentification: "Słabo związany z klubem",
+  lowconcentration: "Słaba koncentracja",
+  lowtrainingworkrate: "Mało pracowity na treningu",
+  mediadarling: "Ulubieniec mediów",
+  onetimepasser: "Gra na jeden kontakt",
+  playmaker: "Rozgrywający",
+  puncher: "Piąstkuje",
+  pushesupforcorners: "Idzie pod bramkę przy rożnych",
+  rushesoutofgoal: "Wychodzi z bramki",
+  scandalprone: "Skłonny do skandali",
+  selfish: "Samolubny",
+  staysongoalline: "Zostaje na linii",
+  technicaldribbler: "Drybler techniczny",
+  nationalTeam: "Reprezentant kraju",
+  transferListed: "Na liście transferowej",
+};
+
+export const FILTER_SECTION_LABELS = {
+  basic: "Podstawowe",
+  physique: "Sylwetka",
+  attributes: "Atrybuty",
+  traits: "Cechy",
+  character: "Charakter i renoma",
+  club: "Klub i kontrakt",
+  career: "Kariera",
+} as const;
 
 // jscpd:ignore-end
 
@@ -151,6 +216,21 @@ export const TEXT = {
   noData: "Nie wczytano jeszcze bazy gry.",
   noMatches: "Żaden zawodnik nie spełnia filtrów.",
   filters: "Filtry",
+  showPotential: "Pokaż potencjał",
+  positionRating: "Ocena na pozycji",
+  position: "Pozycja",
+  ratingAt: (position: string): string => `OVR ${position}`,
+  text: "Nazwisko",
+  clubStatus: "Zawodnicy",
+  excludeMyClub: "Bez mojego klubu",
+  addAttribute: "Dodaj atrybut",
+  chooseAttribute: "Wybierz atrybut",
+  removeAttribute: (label: string): string => `Usuń atrybut: ${label}`,
+  searchIn: (label: string): string => `Szukaj: ${label}`,
+  flagValues: { any: "obojętne", yes: "tak", no: "nie" },
+  flagChip: (label: string, wanted: boolean): string => `${label}: ${wanted ? "tak" : "nie"}`,
+  code: (prefix: string, value: number): string => `${prefix} ${String(value)}`,
+  codePrefix: { bodyType: "typ", developmentType: "typ", developmentStyle: "styl" },
   filtersWithCount: (value: number): string =>
     value === 0 ? "Filtry" : `Filtry (${String(value)})`,
   resetFilters: "Wyczyść filtry",
@@ -161,7 +241,6 @@ export const TEXT = {
   rowMeta: (club: string, position: string, age: string): string =>
     `${club} · ${position} · ${age}`,
   anyOption: "Dowolna",
-  anyClub: "Dowolny",
   min: "od",
   max: "do",
   contractEndsBy: "Kontrakt kończy się najpóźniej w",

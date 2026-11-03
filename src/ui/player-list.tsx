@@ -8,7 +8,8 @@ import type { AttributeName, Player } from "../logic/players.ts";
 import type { ScoutAction, ScoutSort } from "../logic/scout-state.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 import { AttributeValue } from "./attribute-value.tsx";
-import { ATTRIBUTE_LABELS, TEXT } from "./text.ts";
+import { positionOf } from "../logic/positions.ts";
+import { ATTRIBUTE_LABELS, RANGE_LABELS, TEXT } from "./text.ts";
 
 const ROW_HEIGHT_PX = { table: 40, list: 64 } as const;
 const OVERSCAN_ROWS = 12;
@@ -37,14 +38,23 @@ const TABLE_ATTRIBUTES: readonly AttributeName[] = [
 
 const isTextColumn = (key: string): key is TextColumn => key in TEXT.columns;
 
-export const columnLabel = (key: SortKey): string => {
+const isRangeField = (key: string): key is keyof typeof RANGE_LABELS => key in RANGE_LABELS;
+
+export const columnLabel = (key: SortKey, ratingCode: number | null = null): string => {
+  if (key === "positionRating") {
+    return ratingCode === null ? TEXT.columns.overall : TEXT.ratingAt(positionOf(ratingCode).name);
+  }
   if (isAttributeName(key)) return ATTRIBUTE_LABELS[key];
-  return isTextColumn(key) ? TEXT.columns[key] : key;
+  if (isTextColumn(key)) return TEXT.columns[key];
+  return isRangeField(key) ? RANGE_LABELS[key] : key;
 };
 
 interface ListProps {
   readonly players: readonly Player[];
   readonly sort: ScoutSort;
+  readonly showPotential: boolean;
+  /** The position of the position rating filter, shown as a column; null without that filter. */
+  readonly ratingCode: number | null;
   readonly dispatch: Dispatch<ScoutAction>;
 }
 
@@ -73,11 +83,21 @@ const cellText = (player: Player, key: TextColumn): string | number =>
       ? clubText(player)
       : (player[key] ?? "");
 
+/** The rating a column shows with its colour band, or null for a text column. */
+const ratingIn = (player: Player, column: SortKey, ratingCode: number | null): number | null => {
+  if (column === "overall") return player.overall;
+  if (column === "potential") return player.potential;
+  if (column === "positionRating")
+    return player.overallByCode[ratingCode ?? player.positionCode] ?? null;
+  return isAttributeName(column) ? player.attributes[column] : null;
+};
+
 const HeaderCell = ({
   column,
   sort,
+  ratingCode,
   dispatch,
-}: { column: SortKey } & Omit<ListProps, "players">) => (
+}: { column: SortKey } & Pick<ListProps, "sort" | "ratingCode" | "dispatch">) => (
   <th
     scope="col"
     aria-sort={sort.key === column ? sort.direction : undefined}
@@ -90,7 +110,7 @@ const HeaderCell = ({
         dispatch({ type: "sort-changed", key: column });
       }}
     >
-      {columnLabel(column)}
+      {columnLabel(column, ratingCode)}
       <span aria-hidden="true" className="sort-mark">
         {sort.key === column ? TEXT.sortMark[sort.direction] : ""}
       </span>
@@ -101,10 +121,14 @@ const HeaderCell = ({
 const TableRow = ({
   player,
   index,
+  columns,
+  ratingCode,
   dispatch,
 }: {
   player: Player;
   index: number;
+  columns: readonly SortKey[];
+  ratingCode: number | null;
   dispatch: Dispatch<ScoutAction>;
 }) => (
   <tr aria-rowindex={index + 2}>
@@ -120,67 +144,86 @@ const TableRow = ({
         {player.name}
       </button>
     </th>
-    {TEXT_COLUMNS.slice(1, -2).map((key) => (
-      <td key={key} className={key.endsWith("Name") ? "" : "num"}>
-        {cellText(player, key)}
-      </td>
-    ))}
-    <td className="num">
-      <AttributeValue value={player.overall} />
-    </td>
-    <td className="num">
-      <AttributeValue value={player.potential} />
-    </td>
-    {TABLE_ATTRIBUTES.map((name) => (
-      <td key={name} className="num">
-        <AttributeValue value={player.attributes[name]} />
-      </td>
-    ))}
+    {columns.slice(1).map((column) => {
+      const rating = ratingIn(player, column, ratingCode);
+      return (
+        <td key={column} className={column.endsWith("Name") ? "" : "num"}>
+          {rating !== null ? (
+            <AttributeValue value={rating} />
+          ) : isTextColumn(column) ? (
+            cellText(player, column)
+          ) : null}
+        </td>
+      );
+    })}
   </tr>
 );
 
-const COLUMN_COUNT = TEXT_COLUMNS.length + TABLE_ATTRIBUTES.length;
-
-const Spacer = ({ height }: { height: number }) =>
+const Spacer = ({ height, columns }: { height: number; columns: number }) =>
   height > 0 ? (
     <tr aria-hidden="true" style={{ height }}>
       {/* oxlint-disable-next-line jsx-a11y/control-has-associated-label -- an empty spacer, hidden */}
-      <td colSpan={COLUMN_COUNT} />
+      <td colSpan={columns} />
     </tr>
   ) : null;
 
-export const PlayerTable = ({ players, sort, dispatch }: ListProps): JSX.Element => {
+export const PlayerTable = (props: ListProps): JSX.Element => {
+  const { players, sort, showPotential, ratingCode, dispatch } = props;
   const { scrollRef, items, before, after } = useRows(players.length, ROW_HEIGHT_PX.table);
+  const columns: readonly SortKey[] = [
+    ...TEXT_COLUMNS.slice(0, -2),
+    "overall",
+    ...(ratingCode === null ? [] : ["positionRating" as const]),
+    ...(showPotential ? ["potential" as const] : []),
+    ...TABLE_ATTRIBUTES,
+  ];
   return (
     <div ref={scrollRef} className="scroll table-scroll">
       <table className="players" aria-rowcount={players.length + 1}>
         <thead>
           <tr aria-rowindex={1}>
-            {[...TEXT_COLUMNS, ...TABLE_ATTRIBUTES].map((column) => (
-              <HeaderCell key={column} column={column} sort={sort} dispatch={dispatch} />
+            {columns.map((column) => (
+              <HeaderCell
+                key={column}
+                column={column}
+                sort={sort}
+                ratingCode={ratingCode}
+                dispatch={dispatch}
+              />
             ))}
           </tr>
         </thead>
         <tbody>
-          <Spacer height={before} />
+          <Spacer height={before} columns={columns.length} />
           {items.map((item) => {
             const player = players[item.index];
             return player === undefined ? null : (
-              <TableRow key={player.id} player={player} index={item.index} dispatch={dispatch} />
+              <TableRow
+                key={player.id}
+                player={player}
+                index={item.index}
+                columns={columns}
+                ratingCode={ratingCode}
+                dispatch={dispatch}
+              />
             );
           })}
-          <Spacer height={after} />
+          <Spacer height={after} columns={columns.length} />
         </tbody>
       </table>
     </div>
   );
 };
 
-/** The number the phone row shows before OVR and potential: the sorted attribute, when sorting by one. */
-const keyNumber = (player: Player, sort: ScoutSort): number | null =>
-  isAttributeName(sort.key) ? player.attributes[sort.key] : null;
+/** The column the phone row shows before OVR: the position rating, else the sorted attribute. */
+const keyColumn = (sort: ScoutSort, ratingCode: number | null): SortKey | null => {
+  if (ratingCode !== null) return "positionRating";
+  return isAttributeName(sort.key) ? sort.key : null;
+};
 
-export const PlayerCards = ({ players, sort, dispatch }: ListProps): JSX.Element => {
+export const PlayerCards = (props: ListProps): JSX.Element => {
+  const { players, sort, showPotential, ratingCode, dispatch } = props;
+  const column = keyColumn(sort, ratingCode);
   const { scrollRef, items, before, after } = useRows(players.length, ROW_HEIGHT_PX.list);
   return (
     <div ref={scrollRef} className="scroll">
@@ -188,7 +231,7 @@ export const PlayerCards = ({ players, sort, dispatch }: ListProps): JSX.Element
         {items.map((item) => {
           const player = players[item.index];
           if (player === undefined) return null;
-          const extra = keyNumber(player, sort);
+          const extra = column === null ? null : ratingIn(player, column, ratingCode);
           return (
             <li key={player.id} aria-setsize={players.length} aria-posinset={item.index + 1}>
               <button
@@ -208,14 +251,20 @@ export const PlayerCards = ({ players, sort, dispatch }: ListProps): JSX.Element
                 <span className="player-row-numbers">
                   {extra === null ? null : (
                     <>
-                      <span className="visually-hidden">{columnLabel(sort.key)}</span>
+                      <span className="visually-hidden">
+                        {column === null ? null : columnLabel(column, ratingCode)}
+                      </span>
                       <AttributeValue value={extra} />
                     </>
                   )}
                   <span className="visually-hidden">{TEXT.columns.overall}</span>
                   <AttributeValue value={player.overall} />
-                  <span className="visually-hidden">{TEXT.columns.potential}</span>
-                  <AttributeValue value={player.potential} />
+                  {showPotential ? (
+                    <>
+                      <span className="visually-hidden">{TEXT.columns.potential}</span>
+                      <AttributeValue value={player.potential} />
+                    </>
+                  ) : null}
                 </span>
               </button>
             </li>
