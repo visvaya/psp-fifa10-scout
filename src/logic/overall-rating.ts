@@ -208,13 +208,13 @@ export interface CareerRatingInput {
 const gameAge = (birthdate: Date, on: Date): number =>
   Math.trunc((on.getTime() - birthdate.getTime()) / DAY_MS / DAYS_PER_YEAR);
 
-/** OVR at a position on a career date: attributes aged along their curves, capped at the potential. */
-export const careerOverall = (
+/** Each attribute on a career date, as the game shows it: aged along its curve, at 10..99 and at most
+ * max(potential, value). */
+export const careerAttributes = (
   player: CareerRatingInput,
-  positionCode: number,
   careerDate: Date,
   curves: Curves,
-): number => {
+): ((name: AttributeName) => number) => {
   const { attributes, potential, developmentTypeCode: type, developmentStyleCode: style } = player;
   const curveAt = (id: number, age: number): number => {
     const values = curves.get(id) ?? curves.get(1) ?? [];
@@ -229,5 +229,12 @@ export const careerOverall = (
     const adjusted = roundHalfUp(Math.fround(Math.fround(curveAt(curve, ageNow) * ratio) / 100));
     return Math.min(clamp(adjusted, AGED_ATTRIBUTE_MIN, RATING_MAX), Math.max(potential, value));
   };
-  return clamp(Math.min(ratingOf(weightRow(positionCode), aged), potential), 0, RATING_MAX);
+  return aged;
 };
+
+/** OVR at a position from career attributes, capped at the potential. */
+export const cappedOverall = (
+  value: (name: AttributeName) => number,
+  positionCode: number,
+  potential: number,
+): number => clamp(Math.min(ratingOf(weightRow(positionCode), value), potential), 0, RATING_MAX);

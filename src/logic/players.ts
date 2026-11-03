@@ -9,7 +9,8 @@ import { SCOUT_CONFIG } from "./config.ts";
 import {
   baseOverall,
   byPositionCode,
-  careerOverall,
+  cappedOverall,
+  careerAttributes,
   potentialDeltas,
   readCurves,
 } from "./overall-rating.ts";
@@ -186,7 +187,13 @@ interface Context {
   readonly stats: ReadonlyMap<number, EaDbRow>;
   readonly transferList: ReadonlySet<number>;
   readonly freeAgents: ReadonlySet<number>;
-  readonly rate: (row: EaDbRow, attributes: Attributes, positionCode: number) => number;
+  readonly rate: (row: EaDbRow) => Rating;
+}
+
+/** A player's attributes as the list shows them and his OVR at any position code. */
+interface Rating {
+  readonly attributes: Attributes;
+  readonly overallAt: (positionCode: number) => number;
 }
 
 const num = (row: EaDbRow, key: string): number => Number(row[key]);
@@ -283,8 +290,8 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
   const stats = context.stats.get(id);
   const nationalityId = num(row, "nationality");
   const name = `${String(row["firstname"])} ${String(row["surname"])}`.trim();
-  const attributes = attributesOf(row);
-  const overallByCode = byPositionCode((code) => context.rate(row, attributes, code));
+  const { attributes, overallAt } = context.rate(row);
+  const overallByCode = byPositionCode(overallAt);
   const rate = (code: number): number => overallByCode[code] ?? 0;
   const [potential, overall] = [num(row, "potential"), rate(num(row, "preferredposition1"))];
   return {
@@ -334,25 +341,40 @@ export const withNameOrder = (
   );
 };
 
-/** OVR from fifa.db without a save; with one, aged to the season's first match day (overall-rating.md). */
+/**
+ * Attributes and OVR from fifa.db without a save; with one, aged to the season's first match day, as
+ * the game shows them in the career (overall-rating.md).
+ */
 const rater = (db: EaDb, save: CareerSave | undefined): Context["rate"] => {
-  if (save === undefined) return (_row, attributes, code) => baseOverall(attributes, code);
+  if (save === undefined)
+    return (row) => {
+      const attributes = attributesOf(row);
+      return { attributes, overallAt: (code) => baseOverall(attributes, code) };
+    };
   const curves = readCurves(db);
   const deltas = potentialDeltas(db, save);
   const date = seasonStartDate(db, save);
-  return (row, attributes, code) =>
-    careerOverall(
+  return (row) => {
+    const potential = num(row, "potential") + (deltas.get(num(row, "playerid")) ?? 0);
+    const aged = careerAttributes(
       {
-        attributes,
-        potential: num(row, "potential") + (deltas.get(num(row, "playerid")) ?? 0),
+        attributes: attributesOf(row),
+        potential,
         birthdate: birthdateToDate(num(row, "birthdate")),
         developmentTypeCode: num(row, "developmenttypecode"),
         developmentStyleCode: num(row, "developmentstylecode"),
       },
-      code,
       date,
       curves,
     );
+    const attributes = attributesOf(
+      Object.fromEntries(ATTRIBUTE_NAMES.map((name) => [name, aged(name)])),
+    );
+    return {
+      attributes,
+      overallAt: (code) => cappedOverall((name) => attributes[name], code, potential),
+    };
+  };
 };
 
 /**

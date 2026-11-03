@@ -58,10 +58,13 @@ describe("career ratings", () => {
   it("age players to the season's first match day, while the age shown is today's", () => {
     const [player] = buildPlayers(DB, save([row({ game_number: gameOn(2009, 7, 25) })]));
     expect(player).toMatchObject({ overall: 50, age: 21 });
+    expect(player?.attributes.finishing).toBe(50);
   });
 
   it("age players to the last game when the save has no fixtures", () => {
     const [player] = buildPlayers(DB, save([]));
     expect(player?.overall).toBeGreaterThan(50);
+    // The attributes shown and filtered are the aged ones too: skills rise to 60 at 21.
+    expect(player?.attributes.finishing).toBe(60);
   });
 });
