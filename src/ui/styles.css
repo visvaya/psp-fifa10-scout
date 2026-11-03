@@ -293,6 +293,8 @@ input[type="number"] {
 }
 
 .scroll {
+  /* Contains the rows' absolutely positioned screen reader labels; without it they extend the page. */
+  position: relative;
   flex: 1;
   min-height: 0;
   overflow: auto;
