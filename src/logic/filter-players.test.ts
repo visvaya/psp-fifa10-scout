@@ -27,6 +27,7 @@ const PLAYERS = [
   testPlayer({
     id: 3,
     name: "Free Agent",
+    freeAgent: true,
     age: 31,
     potential: 60,
     positionCode: 0,
@@ -133,24 +134,24 @@ describe("filterPlayers", () => {
     expect(ids({ excludeTeamId: 10 })).toEqual([2, 3]);
   });
 
-  it("does not count an academy youth player without a club as a free agent", () => {
-    const academy = testPlayer({
-      id: 5,
-      name: "Academy",
-      clubId: null,
-      leagueId: null,
-      youth: true,
-    });
+  it("counts only the game's free agents as free agents, not academy youth or legends", () => {
+    const academy = testPlayer({ id: 5, name: "Academy", clubId: null, youth: true });
+    const legend = testPlayer({ id: 6, name: "Legend", clubId: null });
     expect(
-      filterPlayers([...PLAYERS, academy], { freeAgentsOnly: true }).map((player) => player.id),
+      filterPlayers([...PLAYERS, academy, legend], { freeAgentsOnly: true }).map(
+        (player) => player.id,
+      ),
     ).toEqual([3]);
   });
 
-  it("hides clubless players except academy youth when only players with a club are wanted", () => {
+  it("keeps the players one can sign: with a club, free agents and academy youth", () => {
     const academy = testPlayer({ id: 5, name: "Academy", clubId: null, youth: true });
+    const legend = testPlayer({ id: 6, name: "Legend", clubId: null });
     expect(
-      filterPlayers([...PLAYERS, academy], { withClubOnly: true }).map((player) => player.id),
-    ).toEqual([1, 2, 4, 5]);
+      filterPlayers([...PLAYERS, academy, legend], { availableOnly: true }).map(
+        (player) => player.id,
+      ),
+    ).toEqual([1, 2, 3, 4, 5]);
   });
 
   it("combines filters with AND", () => {

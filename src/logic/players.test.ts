@@ -115,6 +115,7 @@ const SAVE: CareerSave = new Map([
       row({ teamid: 241, playerid: 158_023, jerseynumber: 10, yearcontractvalidtil: 2014 }),
       row({ teamid: 1873, playerid: 7, jerseynumber: 9, yearcontractvalidtil: 2012 }),
       row({ teamid: 1873, playerid: 400_002, jerseynumber: 40, yearcontractvalidtil: 2013 }),
+      row({ teamid: 111_259, playerid: 8, jerseynumber: 2, yearcontractvalidtil: 2005 }),
     ],
   ],
   ["career_youth_accademy", [row({ playerid: 400_001, dummy: 0 })]],
@@ -155,6 +156,7 @@ describe("buildPlayers from fifa.db", () => {
       searchName: "lionel messi",
       nameOrder: 1,
       youth: false,
+      freeAgent: false,
       age: 22,
       positionCode: 14,
       positionName: "RW",
@@ -214,8 +216,9 @@ describe("buildPlayers from fifa.db", () => {
     });
   });
 
-  it("treats a player whose only team has no league as a free agent", () => {
+  it("leaves a player whose only team has no league without a club, not a free agent", () => {
     expect(byId(players, 8)).toMatchObject({
+      freeAgent: false,
       clubId: null,
       clubName: null,
       clubRating: null,
@@ -264,6 +267,11 @@ describe("buildPlayers with a career save", () => {
       contractEndYear: 2012,
     });
     expect(byId(players, 158_023)).toMatchObject({ nationalTeamId: null, clubId: 241 });
+  });
+
+  it("marks the players the save links to the game's free-agent team", () => {
+    expect(byId(players, 8)).toMatchObject({ freeAgent: true, clubId: null, clubName: null });
+    expect(byId(players, 7)?.freeAgent).toBe(false);
   });
 
   it("includes youth-pool players the save places in a team, the academy or the transfer list", () => {
@@ -348,7 +356,7 @@ describe.runIf(existsSync(realDbPath))("real fifa.db", () => {
     timed("sortPlayers all by age", () => sortPlayers(players, "age", "descending"));
     timed("filter + sort by position rating", () =>
       sortPlayers(
-        filterPlayers(players, { positionRating: { code: 3, min: 50 }, withClubOnly: true }),
+        filterPlayers(players, { positionRating: { code: 3, min: 50 }, availableOnly: true }),
         "positionRating",
         "descending",
         { ratingCode: 3 },

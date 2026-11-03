@@ -7,6 +7,8 @@ export const SCOUT_CONFIG = {
   nationalLeagueLevel: 5,
   /** Player ids from this one up form the generated youth pool. */
   youthPlayerIdStart: 400_000,
+  /** The team a career save links free agents to; it is in no teams row (game-knowledge, free agents). */
+  freeAgentTeamId: 111_259,
   /** Lowest value of each attribute colour band, as the game colours them; below average is low. */
   attributeBandMin: { high: 80, good: 70, average: 50 },
 } as const;

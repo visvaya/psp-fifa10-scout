@@ -58,8 +58,9 @@ export interface PlayerFilters {
   /** OVR at one position code, whatever the preferred position. */
   readonly positionRating?: PositionRating;
   readonly freeAgentsOnly?: boolean;
-  /** Leaves out players without a club (legends, national-team-only players), keeping academy youth. */
-  readonly withClubOnly?: boolean;
+  /** Players one can sign: with a club, free agents and academy youth; leaves out legends and
+   * national-team-only players. */
+  readonly availableOnly?: boolean;
   /** Leaves out this club's players (the user's own team). */
   readonly excludeTeamId?: number;
 }
@@ -111,12 +112,9 @@ const predicates = (filters: PlayerFilters): readonly Predicate[] => {
       const wanted = filters.flags?.[flag];
       return wanted === undefined ? [] : [(player: Player) => hasFlag(player, flag) === wanted];
     }),
-    // A youth-pool player without a club sits in the user's academy, so he is not on the market.
-    ...(filters.freeAgentsOnly === true
-      ? [(player: Player) => player.clubId === null && !player.youth]
-      : []),
-    ...(filters.withClubOnly === true
-      ? [(player: Player) => player.clubId !== null || player.youth]
+    ...(filters.freeAgentsOnly === true ? [(player: Player) => player.freeAgent] : []),
+    ...(filters.availableOnly === true
+      ? [(player: Player) => player.clubId !== null || player.youth || player.freeAgent]
       : []),
     ...(excludeTeamId === undefined ? [] : [(player: Player) => player.clubId !== excludeTeamId]),
   ];

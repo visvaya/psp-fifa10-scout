@@ -108,6 +108,8 @@ export interface Player {
   readonly nameOrder: number;
   /** From the generated youth pool (shown only when a save links the player to a team). */
   readonly youth: boolean;
+  /** Linked to the game's free-agent team, so any club can sign him (careers only). */
+  readonly freeAgent: boolean;
   readonly age: number;
   readonly positionCode: number;
   readonly positionName: string;
@@ -183,6 +185,7 @@ interface Context {
   readonly countries: ReadonlyMap<number, string>;
   readonly stats: ReadonlyMap<number, EaDbRow>;
   readonly transferList: ReadonlySet<number>;
+  readonly freeAgents: ReadonlySet<number>;
   readonly rate: (row: EaDbRow, attributes: Attributes, positionCode: number) => number;
 }
 
@@ -289,6 +292,7 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
     name,
     searchName: searchKey(name),
     youth: id >= SCOUT_CONFIG.youthPlayerIdStart,
+    freeAgent: context.freeAgents.has(id),
     age: ageOn(birthdateToDate(num(row, "birthdate")), context.referenceDate),
     positionCode: num(row, "preferredposition1"),
     positionName: position.name,
@@ -373,6 +377,11 @@ export const buildPlayers = (db: EaDb, save?: CareerSave): readonly Player[] => 
     ),
     stats: new Map(stats.map((row) => [num(row, "playerid"), row])),
     transferList: new Set(transferList.map((row) => num(row, "playerid"))),
+    freeAgents: new Set(
+      links
+        .filter((row) => num(row, "teamid") === SCOUT_CONFIG.freeAgentTeamId)
+        .map((row) => num(row, "playerid")),
+    ),
     rate: rater(db, save),
   };
   // The game keeps generated players out of the leagues until it places them (overall-rating.md, F2).

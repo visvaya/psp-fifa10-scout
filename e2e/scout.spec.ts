@@ -43,6 +43,12 @@ const expectStoredPositionGroup = async (page: Page, group: string) => {
     .toMatchObject({ value: { filters: { lists: { positionGroup: [group] } } } });
 };
 
+/** The horizontal centre of an element, NaN when it is not shown. */
+const centre = async (locator: Locator): Promise<number> => {
+  const box = await locator.boundingBox();
+  return box === null ? Number.NaN : box.x + box.width / 2;
+};
+
 const expectCount = async (page: Page, text: string) => {
   await expect(page.locator("p.count")).toHaveText(text);
 };
@@ -106,17 +112,14 @@ test.describe("wide screen", () => {
     await expectCount(page, "62\u00a0zawodników");
   });
 
-  test("hides clubless players by default and shows only them on request", async ({ page }) => {
+  // Jan Wolny has no team at all, like the game's legends; fifa.db has no free agents, so without a
+  // career the free agents option does not show.
+  test("hides players no club can sign", async ({ page }) => {
     await loadDatabase(page);
     await page.getByText("Klub i kontrakt").click();
-    await expect(page.getByRole("radio", { name: "z klubem" })).toBeChecked();
-    await page.getByRole("radio", { name: "tylko bez klubu" }).check();
-    await expectCount(page, "1 zawodnik");
-    await expect(page.getByRole("button", { name: "Jan Wolny" })).toBeVisible();
-    await page.getByRole("radio", { name: "wszyscy, także bez klubu" }).check();
-    await expectCount(page, "63 zawodników");
-    await page.getByRole("button", { name: "Wyczyść filtry" }).click();
-    await expectCount(page, "62 zawodników");
+    await expect(page.getByRole("radio", { name: "tylko wolni zawodnicy" })).toHaveCount(0);
+    await page.getByRole("searchbox", { name: "Nazwisko" }).fill("wolny");
+    await expect(page.getByText("Żaden zawodnik nie spełnia filtrów.")).toBeVisible();
   });
 
   test("keeps the game database and filters after a reload", async ({ page }) => {
@@ -224,6 +227,23 @@ test.describe("phone", () => {
     await expect(page.getByRole("button", { name: "Filtry (1)" })).toBeFocused();
     await page.getByRole("button", { name: /^Paweł Brożek/u }).click();
     await expect(page.getByRole("dialog", { name: "Paweł Brożek" })).toBeVisible();
+  });
+
+  test("labels the numbers above the rows, each over its column", async ({ page }) => {
+    await loadDatabase(page);
+    await page.getByRole("button", { name: "Filtry" }).click();
+    await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
+    await page.getByRole("button", { name: "Zamknij" }).click();
+    const labels = page.locator(".player-rows-header > span");
+    await expect(labels).toHaveText(["OVR", "POT"]);
+    const numbers = page.locator(".player-row").first().locator(".rating");
+    const [labelCentres, numberCentres] = await Promise.all([
+      Promise.all([0, 1].map(async (index) => centre(labels.nth(index)))),
+      Promise.all([0, 1].map(async (index) => centre(numbers.nth(index)))),
+    ]);
+    labelCentres.forEach((label, index) => {
+      expect(Math.abs(label - (numberCentres[index] ?? Number.NaN))).toBeLessThan(1);
+    });
   });
 
   // Only the list scrolls: if the page scrolled instead, the virtual list would not draw the rows the user

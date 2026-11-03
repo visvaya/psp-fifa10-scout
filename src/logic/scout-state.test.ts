@@ -16,8 +16,8 @@ import { testPlayer } from "./test-support/player-fixtures.ts";
 const PLAYERS = [testPlayer({ id: 1 }), testPlayer({ id: 2, clubId: 7 })];
 const loading = scoutReducer(initialScoutState, { type: "load-started", requestId: 1 });
 
-const loaded = (myTeamId: number | null = null): ScoutState =>
-  scoutReducer(loading, {
+const loaded = (myTeamId: number | null = null, from: ScoutState = loading): ScoutState =>
+  scoutReducer(from, {
     type: "load-succeeded",
     requestId: 1,
     players: PLAYERS,
@@ -31,6 +31,12 @@ const NAMES = { teams: { 1: "Klub" }, leagues: {}, countries: {} };
 describe("scoutReducer loading", () => {
   it("starts empty on the start view", () => {
     expect(initialScoutState).toMatchObject({ players: null, loading: null, view: "start" });
+  });
+
+  it("drops the career-only filters when a load brings no career", () => {
+    const filters = { text: "a", clubStatus: "free-agents", excludeMyClub: true } as const;
+    expect(loaded(null, { ...loading, filters }).filters).toEqual({ text: "a" });
+    expect(loaded(5, { ...loading, filters }).filters).toEqual(filters);
   });
 
   it("tracks the phase of the current load and stays on the start view after a picked file", () => {
@@ -314,19 +320,21 @@ describe("actionOf", () => {
 });
 
 describe("effectiveFilters", () => {
-  it("hides clubless players by default, shows all, or only free agents", () => {
-    expect(effectiveFilters({}, null)).toEqual({ withClubOnly: true });
-    expect(effectiveFilters({ clubStatus: "with-club" }, null)).toEqual({ withClubOnly: true });
-    expect(effectiveFilters({ clubStatus: "all" }, null)).toEqual({});
-    expect(effectiveFilters({ clubStatus: "free-agents" }, null)).toEqual({ freeAgentsOnly: true });
+  it("keeps the players one can sign, or only free agents in a career", () => {
+    expect(effectiveFilters({}, null)).toEqual({ availableOnly: true });
+    expect(effectiveFilters({}, 7)).toEqual({ availableOnly: true });
+    expect(effectiveFilters({ clubStatus: "free-agents" }, 7)).toEqual({ freeAgentsOnly: true });
+    // Without a career fifa.db has no free agents, so the option does not apply.
+    expect(effectiveFilters({ clubStatus: "free-agents" }, null)).toEqual({ availableOnly: true });
   });
 
   it("turns 'exclude my club' into the club id, only with a career", () => {
-    expect(effectiveFilters({ excludeMyClub: true, text: "a", clubStatus: "all" }, 7)).toEqual({
+    expect(effectiveFilters({ excludeMyClub: true, text: "a" }, 7)).toEqual({
       text: "a",
+      availableOnly: true,
       excludeTeamId: 7,
     });
-    expect(effectiveFilters({ excludeMyClub: true, clubStatus: "all" }, null)).toEqual({});
+    expect(effectiveFilters({ excludeMyClub: true }, null)).toEqual({ availableOnly: true });
   });
 });
 
@@ -336,13 +344,13 @@ describe("activeFilters", () => {
       activeFilters({
         text: " ",
         ranges: { age: { min: 18 }, potential: {}, finishing: { max: 0 } },
-        clubStatus: "with-club",
+        clubStatus: "available",
       }),
     ).toEqual(["ranges.age", "ranges.finishing"]);
     expect(
       activeFilters({
         excludeMyClub: true,
-        clubStatus: "all",
+        clubStatus: "free-agents",
         text: "a",
         lists: { leagueId: [1], clubId: [] },
         flags: { selfish: false, transferListed: undefined },

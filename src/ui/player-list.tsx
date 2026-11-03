@@ -73,8 +73,9 @@ const useRows = (count: number, rowHeight: number) => {
   return { scrollRef, items, before, after };
 };
 
-const clubText = (player: Player): string =>
-  player.clubName ?? (player.youth ? TEXT.youth : TEXT.noClub);
+/** The club name, or what stands in for it: a free agent, or a junior of the user's academy. */
+export const clubText = (player: Player): string =>
+  player.clubName ?? (player.youth && !player.freeAgent ? TEXT.youth : TEXT.freeAgent);
 
 const cellText = (player: Player, key: TextColumn): string | number =>
   key === "positionCode"
@@ -221,56 +222,72 @@ const keyColumn = (sort: ScoutSort, ratingCode: number | null): SortKey | null =
   return isAttributeName(sort.key) ? sort.key : null;
 };
 
+/** Labels over the phone rows' numbers; visual only, as each row names its numbers for screen readers. */
+const RowsHeader = ({
+  column,
+  ratingCode,
+  showPotential,
+}: { column: SortKey | null } & Pick<ListProps, "ratingCode" | "showPotential">) => (
+  <div className="player-rows-header" aria-hidden="true">
+    {column === null ? null : <span>{columnLabel(column, ratingCode)}</span>}
+    <span>{TEXT.columns.overall}</span>
+    {showPotential ? <span>{TEXT.potentialShort}</span> : null}
+  </div>
+);
+
 export const PlayerCards = (props: ListProps): JSX.Element => {
   const { players, sort, showPotential, ratingCode, dispatch } = props;
   const column = keyColumn(sort, ratingCode);
   const { scrollRef, items, before, after } = useRows(players.length, ROW_HEIGHT_PX.list);
   return (
-    <div ref={scrollRef} className="scroll">
-      <ol className="player-rows" style={{ paddingTop: before, paddingBottom: after }}>
-        {items.map((item) => {
-          const player = players[item.index];
-          if (player === undefined) return null;
-          const extra = column === null ? null : ratingIn(player, column, ratingCode);
-          return (
-            <li key={player.id} aria-setsize={players.length} aria-posinset={item.index + 1}>
-              <button
-                type="button"
-                className="player-row"
-                data-player-id={player.id}
-                onClick={() => {
-                  dispatch({ type: "player-opened", id: player.id });
-                }}
-              >
-                <span className="player-row-text">
-                  <span className="player-row-name">{player.name}</span>
-                  <span className="player-row-meta">
-                    {TEXT.rowMeta(clubText(player), player.positionName, TEXT.years(player.age))}
+    <>
+      <RowsHeader column={column} ratingCode={ratingCode} showPotential={showPotential} />
+      <div ref={scrollRef} className="scroll">
+        <ol className="player-rows" style={{ paddingTop: before, paddingBottom: after }}>
+          {items.map((item) => {
+            const player = players[item.index];
+            if (player === undefined) return null;
+            const extra = column === null ? null : ratingIn(player, column, ratingCode);
+            return (
+              <li key={player.id} aria-setsize={players.length} aria-posinset={item.index + 1}>
+                <button
+                  type="button"
+                  className="player-row"
+                  data-player-id={player.id}
+                  onClick={() => {
+                    dispatch({ type: "player-opened", id: player.id });
+                  }}
+                >
+                  <span className="player-row-text">
+                    <span className="player-row-name">{player.name}</span>
+                    <span className="player-row-meta">
+                      {TEXT.rowMeta(clubText(player), player.positionName, TEXT.years(player.age))}
+                    </span>
                   </span>
-                </span>
-                <span className="player-row-numbers">
-                  {extra === null ? null : (
-                    <>
-                      <span className="visually-hidden">
-                        {column === null ? null : columnLabel(column, ratingCode)}
-                      </span>
-                      <AttributeValue value={extra} />
-                    </>
-                  )}
-                  <span className="visually-hidden">{TEXT.columns.overall}</span>
-                  <AttributeValue value={player.overall} />
-                  {showPotential ? (
-                    <>
-                      <span className="visually-hidden">{TEXT.columns.potential}</span>
-                      <AttributeValue value={player.potential} />
-                    </>
-                  ) : null}
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ol>
-    </div>
+                  <span className="player-row-numbers">
+                    {extra === null ? null : (
+                      <>
+                        <span className="visually-hidden">
+                          {column === null ? null : columnLabel(column, ratingCode)}
+                        </span>
+                        <AttributeValue value={extra} />
+                      </>
+                    )}
+                    <span className="visually-hidden">{TEXT.columns.overall}</span>
+                    <AttributeValue value={player.overall} />
+                    {showPotential ? (
+                      <>
+                        <span className="visually-hidden">{TEXT.columns.potential}</span>
+                        <AttributeValue value={player.potential} />
+                      </>
+                    ) : null}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+    </>
   );
 };

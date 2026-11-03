@@ -9,13 +9,13 @@ import { nameCollator } from "./players.ts";
 import type { Player } from "./players.ts";
 import type { SortDirection, SortKey } from "./sort-players.ts";
 
-/** Which players by club: unset means "with-club", the default that hides clubless players. */
-export type ClubStatus = "with-club" | "all" | "free-agents";
+/** Which players by club: unset means "available", everyone one can sign; free agents need a career. */
+export type ClubStatus = "available" | "free-agents";
 
 /** The filters as the user sets them; "exclude my club" becomes a club id only with a career. */
 export type ScoutFilters = Omit<
   PlayerFilters,
-  "excludeTeamId" | "freeAgentsOnly" | "withClubOnly"
+  "excludeTeamId" | "freeAgentsOnly" | "availableOnly"
 > & {
   readonly clubStatus?: ClubStatus;
   readonly excludeMyClub?: boolean;
@@ -168,9 +168,7 @@ export const activeFilters = (filters: FilterChange): readonly FilterId[] => [
   ...FLAG_KEYS.filter((key) => isDefined(filters.flags?.[key])).map(
     (key) => `flags.${key}` as const,
   ),
-  ...(filters.clubStatus === undefined || filters.clubStatus === "with-club"
-    ? []
-    : ["clubStatus" as const]),
+  ...(filters.clubStatus === "free-agents" ? ["clubStatus" as const] : []),
   ...(filters.excludeMyClub === true ? ["excludeMyClub" as const] : []),
 ];
 
@@ -186,7 +184,7 @@ export const compactFilters = (filters: FilterChange): ScoutFilters => {
     ...(positionRating === undefined ? {} : { positionRating }),
     ...(lists === undefined ? {} : { lists }),
     ...(flags === undefined ? {} : { flags }),
-    ...(clubStatus === undefined || clubStatus === "with-club" ? {} : { clubStatus }),
+    ...(clubStatus === "free-agents" ? { clubStatus } : {}),
     ...(excludeMyClub === true ? { excludeMyClub } : {}),
   };
 };
@@ -249,6 +247,16 @@ const loadReducer = (state: ScoutState, action: LoadAction): ScoutState => {
         ...state,
         players: action.players,
         myTeamId: action.myTeamId,
+        // Without a career these filters do nothing, so they would leave a chip that does not apply.
+        ...(action.myTeamId === null
+          ? {
+              filters: compactFilters({
+                ...state.filters,
+                clubStatus: undefined,
+                excludeMyClub: undefined,
+              }),
+            }
+          : {}),
         gameName: loading.gameName === undefined ? state.gameName : loading.gameName,
         languages: { ...state.languages, ...action.languages },
         ...(action.attachedLanguage === null ? {} : { gameLanguage: action.attachedLanguage }),
@@ -339,11 +347,9 @@ export const effectiveFilters = (
   myTeamId: number | null,
 ): PlayerFilters => ({
   ...filters,
-  ...(clubStatus === "all"
-    ? {}
-    : clubStatus === "free-agents"
-      ? { freeAgentsOnly: true }
-      : { withClubOnly: true }),
+  ...(clubStatus === "free-agents" && myTeamId !== null
+    ? { freeAgentsOnly: true }
+    : { availableOnly: true }),
   ...(excludeMyClub === true && myTeamId !== null ? { excludeTeamId: myTeamId } : {}),
 });
 

@@ -20,11 +20,13 @@ export interface BuildSizes {
 // traits, ranges and lists and the sectioned panel add about 5.8 kB of gzipped JavaScript.
 // Raised 2026-11-03 for the loading states: JS 106 416 -> 106 780, precache 369 667 -> 372 469 (main
 // before, the branch after); the list skeleton, the "show players" button and the loaded file names.
+// Raised 2026-11-03 for free agents and the phone column labels: precache 372 496 -> 373 626 (JS gzip
+// 106 778 -> 107 022, within its budget); the free agent flag and filter, and the labels over the rows.
 export const SIZE_BUDGETS: BuildSizes = {
   jsGzipBytes: 105 * 1024,
   cssGzipBytes: 2.5 * 1024,
   serviceWorkerBytes: 11 * 1024,
-  precacheBytes: 364 * 1024,
+  precacheBytes: 365 * 1024,
 };
 
 const SIZE_KEYS = [

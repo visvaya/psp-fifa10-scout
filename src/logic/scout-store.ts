@@ -78,11 +78,7 @@ const versioned = (record: unknown, version: number): unknown =>
 const recordOf = (value: unknown): Readonly<Record<string, unknown>> =>
   isRecord(value) ? value : {};
 
-const CLUB_STATUSES: readonly unknown[] = [
-  "with-club",
-  "all",
-  "free-agents",
-] satisfies ClubStatus[];
+const CLUB_STATUSES: readonly unknown[] = ["available", "free-agents"] satisfies ClubStatus[];
 const isClubStatus = (value: unknown): value is ClubStatus => CLUB_STATUSES.includes(value);
 
 const isFiniteNumber = (value: unknown): value is number => Number.isFinite(value);
