@@ -58,6 +58,8 @@ interface ListProps {
   readonly showPotential: boolean;
   /** The position of the position rating filter, shown as a column; null without that filter. */
   readonly ratingCode: number | null;
+  /** Attributes with a range filter, shown as columns after OVR (rangedAttributes). */
+  readonly rangedAttributes: readonly AttributeName[];
   readonly dispatch: Dispatch<ScoutAction>;
 }
 
@@ -177,17 +179,23 @@ const widthText = (player: Player, column: SortKey): string | null =>
     ? String(cellText(player, column))
     : null;
 
-/** The table's columns and their labels, stable while the position rating and potential stay. */
-const useTableColumns = (ratingCode: number | null, showPotential: boolean) => {
+/** The table's columns and their labels, stable while the position rating, potential and ranged
+ * attributes stay. */
+const useTableColumns = ({
+  ratingCode,
+  showPotential,
+  rangedAttributes: ranged,
+}: Pick<ListProps, "ratingCode" | "showPotential" | "rangedAttributes">) => {
   const columns = useMemo(
     (): readonly SortKey[] => [
       ...TEXT_COLUMNS.slice(0, -2),
       "overall",
       ...(ratingCode === null ? [] : ["positionRating" as const]),
       ...(showPotential ? ["potential" as const] : []),
-      ...TABLE_ATTRIBUTES,
+      ...ranged,
+      ...TABLE_ATTRIBUTES.filter((name) => !ranged.includes(name)),
     ],
-    [ratingCode, showPotential],
+    [ratingCode, showPotential, ranged],
   );
   const label = useCallback((column: SortKey) => columnLabel(column, ratingCode), [ratingCode]);
   return { columns, label };
@@ -204,9 +212,9 @@ const ColumnGroup = ({ widths }: { widths: readonly number[] | null }) =>
   );
 
 export const PlayerTable = (props: ListProps): JSX.Element => {
-  const { players, allPlayers, sort, showPotential, ratingCode, dispatch } = props;
+  const { players, allPlayers, sort, ratingCode, dispatch } = props;
   const { scrollRef, items, before, after } = useRows(players.length, ROW_HEIGHT_PX.table);
-  const { columns, label } = useTableColumns(ratingCode, showPotential);
+  const { columns, label } = useTableColumns(props);
   const tableRef = useRef<HTMLTableElement>(null);
   const widths = useColumnWidths({
     table: tableRef,
@@ -259,10 +267,15 @@ export const PlayerTable = (props: ListProps): JSX.Element => {
   );
 };
 
-/** The column the phone row shows before OVR: the position rating, else the sorted attribute. */
-const keyColumn = (sort: ScoutSort, ratingCode: number | null): SortKey | null => {
+/** The column the phone row shows before OVR: the position rating, else the sorted attribute, else
+ * the first ranged attribute. One column only: two long attribute labels would not fit side by side. */
+const keyColumn = ({
+  sort,
+  ratingCode,
+  rangedAttributes: ranged,
+}: Pick<ListProps, "sort" | "ratingCode" | "rangedAttributes">): SortKey | null => {
   if (ratingCode !== null) return "positionRating";
-  return isAttributeName(sort.key) ? sort.key : null;
+  return isAttributeName(sort.key) ? sort.key : (ranged[0] ?? null);
 };
 
 /** Labels over the phone rows' numbers; visual only, as each row names its numbers for screen readers. */
@@ -279,8 +292,8 @@ const RowsHeader = ({
 );
 
 export const PlayerCards = (props: ListProps): JSX.Element => {
-  const { players, sort, showPotential, ratingCode, dispatch } = props;
-  const column = keyColumn(sort, ratingCode);
+  const { players, showPotential, ratingCode, dispatch } = props;
+  const column = keyColumn(props);
   const { scrollRef, items, before, after } = useRows(players.length, ROW_HEIGHT_PX.list);
   return (
     <>

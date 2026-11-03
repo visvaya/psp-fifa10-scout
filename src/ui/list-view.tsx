@@ -1,6 +1,6 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, JSX, ReactNode } from "react";
-import { filterPlayers } from "../logic/filter-players.ts";
+import { filterPlayers, rangedAttributes } from "../logic/filter-players.ts";
 import type { Player } from "../logic/players.ts";
 import { activeFilters, effectiveFilters } from "../logic/scout-state.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
@@ -161,6 +161,8 @@ export const ListView = ({
   dispatch,
 }: ListViewProps): JSX.Element => {
   const { visible, sort } = useVisiblePlayers(players, state, collator);
+  const { ranges } = state.filters;
+  const ranged = useMemo(() => rangedAttributes(ranges), [ranges]);
 
   const form = (
     <FilterForm
@@ -204,6 +206,7 @@ export const ListView = ({
             sort={sort}
             showPotential={state.showPotential}
             ratingCode={state.filters.positionRating?.code ?? null}
+            rangedAttributes={ranged}
             dispatch={dispatch}
           />
         )}

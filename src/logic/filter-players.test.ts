@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterPlayers } from "./filter-players.ts";
+import { filterPlayers, rangedAttributes } from "./filter-players.ts";
 import type { PlayerFilters } from "./filter-players.ts";
 import { attributes, testPlayer } from "./test-support/player-fixtures.ts";
 
@@ -162,5 +162,18 @@ describe("filterPlayers", () => {
         flags: { playmaker: false },
       }),
     ).toEqual([1]);
+  });
+});
+
+describe("rangedAttributes", () => {
+  it("lists the attributes with a range, in the order they were added, without other ranges", () => {
+    const ranges = {
+      dribbling: { min: 70 },
+      age: { max: 21 },
+      acceleration: {},
+      finishing: { max: 9 },
+    };
+    expect(rangedAttributes(ranges)).toEqual(["dribbling", "finishing"]);
+    expect(rangedAttributes(undefined)).toEqual([]);
   });
 });
