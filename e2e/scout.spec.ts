@@ -1,6 +1,7 @@
 import { AxeBuilder } from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
+import path from "node:path";
 import { SYNTHETIC_DB_PATH, SYNTHETIC_LOCALE_PATHS } from "../scripts/write-synthetic-db.ts";
 
 /** Picks a game file once the input is enabled: setInputFiles also fills a disabled input, and a pick
@@ -14,6 +15,8 @@ const pickGame = async (page: Page, files: Parameters<Locator["setInputFiles"]>[
 const loadDatabase = async (page: Page) => {
   await page.goto("/");
   await pickGame(page, SYNTHETIC_DB_PATH);
+  // A picked game stays on the start screen, so a save or language can follow.
+  await page.getByRole("button", { name: /^Pokaż zawodników/u }).click();
   await expectCount(page, "62\u00a0zawodników");
 };
 
@@ -121,8 +124,11 @@ test.describe("wide screen", () => {
     await page.getByRole("checkbox", { name: "Bramkarze" }).check();
     await expectStoredPositionGroup(page, "goalkeeper");
     await page.reload();
+    // The restore is too fast to catch its skeleton reliably; the stored game opens the list directly.
     await expect(page.getByRole("checkbox", { name: "Bramkarze" })).toBeChecked();
     await expect(page.getByRole("table")).toBeVisible();
+    await page.getByRole("button", { name: "Pliki" }).click();
+    await expect(page.getByText(`Wczytano: ${path.basename(SYNTHETIC_DB_PATH)}`)).toBeVisible();
   });
 
   test("explains a wrong game file and keeps the start screen", async ({ page }) => {
@@ -133,6 +139,17 @@ test.describe("wide screen", () => {
       buffer: Buffer.from("not a game"),
     });
     await expect(page.getByRole("alert")).toContainText("To nie jest właściwy plik");
+  });
+});
+
+test.describe("without JavaScript", () => {
+  test.use({ javaScriptEnabled: false });
+
+  test("shows the title and a loading note with the skeleton", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByRole("heading", { name: "PSP FIFA 10 Scout" })).toBeVisible();
+    await expect(page.getByText("Wczytywanie…")).toBeVisible();
+    await expect(page.locator(".skeleton").first()).toBeVisible();
   });
 });
 
@@ -224,6 +241,8 @@ test.describe("game language", () => {
     await page
       .getByLabel("Albo dołącz plik języka i string.idx")
       .setInputFiles([...SYNTHETIC_LOCALE_PATHS]);
+    await expect(language).toHaveValue("pol_pl");
+    await page.getByRole("button", { name: /^Pokaż zawodników/u }).click();
     await expect(page.getByRole("table")).toBeVisible();
     await page.getByText("Klub i kontrakt").click();
     await expect(page.getByRole("checkbox", { name: "Polska" })).toBeVisible();

@@ -36,6 +36,8 @@
   --topbar-height: 3.5rem;
   --filter-panel-width: 18rem;
   --rating-width: 2.25rem;
+  --skeleton-pulse-duration: 1.2s;
+  --skeleton-dim-opacity: 0.4;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -65,11 +67,6 @@ body {
   font-size: var(--font-size-md);
   line-height: var(--line-height);
   font-variant-numeric: tabular-nums;
-}
-
-/* The loading note in index.html, shown until the app replaces it. */
-.boot-note {
-  padding: var(--space-4);
 }
 
 h1,
@@ -211,7 +208,83 @@ input[type="number"] {
 }
 
 .file-label {
+  justify-self: start;
   font-weight: 600;
+  cursor: pointer;
+}
+
+/* The hidden file input keeps the focus; its label shows it. */
+:focus-visible + .file-label {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+:disabled + .file-label {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.loaded {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* Loading placeholders (index.html before the app, the list while the stored game loads). */
+.skeleton {
+  border-radius: var(--radius-md);
+  background: var(--color-line);
+  animation: skeleton-pulse var(--skeleton-pulse-duration) ease-in-out infinite alternate;
+}
+
+@keyframes skeleton-pulse {
+  to {
+    opacity: var(--skeleton-dim-opacity);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+.skeleton-heading {
+  height: var(--font-size-xl);
+  width: 40%;
+}
+
+.skeleton-step {
+  height: 8rem;
+  margin-top: var(--space-6);
+}
+
+.skeleton-line {
+  flex: 1;
+  height: var(--font-size-md);
+}
+
+.skeleton-rating {
+  width: var(--rating-width);
+  height: var(--font-size-lg);
+}
+
+.restoring {
+  overflow-y: auto;
+}
+
+.restoring .status {
+  padding: var(--space-4);
+}
+
+/* The load phase and the preparing note, at the top of the main area. */
+.status {
+  display: block;
+  margin-top: var(--space-4);
+  font-weight: 600;
+}
+
+.start > .button {
+  margin-top: var(--space-4);
 }
 
 .status:empty {

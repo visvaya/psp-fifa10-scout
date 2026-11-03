@@ -18,11 +18,13 @@ export interface BuildSizes {
 // budget is raised only by a decision that names the reason, never to make a failing build pass.
 // Raised 2026-11-03 for the stage 2 filters (JS 103 970, precache 361 563): their Polish labels for
 // traits, ranges and lists and the sectioned panel add about 5.8 kB of gzipped JavaScript.
+// Raised 2026-11-03 for the loading states (JS 106 780, precache 372 469): the list skeleton, the
+// "show players" button, the loaded file names and the boot skeleton add 364 B of gzipped JavaScript.
 export const SIZE_BUDGETS: BuildSizes = {
-  jsGzipBytes: 104 * 1024,
+  jsGzipBytes: 105 * 1024,
   cssGzipBytes: 2.5 * 1024,
   serviceWorkerBytes: 11 * 1024,
-  precacheBytes: 362 * 1024,
+  precacheBytes: 364 * 1024,
 };
 
 const SIZE_KEYS = [

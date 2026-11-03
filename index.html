@@ -22,9 +22,18 @@
   <body>
     <div id="root">
       <!-- Replaced by the app once its script runs; stays when the script cannot load. -->
-      <p class="boot-note">
-        Wczytywanie… Jeśli aplikacja się nie pojawia, <a href="./">odśwież stronę</a>.
-      </p>
+      <div class="app" aria-busy="true">
+        <header class="topbar"><h1>PSP FIFA 10 Scout</h1></header>
+        <main class="main">
+          <div class="start">
+            <p>Wczytywanie… Jeśli aplikacja się nie pojawia, <a href="./">odśwież stronę</a>.</p>
+            <div class="skeleton skeleton-heading" aria-hidden="true"></div>
+            <div class="skeleton skeleton-step" aria-hidden="true"></div>
+            <div class="skeleton skeleton-step" aria-hidden="true"></div>
+            <div class="skeleton skeleton-step" aria-hidden="true"></div>
+          </div>
+        </main>
+      </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

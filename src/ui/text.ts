@@ -203,7 +203,11 @@ export const TEXT = {
   gameHelpPhone:
     "iPhone: w aplikacji Pliki otwórz folder PPSSPP, potem PSP/GAME, i wybierz obraz ISO gry.",
   gameHelpPc: "PC: obraz ISO leży tam, gdzie trzymasz gry dla PPSSPP.",
-  gameStored: "Baza gry jest zapamiętana. Wybierz plik ponownie tylko po zmianie gry.",
+  gameStored: "Wybierz plik ponownie tylko po zmianie gry.",
+  gameLoaded: (name: string | null): string =>
+    name === null ? "Zapamiętana baza gry" : `Wczytano: ${name}`,
+  showPlayers: (value: number): string => `Pokaż zawodników (${String(value)})`,
+  preparing: "Przygotowuję aplikację…",
   saveStep: "2. Zapis kariery (opcjonalnie)",
   saveInput: "Wybierz DATA.BIN i PARAM.SFO",
   saveHelp:

@@ -12,7 +12,12 @@ const loadPreferences = async (record: unknown) => {
 describe("scout store", () => {
   it("loads nothing from an empty backend", async () => {
     const store = createScoutStore(memoryBackend());
-    expect(await store.load()).toEqual({ gameDb: null, preferences: null, languages: {} });
+    expect(await store.load()).toEqual({
+      gameDb: null,
+      gameName: null,
+      preferences: null,
+      languages: {},
+    });
   });
 
   it("saves and loads the game database and the preferences", async () => {
@@ -34,11 +39,12 @@ describe("scout store", () => {
     const languages = {
       pol_pl: { teams: { 1: "Klub" }, leagues: { 2: "Liga" }, countries: { 37: "Polska" } },
     };
-    await store.saveGameDb(Uint8Array.of(1, 2, 3));
+    await store.saveGameDb(Uint8Array.of(1, 2, 3), "fifa.iso");
     await store.savePreferences(preferences);
     await store.saveLanguages(languages);
     expect(await store.load()).toEqual({
       gameDb: Uint8Array.of(1, 2, 3),
+      gameName: "fifa.iso",
       preferences,
       languages,
     });
@@ -78,6 +84,7 @@ describe("scout store", () => {
     });
     expect(await createScoutStore(backend).load()).toEqual({
       gameDb: null,
+      gameName: null,
       preferences: null,
       languages: {},
     });
@@ -176,7 +183,7 @@ describe("scout store", () => {
     ).toEqual({ filters: {}, sort: DEFAULT_SORT, showPotential: false });
   });
 
-  it("drops preferences of version 1 but keeps the stored fifa.db", async () => {
+  it("drops preferences of version 1 but keeps the stored fifa.db of version 1 without a name", async () => {
     const backend = memoryBackend();
     await backend.set("preferences", {
       schemaVersion: 1,
@@ -186,6 +193,7 @@ describe("scout store", () => {
     expect(SCHEMA_VERSION.preferences).toBe(3);
     expect(await createScoutStore(backend).load()).toEqual({
       gameDb: Uint8Array.of(7),
+      gameName: null,
       preferences: null,
       languages: {},
     });

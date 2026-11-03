@@ -23,6 +23,12 @@ const restore = (dispatch: Dispatch<ScoutAction>, stored: StoredScout) => {
   }
 };
 
+/** How a load started: a picked file's name, or the stored game with its name. */
+type LoadStarted = Pick<
+  Extract<ScoutAction, { readonly type: "load-started" }>,
+  "restored" | "gameName"
+>;
+
 const createSession = (dispatch: Dispatch<ScoutAction>) => {
   let worker: Worker | null = null;
   /** The store once open; saves wait for it, so a game picked before it opens is still kept. */
@@ -32,15 +38,17 @@ const createSession = (dispatch: Dispatch<ScoutAction>) => {
   let game: Blob | null = null;
   /** The save for every load; an attached language file for the next load only. */
   let pending: Pick<LoadRequest, "save" | "locale"> = {};
-  /** Requests whose game came from a picked file, so their fifa.db goes to the store. */
-  const fromFile = new Set<number>();
+  /** The file name of each request whose game came from a picked file, so its fifa.db goes to the store. */
+  const fromFile = new Map<number, string>();
 
-  const start = (source: Blob, picked = false) => {
+  /** Loads the game; a picked file carries its name, the stored one is restored, a reload has neither. */
+  const start = (source: Blob, started: LoadStarted = {}) => {
     lastRequestId += 1;
-    if (picked) fromFile.add(lastRequestId);
+    if (started.restored === undefined && typeof started.gameName === "string")
+      fromFile.set(lastRequestId, started.gameName);
     const request: WorkerRequest = { requestId: lastRequestId, game: source, ...pending };
     pending = pending.save === undefined ? {} : { save: pending.save };
-    dispatch({ type: "load-started", requestId: lastRequestId });
+    dispatch({ type: "load-started", requestId: lastRequestId, ...started });
     worker?.postMessage(request, []);
   };
 
@@ -59,8 +67,10 @@ const createSession = (dispatch: Dispatch<ScoutAction>) => {
     if (message.type === "failed" && message.error.stage === "save") pending = {};
     if (message.type === "done") {
       game = new Blob([message.result.gameDb.slice()]);
-      if (fromFile.delete(message.requestId))
-        void store?.then(async (opened) => opened.saveGameDb(message.result.gameDb));
+      const name = fromFile.get(message.requestId);
+      fromFile.delete(message.requestId);
+      if (name !== undefined)
+        void store?.then(async (opened) => opened.saveGameDb(message.result.gameDb, name));
     }
     dispatch(actionOf(message));
   };
@@ -76,17 +86,14 @@ const createSession = (dispatch: Dispatch<ScoutAction>) => {
       if (isCancelled()) return null;
       restore(dispatch, stored);
       // A game picked while the store opened wins over the stored one.
-      if (stored.gameDb !== null && lastRequestId === 0) start(new Blob([stored.gameDb.slice()]));
+      if (stored.gameDb !== null && lastRequestId === 0)
+        start(new Blob([stored.gameDb.slice()]), { restored: true, gameName: stored.gameName });
       return stored.gameDb !== null;
     },
     close: () => worker?.terminate(),
-    pickGame: (file: File) => start(file, true),
-    pickSave: (files: readonly File[]) => {
-      pickFiles("save", pickSaveFiles(files));
-    },
-    pickLocale: (files: readonly File[]) => {
-      pickFiles("locale", pickLocaleFiles(files));
-    },
+    pickGame: (file: File) => start(file, { gameName: file.name }),
+    pickSave: (files: readonly File[]) => pickFiles("save", pickSaveFiles(files)),
+    pickLocale: (files: readonly File[]) => pickFiles("locale", pickLocaleFiles(files)),
     savePreferences: (preferences: Preferences) => {
       void store?.then(async (opened) => opened.savePreferences(preferences));
     },
@@ -116,7 +123,6 @@ export const useScoutFiles = (dispatch: Dispatch<ScoutAction>) => {
 
   return {
     ready: hasStoredGame !== null,
-    hasStoredGame: hasStoredGame === true,
     pickGame: session.pickGame,
     pickSave: session.pickSave,
     pickLocale: session.pickLocale,
