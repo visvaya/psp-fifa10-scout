@@ -22,21 +22,21 @@ export const SECURITY_WORKFLOW = ".github/workflows/security.yml";
 export const PIN_RULES: readonly PinRule[] = [
   {
     name: "gitleaks",
-    pattern: /GITLEAKS_VERSION:\s*(\d+\.\d+\.\d+)/,
+    pattern: /^\s*GITLEAKS_VERSION:\s*(\d+\.\d+\.\d+)/m,
     source: { kind: "github", repo: "gitleaks/gitleaks" },
     howToBump:
       "update GITLEAKS_VERSION and GITLEAKS_SHA256 (linux_x64 entry of the checksums file)",
   },
   {
     name: "actionlint",
-    pattern: /ACTIONLINT_VERSION:\s*(\d+\.\d+\.\d+)/,
+    pattern: /^\s*ACTIONLINT_VERSION:\s*(\d+\.\d+\.\d+)/m,
     source: { kind: "github", repo: "rhysd/actionlint" },
     howToBump:
       "update ACTIONLINT_VERSION and ACTIONLINT_SHA256 (linux_amd64 entry of the checksums file)",
   },
   {
     name: "zizmor",
-    pattern: /ZIZMOR_VERSION:\s*(\d+\.\d+\.\d+)/,
+    pattern: /^\s*ZIZMOR_VERSION:\s*(\d+\.\d+\.\d+)/m,
     source: { kind: "pypi" },
     howToBump: "update ZIZMOR_VERSION and ZIZMOR_SHA256 (manylinux x86_64 wheel on PyPI)",
   },
