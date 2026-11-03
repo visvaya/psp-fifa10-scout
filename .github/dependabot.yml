@@ -1,0 +1,56 @@
+version: 2
+
+# Weekly, grouped updates keep the pull request count low on a single-maintainer repository. Security
+# updates are not grouped: they arrive on their own as soon as an advisory lands.
+#
+# `cooldown` waits a week after a version is published before proposing it. pnpm-workspace.yaml waits
+# three days (minimumReleaseAge); zizmor's dependabot-cooldown audit asks for seven, and a longer wait
+# here costs nothing because security updates skip the cooldown.
+#
+# Group names stay short: they end up in the pull request title, which CI holds to commitlint's
+# 72 characters.
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Europe/Warsaw
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: build
+      prefix-development: build
+      include: scope
+    groups:
+      # Vitest refuses mixed versions of its packages; the family moves together, majors included.
+      vitest:
+        patterns: ["vitest", "@vitest/*"]
+      # oxlint, oxlint-tsgolint and oxfmt are updated together (an oxlint release can require a newer
+      # tsgolint). Before 1.0 an oxfmt bump can reformat files: read that diff.
+      oxc:
+        patterns: ["oxlint", "oxfmt", "oxlint-*"]
+      prod:
+        dependency-type: production
+        update-types: [minor, patch]
+        exclude-patterns: ["vitest", "@vitest/*", "oxlint", "oxfmt", "oxlint-*"]
+      dev:
+        dependency-type: development
+        update-types: [minor, patch]
+        exclude-patterns: ["vitest", "@vitest/*", "oxlint", "oxfmt", "oxlint-*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Europe/Warsaw
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: ci
+      include: scope
+    groups:
+      actions:
+        patterns: ["*"]
