@@ -38,9 +38,10 @@ test.describe("wide screen", () => {
     await expect(card.getByText("Wisła Kraków")).toBeVisible();
     await expect(card.getByRole("heading", { name: "OVR na pozycjach" })).toBeVisible();
     await expect(card.getByText(/^Libero: SW/u)).toBeHidden();
+    await expect(card.getByRole("definition").filter({ hasText: /^~około 58$/u })).toBeVisible();
     await card.getByText("Boczny obrońca", { exact: true }).click();
-    await expect(card.getByText(/^Boczny obrońca: RB, LB · OVR \d+$/u)).toBeVisible();
-    await expect(card.getByText(/^Libero: SW · OVR \d+$/u)).toBeVisible();
+    await expect(card.getByText("Boczny obrońca: RB, LB · OVR 58", { exact: true })).toBeVisible();
+    await expect(card.getByText("Libero: SW · OVR 57", { exact: true })).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(card).toBeHidden();
     await expect(name).toBeFocused();

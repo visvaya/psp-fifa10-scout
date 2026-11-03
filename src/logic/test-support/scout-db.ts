@@ -53,6 +53,14 @@ const PLAYERS = table("players", [
     nationality: 37,
     preferredposition1: 29,
     potential: 74,
+    // Rates 58 as a full-back and 57 as a sweeper: the card shows that row as approximate.
+    tackling: 92,
+    marking: 46,
+    heading: 48,
+    ballcontrol: 43,
+    shortpassing: 38,
+    strength: 73,
+    stamina: 54,
   }),
   playerRow({
     playerid: 8,
