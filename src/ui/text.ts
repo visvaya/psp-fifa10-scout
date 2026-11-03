@@ -40,15 +40,17 @@ const YEARS = { one: "rok", few: "lata", many: "lat" } as const;
 // Label tables: plain data that only the literal-blind duplicate check sees as alike.
 // jscpd:ignore-start
 export const POSITION_GROUP_LABELS: Readonly<Record<PositionGroup, string>> = {
-  goalkeeper: "Bramkarze",
-  "full-backs": "Boczni obrońcy",
-  "wing-backs": "Wahadłowi",
-  "centre-backs": "Środkowi obrońcy",
-  "defensive-midfield": "Defensywni pomocnicy",
-  wide: "Skrzydłowi",
-  "central-midfield": "Środkowi pomocnicy",
-  "attacking-midfield": "Ofensywni pomocnicy",
-  forwards: "Napastnicy",
+  goalkeeper: "Bramkarz",
+  "full-backs": "Boczny obrońca",
+  "wing-backs": "Wahadłowy",
+  sweeper: "Libero",
+  "centre-backs": "Środkowy obrońca",
+  "defensive-midfield": "Defensywny pomocnik",
+  "central-midfield": "Środkowy pomocnik",
+  "attacking-midfield": "Ofensywny pomocnik",
+  "side-midfield": "Boczny pomocnik",
+  wingers: "Skrzydłowy",
+  forwards: "Napastnik",
 };
 
 export const ATTRIBUTE_LABELS: Readonly<Record<AttributeName, string>> = {
@@ -316,6 +318,10 @@ export const TEXT = {
     contract: "Kontrakt do",
     potential: "Potencjał",
     overallByGroup: "OVR na pozycjach",
+    approximately: "około ",
+    approximateMark: "~",
+    groupPositions: (group: string, positions: readonly string[], overall: number | null): string =>
+      `${group}: ${positions.join(", ")}${overall === null ? "" : ` · OVR ${String(overall)}`}`,
     foot: "Lepsza noga",
     left: "lewa",
     right: "prawa",

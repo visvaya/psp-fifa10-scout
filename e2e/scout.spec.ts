@@ -37,6 +37,11 @@ test.describe("wide screen", () => {
     const card = page.getByRole("dialog", { name: "Paweł Brożek" });
     await expect(card.getByText("Wisła Kraków")).toBeVisible();
     await expect(card.getByRole("heading", { name: "OVR na pozycjach" })).toBeVisible();
+    await expect(card.getByText(/^Libero: SW/u)).toBeHidden();
+    await expect(card.getByRole("definition").filter({ hasText: /^~około 58$/u })).toBeVisible();
+    await card.getByText("Boczny obrońca", { exact: true }).click();
+    await expect(card.getByText("Boczny obrońca: RB, LB · OVR 58", { exact: true })).toBeVisible();
+    await expect(card.getByText("Libero: SW · OVR 57", { exact: true })).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(card).toBeHidden();
     await expect(name).toBeFocused();
@@ -56,11 +61,11 @@ test.describe("wide screen", () => {
 
   test("keeps the game database and filters after a reload", async ({ page }) => {
     await loadDatabase(page);
-    await page.getByRole("checkbox", { name: "Bramkarze" }).check();
+    await page.getByRole("checkbox", { name: "Bramkarz" }).check();
     await expectStoredPositionGroup(page, "goalkeeper");
     await page.reload();
     // The restore is too fast to catch its skeleton reliably; the stored game opens the list directly.
-    await expect(page.getByRole("checkbox", { name: "Bramkarze" })).toBeChecked();
+    await expect(page.getByRole("checkbox", { name: "Bramkarz" })).toBeChecked();
     await expect(page.getByRole("table")).toBeVisible();
     await page.getByRole("button", { name: "Pliki" }).click();
     await expect(page.getByText(`Wczytano: ${path.basename(SYNTHETIC_DB_PATH)}`)).toBeVisible();

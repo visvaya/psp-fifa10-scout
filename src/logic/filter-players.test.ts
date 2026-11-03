@@ -12,7 +12,7 @@ const PLAYERS = [
     potential: 95,
     growth: 35,
     positionCode: 14,
-    positionGroup: "wide",
+    positionGroup: "wingers",
     preferredFoot: "left",
     height: 169,
     attributes: attributes(50, { dribbling: 97, finishing: 90 }),
@@ -67,7 +67,7 @@ describe("filterPlayers", () => {
   });
 
   it("keeps any of the chosen values of a list, by code or by name", () => {
-    expect(ids({ lists: { positionGroup: ["wide", "goalkeeper"] } })).toEqual([2, 3]);
+    expect(ids({ lists: { positionGroup: ["wingers", "goalkeeper"] } })).toEqual([2, 3]);
     expect(ids({ lists: { positionCode: [14, 17] } })).toEqual([1, 2, 4]);
     expect(ids({ lists: { preferredFoot: ["left"] } })).toEqual([2]);
     expect(ids({ lists: { positionGroup: [] } })).toEqual([1, 2, 3, 4]);

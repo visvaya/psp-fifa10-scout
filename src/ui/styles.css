@@ -716,6 +716,14 @@ input[type="number"] {
   text-align: right;
 }
 
+.facts summary {
+  cursor: pointer;
+}
+
+.facts details p {
+  margin: var(--space-1) 0 0;
+}
+
 .attribute-groups {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));

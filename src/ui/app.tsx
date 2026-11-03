@@ -108,6 +108,7 @@ export const App = (): JSX.Element => {
       {openPlayer === undefined ? null : (
         <PlayerCard
           player={openPlayer}
+          positionName={positionName}
           career={state.myTeamId !== null}
           showPotential={showPotential}
           onClose={() => {

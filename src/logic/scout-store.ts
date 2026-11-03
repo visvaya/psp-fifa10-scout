@@ -1,7 +1,7 @@
 // The one load/save adapter: the extracted fifa.db, the career save and the filter and sort preferences, each stored
 // as { schemaVersion, value } in a key-value backend (IndexedDB in the browser, memory otherwise).
-// Nothing leaves the device. Preferences 2 migrate to 3, a fifa.db 1 (bare bytes) to 2 (bytes and the
-// game file's name) and languages 1 to 2 (no position names); any other version or shape is ignored, and
+// Nothing leaves the device. Preferences 2 and 3 migrate to 4, a fifa.db 1 (bare bytes) to 2 (bytes and
+// the game file's name) and languages 1 to 2 (no position names); any other version or shape is ignored, and
 // unknown or malformed filter values are dropped one by one.
 import type { GameLanguages, GameNames } from "./game-names.ts";
 import { FLAG_KEYS, LIST_FIELDS, RANGE_KEYS } from "./filter-players.ts";
@@ -16,10 +16,10 @@ import type { SortKey } from "./sort-players.ts";
 
 /**
  * Per record, so a change to the preferences keeps the stored fifa.db. Preferences 2: clubStatus;
- * 3: ranges, lists and flags, showPotential. Game database 2: the game file's name. Languages 2:
- * position names.
+ * 3: ranges, lists and flags, showPotential; 4: sweeper, side midfield and wingers as groups. Game
+ * database 2: the game file's name. Languages 2: position names.
  */
-export const SCHEMA_VERSION = { gameDb: 2, preferences: 3, languages: 2, careerSave: 1 } as const;
+export const SCHEMA_VERSION = { gameDb: 2, preferences: 4, languages: 2, careerSave: 1 } as const;
 
 export interface StorageBackend {
   readonly get: (key: string) => Promise<unknown>;
@@ -194,9 +194,29 @@ const migrateFromV2 = (value: unknown): unknown => {
   };
 };
 
+/** Version 3 position groups: "wide" held side midfielders and wingers, "full-backs" the sweeper. */
+const V3_GROUPS: Readonly<Record<string, readonly string[]>> = {
+  wide: ["side-midfield", "wingers"],
+  "full-backs": ["full-backs", "sweeper"],
+};
+
+/** Version 3 filters with the version 4 position groups. */
+const migrateFromV3 = (value: unknown): unknown => {
+  const filters = recordOf(recordOf(value)["filters"]);
+  const lists = recordOf(filters["lists"]);
+  const groups = lists["positionGroup"];
+  if (!isRecord(value) || !Array.isArray(groups)) return value;
+  const positionGroup = groups.flatMap((group: unknown): readonly unknown[] =>
+    typeof group === "string" ? (V3_GROUPS[group] ?? [group]) : [group],
+  );
+  return { ...value, filters: { ...filters, lists: { ...lists, positionGroup } } };
+};
+
 const preferencesOf = (record: unknown): Preferences | null => {
   if (!isRecord(record)) return null;
-  if (record["schemaVersion"] === 2) return parsePreferences(migrateFromV2(record["value"]));
+  const { schemaVersion, value } = record;
+  if (schemaVersion === 2) return parsePreferences(migrateFromV3(migrateFromV2(value)));
+  if (schemaVersion === 3) return parsePreferences(migrateFromV3(value));
   return parsePreferences(versioned(record, SCHEMA_VERSION.preferences));
 };
 
