@@ -50,7 +50,10 @@ export const ModalDialog = ({
         pressedOutside.current = event.pointerType === "mouse" && isOutside(event);
       }}
       onClick={(event) => {
-        if (pressedOutside.current && isOutside(event)) onClose();
+        // Each press counts once; a keyboard click (detail 0) never closes, whatever came before.
+        const startedOutside = pressedOutside.current;
+        pressedOutside.current = false;
+        if (event.detail > 0 && startedOutside && isOutside(event)) onClose();
       }}
     >
       <header className="dialog-header">
