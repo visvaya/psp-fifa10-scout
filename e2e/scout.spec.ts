@@ -1,11 +1,19 @@
 import { AxeBuilder } from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { SYNTHETIC_DB_PATH, SYNTHETIC_LOCALE_PATHS } from "../scripts/write-synthetic-db.ts";
+
+/** Picks a game file once the input is enabled: setInputFiles also fills a disabled input, and a pick
+ * made before the app opens its worker is lost (a user cannot pick there). */
+const pickGame = async (page: Page, files: Parameters<Locator["setInputFiles"]>[0]) => {
+  const input = page.getByLabel("Wybierz obraz ISO lub fifa.db");
+  await expect(input).toBeEnabled();
+  await input.setInputFiles(files);
+};
 
 const loadDatabase = async (page: Page) => {
   await page.goto("/");
-  await page.getByLabel("Wybierz obraz ISO lub fifa.db").setInputFiles(SYNTHETIC_DB_PATH);
+  await pickGame(page, SYNTHETIC_DB_PATH);
   await expectCount(page, "62\u00a0zawodników");
 };
 
@@ -99,7 +107,7 @@ test.describe("wide screen", () => {
 
   test("explains a wrong game file and keeps the start screen", async ({ page }) => {
     await page.goto("/");
-    await page.getByLabel("Wybierz obraz ISO lub fifa.db").setInputFiles({
+    await pickGame(page, {
       name: "notes.txt",
       mimeType: "text/plain",
       buffer: Buffer.from("not a game"),
