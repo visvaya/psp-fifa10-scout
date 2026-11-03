@@ -29,6 +29,7 @@
     "verify": "pnpm format:check && pnpm check:text && pnpm typecheck && pnpm lint && pnpm test:coverage && pnpm check:duplicates && pnpm check:unused && pnpm build"
   },
   "dependencies": {
+    "@noble/ciphers": "2.4.0",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },
