@@ -27,7 +27,7 @@ const readValue = (bytes: Uint8Array, format: number, start: number, length: num
     const end = raw.indexOf(0);
     return new TextDecoder().decode(end < 0 ? raw : raw.subarray(0, end));
   }
-  return raw.slice();
+  return raw;
 };
 
 /** Every entry of a PARAM.SFO by key. Throws SaveFormatError on a malformed file. */

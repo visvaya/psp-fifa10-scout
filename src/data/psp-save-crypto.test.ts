@@ -1,7 +1,12 @@
 import { createHash } from "node:crypto";
 import { bytesToHex, hexToBytes } from "@noble/ciphers/utils.js";
 import { describe, expect, it } from "vitest";
-import { applyKeystream, computeSaveHash, decryptSaveData } from "./psp-save-crypto.ts";
+import {
+  applyKeystream,
+  computeSaveHash,
+  decryptSaveData,
+  doubleBlock,
+} from "./psp-save-crypto.ts";
 import { SaveFormatError } from "./save-format-error.ts";
 import { syntheticBytes } from "./test-support/synthetic-save.ts";
 
@@ -58,5 +63,45 @@ describe("save crypto, mode 5", () => {
     expect(() => decryptSaveData(file.subarray(0, 16), GAME_KEY, new Uint8Array(16))).toThrow(
       /length/,
     );
+  });
+});
+
+describe("doubleBlock", () => {
+  // CMAC subkeys from RFC 4493, section 4: L = AES-128(K, 0), K1 = double(L), K2 = double(K1).
+  it("doubles without the reduction constant when the top bit is clear", () => {
+    expect(bytesToHex(doubleBlock(hexToBytes("7df76b0c1ab899b33e42f047b91b546f")))).toBe(
+      "fbeed618357133667c85e08f7236a8de",
+    );
+  });
+
+  it("applies the reduction constant when the top bit is set", () => {
+    expect(bytesToHex(doubleBlock(hexToBytes("fbeed618357133667c85e08f7236a8de")))).toBe(
+      "f7ddac306ae266ccf90bc11ee46d513b",
+    );
+  });
+});
+
+describe("save hash edge cases", () => {
+  it("hashes a single block with no chain before it", () => {
+    // Independent Node crypto implementation, same file: bytes 0..15.
+    const file = Uint8Array.from({ length: 16 }, (_, index) => index);
+    expect(bytesToHex(computeSaveHash(file, GAME_KEY))).toBe("dbf5608d318bff2fcb53877f16949acf");
+  });
+
+  it("rejects an expected hash that differs in one byte or in length", () => {
+    const header = syntheticBytes(16, 7);
+    const file = encrypt(header, syntheticBytes(4112, 42));
+    const nearly = hexToBytes(KNOWN.hash);
+    nearly[15] = (nearly[15] ?? 0) ^ 1;
+    expect(() => decryptSaveData(file, GAME_KEY, nearly)).toThrow(/hash/);
+    const longer = new Uint8Array([...hexToBytes(KNOWN.hash), 0]);
+    expect(() => decryptSaveData(file, GAME_KEY, longer)).toThrow(/hash/);
+  });
+
+  it("round-trips a body that is a whole number of 2048-byte chunks", () => {
+    const header = syntheticBytes(16, 11);
+    const plain = syntheticBytes(4096, 12);
+    const file = encrypt(header, plain);
+    expect(decryptSaveData(file, GAME_KEY, computeSaveHash(file, GAME_KEY))).toEqual(plain);
   });
 });

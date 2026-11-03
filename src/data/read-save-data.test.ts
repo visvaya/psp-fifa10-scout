@@ -1,7 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { parseParamSfo, savedFileHash } from "./param-sfo.ts";
 import { applyKeystream, computeSaveHash } from "./psp-save-crypto.ts";
 import { FIFA10, readSaveData } from "./read-save-data.ts";
 import { SaveFormatError } from "./save-format-error.ts";
@@ -28,26 +27,14 @@ const encryptedSave = (): { dataBin: Uint8Array; paramSfo: Uint8Array } => {
   return { dataBin, paramSfo };
 };
 
-describe("parseParamSfo", () => {
-  it("reads text, number and binary entries", () => {
-    const sfo = parseParamSfo(encryptedSave().paramSfo);
-    expect(sfo.get("SAVEDATA_DIRECTORY")).toBe("ULES01328081");
-    expect(sfo.get("PARENTAL_LEVEL")).toBe(2);
-    expect(sfo.get("SAVEDATA_PARAMS")).toBeInstanceOf(Uint8Array);
-  });
-
-  it("rejects a file without the PSF magic or with an index past its end", () => {
-    expect(() => parseParamSfo(new Uint8Array(32))).toThrow(SaveFormatError);
-    const truncated = encryptedSave().paramSfo.subarray(0, 40);
-    expect(() => parseParamSfo(truncated)).toThrow(/out of range/);
-  });
-
-  it("finds the hash of a listed file only", () => {
-    const list = buildFileList("DATA.BIN", syntheticBytes(16, 5));
-    expect(savedFileHash(list, "DATA.BIN")).toEqual(syntheticBytes(16, 5));
-    expect(savedFileHash(list, "OTHER.BIN")).toBeUndefined();
-  });
-});
+const withParams = (flag: number, fileList: Uint8Array): Uint8Array => {
+  const params = new Uint8Array(128);
+  params[0] = flag;
+  return buildParamSfo([
+    { key: "SAVEDATA_FILE_LIST", value: fileList },
+    { key: "SAVEDATA_PARAMS", value: params },
+  ]);
+};
 
 describe("readSaveData", () => {
   it("decrypts an encrypted save", () => {
@@ -63,17 +50,25 @@ describe("readSaveData", () => {
     expect(readSaveData(PLAIN, paramSfo)).toEqual(PLAIN);
   });
 
-  it("rejects an unknown encryption mode and a PARAM.SFO of something else", () => {
-    const params = new Uint8Array(128);
-    params[0] = 0x21;
-    const mode3 = buildParamSfo([
+  it("names the unsupported encryption flag", () => {
+    const mode3 = withParams(0x21, buildFileList("DATA.BIN", new Uint8Array(16)));
+    expect(() => readSaveData(PLAIN, mode3)).toThrow(/Unsupported save encryption \(flag 0x21\)/);
+  });
+
+  it("rejects a PARAM.SFO without the save entries, even with one of them present", () => {
+    const fileListOnly = buildParamSfo([
       { key: "SAVEDATA_FILE_LIST", value: buildFileList("DATA.BIN", new Uint8Array(16)) },
-      { key: "SAVEDATA_PARAMS", value: params },
     ]);
-    expect(() => readSaveData(PLAIN, mode3)).toThrow(/Unsupported/);
-    expect(() => readSaveData(PLAIN, buildParamSfo([{ key: "TITLE", value: "x" }]))).toThrow(
-      /does not describe a save/,
-    );
+    const paramsOnly = buildParamSfo([{ key: "SAVEDATA_PARAMS", value: new Uint8Array(128) }]);
+    for (const sfo of [fileListOnly, paramsOnly, buildParamSfo([{ key: "TITLE", value: "x" }])]) {
+      expect(() => readSaveData(PLAIN, sfo)).toThrow(/does not describe a save/);
+    }
+  });
+
+  it("rejects an encrypted save whose PARAM.SFO does not list DATA.BIN", () => {
+    const sfo = withParams(0x41, buildFileList("OTHER.BIN", new Uint8Array(16)));
+    expect(() => readSaveData(encryptedSave().dataBin, sfo)).toThrow(/lists no DATA.BIN/);
+    expect(() => readSaveData(encryptedSave().dataBin, sfo)).toThrow(SaveFormatError);
   });
 });
 
