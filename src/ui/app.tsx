@@ -93,7 +93,6 @@ export const App = (): JSX.Element => {
           <StartScreen
             state={state}
             ready={files.ready}
-            hasStoredGame={files.hasStoredGame}
             language={language}
             onGame={files.pickGame}
             onSave={files.pickSave}

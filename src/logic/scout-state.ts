@@ -54,7 +54,16 @@ export type ScoutError =
 export interface ScoutState extends Preferences {
   readonly players: readonly Player[] | null;
   readonly myTeamId: number | null;
-  readonly loading: { readonly requestId: number; readonly phase: LoadPhase } | null;
+  readonly loading: {
+    readonly requestId: number;
+    readonly phase: LoadPhase;
+    /** The stored game loads on start; it opens the list, while a picked file stays on the start view. */
+    readonly restored: boolean;
+    /** The game file's name; null for a stored game saved without one, unset keeps the current. */
+    readonly gameName?: string | null;
+  } | null;
+  /** The name of the loaded game file, null when unknown. */
+  readonly gameName: string | null;
   readonly error: ScoutError | null;
   readonly view: "start" | "list";
   readonly openPlayerId: number | null;
@@ -63,7 +72,12 @@ export interface ScoutState extends Preferences {
 }
 
 type LoadAction =
-  | { readonly type: "load-started"; readonly requestId: number }
+  | {
+      readonly type: "load-started";
+      readonly requestId: number;
+      readonly restored?: true;
+      readonly gameName?: string | null;
+    }
   | { readonly type: "load-phase"; readonly requestId: number; readonly phase: LoadPhase }
   | {
       readonly type: "load-succeeded";
@@ -99,6 +113,7 @@ const POTENTIAL_KEYS: ReadonlySet<SortKey> = new Set(["potential", "growth"]);
 export const initialScoutState: ScoutState = {
   players: null,
   myTeamId: null,
+  gameName: null,
   loading: null,
   error: null,
   view: "start",
@@ -207,9 +222,6 @@ const consistent = (preferences: Preferences): Preferences => {
     : shown;
 };
 
-const isCurrent = (state: ScoutState, requestId: number): boolean =>
-  state.loading?.requestId === requestId;
-
 const isLoadAction = (action: ScoutAction): action is LoadAction => action.type.startsWith("load-");
 
 const nextDirection = (sort: ScoutSort, key: SortKey): SortDirection => {
@@ -218,31 +230,35 @@ const nextDirection = (sort: ScoutSort, key: SortKey): SortDirection => {
 };
 
 const loadReducer = (state: ScoutState, action: LoadAction): ScoutState => {
+  if (action.type === "load-started") {
+    const { requestId, restored, gameName } = action;
+    const loading = { requestId, phase: "game" as const, restored: restored === true };
+    return {
+      ...state,
+      loading: gameName === undefined ? loading : { ...loading, gameName },
+      error: null,
+    };
+  }
+  const { loading } = state;
+  if (loading?.requestId !== action.requestId) return state;
   switch (action.type) {
-    case "load-started":
-      return { ...state, loading: { requestId: action.requestId, phase: "game" }, error: null };
     case "load-phase":
-      return isCurrent(state, action.requestId)
-        ? { ...state, loading: { requestId: action.requestId, phase: action.phase } }
-        : state;
+      return { ...state, loading: { ...loading, phase: action.phase } };
     case "load-succeeded":
-      return isCurrent(state, action.requestId)
-        ? {
-            ...state,
-            players: action.players,
-            myTeamId: action.myTeamId,
-            languages: { ...state.languages, ...action.languages },
-            ...(action.attachedLanguage === null ? {} : { gameLanguage: action.attachedLanguage }),
-            loading: null,
-            view: "list",
-            openPlayerId: null,
-          }
-        : state;
+      return {
+        ...state,
+        players: action.players,
+        myTeamId: action.myTeamId,
+        gameName: loading.gameName === undefined ? state.gameName : loading.gameName,
+        languages: { ...state.languages, ...action.languages },
+        ...(action.attachedLanguage === null ? {} : { gameLanguage: action.attachedLanguage }),
+        loading: null,
+        view: loading.restored ? "list" : state.view,
+        openPlayerId: null,
+      };
     case "load-failed":
     default:
-      return isCurrent(state, action.requestId)
-        ? { ...state, loading: null, error: action.error }
-        : state;
+      return { ...state, loading: null, error: action.error };
   }
 };
 
@@ -294,6 +310,10 @@ export const scoutReducer = (state: ScoutState, action: ScoutAction): ScoutState
       return { ...state, openPlayerId: null };
   }
 };
+
+/** The stored game is loading and nothing shows yet: the list skeleton stands in for it. */
+export const isRestoring = ({ loading, players }: ScoutState): boolean =>
+  loading?.restored === true && players === null;
 
 /** The reducer action for a worker message. */
 export const actionOf = (message: WorkerMessage): ScoutAction => {

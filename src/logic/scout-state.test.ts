@@ -33,10 +33,15 @@ describe("scoutReducer loading", () => {
     expect(initialScoutState).toMatchObject({ players: null, loading: null, view: "start" });
   });
 
-  it("tracks the phase of the current load and shows the list when it succeeds", () => {
+  it("tracks the phase of the current load and stays on the start view after a picked file", () => {
     const reading = scoutReducer(loading, { type: "load-phase", requestId: 1, phase: "save" });
-    expect(reading.loading).toEqual({ requestId: 1, phase: "save" });
-    expect(loaded(5)).toMatchObject({ players: PLAYERS, myTeamId: 5, loading: null, view: "list" });
+    expect(reading.loading).toEqual({ requestId: 1, phase: "save", restored: false });
+    expect(loaded(5)).toMatchObject({
+      players: PLAYERS,
+      myTeamId: 5,
+      loading: null,
+      view: "start",
+    });
   });
 
   it("ignores phases and results of a superseded load", () => {

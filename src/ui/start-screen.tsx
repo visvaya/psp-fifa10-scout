@@ -1,12 +1,12 @@
 import type { ChangeEvent, Dispatch, JSX, ReactNode } from "react";
 import { languageLabel } from "../logic/game-names.ts";
 import type { LoadStage } from "../logic/load-scout.ts";
+import { isRestoring } from "../logic/scout-state.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
 import { TEXT } from "./text.ts";
 
 interface StartScreenProps {
   readonly state: ScoutState;
-  readonly hasStoredGame: boolean;
   /** The store and worker are open; picks before that would be lost. */
   readonly ready: boolean;
   /** The game language whose names show, null for the fifa.db names. */
@@ -25,6 +25,8 @@ interface FileStepProps {
   readonly ready: boolean;
   readonly multiple: boolean;
   readonly accept?: string;
+  /** What this step has loaded, shown in place of the browser's file input text. */
+  readonly loaded: string | null;
   /** Controls shown between the title and the file input. */
   readonly before?: ReactNode;
   readonly onFiles: (files: readonly File[]) => void;
@@ -47,10 +49,10 @@ const FileStep = (props: FileStepProps): JSX.Element => {
     <div className="step">
       <h3>{props.title}</h3>
       {props.before}
-      <label className="file-label" htmlFor={`${stage}-file`}>
-        {props.label}
-      </label>
+      {props.loaded === null ? null : <p className="loaded">{props.loaded}</p>}
+      {/* The input stays focusable and labelled; the label shows as the button. */}
       <input
+        className="visually-hidden"
         id={`${stage}-file`}
         type="file"
         multiple={props.multiple}
@@ -60,6 +62,9 @@ const FileStep = (props: FileStepProps): JSX.Element => {
         aria-invalid={failed !== null}
         onChange={onChange}
       />
+      <label className="button file-label" htmlFor={`${stage}-file`}>
+        {props.label}
+      </label>
       <div id={`${stage}-help`} className="help">
         {props.help}
       </div>
@@ -119,6 +124,7 @@ const LanguageStep = ({
     stage="locale"
     title={TEXT.languageStep}
     label={TEXT.localeInput}
+    loaded={null}
     multiple
     accept=".loc,.idx"
     before={
@@ -140,15 +146,61 @@ const LanguageStep = ({
   />
 );
 
+/** Stands in for the list while the stored game loads: rows shaped like the player rows. */
+const ListSkeleton = ({ phase }: { readonly phase: string }): JSX.Element => (
+  <div className="restoring">
+    <output className="status">{phase}</output>
+    <ol className="player-rows" aria-hidden="true">
+      {Array.from({ length: SKELETON_ROWS }, (_, row) => (
+        <li key={row} className="player-row">
+          <span className="skeleton skeleton-line" />
+          <span className="skeleton skeleton-rating" />
+        </li>
+      ))}
+    </ol>
+  </div>
+);
+
+const SKELETON_ROWS = 6;
+
+/** A picked game stays on the start screen, so a save or a language can follow; this opens the list. */
+const ShowPlayers = ({
+  count,
+  dispatch,
+}: {
+  readonly count: number;
+  readonly dispatch: Dispatch<ScoutAction>;
+}): JSX.Element => (
+  <button
+    type="button"
+    className="button primary"
+    onClick={() => {
+      dispatch({ type: "view-changed", view: "list" });
+    }}
+  >
+    {TEXT.showPlayers(count)}
+  </button>
+);
+
 export const StartScreen = (props: StartScreenProps): JSX.Element => {
-  const { state, hasStoredGame, ready, onGame, onSave } = props;
+  const { state, ready, onGame, onSave, dispatch } = props;
+  const { players, loading } = state;
+  if (isRestoring(state) && loading !== null)
+    return <ListSkeleton phase={TEXT.phase(loading.phase)} />;
   const shared = { state, ready };
   return (
     <section className="start" aria-labelledby="start-title">
       <h2 id="start-title">{TEXT.startHeading}</h2>
       <p className="muted">
-        {state.players === null ? `${TEXT.noData} ${TEXT.startIntro}` : TEXT.startIntro}
+        {players === null ? `${TEXT.noData} ${TEXT.startIntro}` : TEXT.startIntro}
       </p>
+      {/* Hidden while another game loads: the count and the list would be the previous game's. */}
+      {players === null || loading !== null ? null : (
+        <ShowPlayers count={players.length} dispatch={dispatch} />
+      )}
+      <output className="status">
+        {loading === null ? (ready ? "" : TEXT.preparing) : TEXT.phase(loading.phase)}
+      </output>
       <FileStep
         {...shared}
         stage="game"
@@ -156,12 +208,13 @@ export const StartScreen = (props: StartScreenProps): JSX.Element => {
         label={TEXT.gameInput}
         multiple={false}
         accept=".iso,.db"
+        loaded={players === null ? null : TEXT.gameLoaded(state.gameName)}
         onFiles={([file]) => {
           if (file !== undefined) onGame(file);
         }}
         help={
           <>
-            {hasStoredGame || state.players !== null ? <p>{TEXT.gameStored}</p> : null}
+            {players === null ? null : <p>{TEXT.gameStored}</p>}
             <p>{TEXT.gameHelpPhone}</p>
             <p>{TEXT.gameHelpPc}</p>
           </>
@@ -173,17 +226,15 @@ export const StartScreen = (props: StartScreenProps): JSX.Element => {
         title={TEXT.saveStep}
         label={TEXT.saveInput}
         multiple
+        loaded={state.myTeamId === null ? null : TEXT.saveLoaded}
         onFiles={onSave}
-        help={<p>{state.myTeamId === null ? TEXT.saveHelp : TEXT.saveLoaded}</p>}
+        help={<p>{TEXT.saveHelp}</p>}
       />
       <LanguageStep {...props} />
       <section className="step install-help" aria-labelledby="install-title">
         <h3 id="install-title">{TEXT.installHeading}</h3>
         <p className="help">{TEXT.installHelp}</p>
       </section>
-      <output className="status">
-        {state.loading === null ? "" : TEXT.phase(state.loading.phase)}
-      </output>
     </section>
   );
 };

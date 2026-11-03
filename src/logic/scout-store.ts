@@ -1,6 +1,7 @@
 // The one load/save adapter: the extracted fifa.db and the filter and sort preferences, each stored
 // as { schemaVersion, value } in a key-value backend (IndexedDB in the browser, memory otherwise).
-// Nothing leaves the device. Preferences 2 migrate to 3; any other version or shape is ignored, and
+// Nothing leaves the device. Preferences 2 migrate to 3 and a fifa.db 1 (bare bytes) to 2 (bytes and the
+// game file's name); any other version or shape is ignored, and
 // unknown or malformed filter values are dropped one by one.
 import type { GameLanguages, GameNames } from "./game-names.ts";
 import { FLAG_KEYS, LIST_FIELDS, RANGE_KEYS } from "./filter-players.ts";
@@ -14,9 +15,9 @@ import type { SortKey } from "./sort-players.ts";
 
 /**
  * Per record, so a change to the preferences keeps the stored fifa.db. Preferences 2: clubStatus;
- * 3: ranges, lists and flags, showPotential.
+ * 3: ranges, lists and flags, showPotential. Game database 2: the game file's name.
  */
-export const SCHEMA_VERSION = { gameDb: 1, preferences: 3, languages: 1 } as const;
+export const SCHEMA_VERSION = { gameDb: 2, preferences: 3, languages: 1 } as const;
 
 export interface StorageBackend {
   readonly get: (key: string) => Promise<unknown>;
@@ -25,6 +26,8 @@ export interface StorageBackend {
 
 export interface StoredScout {
   readonly gameDb: Uint8Array | null;
+  /** The name of the file the fifa.db came from, null when stored without one. */
+  readonly gameName: string | null;
   readonly preferences: Preferences | null;
   readonly languages: GameLanguages;
 }
@@ -206,19 +209,29 @@ const parseLanguages = (value: unknown): GameLanguages =>
     ),
   );
 
+/** The stored fifa.db and its file name; version 1 stored the bytes alone. */
+const gameDbOf = (record: unknown): Pick<StoredScout, "gameDb" | "gameName"> => {
+  const v1 = versioned(record, 1);
+  const { bytes, name } = recordOf(versioned(record, SCHEMA_VERSION.gameDb));
+  const gameDb = v1 ?? bytes;
+  return {
+    gameDb: gameDb instanceof Uint8Array ? gameDb : null,
+    gameName: v1 === undefined && typeof name === "string" ? name : null,
+  };
+};
+
 export const createScoutStore = (backend: StorageBackend) => ({
   load: async (): Promise<StoredScout> => {
-    const gameDb = versioned(await backend.get("gameDb"), SCHEMA_VERSION.gameDb);
     return {
-      gameDb: gameDb instanceof Uint8Array ? gameDb : null,
+      ...gameDbOf(await backend.get("gameDb")),
       preferences: preferencesOf(await backend.get("preferences")),
       languages: parseLanguages(
         versioned(await backend.get("languages"), SCHEMA_VERSION.languages),
       ),
     };
   },
-  saveGameDb: async (gameDb: Uint8Array): Promise<void> =>
-    backend.set("gameDb", { schemaVersion: SCHEMA_VERSION.gameDb, value: gameDb }),
+  saveGameDb: async (gameDb: Uint8Array, name: string): Promise<void> =>
+    backend.set("gameDb", { schemaVersion: SCHEMA_VERSION.gameDb, value: { bytes: gameDb, name } }),
   savePreferences: async (preferences: Preferences): Promise<void> =>
     backend.set("preferences", { schemaVersion: SCHEMA_VERSION.preferences, value: preferences }),
   saveLanguages: async (languages: GameLanguages): Promise<void> =>
