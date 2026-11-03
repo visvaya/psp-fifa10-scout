@@ -40,6 +40,42 @@ export const ATTRIBUTE_NAMES = [
 ] as const;
 
 export type AttributeName = (typeof ATTRIBUTE_NAMES)[number];
+
+/** The yes/no columns of `players` (0 or 1), in table order. */
+export const TRAIT_NAMES = [
+  "injuryprone",
+  "adaptability",
+  "ambition",
+  "comesforcrosses",
+  "diver",
+  "divesintotackles",
+  "earlycrosser",
+  "fansfavourite",
+  "flexibility",
+  "highclubidentification",
+  "hightrainingworkrate",
+  "holdsup",
+  "inflexible",
+  "latecrosser",
+  "leadership",
+  "longshottaker",
+  "longthrows",
+  "lowclubidentification",
+  "lowconcentration",
+  "lowtrainingworkrate",
+  "mediadarling",
+  "onetimepasser",
+  "playmaker",
+  "puncher",
+  "pushesupforcorners",
+  "rushesoutofgoal",
+  "scandalprone",
+  "selfish",
+  "staysongoalline",
+  "technicaldribbler",
+] as const;
+
+export type TraitName = (typeof TRAIT_NAMES)[number];
 export type Attributes = Readonly<Record<AttributeName, number>>;
 
 export const isAttributeName = (name: string): name is AttributeName =>
@@ -76,11 +112,29 @@ export interface Player {
   readonly potential: number;
   /** OVR at the preferred position: aged to the career date with a save, from fifa.db without. */
   readonly overall: number;
+  /** Potential minus OVR. */
+  readonly growth: number;
+  /** bodysizecode, 1..3; the game does not name the codes. */
+  readonly bodyType: number;
+  /** 1..5 stars (weakfootability 0..4). */
+  readonly weakFoot: number;
+  /** 1..5 stars. */
+  readonly internationalReputation: number;
+  /** 1..5. */
+  readonly learningSpeed: number;
+  readonly retirementAge: number;
+  /** developmenttypecode and developmentstylecode, the codes of the growth curves. */
+  readonly developmentType: number;
+  readonly developmentStyle: number;
+  /** The yes/no columns set for him, in TRAIT_NAMES order. */
+  readonly traits: readonly TraitName[];
   /** OVR at each position group, rated the same way. */
   readonly overallByGroup: Readonly<Record<PositionGroup, number>>;
   readonly attributes: Attributes;
   readonly clubId: number | null;
   readonly clubName: string | null;
+  /** The club's teams.overallrating. */
+  readonly clubRating: number | null;
   readonly leagueId: number | null;
   readonly leagueName: string | null;
   readonly contractEndYear: number | null;
@@ -93,6 +147,10 @@ export interface Player {
   readonly morale: number | null;
   readonly goals: number | null;
   readonly appearances: number | null;
+  /** Days out injured, from the save. */
+  readonly injuryDays: number | null;
+  /** On the save's transfer list. */
+  readonly transferListed: boolean;
 }
 
 interface Team {
@@ -101,6 +159,7 @@ interface Team {
   readonly leagueId: number;
   readonly leagueName: string;
   readonly level: number;
+  readonly rating: number;
 }
 
 interface Placement {
@@ -113,6 +172,7 @@ interface Context {
   readonly placements: ReadonlyMap<number, Placement>;
   readonly countries: ReadonlyMap<number, string>;
   readonly stats: ReadonlyMap<number, EaDbRow>;
+  readonly transferList: ReadonlySet<number>;
   readonly rate: (row: EaDbRow, attributes: Attributes, positionCode: number) => number;
 }
 
@@ -138,7 +198,8 @@ const teamsById = (db: EaDb): ReadonlyMap<number, Team> => {
       if (league === undefined) return [];
       const leagueId = num(league, "leagueid");
       const [name, leagueName] = [String(row["teamname"]), String(league["leaguename"])];
-      return [[id, { id, name, leagueId, leagueName, level: num(league, "level") }]];
+      const [level, rating] = [num(league, "level"), num(row, "overallrating")];
+      return [[id, { id, name, leagueId, leagueName, level, rating }]];
     }),
   );
 };
@@ -166,15 +227,41 @@ const placementsOf = (
 const statOf = (stats: EaDbRow | undefined, key: string): number | null =>
   stats === undefined ? null : num(stats, key);
 
+const NO_CLUB = {
+  clubId: null,
+  clubName: null,
+  clubRating: null,
+  leagueId: null,
+  leagueName: null,
+  contractEndYear: null,
+  jerseyNumber: null,
+} as const;
+
 const teamFields = ({ club, national }: Placement) => ({
-  clubId: club?.team.id ?? null,
-  clubName: club?.team.name ?? null,
-  leagueId: club?.team.leagueId ?? null,
-  leagueName: club?.team.leagueName ?? null,
-  contractEndYear: club === undefined ? null : num(club.link, "yearcontractvalidtil"),
-  jerseyNumber: club === undefined ? null : num(club.link, "jerseynumber"),
+  ...(club === undefined
+    ? NO_CLUB
+    : {
+        clubId: club.team.id,
+        clubName: club.team.name,
+        clubRating: club.team.rating,
+        leagueId: club.team.leagueId,
+        leagueName: club.team.leagueName,
+        contractEndYear: num(club.link, "yearcontractvalidtil"),
+        jerseyNumber: num(club.link, "jerseynumber"),
+      }),
   nationalTeamId: national?.id ?? null,
   nationalTeamName: national?.name ?? null,
+});
+
+const profileFields = (row: EaDbRow) => ({
+  bodyType: num(row, "bodysizecode"),
+  weakFoot: num(row, "weakfootability") + 1,
+  internationalReputation: num(row, "internationalreputation"),
+  learningSpeed: num(row, "learningspeed"),
+  retirementAge: num(row, "retirementage"),
+  developmentType: num(row, "developmenttypecode"),
+  developmentStyle: num(row, "developmentstylecode"),
+  traits: TRAIT_NAMES.filter((trait) => num(row, trait) === 1),
 });
 
 const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
@@ -185,6 +272,7 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
   const name = `${String(row["firstname"])} ${String(row["surname"])}`.trim();
   const attributes = attributesOf(row);
   const rate = (code: number): number => context.rate(row, attributes, code);
+  const [potential, overall] = [num(row, "potential"), rate(num(row, "preferredposition1"))];
   return {
     id,
     name,
@@ -197,8 +285,10 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
     preferredFoot: num(row, "preferredfoot") === 1 ? "left" : "right",
     height: num(row, "height"),
     weight: num(row, "weight"),
-    potential: num(row, "potential"),
-    overall: rate(num(row, "preferredposition1")),
+    potential,
+    overall,
+    growth: potential - overall,
+    ...profileFields(row),
     overallByGroup: byGroup(rate),
     attributes,
     ...teamFields(context.placements.get(id) ?? {}),
@@ -208,6 +298,8 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
     morale: statOf(stats, "morale"),
     goals: statOf(stats, "goals"),
     appearances: statOf(stats, "appearances"),
+    injuryDays: statOf(stats, "injurydaysout"),
+    transferListed: context.transferList.has(id),
   };
 };
 
@@ -254,6 +346,7 @@ export const buildPlayers = (db: EaDb, save?: CareerSave): readonly Player[] => 
       ? readTable(db, "teamplayerlinks")
       : effectiveRows(db, save, "teamplayerlinks");
   const stats = save === undefined ? [] : effectiveRows(db, save, "playerstats");
+  const transferList = save === undefined ? [] : effectiveRows(db, save, "career_transfer_list");
   const context: Context = {
     referenceDate:
       save === undefined
@@ -264,6 +357,7 @@ export const buildPlayers = (db: EaDb, save?: CareerSave): readonly Player[] => 
       readTable(db, "country").map((row) => [num(row, "countryid"), String(row["countryname"])]),
     ),
     stats: new Map(stats.map((row) => [num(row, "playerid"), row])),
+    transferList: new Set(transferList.map((row) => num(row, "playerid"))),
     rate: rater(db, save),
   };
   // The game keeps generated players out of the leagues until it places them (overall-rating.md, F2).
@@ -272,10 +366,7 @@ export const buildPlayers = (db: EaDb, save?: CareerSave): readonly Player[] => 
       ...links,
       ...(save === undefined
         ? []
-        : [
-            ...effectiveRows(db, save, "career_youth_accademy"),
-            ...effectiveRows(db, save, "career_transfer_list"),
-          ]),
+        : [...effectiveRows(db, save, "career_youth_accademy"), ...transferList]),
     ].map((row) => num(row, "playerid")),
   );
   return withNameOrder(

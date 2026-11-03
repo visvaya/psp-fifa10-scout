@@ -25,11 +25,11 @@ const DB = parseEaDb(
       { leagueid: 2028, leaguename: "World League", level: 7 },
     ]),
     table("teams", [
-      { teamid: 241, teamname: "FC Barcelona" },
-      { teamid: 1873, teamname: "Wisła Kraków" },
-      { teamid: 1369, teamname: "Argentina" },
-      { teamid: 9999, teamname: "All Stars" },
-      { teamid: 5000, teamname: "Unlisted" },
+      { teamid: 241, teamname: "FC Barcelona", overallrating: 84 },
+      { teamid: 1873, teamname: "Wisła Kraków", overallrating: 66 },
+      { teamid: 1369, teamname: "Argentina", overallrating: 83 },
+      { teamid: 9999, teamname: "All Stars", overallrating: 90 },
+      { teamid: 5000, teamname: "Unlisted", overallrating: 50 },
     ]),
     table("leagueteamlinks", [
       { leagueid: 53, teamid: 241 },
@@ -55,6 +55,15 @@ const DB = parseEaDb(
         acceleration: 94,
         reflexes: 9,
         crossing: 90,
+        bodysizecode: 1,
+        weakfootability: 3,
+        internationalreputation: 5,
+        learningspeed: 4,
+        retirementage: 36,
+        developmenttypecode: 3,
+        developmentstylecode: 5,
+        technicaldribbler: 1,
+        playmaker: 1,
       }),
       playerRow({
         playerid: 7,
@@ -108,7 +117,19 @@ const SAVE: CareerSave = new Map([
   ["career_youth_accademy", [row({ playerid: 400_001, dummy: 0 })]],
   ["career_transfer_list", [row({ playerid: 400_003 })]],
   ["career_players_grown_attributes", [row({ playerid: 7, potential_delta: -25 })]],
-  ["playerstats", [row({ playerid: 158_023, form: 3, morale: 4, goals: 12, appearances: 20 })]],
+  [
+    "playerstats",
+    [
+      row({
+        playerid: 158_023,
+        form: 3,
+        morale: 4,
+        goals: 12,
+        appearances: 20,
+        injurydaysout: 14,
+      }),
+    ],
+  ],
 ]);
 
 const byId = (players: ReturnType<typeof buildPlayers>, id: number) =>
@@ -137,10 +158,20 @@ describe("buildPlayers from fifa.db", () => {
       weight: 67,
       potential: 95,
       overall: 60,
+      growth: 35,
+      bodyType: 1,
+      weakFoot: 4,
+      internationalReputation: 5,
+      learningSpeed: 4,
+      retirementAge: 36,
+      developmentType: 3,
+      developmentStyle: 5,
+      traits: ["playmaker", "technicaldribbler"],
       overallByGroup: { ...byGroup(() => 50), goalkeeper: 41, wide: 60, "wing-backs": 54 },
       attributes: attributes(50, { acceleration: 94, reflexes: 9, crossing: 90 }),
       clubId: 241,
       clubName: "FC Barcelona",
+      clubRating: 84,
       leagueId: 53,
       leagueName: "Spain Primera Division (1)",
       contractEndYear: 2014,
@@ -153,6 +184,8 @@ describe("buildPlayers from fifa.db", () => {
       morale: null,
       goals: null,
       appearances: null,
+      injuryDays: null,
+      transferListed: false,
     });
   });
 
@@ -177,6 +210,7 @@ describe("buildPlayers from fifa.db", () => {
     expect(byId(players, 8)).toMatchObject({
       clubId: null,
       clubName: null,
+      clubRating: null,
       leagueId: null,
       leagueName: null,
       contractEndYear: null,
@@ -247,13 +281,21 @@ describe("buildPlayers with a career save", () => {
       morale: 4,
       goals: 12,
       appearances: 20,
+      injuryDays: 14,
     });
     expect(byId(players, 7)).toMatchObject({
       form: null,
       morale: null,
       goals: null,
       appearances: null,
+      injuryDays: null,
     });
+  });
+
+  it("marks the players on the save's transfer list", () => {
+    expect(players.filter((player) => player.transferListed).map((player) => player.id)).toEqual([
+      400_003,
+    ]);
   });
 });
 
