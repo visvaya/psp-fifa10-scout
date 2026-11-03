@@ -31,7 +31,7 @@ describe("scout store", () => {
         flags: { leadership: true, diver: false },
         positionRating: { code: 7, min: 70 },
         clubStatus: "free-agents",
-        excludeMyClub: true,
+        myClub: "only",
       },
       sort: { key: "positionRating", direction: "ascending" },
       showPotential: true,
@@ -148,6 +148,7 @@ describe("scout store", () => {
         // "all" was an option of earlier versions.
         clubStatus: "all",
         excludeMyClub: "yes",
+        myClub: "mine",
         positionRating: { code: 32, min: 1 },
       },
       sort: DEFAULT_SORT,
@@ -202,7 +203,8 @@ describe("scout store", () => {
         },
         lists: { positionGroup: ["forwards"], leagueId: [53], clubId: [241], nationalityId: [52] },
         clubStatus: "free-agents",
-        excludeMyClub: true,
+        // "Ukryj zawodników mojego klubu" was a checkbox before "Mój klub".
+        myClub: "hide",
       },
       sort: { key: "potential", direction: "descending" },
       showPotential: false,

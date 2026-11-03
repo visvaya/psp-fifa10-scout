@@ -134,6 +134,22 @@ describe("filterPlayers", () => {
     expect(ids({ excludeTeamId: 10 })).toEqual([2, 3]);
   });
 
+  it("counts academy youth as the user's club, whether it is hidden or the only one shown", () => {
+    const academy = testPlayer({ id: 5, name: "Academy", clubId: null, youth: true });
+    const signed = testPlayer({
+      id: 6,
+      name: "Free youth",
+      clubId: null,
+      youth: true,
+      freeAgent: true,
+    });
+    const all = [...PLAYERS, academy, signed];
+    const idsOf = (filters: PlayerFilters) =>
+      filterPlayers(all, filters).map((player) => player.id);
+    expect(idsOf({ onlyTeamId: 10 })).toEqual([1, 4, 5]);
+    expect(idsOf({ excludeTeamId: 10 })).toEqual([2, 3, 6]);
+  });
+
   it("counts only the game's free agents as free agents, not academy youth or legends", () => {
     const academy = testPlayer({ id: 5, name: "Academy", clubId: null, youth: true });
     const legend = testPlayer({ id: 6, name: "Legend", clubId: null });

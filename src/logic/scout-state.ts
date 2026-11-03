@@ -12,13 +12,16 @@ import type { SortDirection, SortKey } from "./sort-players.ts";
 /** Which players by club: unset means "available", everyone one can sign; free agents need a career. */
 export type ClubStatus = "available" | "free-agents";
 
-/** The filters as the user sets them; "exclude my club" becomes a club id only with a career. */
+/** The user's club in the list: unset shows it with everyone, "hide" leaves it out, "only" keeps it alone. */
+export type MyClub = "hide" | "only";
+
+/** The filters as the user sets them; "my club" becomes a club id only with a career. */
 export type ScoutFilters = Omit<
   PlayerFilters,
-  "excludeTeamId" | "freeAgentsOnly" | "availableOnly"
+  "excludeTeamId" | "onlyTeamId" | "freeAgentsOnly" | "availableOnly"
 > & {
   readonly clubStatus?: ClubStatus;
-  readonly excludeMyClub?: boolean;
+  readonly myClub?: MyClub;
 };
 type FilterKey = keyof ScoutFilters;
 /** A change to some filters; undefined clears one. */
@@ -27,7 +30,7 @@ export type FilterChange = { readonly [K in FilterKey]?: ScoutFilters[K] | undef
 export type FilterId =
   | "text"
   | "clubStatus"
-  | "excludeMyClub"
+  | "myClub"
   | "positionRating"
   | `ranges.${RangeKey}`
   | `lists.${ListKey}`
@@ -178,12 +181,12 @@ export const activeFilters = (filters: FilterChange): readonly FilterId[] => [
     (key) => `flags.${key}` as const,
   ),
   ...(filters.clubStatus === "free-agents" ? ["clubStatus" as const] : []),
-  ...(filters.excludeMyClub === true ? ["excludeMyClub" as const] : []),
+  ...(filters.myClub === undefined ? [] : ["myClub" as const]),
 ];
 
 /** Only the active filters, so empty values never linger in state or storage. */
 export const compactFilters = (filters: FilterChange): ScoutFilters => {
-  const { text, clubStatus, excludeMyClub, positionRating } = filters;
+  const { text, clubStatus, myClub, positionRating } = filters;
   const ranges = pick(filters.ranges, RANGE_KEYS, isRangeSet);
   const lists = pick(filters.lists, LIST_FIELDS, isNonEmpty);
   const flags = pick(filters.flags, FLAG_KEYS, isDefined);
@@ -194,7 +197,7 @@ export const compactFilters = (filters: FilterChange): ScoutFilters => {
     ...(lists === undefined ? {} : { lists }),
     ...(flags === undefined ? {} : { flags }),
     ...(clubStatus === "free-agents" ? { clubStatus } : {}),
-    ...(excludeMyClub === true ? { excludeMyClub } : {}),
+    ...(myClub === undefined ? {} : { myClub }),
   };
 };
 
@@ -263,7 +266,7 @@ const loadReducer = (state: ScoutState, action: LoadAction): ScoutState => {
               filters: compactFilters({
                 ...state.filters,
                 clubStatus: undefined,
-                excludeMyClub: undefined,
+                myClub: undefined,
               }),
             }
           : {}),
@@ -353,14 +356,18 @@ export const activeLanguage = (
 
 /** The filters filterPlayers takes. */
 export const effectiveFilters = (
-  { excludeMyClub, clubStatus, ...filters }: ScoutFilters,
+  { myClub, clubStatus, ...filters }: ScoutFilters,
   myTeamId: number | null,
 ): PlayerFilters => ({
   ...filters,
   ...(clubStatus === "free-agents" && myTeamId !== null
     ? { freeAgentsOnly: true }
     : { availableOnly: true }),
-  ...(excludeMyClub === true && myTeamId !== null ? { excludeTeamId: myTeamId } : {}),
+  ...(myClub === undefined || myTeamId === null
+    ? {}
+    : myClub === "hide"
+      ? { excludeTeamId: myTeamId }
+      : { onlyTeamId: myTeamId }),
 });
 
 export type AttributeBand = "high" | "good" | "average" | "low";

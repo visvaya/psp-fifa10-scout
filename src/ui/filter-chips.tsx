@@ -3,20 +3,21 @@ import type { Dispatch, JSX } from "react";
 import { FLAG_KEYS, LIST_FIELDS, RANGE_KEYS } from "../logic/filter-players.ts";
 import { activeFilters } from "../logic/scout-state.ts";
 import type { FilterId, ScoutAction, ScoutFilters } from "../logic/scout-state.ts";
-import { FLAG_LABELS, LIST_LABELS, rangeLabel, TEXT } from "./text.ts";
+import { FLAG_LABELS, LIST_LABELS, MY_CLUB_LABELS, rangeLabel, TEXT } from "./text.ts";
 
 const FILTER_LABELS = new Map<FilterId, string>([
   ["text", TEXT.text],
   ["clubStatus", TEXT.clubStatus],
-  ["excludeMyClub", TEXT.excludeMyClub],
+  ["myClub", TEXT.myClub],
   ["positionRating", TEXT.positionRating],
   ...RANGE_KEYS.map((key) => [`ranges.${key}`, rangeLabel(key)] as const),
   ...LIST_FIELDS.map((key) => [`lists.${key}`, LIST_LABELS[key]] as const),
   ...FLAG_KEYS.map((key) => [`flags.${key}`, FLAG_LABELS[key]] as const),
 ]);
 
-/** The chip text: the filter's name, with yes or no for a trait. */
+/** The chip text: the filter's name, with yes or no for a trait; the chosen option for "my club". */
 const chipText = (id: FilterId, filters: ScoutFilters): string => {
+  if (id === "myClub" && filters.myClub !== undefined) return MY_CLUB_LABELS[filters.myClub];
   const label = FILTER_LABELS.get(id) ?? id;
   const flag = FLAG_KEYS.find((key) => `flags.${key}` === id);
   const wanted = flag === undefined ? undefined : filters.flags?.[flag];

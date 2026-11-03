@@ -11,7 +11,7 @@ import { OVR_WEIGHTS } from "./overall-rating.ts";
 import { ATTRIBUTE_NAMES } from "./players.ts";
 import { POSITION_GROUPS } from "./positions.ts";
 import { compactFilters, inRecordOrder } from "./scout-state.ts";
-import type { ClubStatus, Preferences, ScoutFilters } from "./scout-state.ts";
+import type { ClubStatus, MyClub, Preferences, ScoutFilters } from "./scout-state.ts";
 import type { SortKey } from "./sort-players.ts";
 
 /**
@@ -84,6 +84,9 @@ const recordOf = (value: unknown): Readonly<Record<string, unknown>> =>
 const CLUB_STATUSES: readonly unknown[] = ["available", "free-agents"] satisfies ClubStatus[];
 const isClubStatus = (value: unknown): value is ClubStatus => CLUB_STATUSES.includes(value);
 
+const MY_CLUB: readonly unknown[] = ["hide", "only"] satisfies MyClub[];
+const isMyClub = (value: unknown): value is MyClub => MY_CLUB.includes(value);
+
 const isFiniteNumber = (value: unknown): value is number => Number.isFinite(value);
 
 const parseRange = (value: unknown): Range => {
@@ -124,7 +127,8 @@ const entriesOf = <K extends string, V>(
 };
 
 const parseFilters = (value: unknown): ScoutFilters => {
-  const { text, ranges, lists, flags, clubStatus, excludeMyClub, positionRating } = recordOf(value);
+  const { text, ranges, lists, flags, clubStatus, myClub, excludeMyClub, positionRating } =
+    recordOf(value);
   const rating = parsePositionRating(positionRating);
   return {
     ...(typeof text === "string" ? { text } : {}),
@@ -138,7 +142,8 @@ const parseFilters = (value: unknown): ScoutFilters => {
     flags: entriesOf(flags, FLAG_KEYS, (item) => (typeof item === "boolean" ? item : undefined)),
     ...(rating === undefined ? {} : { positionRating: rating }),
     ...(isClubStatus(clubStatus) ? { clubStatus } : {}),
-    ...(typeof excludeMyClub === "boolean" ? { excludeMyClub } : {}),
+    // excludeMyClub: the checkbox "Mój klub" replaced, kept as "hide".
+    ...(isMyClub(myClub) ? { myClub } : excludeMyClub === true ? { myClub: "hide" as const } : {}),
   };
 };
 

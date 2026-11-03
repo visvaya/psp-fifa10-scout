@@ -10,6 +10,7 @@ import type {
   ClubStatus,
   FacetOption,
   FilterChange,
+  MyClub,
   ScoutAction,
   ScoutFilters,
 } from "../logic/scout-state.ts";
@@ -24,6 +25,7 @@ import type { Choice } from "./filter-fields.tsx";
 import {
   ATTRIBUTE_LABELS,
   CLUB_STATUS_LABELS,
+  MY_CLUB_LABELS,
   FILTER_SECTION_LABELS,
   FLAG_LABELS,
   LIST_LABELS,
@@ -61,24 +63,60 @@ const PLAY_TRAITS = TRAIT_NAMES.filter((trait) => !CHARACTER_TRAITS.includes(tra
 
 const CLUB_STATUSES: readonly ClubStatus[] = ["available", "free-agents"];
 
-/** Players one can sign or only free agents; shown with a career, as fifa.db has no free agents. */
-const ClubStatusField = ({ filters, change }: { filters: ScoutFilters; change: Change }) => (
+/** "All" stands for an unset my-club filter. */
+const MY_CLUB_OPTIONS: readonly ("all" | MyClub)[] = ["all", "hide", "only"];
+
+/** One choice of a few, as radio buttons. */
+const RadioField = <T extends string>(props: {
+  readonly legend: string;
+  readonly name: string;
+  readonly options: readonly T[];
+  readonly labels: Readonly<Record<T, string>>;
+  readonly value: T;
+  readonly onChange: (value: T) => void;
+}) => (
   <fieldset className="field">
-    <legend>{TEXT.clubStatus}</legend>
-    {CLUB_STATUSES.map((status) => (
-      <label key={status} className="check">
+    <legend>{props.legend}</legend>
+    {props.options.map((option) => (
+      <label key={option} className="check">
         <input
           type="radio"
-          name="club-status"
-          checked={(filters.clubStatus ?? "available") === status}
+          name={props.name}
+          checked={props.value === option}
           onChange={() => {
-            change({ clubStatus: status });
+            props.onChange(option);
           }}
         />
-        {CLUB_STATUS_LABELS[status]}
+        {props.labels[option]}
       </label>
     ))}
   </fieldset>
+);
+
+/** Shown with a career: fifa.db has no free agents and no club of the user's. */
+const CareerClubFields = ({ filters, change }: { filters: ScoutFilters; change: Change }) => (
+  <>
+    <RadioField
+      legend={TEXT.clubStatus}
+      name="club-status"
+      options={CLUB_STATUSES}
+      labels={CLUB_STATUS_LABELS}
+      value={filters.clubStatus ?? "available"}
+      onChange={(clubStatus) => {
+        change({ clubStatus });
+      }}
+    />
+    <RadioField
+      legend={TEXT.myClub}
+      name="my-club"
+      options={MY_CLUB_OPTIONS}
+      labels={MY_CLUB_LABELS}
+      value={filters.myClub ?? "all"}
+      onChange={(option) => {
+        change({ myClub: option === "all" ? undefined : option });
+      }}
+    />
+  </>
 );
 
 const POSITION_CODES = OVR_WEIGHTS.map((_, code) => code);
@@ -313,21 +351,7 @@ const clubSection = ({ filters, change, facets, range, list, flag }: Kit, career
       }}
     />
     {flag("nationalTeam")}
-    {career ? (
-      <>
-        <ClubStatusField filters={filters} change={change} />
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={filters.excludeMyClub === true}
-            onChange={(event) => {
-              change({ excludeMyClub: event.currentTarget.checked });
-            }}
-          />
-          {TEXT.excludeMyClub}
-        </label>
-      </>
-    ) : null}
+    {career ? <CareerClubFields filters={filters} change={change} /> : null}
   </Section>
 );
 
