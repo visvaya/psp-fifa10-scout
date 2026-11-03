@@ -1,0 +1,89 @@
+name: Security
+
+# Checks that look at the repository itself rather than at the app: the workflows (actionlint, zizmor)
+# and the whole git history (gitleaks). The weekly run also catches advisories published against
+# dependencies that have not changed.
+#
+# One job with one step per scanner: GitHub bills every job rounded up to a full minute and each scan
+# takes seconds. Later steps run even when an earlier one fails, so every scanner reports.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 5 * * 1" # Monday 05:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    name: scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Pinned by hand with checksums from each release: Dependabot does not bump a tool downloaded in a
+    # run step. scripts/check-pinned-tools.ts reports newer releases (weekly, below).
+    env:
+      GITLEAKS_VERSION: 8.30.1
+      GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+      ACTIONLINT_VERSION: 1.7.12
+      ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+      # Checksum of the manylinux x86_64 wheel on PyPI.
+      ZIZMOR_VERSION: 1.31.1
+      ZIZMOR_SHA256: 58e878eb2dbd2c6183c105e1ac28c14f7dd1eca44a783f1fe2a69647d012c410
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # the secret scan reads every commit
+          persist-credentials: false
+      - name: Scan the full history for secrets
+        run: |
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -sSfL -o "$RUNNER_TEMP/$archive" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/$archive"
+          echo "$GITLEAKS_SHA256  $RUNNER_TEMP/$archive" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP" gitleaks
+          "$RUNNER_TEMP/gitleaks" git . --redact --no-banner --log-opts=--all
+      # actionlint checks that the workflows are correct (expressions, action inputs, ShellCheck on the
+      # run scripts); zizmor checks that they are safe.
+      - name: Workflows pass actionlint
+        if: ${{ !cancelled() }}
+        run: |
+          archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl -sSfL -o "$RUNNER_TEMP/$archive" \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/$archive"
+          echo "$ACTIONLINT_SHA256  $RUNNER_TEMP/$archive" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -color
+      - name: Workflows pass the zizmor security audit
+        if: ${{ !cancelled() }}
+        run: |
+          python3 -m venv "$RUNNER_TEMP/zizmor"
+          echo "zizmor==${ZIZMOR_VERSION} --hash=sha256:${ZIZMOR_SHA256}" > "$RUNNER_TEMP/zizmor.txt"
+          "$RUNNER_TEMP/zizmor/bin/pip" install --quiet --no-deps --only-binary :all: \
+            --require-hashes -r "$RUNNER_TEMP/zizmor.txt"
+          # Offline: the audits that query the GitHub API are skipped, so the step needs no token.
+          "$RUNNER_TEMP/zizmor/bin/zizmor" --persona pedantic --offline .github/workflows .github/dependabot.yml
+      # The CI workflow audits production dependencies on every push and pull request; the scheduled
+      # run repeats it for advisories published since, and reports newer releases of the tools above.
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        if: ${{ !cancelled() && github.event_name != 'pull_request' && github.event_name != 'push' }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: ${{ !cancelled() && github.event_name != 'pull_request' && github.event_name != 'push' }}
+        with:
+          node-version-file: .nvmrc
+          check-latest: true # newest patch of the .nvmrc line; no bot updates .nvmrc
+          package-manager-cache: false
+      - name: Audit production dependencies
+        if: ${{ !cancelled() && github.event_name != 'pull_request' && github.event_name != 'push' }}
+        run: pnpm audit --prod
+      - name: Hand-pinned tools are current
+        if: ${{ !cancelled() && github.event_name != 'pull_request' && github.event_name != 'push' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/check-pinned-tools.ts
