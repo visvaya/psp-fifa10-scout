@@ -207,6 +207,9 @@ const facetChoices = (options: readonly FacetOption[]): readonly Choice<number>[
 const codeChoices = (codes: readonly number[], prefix: string): readonly Choice<number>[] =>
   codes.map((code) => ({ value: code, label: TEXT.code(prefix, code) }));
 
+/** Ranges of large amounts, typed with grouped digits. */
+const GROUPED_RANGES: ReadonlySet<RangeKey> = new Set(["price", "wage"]);
+
 /** Builders for one control of each kind, bound to the current filters. */
 const controls = (filters: ScoutFilters, change: Change) => ({
   range: (key: RangeKey) => (
@@ -214,6 +217,7 @@ const controls = (filters: ScoutFilters, change: Change) => ({
       key={key}
       label={rangeLabel(key)}
       range={filters.ranges?.[key]}
+      grouped={GROUPED_RANGES.has(key)}
       onChange={(range) => {
         change({ ranges: { ...filters.ranges, [key]: range } });
       }}
