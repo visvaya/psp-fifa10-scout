@@ -115,9 +115,9 @@ export const ShortlistStar = ({ player }: { player: Player }) =>
     </span>
   ) : null;
 
-/** The star in words for screen readers, after the name. */
+/** The star in words for screen readers, after the name and a space. */
 export const ShortlistWords = ({ player }: { player: Player }) =>
-  player.shortlisted ? <span className="visually-hidden">{TEXT.shortlisted}</span> : null;
+  player.shortlisted ? <span className="visually-hidden">{` ${TEXT.shortlisted}`}</span> : null;
 
 /** The club name, or what stands in for it: a free agent, or a junior of the user's academy. */
 export const clubText = (player: Player): string =>
