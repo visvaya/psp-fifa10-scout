@@ -1,8 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { careerManager, parseCareerSave } from "../data/career-save.ts";
+import { careerManager, parseCareerSave, seasonStartDate } from "../data/career-save.ts";
 import type { CareerSave } from "../data/career-save.ts";
-import { parseEaDb } from "../data/ea-db.ts";
+import { parseEaDb, readTable } from "../data/ea-db.ts";
 import type { EaDbRow } from "../data/ea-db.ts";
 import { buildEaDb } from "../data/test-support/synthetic-ea-db.ts";
 import { baseOverall, CURVE_COLUMNS } from "./overall-rating.ts";
@@ -258,9 +258,19 @@ describe.runIf(existsSync(realDbPath) && existsSync(realCareerPath))("real caree
     );
     const before = new Map(atOldClub.map((player) => [player.id, player.price ?? 0]));
     const { lowest, highest, rounding } = CPU_FEE_RATIO;
-    // In later seasons a fifa.db contract has often run out (price 0): the clubs renewed it, and the
-    // contract at the sale is not in the save, so that fee says nothing about the formula.
-    const priced = sold.filter((entry) => (before.get(Number(entry["playerid"])) ?? 0) > 0);
+    // In later seasons a fifa.db contract has often run out: the clubs renewed it, and the contract at
+    // the sale is not in the save, so that fee says nothing about the formula.
+    const seasonYear = seasonStartDate(db, save).getUTCFullYear();
+    const contracts = new Map(
+      readTable(db, "teamplayerlinks").map((dbLink) => [
+        Number(dbLink["playerid"]),
+        Number(dbLink["yearcontractvalidtil"]),
+      ]),
+    );
+    const priced = sold.filter(
+      (entry) => (contracts.get(Number(entry["playerid"])) ?? 0) > seasonYear,
+    );
+    expect(priced.every((entry) => (before.get(Number(entry["playerid"])) ?? 0) > 0)).toBe(true);
     const ratios = priced.map(
       (entry) => as32(Number(entry["paid"])) / (before.get(Number(entry["playerid"])) ?? 0),
     );
