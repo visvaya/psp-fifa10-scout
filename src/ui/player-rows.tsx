@@ -180,12 +180,17 @@ const PhoneRow = (props: {
     >
       <span className="player-row-text">
         <PhoneName player={player} />
+        {/* The position and the age, each with its dot, are cut off whole, never after a dot. */}
         <span className="player-row-meta">
           {clubText(player)}
-          {TEXT.rowMetaSeparator}
-          <PositionName code={player.positionCode} name={player.positionName} />
-          {TEXT.rowMetaSeparator}
-          {TEXT.years(player.age)}
+          <span className="meta-part">
+            {TEXT.rowMetaPartSeparator}
+            <PositionName code={player.positionCode} name={player.positionName} />
+          </span>
+          <span className="meta-part">
+            {TEXT.rowMetaPartSeparator}
+            {TEXT.years(player.age)}
+          </span>
         </span>
       </span>
       {columns.map((column, index) => (

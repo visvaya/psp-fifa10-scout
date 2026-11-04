@@ -602,6 +602,11 @@ input[inputmode="numeric"] {
   display: inline;
 }
 
+/* Atomic, so the line's ellipsis replaces a part whole (text-overflow hides atomic inlines). */
+.meta-part {
+  display: inline-block;
+}
+
 .player-row-meta {
   color: var(--color-muted);
   font-size: var(--font-size-sm);
