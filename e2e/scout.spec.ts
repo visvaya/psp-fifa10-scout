@@ -97,8 +97,12 @@ test.describe("wide screen", () => {
     await expect(card.locator(".position")).toHaveCSS("color", "rgb(153, 0, 0)");
     // One row per way the game rates a position, with the gain over his OVR (49 as a striker).
     const row = (label: RegExp) => card.locator(".facts > div").filter({ hasText: label });
-    await expect(row(/^Boczny obrońca/u).getByRole("definition")).toHaveText("58 (+9)");
-    await expect(row(/^Libero/u).getByRole("definition")).toHaveText("57 (+8)");
+    await expect(row(/^Boczny obrońca/u).getByRole("definition")).toHaveText("(+9) 58");
+    await expect(row(/^Libero/u).getByRole("definition")).toHaveText("(+8) 57");
+    // Gains in colour: green above his OVR, red below, grey at his own position.
+    await expect(row(/^Libero/u).locator(".gain")).toHaveCSS("color", "rgb(29, 107, 60)");
+    await expect(row(/^Ofensywny/u).locator(".gain")).toHaveCSS("color", "rgb(163, 38, 27)");
+    await expect(row(/^Napastnik/u).getByRole("definition")).toHaveText("(0) 49");
     await expect(card.getByText("RB · LB", { exact: true })).toBeHidden();
     const positions = card.getByRole("button", { name: "OVR na pozycjach" });
     await positions.click();
