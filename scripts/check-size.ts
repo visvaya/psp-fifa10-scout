@@ -57,11 +57,13 @@ export interface BuildSizes {
 // the UI audit fixes above, and the save's currency: JS gzip 113 115, precache 391 994; with the
 // position name and chip fixes (#44, #45): JS gzip 113 218, precache 392 271; with the phone columns
 // (#48): JS gzip 113 754, precache 393 860.
+// Raised 2026-11-04 for the value each filter chip shows ("Szybkość: od 90"): JS gzip 111 538 -> 112 012,
+// precache 387 977 -> 389 553; on top of the transfer price: JS gzip 114 297, precache 395 644.
 export const SIZE_BUDGETS: BuildSizes = {
   jsGzipBytes: 112 * 1024,
   cssGzipBytes: 2950,
   serviceWorkerBytes: 11 * 1024,
-  precacheBytes: 385 * 1024,
+  precacheBytes: 387 * 1024,
 };
 
 const SIZE_KEYS = [
