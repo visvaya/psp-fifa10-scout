@@ -189,11 +189,11 @@ test.describe("filter panel", () => {
   test("rates players at a chosen position and sorts by it", async ({ page }) => {
     await loadDatabase(page);
     const rating = page.getByRole("group", { name: "Ocena na pozycji" });
-    await rating.getByLabel("Pozycja").selectOption({ label: "LB" });
-    const header = page.getByRole("columnheader", { name: /^OVR LB/u });
+    await rating.getByLabel("Pozycja").selectOption({ label: "Boczny obrońca (RB/LB)" });
+    const header = page.getByRole("columnheader", { name: /^OVR RB\/LB/u });
     await header.getByRole("button").click();
     await expect(header).toHaveAttribute("aria-sort", "descending");
-    await rating.getByRole("group", { name: "OVR LB" }).getByLabel("od").fill("99");
+    await rating.getByRole("group", { name: "OVR RB/LB" }).getByLabel("od").fill("99");
     await expect(page.getByText("Żaden zawodnik nie spełnia filtrów.")).toBeVisible();
     await page.getByRole("button", { name: "Usuń filtr: Ocena na pozycji" }).click();
     await expect(header).toHaveCount(0);

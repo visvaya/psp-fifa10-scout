@@ -10,6 +10,7 @@ import { FilterChips } from "./filter-chips.tsx";
 import { FilterForm } from "./filter-form.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
 import { columnLabel, PlayerCards, PlayerTable } from "./player-list.tsx";
+import { ratingAbbreviation } from "./position-name.tsx";
 import { TEXT } from "./text.ts";
 
 /** Wait before announcing a count, so typing in the search does not speak at every key. */
@@ -169,7 +170,7 @@ const ListResults = ({
 }: ListViewProps & { form: JSX.Element }) => {
   const { visible, sort } = useVisiblePlayers(players, state, collator);
   const ratingCode = state.filters.positionRating?.code ?? null;
-  const ratingName = ratingCode === null ? null : positionName(ratingCode);
+  const ratingName = ratingCode === null ? null : ratingAbbreviation(ratingCode, positionName);
   const { ranges } = state.filters;
   const ranged = useMemo(() => rangedAttributes(ranges), [ranges]);
   const List = wide ? PlayerTable : PlayerCards;

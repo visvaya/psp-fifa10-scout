@@ -7,8 +7,12 @@ import {
   POSITION_GROUPS,
   positionCodesOf,
   positionOf,
+  RATING_CHOICES,
+  ratingChoiceOf,
+  ratingCodeOf,
   rowRating,
 } from "./positions.ts";
+import { OVR_WEIGHTS } from "./overall-rating.ts";
 import type { PositionGroup } from "./positions.ts";
 
 const byGroupOf = (value: number) => byGroup(() => value);
@@ -67,6 +71,26 @@ describe("positionOf", () => {
       "attack",
       "attack",
     ]);
+  });
+
+  it("offers one rating choice per way the game rates a position", () => {
+    const rows = RATING_CHOICES.map(([code]) => OVR_WEIGHTS[code]);
+    expect(new Set(rows).size).toBe(10);
+    expect(new Set(OVR_WEIGHTS).size).toBe(10);
+    for (const code of POSITION_CODES) {
+      expect(OVR_WEIGHTS[ratingCodeOf(code)]).toBe(OVR_WEIGHTS[code]);
+    }
+  });
+
+  it("rates every code at its choice's first code, the sweeper on its own", () => {
+    expect([0, 1, 2, 4, 7, 14, 20, 31].map(ratingCodeOf)).toEqual([0, 1, 2, 5, 3, 15, 15, 30]);
+    expect(RATING_CHOICES.map(([code]) => ratingCodeOf(code))).toEqual([
+      0, 1, 2, 3, 5, 11, 15, 17, 23, 30,
+    ]);
+  });
+
+  it("names a code's rating choice by its codes", () => {
+    expect([7, 14, 4, 0].map(ratingChoiceOf)).toEqual([[3, 7], [15, 19], [5], [0]]);
   });
 
   it("uses the game's own names, which key the abbreviation of every language", () => {

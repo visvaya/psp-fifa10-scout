@@ -9,7 +9,7 @@ import type { ListKey, PositionRating, Range } from "./filter-players.ts";
 import type { SaveFiles } from "./load-scout.ts";
 import { OVR_WEIGHTS } from "./overall-rating.ts";
 import { ATTRIBUTE_NAMES } from "./players.ts";
-import { POSITION_GROUPS } from "./positions.ts";
+import { POSITION_GROUPS, ratingCodeOf } from "./positions.ts";
 import { compactFilters, inRecordOrder } from "./scout-state.ts";
 import type { ClubStatus, MyClub, Preferences, ScoutFilters } from "./scout-state.ts";
 import type { SortKey } from "./sort-players.ts";
@@ -98,11 +98,14 @@ const parseRange = (value: unknown): Range => {
   };
 };
 
-/** A position rating filter with a known position code 0..31, or undefined. */
+/**
+ * A position rating filter with a known position code 0..31, moved to its rating choice's code (rated
+ * the same way), or undefined.
+ */
 const parsePositionRating = (value: unknown): PositionRating | undefined => {
   const { code } = recordOf(value);
   return Number.isInteger(code) && isFiniteNumber(code) && code >= 0 && code < OVR_WEIGHTS.length
-    ? { code, ...parseRange(value) }
+    ? { code: ratingCodeOf(code), ...parseRange(value) }
     : undefined;
 };
 
