@@ -1,7 +1,7 @@
 import type { ChangeEvent, Dispatch, JSX, ReactNode } from "react";
 import { languageLabel } from "../logic/game-names.ts";
 import type { LoadStage } from "../logic/load-scout.ts";
-import { isRestoring } from "../logic/scout-state.ts";
+import { isRestoring, listedCount } from "../logic/scout-state.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
 import { TEXT } from "./text.ts";
 
@@ -232,7 +232,7 @@ export const StartScreen = (props: StartScreenProps): JSX.Element => {
       </p>
       {/* Hidden while another game loads: the count and the list would be the previous game's. */}
       {players === null || loading !== null ? null : (
-        <ShowPlayers count={players.length} dispatch={dispatch} />
+        <ShowPlayers count={listedCount(state)} dispatch={dispatch} />
       )}
       <output className="status">
         {loading === null ? (ready ? "" : TEXT.preparing) : TEXT.phase(loading.phase)}

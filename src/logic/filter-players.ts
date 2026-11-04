@@ -100,6 +100,10 @@ const inRange =
     return current !== null && current !== undefined && current >= min && current <= max;
   };
 
+/** One a club can sign: with a club, a free agent or academy youth; not a legend or national-team-only. */
+const isAvailable = (player: Player): boolean =>
+  player.clubId !== null || player.youth || player.freeAgent;
+
 /** In the user's club: linked to it, or a youth-pool player without a club, who sits in its academy. */
 const inClub = (player: Player, teamId: number): boolean =>
   player.clubId === teamId || (player.clubId === null && player.youth && !player.freeAgent);
@@ -130,9 +134,7 @@ const predicates = (filters: PlayerFilters): readonly Predicate[] => {
       return wanted === undefined ? [] : [(player: Player) => hasFlag(player, flag) === wanted];
     }),
     ...(filters.freeAgentsOnly === true ? [(player: Player) => player.freeAgent] : []),
-    ...(filters.availableOnly === true
-      ? [(player: Player) => player.clubId !== null || player.youth || player.freeAgent]
-      : []),
+    ...(filters.availableOnly === true ? [isAvailable] : []),
     ...(excludeTeamId === undefined ? [] : [(player: Player) => !inClub(player, excludeTeamId)]),
     ...(onlyTeamId === undefined ? [] : [(player: Player) => inClub(player, onlyTeamId)]),
   ];

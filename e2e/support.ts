@@ -19,8 +19,9 @@ export const pickGame = async (page: Page, files: Parameters<Locator["setInputFi
 export const loadDatabase = async (page: Page) => {
   await page.goto("/");
   await pickGame(page, SYNTHETIC_DB_PATH);
-  // A picked game stays on the start screen, so a save or language can follow.
-  await page.getByRole("button", { name: /^Pokaż zawodników/u }).click();
+  // A picked game stays on the start screen, so a save or language can follow. The button counts the
+  // players the list shows (no legends), with a thousands separator.
+  await page.getByRole("button", { name: "Pokaż zawodników (62)" }).click();
   await expectCount(page, "62\u00a0zawodników");
 };
 

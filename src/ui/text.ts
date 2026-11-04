@@ -231,7 +231,7 @@ export const TEXT = {
   gameStored: "Wybierz plik ponownie tylko po zmianie gry.",
   gameLoaded: (name: string | null): string =>
     name === null ? "Zapamiętana baza gry" : `Wczytano: ${name}`,
-  showPlayers: (value: number): string => `Pokaż zawodników (${String(value)})`,
+  showPlayers: (value: number): string => `Pokaż zawodników (${formatNumber(value)})`,
   preparing: "Przygotowuję aplikację…",
   saveStep: "2. Zapis kariery (opcjonalnie)",
   saveInput: "Wybierz DATA.BIN i PARAM.SFO",
