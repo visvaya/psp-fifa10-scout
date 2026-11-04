@@ -25,10 +25,12 @@ declare module "react" {
 const ROW_HEIGHT_PX = { table: 40, list: 64 } as const;
 /**
  * The phone rows in rem, alike for the rows and their smaller labels: the name's least width, a rating's
- * width, a label's width per character and its padding.
+ * width, a label's width per character and its padding. The name never takes more than nameMaxVw of the
+ * screen, so with enlarged text the numbers keep room beside it.
  */
 const PHONE = {
   nameMinRem: 9,
+  nameMaxVw: 45,
   ratingRem: 2.25,
   labelRemPerChar: 0.5,
   labelPaddingRem: 0.5,
@@ -332,10 +334,11 @@ const phoneColumnRem = (label: string): number =>
 const phoneLayout = (labels: readonly string[]): CSSProperties => {
   const widths = labels.map(phoneColumnRem);
   const sum = widths.reduce((total, width) => total + width, 0);
+  const name = `min(${String(PHONE.nameMinRem)}rem, ${String(PHONE.nameMaxVw)}vw)`;
   return {
-    "--phone-columns": `minmax(${String(PHONE.nameMinRem)}rem, 1fr) ${widths.map((width) => `${String(width)}rem`).join(" ")}`,
+    "--phone-columns": `minmax(${name}, 1fr) ${widths.map((width) => `${String(width)}rem`).join(" ")}`,
     // At least the screen; wider when the columns do not fit, so the list scrolls sideways.
-    "--phone-width": `max(100%, calc(${String(PHONE.nameMinRem)}rem + ${String(sum)}rem + ${String(widths.length)} * var(--space-2) + var(--space-4) * 2))`,
+    "--phone-width": `max(100%, calc(${name} + ${String(sum)}rem + ${String(widths.length)} * var(--space-2) + var(--space-4)))`,
   };
 };
 

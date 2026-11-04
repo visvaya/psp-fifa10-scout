@@ -155,6 +155,27 @@ test.describe("phone columns", () => {
     const lastCell = page.locator(".player-row").first().locator(".player-row-cell").last();
     await expect(lastCell).toBeInViewport();
   });
+
+  // With enlarged text the kept name must not cover the screen, or the numbers scroll under it.
+  test("keeps room for the numbers beside the name with large text", async ({ page }) => {
+    // Tall enough for rows under the enlarged toolbar.
+    await page.setViewportSize({ width: 320, height: 1400 });
+    await loadDatabase(page);
+    await page.getByRole("button", { name: "Filtry" }).click();
+    const dialog = page.getByRole("dialog", { name: "Filtry" });
+    await dialog.getByText("Atrybuty", { exact: true }).click();
+    await dialog.getByLabel("Dodaj atrybut").selectOption({ label: "Szybkość" });
+    await dialog.getByRole("group", { name: "Szybkość" }).getByLabel("od").fill("10");
+    await dialog.getByRole("button", { name: "Zamknij" }).click();
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = "32px";
+    });
+    const row = page.locator(".player-row").first();
+    const name = await row.locator(".player-row-text").boundingBox();
+    expect(name?.width ?? Number.NaN).toBeLessThanOrEqual(320 * 0.45 + 1);
+    await page.locator(".scroll").evaluate(scrollToEnd);
+    await expect(row.locator(".player-row-cell").last()).toBeInViewport();
+  });
 });
 
 test.describe("open dialog", () => {
