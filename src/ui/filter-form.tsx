@@ -252,7 +252,8 @@ type Kit = ReturnType<typeof controls> & {
   readonly positionName: (code: number) => string;
 };
 
-const basicSection = (kit: Kit, showPotential: boolean) => {
+/** career: the peak OVR exists only with a career save. */
+const basicSection = (kit: Kit, showPotential: boolean, career: boolean) => {
   const { filters, change, facets, range, list, positionName } = kit;
   return (
     <Section title={FILTER_SECTION_LABELS.basic} initiallyOpen>
@@ -286,7 +287,9 @@ const basicSection = (kit: Kit, showPotential: boolean) => {
         positionName={positionName}
         change={change}
       />
-      {showPotential ? [range("potential"), range("growth"), range("peak")] : null}
+      {showPotential
+        ? [range("potential"), range("growth"), ...(career ? [range("peak")] : [])]
+        : null}
     </Section>
   );
 };
@@ -375,7 +378,7 @@ export const FilterForm = ({
         />
         {TEXT.showPotential}
       </label>
-      {basicSection(kit, showPotential)}
+      {basicSection(kit, showPotential, myTeamId !== null)}
       {physiqueSection(kit)}
       <Section title={FILTER_SECTION_LABELS.attributes}>
         <AttributeRanges

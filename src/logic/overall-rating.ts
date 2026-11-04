@@ -251,7 +251,7 @@ export const careerAttributes = (
 
 /**
  * The highest OVR the development curves project at a position, this season and the coming ones: the
- * game's development chart shows the same projection season by season (52, 55, 57 for a junior).
+ * game's development chart shows the same projection season by season.
  */
 export const peakOverall = (
   overallAt: (positionCode: number, yearsAhead?: number) => number,

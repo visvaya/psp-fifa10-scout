@@ -277,23 +277,26 @@ const useTableColumns = ({
   rangedAttributes: ranged,
   currency,
   priced,
+  projected,
 }: Pick<
   ListProps,
   "ratingCode" | "ratingName" | "showPotential" | "rangedAttributes" | "currency"
 > & {
   readonly priced: boolean;
+  /** Some player has a peak OVR (a career save). */
+  readonly projected: boolean;
 }) => {
   const columns = useMemo(
     (): readonly SortKey[] => [
       ...LEAD_COLUMNS,
       "overall",
       ...(ratingCode === null ? [] : (["positionRating", "ratingGain"] as const)),
-      ...(showPotential ? (["potential", ...(priced ? (["peak"] as const) : [])] as const) : []),
+      ...(showPotential ? (["potential", ...(projected ? (["peak"] as const) : [])] as const) : []),
       ...ranged,
       ...DETAIL_COLUMNS.filter((column) => priced || column !== "price"),
       ...TABLE_ATTRIBUTES.filter((name) => !ranged.includes(name)),
     ],
-    [ratingCode, showPotential, ranged, priced],
+    [ratingCode, showPotential, ranged, priced, projected],
   );
   const label = useCallback(
     (column: SortKey) => columnLabel(column, ratingName, currency),
@@ -315,9 +318,10 @@ const ColumnGroup = ({ widths }: { widths: readonly number[] | null }) =>
 export const PlayerTable = (props: ListProps): JSX.Element => {
   const { players, allPlayers, sort, ratingCode, dispatch } = props;
   const { scrollRef, items, before, after } = useRows(players.length, ROW_HEIGHT_REM.table);
-  // Prices exist only in a career.
+  // Prices and peaks exist only in a career.
   const priced = useMemo(() => allPlayers.some((player) => player.price !== null), [allPlayers]);
-  const { columns, label } = useTableColumns({ ...props, priced });
+  const projected = useMemo(() => allPlayers.some((player) => player.peak !== null), [allPlayers]);
+  const { columns, label } = useTableColumns({ ...props, priced, projected });
   const tableRef = useRef<HTMLTableElement>(null);
   const widths = useColumnWidths({
     table: tableRef,

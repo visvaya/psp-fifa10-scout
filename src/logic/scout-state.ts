@@ -273,6 +273,7 @@ const loadReducer = (state: ScoutState, action: LoadAction): ScoutState => {
                 ...state.filters,
                 clubStatus: undefined,
                 myClub: undefined,
+                ranges: { ...state.filters.ranges, peak: undefined },
                 flags: { ...state.filters.flags, shortlisted: undefined },
               }),
             }

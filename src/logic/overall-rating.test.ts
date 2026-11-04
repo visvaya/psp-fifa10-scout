@@ -189,10 +189,9 @@ describe("careerOverall", () => {
 });
 
 describe("peakOverall", () => {
-  // The game's development chart for a junior: 52 this season, then 55 and 57 (2011-04-06 save).
   it("takes the highest OVR the curves project over the coming seasons", () => {
-    const chart = [52, 55, 57, 60, 61, 61, 62, 62, 61, 60];
-    expect(peakOverall((_code, years = 0) => chart[years] ?? 40, 11)).toBe(62);
+    const projection = [48, 51, 54, 56, 58, 59, 59, 58, 57];
+    expect(peakOverall((_code, years = 0) => projection[years] ?? 40, 11)).toBe(59);
   });
 
   it("keeps today's OVR for a player already past his peak", () => {
