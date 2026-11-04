@@ -774,6 +774,18 @@ input[type="number"] {
   white-space: nowrap;
 }
 
+.gain-up {
+  color: var(--color-accent);
+}
+
+.gain-down {
+  color: var(--color-error);
+}
+
+.gain-none {
+  color: var(--color-muted);
+}
+
 .facts dt p {
   margin: var(--space-1) 0 0;
 }

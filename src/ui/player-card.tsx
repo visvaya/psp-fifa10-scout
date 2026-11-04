@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import type { JSX, ReactNode } from "react";
 import type { AttributeName, Player } from "../logic/players.ts";
 import { nameTextIdOf, POSITION_CODES, RATING_CHOICES, ratingCodeOf } from "../logic/positions.ts";
-import { AttributeValue } from "./attribute-value.tsx";
+import { AttributeValue, GainValue } from "./attribute-value.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
 import { PositionName, ratingChoiceName } from "./position-name.tsx";
 import type { PositionNames } from "./position-name.tsx";
@@ -106,7 +106,7 @@ const ChoiceRatings = (props: { player: Player; names: PositionNames }) => {
                 {open ? <p>{choicePositions(code, names)}</p> : null}
               </dt>
               <dd className="rated">
-                {rating === null ? null : TEXT.card.gain(rating - player.overall)}
+                {rating === null ? null : <GainValue value={rating - player.overall} bracketed />}
                 {rating === null ? null : <AttributeValue value={rating} />}
               </dd>
             </div>

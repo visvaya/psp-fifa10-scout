@@ -44,9 +44,10 @@ export interface BuildSizes {
 // Raised 2026-11-04 for the filter sections' open and closed marker (UI audit): CSS gzip 2 709 -> 2 768.
 // Raised 2026-11-04 for the header's check for a new version and its messages: precache 385 121 ->
 // 386 162.
+// Raised 2026-11-04 for the card's gains before the ratings, coloured by sign: CSS gzip 2 790 -> 2 824.
 export const SIZE_BUDGETS: BuildSizes = {
   jsGzipBytes: 109 * 1024,
-  cssGzipBytes: 2800,
+  cssGzipBytes: 2850,
   serviceWorkerBytes: 11 * 1024,
   precacheBytes: 378 * 1024,
 };
