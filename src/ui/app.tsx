@@ -8,6 +8,7 @@ import { PlayerCard } from "./player-card.tsx";
 import type { PositionNames } from "./position-name.tsx";
 import { StartScreen } from "./start-screen.tsx";
 import { TEXT } from "./text.ts";
+import { canCheck, useAppUpdate } from "./app-update.ts";
 import { UpdatePrompt } from "./update-prompt.tsx";
 import { useMediaQuery } from "./use-media-query.ts";
 import { useScoutFiles } from "./use-scout-files.ts";
@@ -55,12 +56,31 @@ const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFile
   }, [ready, saveLanguages, languages]);
 };
 
-/** The title, with a switch between the list and the files once there is a list (view not null). */
-const TopBar = (props: { view: ScoutState["view"] | null; dispatch: Dispatch<ScoutAction> }) => {
-  const { view, dispatch } = props;
+/**
+ * The title, a check for a new version once a worker is registered, and a switch between the list and
+ * the files once there is a list (view not null).
+ */
+const TopBar = (props: {
+  view: ScoutState["view"] | null;
+  update: ReturnType<typeof useAppUpdate>;
+  dispatch: Dispatch<ScoutAction>;
+}) => {
+  const { view, update, dispatch } = props;
   return (
     <header className="topbar">
       <h1>{TEXT.appTitle}</h1>
+      {update.registered ? (
+        <button
+          type="button"
+          className="button"
+          aria-label={TEXT.update.check}
+          title={TEXT.update.check}
+          disabled={!canCheck(update.status)}
+          onClick={update.check}
+        >
+          <span aria-hidden="true">{TEXT.update.checkMark}</span>
+        </button>
+      ) : null}
       {view === null ? null : (
         <button
           type="button"
@@ -81,14 +101,15 @@ export const App = (): JSX.Element => {
   const files = useScoutFiles(dispatch);
   const wide = useMediaQuery(WIDE_QUERY);
   const { language, players, collator, positionNames } = useGameNames(state);
+  const update = useAppUpdate();
   useStoredState(state, files);
   const { view, showPotential } = state;
 
   const openPlayer = players?.find((player) => player.id === state.openPlayerId);
   return (
     <div className="app">
-      <TopBar view={players === null ? null : view} dispatch={dispatch} />
-      <UpdatePrompt />
+      <TopBar view={players === null ? null : view} update={update} dispatch={dispatch} />
+      <UpdatePrompt status={update.status} install={update.install} />
       <main className="main">
         {view === "list" && players !== null ? (
           <ListView
