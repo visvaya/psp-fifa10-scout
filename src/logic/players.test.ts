@@ -74,7 +74,13 @@ const DB = parseEaDb(
         birthdate: BORN_1989_07_10,
         preferredposition1: 12,
       }),
-      playerRow({ playerid: 8, nationality: 37, preferredposition1: 24 }),
+      playerRow({
+        playerid: 8,
+        firstname: " Jan ",
+        surname: " Kowalski ",
+        nationality: 37,
+        preferredposition1: 24,
+      }),
       playerRow({ playerid: 400_001, nationality: 37 }),
       playerRow({ playerid: 400_002, nationality: 37, preferredposition1: 30 }),
       playerRow({ playerid: 400_003, nationality: 37 }),
@@ -216,6 +222,10 @@ describe("buildPlayers from fifa.db", () => {
       nationalTeamId: null,
     });
     expect(byId(players, 8)).toMatchObject({
+      // Both parts trimmed before they are joined and shortened.
+      name: "Jan Kowalski",
+      initialName: "J. Kowalski",
+      searchName: "jan kowalski",
       positionName: "LCAM",
       positionGroup: "attacking-midfield",
     });
