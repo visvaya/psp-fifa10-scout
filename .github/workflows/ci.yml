@@ -64,9 +64,16 @@ jobs:
   e2e:
     name: e2e
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # A run takes about 3 minutes; a stuck one fails within this rather than holding the PR.
+    timeout-minutes: 12
     permissions:
       contents: read
+    # Playwright's image holds the browsers and their system packages. Installing those packages on the
+    # runner hung on a slow Ubuntu mirror until the job timed out (2026-11-04, four times). Its version
+    # follows @playwright/test: scripts/check-playwright-image.ts fails verify when they part.
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:2f05f8a734509a7b3f26a912639488ee08f58a7b292d14d62271bcff9038768f
+      options: --user 1001
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -78,22 +85,6 @@ jobs:
           check-latest: true
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # Browsers are cached per Playwright version; the system packages they need are not, so a cache
-      # hit still installs those.
-      - name: Read the Playwright version
-        id: playwright
-        run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" | tee -a "$GITHUB_OUTPUT"
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        id: playwright-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
-      - name: Install Playwright browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: pnpm exec playwright install --with-deps chromium webkit
-      - name: Install Playwright system dependencies
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: pnpm exec playwright install-deps chromium webkit
       - run: pnpm test:e2e
 
   # Publishes the build verify tested to Cloudflare Workers, after both gates, from main only. Off while the
