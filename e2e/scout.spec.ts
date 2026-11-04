@@ -13,6 +13,7 @@ import {
   guardSecurityPolicy,
   headerWidths,
   loadDatabase,
+  PHONE,
   pickGame,
   readStored,
 } from "./support.ts";
@@ -281,6 +282,32 @@ test.describe("career prices", () => {
       .fill("1");
     // A fifth of the generated players' contracts run out in 2009: their price is 0.
     await expectCount(page, "50 zawodników");
+  });
+});
+
+test.describe("career prices on a phone", () => {
+  test.use(PHONE);
+
+  // Prices run to nine digits: the fields group them as they are typed and give them the row.
+  test("groups the digits of a price as it is typed, keeping the caret", async ({ page }) => {
+    await page.goto("/");
+    await pickGame(page, SYNTHETIC_DB_PATH);
+    await page.getByLabel("Wybierz DATA.BIN i PARAM.SFO").setInputFiles([...SYNTHETIC_SAVE_PATHS]);
+    await page.getByRole("button", { name: /^Pokaż zawodników/u }).click();
+    await page.getByRole("button", { name: "Filtry" }).click();
+    const dialog = page.getByRole("dialog", { name: "Filtry" });
+    await dialog.getByText("Kariera", { exact: true }).click();
+    const from = dialog.getByRole("group", { name: "Cena", exact: true }).getByLabel("od");
+    await from.pressSequentially("100000000");
+    await expect(from).toHaveValue("100\u00a0000\u00a0000");
+    expect(await from.evaluate((input) => input.scrollWidth <= input.clientWidth)).toBe(true);
+    // A digit typed after the first one stays there, and so does the caret, once the field regroups.
+    await from.press("Home");
+    await from.press("ArrowRight");
+    await from.pressSequentially("23");
+    await expect(from).toHaveValue("12\u00a0300\u00a0000\u00a0000");
+    await from.fill("");
+    await expect(from).toHaveValue("");
   });
 });
 
