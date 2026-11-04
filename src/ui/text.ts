@@ -291,6 +291,7 @@ export const TEXT = {
     labels.map((label, index) => (index === 0 ? label : label.toLocaleLowerCase("pl"))).join(" / "),
   ratingGain: "Różnica do OVR",
   gainAt: (position: string): string => `Różnica ${position}`,
+  ratingGainShort: "różnica",
   signed: (value: number): string => signed(value),
   text: "Nazwisko",
   clubStatus: "Zawodnicy",
@@ -300,7 +301,7 @@ export const TEXT = {
   removeAttribute: (label: string): string => `Usuń atrybut: ${label}`,
   searchIn: (label: string): string => `Szukaj: ${label}`,
   flagValues: { any: "obojętne", yes: "tak", no: "nie" },
-  flagChip: (label: string, wanted: boolean): string => `${label}: ${wanted ? "tak" : "nie"}`,
+  chip: (label: string, value: string): string => `${label}: ${value}`,
   /** The text from a capital letter, as a chip starts. */
   capitalized: (text: string): string => text.charAt(0).toLocaleUpperCase("pl") + text.slice(1),
   code: (prefix: string, value: number): string => `${prefix} ${String(value)}`,

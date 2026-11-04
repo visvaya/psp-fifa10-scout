@@ -1,0 +1,64 @@
+import { describe, expect, it } from "vitest";
+import { testPlayer } from "../logic/test-support/player-fixtures.ts";
+import { chipText, namesById } from "./chip-text.ts";
+
+const names = {
+  positionName: (code: number) => ["BR", "ST (ang. SW)"][code] ?? `P${String(code)}`,
+  byId: namesById([
+    testPlayer({ id: 1, nationalityId: 52, nationalityName: "Argentina", clubId: 21 }),
+    testPlayer({ id: 2, nationalityId: 37, nationalityName: "Poland", clubId: null }),
+  ]),
+};
+
+describe("chipText", () => {
+  it("gives a range its bounds", () => {
+    const filters = {
+      ranges: { overall: { min: 70, max: 80 }, age: { max: 21 }, sprintspeed: { min: 90 } },
+    };
+    expect(chipText("ranges.overall", filters, names)).toBe("OVR: od 70 do 80");
+    expect(chipText("ranges.age", filters, names)).toBe("Wiek: do 21");
+    expect(chipText("ranges.sprintspeed", filters, names)).toBe("Szybkość: od 90");
+  });
+
+  it("names the chosen values, and counts those past the first three", () => {
+    const filters = {
+      lists: {
+        nationalityId: [52, 37],
+        positionCode: [0, 1, 2, 3, 4],
+        preferredFoot: ["left" as const],
+        positionGroup: ["sweeper" as const],
+        bodyType: [3],
+        leagueId: [99],
+      },
+    };
+    expect(chipText("lists.nationalityId", filters, names)).toBe("Narodowość: Argentina, Poland");
+    expect(chipText("lists.positionCode", filters, names)).toBe(
+      "Pozycje szczegółowe: BR, ST (ang. SW), P2 +2",
+    );
+    expect(chipText("lists.preferredFoot", filters, names)).toBe("Lepsza noga: lewa");
+    expect(chipText("lists.positionGroup", filters, names)).toBe("Pozycje: Libero");
+    expect(chipText("lists.bodyType", filters, names)).toBe("Typ budowy: typ 3");
+    // An id no player carries shows as the number.
+    expect(chipText("lists.leagueId", filters, names)).toBe("Liga: 99");
+  });
+
+  it("gives the position rating its position, bounds and gain", () => {
+    expect(
+      chipText("positionRating", { positionRating: { code: 0, min: 70, gain: { min: 1 } } }, names),
+    ).toBe("Ocena na pozycji: BR, od 70, różnica od +1");
+    expect(chipText("positionRating", { positionRating: { code: 0 } }, names)).toBe(
+      "Ocena na pozycji: BR",
+    );
+  });
+
+  it("gives the name searched for, yes or no for a trait, and the chosen option", () => {
+    expect(chipText("text", { text: "messi" }, names)).toBe("Nazwisko: messi");
+    expect(chipText("flags.injuryprone", { flags: { injuryprone: false } }, names)).toBe(
+      "Podatny na kontuzje: nie",
+    );
+    expect(chipText("myClub", { myClub: "hide" }, names)).toBe("Ukryj zawodników mojego klubu");
+    expect(chipText("clubStatus", { clubStatus: "free-agents" }, names)).toBe(
+      "Tylko wolni zawodnicy",
+    );
+  });
+});

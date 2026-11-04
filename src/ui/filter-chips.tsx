@@ -1,46 +1,32 @@
-// The active filters as removable chips, one per filter, with yes or no for a trait.
+// The active filters as removable chips, one per filter, each with the value it takes.
+import { useMemo } from "react";
 import type { Dispatch, JSX } from "react";
-import { FLAG_KEYS, LIST_FIELDS, RANGE_KEYS } from "../logic/filter-players.ts";
+import type { Player } from "../logic/players.ts";
 import { activeFilters } from "../logic/scout-state.ts";
-import type { FilterId, ScoutAction, ScoutFilters } from "../logic/scout-state.ts";
-import { FLAG_LABELS, LIST_LABELS, MY_CLUB_LABELS, rangeLabel, TEXT } from "./text.ts";
-
-const FILTER_LABELS = new Map<FilterId, string>([
-  ["text", TEXT.text],
-  ["clubStatus", TEXT.clubStatus],
-  ["myClub", TEXT.myClub],
-  ["positionRating", TEXT.positionRating],
-  ...RANGE_KEYS.map((key) => [`ranges.${key}`, rangeLabel(key)] as const),
-  ...LIST_FIELDS.map((key) => [`lists.${key}`, LIST_LABELS[key]] as const),
-  ...FLAG_KEYS.map((key) => [`flags.${key}`, FLAG_LABELS[key]] as const),
-]);
-
-/**
- * The chip text, from a capital letter: the filter's name, with yes or no for a trait; the chosen
- * option for "my club".
- */
-const chipText = (id: FilterId, filters: ScoutFilters): string => {
-  if (id === "myClub" && filters.myClub !== undefined) {
-    return TEXT.capitalized(MY_CLUB_LABELS[filters.myClub]);
-  }
-  const label = FILTER_LABELS.get(id) ?? id;
-  const flag = FLAG_KEYS.find((key) => `flags.${key}` === id);
-  const wanted = flag === undefined ? undefined : filters.flags?.[flag];
-  return TEXT.capitalized(wanted === undefined ? label : TEXT.flagChip(label, wanted));
-};
+import type { ScoutAction, ScoutFilters } from "../logic/scout-state.ts";
+import { chipText, namesById } from "./chip-text.ts";
+import { TEXT } from "./text.ts";
 
 export const FilterChips = (props: {
   filters: ScoutFilters;
+  /** The loaded players, for the names of the chosen leagues, clubs and countries. */
+  players: readonly Player[];
+  positionName: (code: number) => string;
   /** Folded into one line that opens them, where the list needs the room (phones). */
   folded: boolean;
   dispatch: Dispatch<ScoutAction>;
 }): JSX.Element | null => {
+  const { players, positionName } = props;
+  const names = useMemo(
+    () => ({ positionName, byId: namesById(players) }),
+    [players, positionName],
+  );
   const ids = activeFilters(props.filters);
   if (ids.length === 0) return null;
   const chips = (
     <ul className="chips" aria-label={TEXT.activeFilters}>
       {ids.map((id) => {
-        const text = chipText(id, props.filters);
+        const text = chipText(id, props.filters, names);
         return (
           <li key={id}>
             <button

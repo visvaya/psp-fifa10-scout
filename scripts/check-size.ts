@@ -47,11 +47,13 @@ export interface BuildSizes {
 // Raised 2026-11-04 for the card's gains before the ratings, coloured by sign: CSS gzip 2 790 -> 2 824.
 // Raised 2026-11-04 for closing the update check's result and saying what an update keeps: precache
 // 386 572 -> 387 219.
+// Raised 2026-11-04 for the value each filter chip shows ("Szybkość: od 90"): JS gzip 111 538 -> 112 012,
+// precache 387 977 -> 389 553.
 export const SIZE_BUDGETS: BuildSizes = {
-  jsGzipBytes: 109 * 1024,
+  jsGzipBytes: 110 * 1024,
   cssGzipBytes: 2850,
   serviceWorkerBytes: 11 * 1024,
-  precacheBytes: 379 * 1024,
+  precacheBytes: 381 * 1024,
 };
 
 const SIZE_KEYS = [

@@ -188,7 +188,13 @@ const ListResults = ({
         <SortControls state={state} ratingName={ratingName} dispatch={dispatch} />
         <ResultCount count={visible.length} />
       </div>
-      <FilterChips filters={state.filters} folded={!wide} dispatch={dispatch} />
+      <FilterChips
+        filters={state.filters}
+        players={players}
+        positionName={positionName}
+        folded={!wide}
+        dispatch={dispatch}
+      />
       {visible.length === 0 ? (
         <NoMatches dispatch={dispatch} />
       ) : (
