@@ -93,7 +93,7 @@ const PRICE_GROUPS: readonly (readonly [number, PriceGroup])[] = [
 export interface PriceInput {
   /** The preferred position. */
   readonly positionCode: number;
-  /** OVR at the club position, as the game rates players for the market. */
+  /** OVR at the preferred position: prices read off the game's screen agree with it. */
   readonly overall: number;
   /** The same OVR five years older. */
   readonly overallIn5Years: number;
