@@ -551,6 +551,24 @@ input[type="number"] {
   font-weight: 600;
 }
 
+/* One colour per line, alike by nature. jscpd:ignore-start */
+.position-goalkeeper {
+  color: var(--color-position-goalkeeper);
+}
+
+.position-defence {
+  color: var(--color-position-defence);
+}
+
+.position-midfield {
+  color: var(--color-position-midfield);
+}
+
+.position-attack {
+  color: var(--color-position-attack);
+}
+/* jscpd:ignore-end */
+
 .rating-high {
   background: var(--color-band-high);
   color: var(--color-band-high-ink);

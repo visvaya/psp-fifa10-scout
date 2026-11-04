@@ -38,12 +38,12 @@ export interface BuildSizes {
 // Raised 2026-11-04 for the "~" before a card row whose groups rate differently: precache 381 818 ->
 // 382 254.
 // Raised 2026-11-04 for position abbreviations in the game's line colours, light and dark: CSS gzip
-// 2 605 -> 2 684 (precache 382 254 -> 382 933, within its budget).
+// 2 605 -> 2 720, precache 382 254 -> 383 126.
 export const SIZE_BUDGETS: BuildSizes = {
   jsGzipBytes: 108 * 1024,
-  cssGzipBytes: 2700,
+  cssGzipBytes: 2750,
   serviceWorkerBytes: 11 * 1024,
-  precacheBytes: 374 * 1024,
+  precacheBytes: 375 * 1024,
 };
 
 const SIZE_KEYS = [
