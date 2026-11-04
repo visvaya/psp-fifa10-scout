@@ -48,6 +48,7 @@ const PLAYERS = [
     contractEndYear: 2010,
     form: 4,
     transferListed: true,
+    shortlisted: true,
   }),
 ];
 
@@ -156,6 +157,8 @@ describe("filterPlayers", () => {
     expect(ids({ flags: { nationalTeam: false } })).toEqual([1, 3, 4]);
     expect(ids({ flags: { transferListed: true } })).toEqual([4]);
     expect(ids({ flags: { transferListed: false } })).toEqual([1, 2, 3]);
+    expect(ids({ flags: { shortlisted: true } })).toEqual([4]);
+    expect(ids({ flags: { shortlisted: false } })).toEqual([1, 2, 3]);
   });
 
   it("finds free agents and excludes a team", () => {

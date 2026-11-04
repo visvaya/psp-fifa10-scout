@@ -47,8 +47,13 @@ export const LIST_FIELDS = [
 ] as const satisfies readonly (keyof Player)[];
 
 export type ListKey = (typeof LIST_FIELDS)[number];
-export type FlagKey = TraitName | "nationalTeam" | "transferListed";
-export const FLAG_KEYS: readonly FlagKey[] = [...TRAIT_NAMES, "nationalTeam", "transferListed"];
+export type FlagKey = TraitName | "nationalTeam" | "transferListed" | "shortlisted";
+export const FLAG_KEYS: readonly FlagKey[] = [
+  ...TRAIT_NAMES,
+  "nationalTeam",
+  "transferListed",
+  "shortlisted",
+];
 
 export interface PlayerFilters {
   /** Part of the name, ignoring case and diacritics. */
@@ -89,6 +94,7 @@ export const rangeValue = (player: Player, key: RangeKey): number | null =>
 
 const hasFlag = (player: Player, flag: FlagKey): boolean => {
   if (flag === "nationalTeam") return player.nationalTeamId !== null;
+  if (flag === "shortlisted") return player.shortlisted;
   return flag === "transferListed" ? player.transferListed : player.traits.includes(flag);
 };
 

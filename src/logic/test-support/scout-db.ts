@@ -124,6 +124,8 @@ export const buildScoutDb = (): Uint8Array =>
     empty("playerstats"),
     empty("career_youth_accademy"),
     empty("career_transfer_list"),
+    // Messi is on the user's shortlist in the game.
+    table("career_shortlist", [{ playerid: 158_023, shortlist_dummy: 0 }]),
     empty("career_players_grown_attributes"),
     // Brożek plays for the user's club: the card shows his contract's wage, not the market's.
     table("career_extra_user_team_info", [

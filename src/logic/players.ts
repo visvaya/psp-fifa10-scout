@@ -164,6 +164,8 @@ export interface Player extends Finance {
   readonly injuryDays: number | null;
   /** On the save's transfer list. */
   readonly transferListed: boolean;
+  /** On the user's shortlist in the game (the save's career_shortlist). */
+  readonly shortlisted: boolean;
 }
 
 interface Team {
@@ -188,6 +190,7 @@ interface Context {
   readonly countries: ReadonlyMap<number, string>;
   readonly stats: ReadonlyMap<number, EaDbRow>;
   readonly transferList: ReadonlySet<number>;
+  readonly shortlist: ReadonlySet<number>;
   readonly freeAgents: ReadonlySet<number>;
   readonly rate: (row: EaDbRow) => Rating;
   /** Career only. */
@@ -208,6 +211,18 @@ export const nameCollator = new Intl.Collator("pl");
 /** Text without case and diacritics (ł included, which has no decomposition), for search. */
 export const searchKey = (text: string): string =>
   text.normalize("NFD").replaceAll(/\p{M}/gu, "").replaceAll(/ł/giu, "l").toLowerCase();
+
+/**
+ * The game's shortlist in a career: the save's rows, else the database's (fifa.db's is empty; a database
+ * without the table, as in tests, has none). Without a career there is no shortlist.
+ */
+const shortlistOf = (db: EaDb, save: CareerSave | undefined): readonly EaDbRow[] => {
+  if (save === undefined) return [];
+  return (
+    save.get("career_shortlist") ??
+    (db.tables.has("career_shortlist") ? readTable(db, "career_shortlist") : [])
+  );
+};
 
 /** Teams that belong to a league, with that league. */
 const teamsById = (db: EaDb): ReadonlyMap<number, Team> => {
@@ -330,6 +345,7 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
     appearances: statOf(stats, "appearances"),
     injuryDays: statOf(stats, "injurydaysout"),
     transferListed: context.transferList.has(id),
+    shortlisted: context.shortlist.has(id),
     ...(context.finance?.({ row, age, club: money, overallAt }) ?? NO_FINANCE),
   };
 };
@@ -411,6 +427,7 @@ export const buildPlayers = (db: EaDb, save?: CareerSave): readonly Player[] => 
     ),
     stats: new Map(stats.map((row) => [num(row, "playerid"), row])),
     transferList: new Set(transferList.map((row) => num(row, "playerid"))),
+    shortlist: new Set(shortlistOf(db, save).map((row) => num(row, "playerid"))),
     freeAgents: new Set(
       links
         .filter((row) => num(row, "teamid") === SCOUT_CONFIG.freeAgentTeamId)

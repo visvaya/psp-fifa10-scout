@@ -119,6 +119,7 @@ const SAVE: CareerSave = new Map([
   ],
   ["career_youth_accademy", [row({ playerid: 400_001, dummy: 0 })]],
   ["career_transfer_list", [row({ playerid: 400_003 })]],
+  ["career_shortlist", [row({ playerid: 158_023, shortlist_dummy: 0 })]],
   ["career_players_grown_attributes", [row({ playerid: 7, potential_delta: -25 })]],
   ["career_extra_user_team_info", []],
   [
@@ -194,6 +195,7 @@ describe("buildPlayers from fifa.db", () => {
       appearances: null,
       injuryDays: null,
       transferListed: false,
+      shortlisted: false,
       price: null,
       wage: null,
       wageMax: null,
@@ -315,6 +317,13 @@ describe("buildPlayers with a career save", () => {
     expect(players.filter((player) => player.transferListed).map((player) => player.id)).toEqual([
       400_003,
     ]);
+  });
+
+  it("marks the players on the game's shortlist, none without a save", () => {
+    expect(players.filter((player) => player.shortlisted).map((player) => player.id)).toEqual([
+      158_023,
+    ]);
+    expect(buildPlayers(DB).some((player) => player.shortlisted)).toBe(false);
   });
 });
 

@@ -107,6 +107,15 @@ export const useRows = (count: number, rowHeightRem: number) => {
   return { scrollRef, items, before, after };
 };
 
+/** A star after the name of a player on the game's shortlist; read out as words. */
+export const ShortlistMark = ({ player }: { player: Player }) =>
+  player.shortlisted ? (
+    <span className="shortlist-mark">
+      <span aria-hidden="true">{TEXT.shortlistedMark}</span>
+      <span className="visually-hidden">{TEXT.shortlisted}</span>
+    </span>
+  ) : null;
+
 /** The club name, or what stands in for it: a free agent, or a junior of the user's academy. */
 export const clubText = (player: Player): string =>
   player.clubName ?? (player.youth && !player.freeAgent ? TEXT.youth : TEXT.freeAgent);
@@ -217,6 +226,7 @@ const TableRow = ({
         }}
       >
         {player.name}
+        <ShortlistMark player={player} />
       </button>
     </th>
     {columns.slice(1).map((column) => (

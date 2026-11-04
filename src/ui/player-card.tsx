@@ -162,6 +162,11 @@ export const PlayerCard = (props: {
   );
   return (
     <ModalDialog title={player.name} className="card" onClose={onClose} returnFocus={returnFocus}>
+      {player.shortlisted ? (
+        <p className="shortlisted">
+          <span aria-hidden="true">{TEXT.shortlistedMark}</span> {TEXT.card.shortlisted}
+        </p>
+      ) : null}
       <Facts facts={basics(player, showPotential, currency, names)} />
       {player.wageMax === null ? null : <p className="help">{TEXT.card.wageNote}</p>}
       {career ? (

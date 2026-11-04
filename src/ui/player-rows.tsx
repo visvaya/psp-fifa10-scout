@@ -6,7 +6,14 @@ import { phoneColumns } from "../logic/phone-columns.ts";
 import type { Player } from "../logic/players.ts";
 import type { ScoutAction } from "../logic/scout-state.ts";
 import type { SortKey } from "../logic/sort-players.ts";
-import { clubText, ColumnValue, columnLabel, ROW_HEIGHT_REM, useRows } from "./player-list.tsx";
+import {
+  clubText,
+  ColumnValue,
+  columnLabel,
+  ROW_HEIGHT_REM,
+  ShortlistMark,
+  useRows,
+} from "./player-list.tsx";
 import type { ListProps } from "./player-list.tsx";
 import { PositionName } from "./position-name.tsx";
 import { TEXT } from "./text.ts";
@@ -90,7 +97,10 @@ const PhoneRow = (props: {
       }}
     >
       <span className="player-row-text">
-        <span className="player-row-name">{player.name}</span>
+        <span className="player-row-name">
+          {player.name}
+          <ShortlistMark player={player} />
+        </span>
         <span className="player-row-meta">
           {clubText(player)}
           {TEXT.rowMetaSeparator}

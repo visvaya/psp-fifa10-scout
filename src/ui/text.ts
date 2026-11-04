@@ -172,6 +172,7 @@ export const FLAG_LABELS: Readonly<Record<FlagKey, string>> = {
   technicaldribbler: "Drybler techniczny",
   nationalTeam: "Reprezentant kraju",
   transferListed: "Na liście transferowej",
+  shortlisted: "Obserwowany w grze",
 };
 
 export const FILTER_SECTION_LABELS = {
@@ -329,6 +330,8 @@ export const TEXT = {
   removeMark: "×",
   sortMark: { ascending: "▲", descending: "▼" },
   rowMetaSeparator: " · ",
+  shortlistedMark: "★",
+  shortlisted: "obserwowany w grze",
   anyOption: "Dowolna",
   min: "od",
   max: "do",
@@ -386,6 +389,7 @@ export const TEXT = {
     price: "Cena",
     wage: "Zarobki rynkowe",
     contractWage: "Zarobki z kontraktu",
+    shortlisted: "Na twojej liście obserwowanych w grze",
     wageNote: `Na mecz, wzorem gry. Po wygaśnięciu kontraktu gra może doliczyć 30${NBSP}% (wolny transfer).`,
     money: (amount: number, currency: CurrencyCode): string =>
       `${formatNumber(amount)}${NBSP}${CURRENCY_SYMBOLS[currency]}`,

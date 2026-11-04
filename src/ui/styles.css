@@ -528,6 +528,15 @@ input[type="number"] {
   font-weight: 600;
 }
 
+.shortlist-mark,
+.shortlisted {
+  color: var(--color-accent);
+}
+
+.shortlist-mark {
+  margin-left: var(--space-1);
+}
+
 .player-row-meta {
   color: var(--color-muted);
   font-size: var(--font-size-sm);
