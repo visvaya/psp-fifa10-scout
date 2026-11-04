@@ -126,16 +126,25 @@ test("a new release is offered and installs on request, under a sub-path", async
     const check = page.getByRole("button", { name: "Sprawdź aktualizacje" });
     const status = page.locator(".update-prompt");
     await check.click();
-    await expect(status).toHaveText("Masz najnowszą wersję.");
+    await expect(status).toContainText("Masz najnowszą wersję.");
+    // It goes by itself after a moment; an error stays until closed.
+    await expect(status).toBeEmpty({ timeout: 10_000 });
     await context.setOffline(true);
     await check.click();
-    await expect(status).toHaveText(/^Brak połączenia/u);
+    await expect(status).toContainText("Brak połączenia");
+    // Closed from the keyboard, focus goes back to the check rather than to nowhere.
+    await status.getByRole("button", { name: "Zamknij komunikat" }).focus();
+    await page.keyboard.press("Enter");
+    await expect(status).toBeEmpty();
+    await expect(check).toBeFocused();
     await context.setOffline(false);
 
     await host.release();
     // The browser looks for a new worker on navigations; on an open page the header's check asks.
     await check.click();
     const prompt = page.getByRole("status").filter({ hasText: "Dostępna jest nowa wersja." });
+    // It says what the reload keeps, so nobody fears loading the game again.
+    await expect(prompt).toContainText("dane gry, zapis kariery i filtry zostaną zachowane");
     await expect(prompt).toBeVisible();
     await expect(page.getByLabel(GAME_INPUT)).toBeEnabled();
     const { violations } = await new AxeBuilder({ page }).analyze();

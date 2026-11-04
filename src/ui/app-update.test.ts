@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { canCheck, checkForUpdate, installUpdate, watchForUpdates } from "./app-update.ts";
+import {
+  canCheck,
+  checkForUpdate,
+  installUpdate,
+  isDismissible,
+  watchForUpdates,
+} from "./app-update.ts";
 import type { RegistrationLike, UpdateStatus } from "./app-update.ts";
 
 /** A service worker whose state the test moves on; it records what the page sent it. */
@@ -155,6 +161,18 @@ const withUpdate = (registration: ReturnType<typeof makeRegistration>, update: (
       return Promise.resolve();
     },
   });
+
+describe("isDismissible", () => {
+  it("lets the user close a result with no action of its own", () => {
+    expect((["current", "unreachable", "failed"] as const).map(isDismissible)).toEqual([
+      true,
+      true,
+      true,
+    ]);
+    const kept = ["idle", "checking", "downloading", "waiting", "installing", "outdated"] as const;
+    expect(kept.map(isDismissible)).toEqual([false, false, false, false, false, false]);
+  });
+});
 
 describe("canCheck", () => {
   it("lets a check start only when none runs and no release waits to be installed", () => {
