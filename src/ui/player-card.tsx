@@ -56,6 +56,7 @@ const basics = (
     ? [[TEXT.card.potential, <AttributeValue key="potential" value={player.potential} />] as const]
     : []),
   [TEXT.card.foot, player.preferredFoot === "left" ? TEXT.card.left : TEXT.card.right],
+  [TEXT.card.weakFoot, TEXT.card.weakFootValue(player.weakFoot)],
   [TEXT.card.height, TEXT.card.heightValue(player.height)],
   [TEXT.card.weight, TEXT.card.weightValue(player.weight)],
 ];

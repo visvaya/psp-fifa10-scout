@@ -270,6 +270,11 @@ const basicSection = (kit: Kit, showPotential: boolean) => {
         "positionCode",
         facets.codes.positionCode.map((code) => ({ value: code, label: positionName(code) })),
       )}
+      {list("preferredFoot", [
+        { value: "left", label: TEXT.card.left },
+        { value: "right", label: TEXT.card.right },
+      ])}
+      {range("weakFoot")}
       {range("age")}
       {range("overall")}
       <PositionRatingField
@@ -287,11 +292,6 @@ const physiqueSection = ({ facets, range, list }: Kit) => (
     {range("height")}
     {range("weight")}
     {list("bodyType", codeChoices(facets.codes.bodyType, TEXT.codePrefix.bodyType))}
-    {list("preferredFoot", [
-      { value: "left", label: TEXT.card.left },
-      { value: "right", label: TEXT.card.right },
-    ])}
-    {range("weakFoot")}
   </Section>
 );
 
