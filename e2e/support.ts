@@ -94,7 +94,9 @@ export const guardSecurityPolicy = (): void => {
     });
   });
 
-  test.afterEach(async ({ page }) => {
+  test.afterEach(async ({ page }, testInfo) => {
+    // A skipped test opened no page to check.
+    if (testInfo.status === "skipped") return;
     expect(await page.evaluate((): unknown => Reflect.get(window, "cspViolations"))).toEqual([]);
   });
 };

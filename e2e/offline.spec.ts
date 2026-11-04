@@ -5,12 +5,15 @@ import { execFileSync } from "node:child_process";
 import { cp, readFile, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import path from "node:path";
+import { guardSecurityPolicy } from "./support.ts";
 
 /**
  * The installable, offline app: the service worker (scripts/service-worker-template.js) and the manifest.
  * The worker's life cycle across releases is checked without a browser in its unit tests; this file proves
  * that a real browser installs it, starts the app from it with no network, and offers a new release.
  */
+
+guardSecurityPolicy();
 
 const GAME_INPUT = "Wybierz obraz ISO lub fifa.db";
 const BUILD_STEP = "scripts/write-service-worker.ts";

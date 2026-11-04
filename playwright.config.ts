@@ -1,6 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const PORT = 4173;
+// E2E_PORT lets two checkouts test side by side; each always starts its own preview, because a server
+// already on the port may be another checkout's build.
+const PORT = Number(process.env["E2E_PORT"] ?? "4173");
 const CI = (process.env["CI"] ?? "") !== "";
 
 export default defineConfig({
@@ -18,6 +20,6 @@ export default defineConfig({
   webServer: {
     command: `node scripts/write-synthetic-db.ts && vite build && node scripts/write-service-worker.ts && vite preview --port ${String(PORT)} --strictPort`,
     port: PORT,
-    reuseExistingServer: !CI,
+    reuseExistingServer: false,
   },
 });
