@@ -11,7 +11,8 @@ import {
   ColumnValue,
   columnLabel,
   ROW_HEIGHT_REM,
-  ShortlistMark,
+  ShortlistStar,
+  ShortlistWords,
   useRows,
 } from "./player-list.tsx";
 import type { ListProps } from "./player-list.tsx";
@@ -92,16 +93,18 @@ const RowsHeader = ({
 const PhoneName = ({ player }: { player: Player }) =>
   player.initialName !== null && player.name.length > PHONE.initialAboveChars ? (
     <span className="player-row-name has-initial">
+      <ShortlistStar player={player} />
       <span className="player-row-name-full">{player.name}</span>
       <span className="player-row-name-short" aria-hidden="true">
         {player.initialName}
       </span>
-      <ShortlistMark player={player} />
+      <ShortlistWords player={player} />
     </span>
   ) : (
     <span className="player-row-name">
+      <ShortlistStar player={player} />
       {player.name}
-      <ShortlistMark player={player} />
+      <ShortlistWords player={player} />
     </span>
   );
 

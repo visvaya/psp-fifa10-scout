@@ -49,8 +49,9 @@ test.describe("career", () => {
     await loadCareer(page);
     const messi = page.getByRole("button", { name: "Lionel Messi" });
     await expect(messi).toHaveAccessibleName("Lionel Messi obserwowany w grze");
-    // Only he carries the mark.
+    // Only he carries the mark, before his name, where a cut-off name cannot hide it.
     await expect(page.locator(".shortlist-mark")).toHaveCount(1);
+    await expect(messi.locator(":scope > .shortlist-mark:first-child")).toBeVisible();
     await page.getByText("Kariera", { exact: true }).click();
     await page.getByLabel("Obserwowany w grze").selectOption("yes");
     await expectCount(page, "1\u00a0zawodnik");

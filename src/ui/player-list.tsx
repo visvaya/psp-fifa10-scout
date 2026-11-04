@@ -107,14 +107,17 @@ export const useRows = (count: number, rowHeightRem: number) => {
   return { scrollRef, items, before, after };
 };
 
-/** A star after the name of a player on the game's shortlist; read out as words. */
-export const ShortlistMark = ({ player }: { player: Player }) =>
+/** A star before the name of a player on the game's shortlist, where a cut-off name cannot hide it. */
+export const ShortlistStar = ({ player }: { player: Player }) =>
   player.shortlisted ? (
-    <span className="shortlist-mark">
-      <span aria-hidden="true">{TEXT.shortlistedMark}</span>
-      <span className="visually-hidden">{TEXT.shortlisted}</span>
+    <span className="shortlist-mark" aria-hidden="true">
+      {TEXT.shortlistedMark}
     </span>
   ) : null;
+
+/** The star in words for screen readers, after the name. */
+export const ShortlistWords = ({ player }: { player: Player }) =>
+  player.shortlisted ? <span className="visually-hidden">{TEXT.shortlisted}</span> : null;
 
 /** The club name, or what stands in for it: a free agent, or a junior of the user's academy. */
 export const clubText = (player: Player): string =>
@@ -225,8 +228,9 @@ const TableRow = ({
           dispatch({ type: "player-opened", id: player.id });
         }}
       >
+        <ShortlistStar player={player} />
         {player.name}
-        <ShortlistMark player={player} />
+        <ShortlistWords player={player} />
       </button>
     </th>
     {columns.slice(1).map((column) => (

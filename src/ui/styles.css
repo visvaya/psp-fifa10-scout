@@ -540,7 +540,7 @@ input[inputmode="numeric"] {
 }
 
 .shortlist-mark {
-  margin-left: var(--space-1);
+  margin-right: var(--space-1);
 }
 
 /* The list and its labels measure widths in cqw, as their own width without a scrollbar. */
