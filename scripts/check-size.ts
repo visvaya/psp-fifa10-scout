@@ -39,11 +39,13 @@ export interface BuildSizes {
 // 382 254.
 // Raised 2026-11-04 for position abbreviations in the game's line colours, light and dark: CSS gzip
 // 2 605 -> 2 720, precache 382 254 -> 383 126.
+// Raised 2026-11-04 for the gain of a position over the OVR (filter, column, card) and the game's full
+// position names on the card: JS gzip 110 042 -> 110 653, precache 383 507 -> 384 846.
 export const SIZE_BUDGETS: BuildSizes = {
-  jsGzipBytes: 108 * 1024,
+  jsGzipBytes: 109 * 1024,
   cssGzipBytes: 2750,
   serviceWorkerBytes: 11 * 1024,
-  precacheBytes: 375 * 1024,
+  precacheBytes: 377 * 1024,
 };
 
 const SIZE_KEYS = [

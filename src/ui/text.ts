@@ -25,6 +25,16 @@ export const plural = (count: number, forms: PluralForms): string => {
 
 export const formatNumber = (value: number): string => numberFormat.format(value);
 
+const MINUS = "−";
+
+/** A difference with its sign: +3, −2 (minus sign), 0. */
+const signed = (value: number): string =>
+  value > 0
+    ? `+${formatNumber(value)}`
+    : value < 0
+      ? `${MINUS}${formatNumber(-value)}`
+      : formatNumber(0);
+
 /** Game dates are calendar days, stored as UTC midnight. */
 const dateFormat = new Intl.DateTimeFormat("pl", { dateStyle: "long", timeZone: "UTC" });
 
@@ -266,6 +276,12 @@ export const TEXT = {
   position: "Pozycja",
   ratingAt: (position: string): string => `OVR ${position}`,
   ratingChoice: (group: string, abbreviation: string): string => `${group} (${abbreviation})`,
+  /** Group labels joined, the later ones in lower case: "Boczny pomocnik / skrzydłowy". */
+  groupList: (labels: readonly string[]): string =>
+    labels.map((label, index) => (index === 0 ? label : label.toLocaleLowerCase("pl"))).join(" / "),
+  ratingGain: "Różnica do OVR",
+  gainAt: (position: string): string => `Różnica ${position}`,
+  signed: (value: number): string => signed(value),
   text: "Nazwisko",
   clubStatus: "Zawodnicy",
   myClub: "Mój klub",
@@ -318,10 +334,11 @@ export const TEXT = {
     contract: "Kontrakt do",
     potential: "Potencjał",
     overallByGroup: "OVR na pozycjach",
-    approximately: "około ",
-    approximateMark: "~",
-    groupPositions: (group: string, positions: readonly string[], overall: number | null): string =>
-      `${group}: ${positions.join(", ")}${overall === null ? "" : ` · OVR ${String(overall)}`}`,
+    openMark: "▾",
+    closedMark: "▸",
+    positionWithName: (name: string, abbreviation: string): string => `${name} (${abbreviation})`,
+    /** The gain over the OVR after a rating, empty at no gain. */
+    gain: (value: number): string => (value === 0 ? "" : ` (${signed(value)})`),
     foot: "Lepsza noga",
     left: "lewa",
     right: "prawa",

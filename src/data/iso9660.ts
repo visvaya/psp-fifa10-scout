@@ -155,7 +155,7 @@ const readDatabaseFromIso = async (read: ReadRange): Promise<Uint8Array> => {
   return readVolumeFile(volume, DATABASE_PATH, MAX_DATABASE_BYTES);
 };
 
-export interface LocaleTables {
+interface LocaleTables {
   /** The string.idx shared by every language of the directory. */
   readonly idx: Uint8Array;
   /** Each <lang>.loc by its language code (the file name stem), in name order. */
