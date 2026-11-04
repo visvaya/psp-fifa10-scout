@@ -479,13 +479,15 @@ input[type="number"] {
   list-style: none;
 }
 
+/* A row is a grid shared with the header: the name, then one column per number. The list scrolls
+   sideways when the columns do not fit; the name stays at the left. */
 .player-row {
-  display: flex;
+  display: grid;
   align-items: center;
-  gap: var(--space-3);
+  column-gap: var(--space-2);
   width: 100%;
   height: 4rem;
-  padding: 0 var(--space-4);
+  padding: 0 var(--space-4) 0 0;
   border: 0;
   border-bottom: 1px solid var(--color-line);
   background: none;
@@ -496,9 +498,21 @@ input[type="number"] {
 }
 
 .player-row-text {
-  flex: 1;
-  min-width: 0;
+  position: sticky;
+  left: 0;
+  z-index: 1;
   display: grid;
+  min-width: 0;
+  height: 100%;
+  align-content: center;
+  padding-left: var(--space-4);
+  background: var(--color-bg);
+}
+
+.player-row-cell,
+.column-label {
+  overflow: hidden;
+  text-align: center;
 }
 
 .player-row-name,
@@ -517,17 +531,10 @@ input[type="number"] {
   font-size: var(--font-size-sm);
 }
 
-.player-row-numbers,
+/* Labels over the phone rows' numbers, outside the scroller so they stay put vertically; they follow the
+   list sideways (player-list.tsx), and the gutter keeps them aligned where scrollbars take space. */
 .player-rows-header {
-  display: flex;
-  gap: var(--space-2);
-}
-
-/* Labels over the phone rows' numbers, outside the scroller so they stay put; the gutter keeps them
-   aligned where scrollbars take space. */
-.player-rows-header {
-  justify-content: flex-end;
-  padding: var(--space-1) var(--space-4);
+  padding: var(--space-1) 0;
   overflow: hidden;
   scrollbar-gutter: stable;
   color: var(--color-muted);
@@ -536,9 +543,22 @@ input[type="number"] {
   white-space: nowrap;
 }
 
-.player-rows-header > span {
-  min-width: var(--rating-width);
-  text-align: center;
+.player-rows-grid {
+  display: grid;
+  column-gap: var(--space-2);
+  padding-right: var(--space-4);
+}
+
+/* Over the names, so the labels scrolled past them go under it, as the numbers do. */
+.player-rows-grid > :first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--color-bg);
+}
+
+.column-label {
+  text-overflow: ellipsis;
 }
 
 /* Ratings: the number always shows; the band colour only adds to it. */
