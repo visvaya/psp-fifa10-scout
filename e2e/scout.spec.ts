@@ -19,6 +19,63 @@ import {
 
 guardSecurityPolicy();
 
+test.describe("wide table", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  test("shows the ratings without scrolling sideways and marks the filter sections", async ({
+    page,
+  }) => {
+    await loadDatabase(page);
+    const scroll = page.locator(".table-scroll");
+    const rightOf = async (name: RegExp) => {
+      const box = await page.getByRole("columnheader", { name }).boundingBox();
+      return (box?.x ?? Infinity) + (box?.width ?? 0);
+    };
+    const edge = async () => {
+      const box = await scroll.boundingBox();
+      return (box?.x ?? 0) + (box?.width ?? 0);
+    };
+    await page
+      .getByRole("group", { name: "Ocena na pozycji" })
+      .getByLabel("Pozycja")
+      .selectOption({ label: "Środkowy obrońca (CB)" });
+    expect(await rightOf(/^OVR$/u)).toBeLessThanOrEqual(await edge());
+    expect(await rightOf(/^Różnica CB/u)).toBeLessThanOrEqual(await edge());
+    const marker = (open: boolean) =>
+      page
+        .locator(`details.filter-section${open ? "[open]" : ":not([open])"} > summary`)
+        .first()
+        .evaluate((summary) => getComputedStyle(summary, "::before").content);
+    expect(await marker(false)).not.toBe("none");
+    expect(await marker(true)).not.toBe(await marker(false));
+    // The marker stays out of what a screen reader reads.
+    await expect(page.locator("details.filter-section > summary").first()).toHaveAccessibleName(
+      "Podstawowe",
+    );
+  });
+});
+
+test.describe("stored state", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  test("keeps the game database and filters after a reload", async ({ page }) => {
+    await loadDatabase(page);
+    await page.getByRole("checkbox", { name: "Bramkarz" }).check();
+    await expectStoredPositionGroup(page, "goalkeeper");
+    await page.reload();
+    // The restore is too fast to catch its skeleton reliably; the stored game opens the list directly.
+    await expect(page.getByRole("checkbox", { name: "Bramkarz" })).toBeChecked();
+    await expect(page.getByRole("table")).toBeVisible();
+    // The start screen's button counts what the list shows, filters included.
+    const listed = (await page.locator(".count").textContent())?.match(/^\d+/u)?.[0];
+    await page.getByRole("button", { name: "Pliki" }).click();
+    await expect(page.getByText(`Wczytano: ${path.basename(SYNTHETIC_DB_PATH)}`)).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: `Pokaż zawodników (${String(listed)})` }),
+    ).toBeVisible();
+  });
+});
+
 test.describe("wide screen", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
@@ -40,8 +97,12 @@ test.describe("wide screen", () => {
     await expect(card.locator(".position")).toHaveCSS("color", "rgb(153, 0, 0)");
     // One row per way the game rates a position, with the gain over his OVR (49 as a striker).
     const row = (label: RegExp) => card.locator(".facts > div").filter({ hasText: label });
-    await expect(row(/^Boczny obrońca/u).getByRole("definition")).toHaveText("58 (+9)");
-    await expect(row(/^Libero/u).getByRole("definition")).toHaveText("57 (+8)");
+    await expect(row(/^Boczny obrońca/u).getByRole("definition")).toHaveText("(+9) 58");
+    await expect(row(/^Libero/u).getByRole("definition")).toHaveText("(+8) 57");
+    // Gains in colour: green above his OVR, red below, grey at his own position.
+    await expect(row(/^Libero/u).locator(".gain")).toHaveCSS("color", "rgb(29, 107, 60)");
+    await expect(row(/^Ofensywny/u).locator(".gain")).toHaveCSS("color", "rgb(163, 38, 27)");
+    await expect(row(/^Napastnik/u).getByRole("definition")).toHaveText("(0) 49");
     await expect(card.getByText("RB · LB", { exact: true })).toBeHidden();
     const positions = card.getByRole("button", { name: "OVR na pozycjach" });
     await positions.click();
@@ -63,18 +124,6 @@ test.describe("wide screen", () => {
     await expect(page.getByRole("radio", { name: "tylko wolni zawodnicy" })).toHaveCount(0);
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("wolny");
     await expect(page.getByText("Żaden zawodnik nie spełnia filtrów.")).toBeVisible();
-  });
-
-  test("keeps the game database and filters after a reload", async ({ page }) => {
-    await loadDatabase(page);
-    await page.getByRole("checkbox", { name: "Bramkarz" }).check();
-    await expectStoredPositionGroup(page, "goalkeeper");
-    await page.reload();
-    // The restore is too fast to catch its skeleton reliably; the stored game opens the list directly.
-    await expect(page.getByRole("checkbox", { name: "Bramkarz" })).toBeChecked();
-    await expect(page.getByRole("table")).toBeVisible();
-    await page.getByRole("button", { name: "Pliki" }).click();
-    await expect(page.getByText(`Wczytano: ${path.basename(SYNTHETIC_DB_PATH)}`)).toBeVisible();
   });
 
   test("explains a wrong game file and keeps the start screen", async ({ page }) => {
@@ -120,7 +169,8 @@ test.describe("table and dialogs", () => {
     await page.getByLabel("Dodaj atrybut").selectOption({ label: "Przyspieszenie" });
     await page.getByRole("group", { name: "Przyspieszenie" }).getByLabel("od").fill("10");
     const headers = page.getByRole("columnheader");
-    await expect(headers.nth(8)).toHaveText("Przyspieszenie");
+    await expect(headers.nth(3)).toHaveText(/^OVR/u);
+    await expect(headers.nth(4)).toHaveText("Przyspieszenie");
     await page.getByRole("button", { name: "Usuń atrybut: Przyspieszenie" }).click();
     await expect(page.getByRole("columnheader", { name: "Przyspieszenie" })).toHaveCount(0);
   });

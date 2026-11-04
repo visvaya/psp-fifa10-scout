@@ -8,7 +8,7 @@ import { isAttributeName } from "../logic/players.ts";
 import type { AttributeName, Player } from "../logic/players.ts";
 import type { ScoutAction, ScoutSort } from "../logic/scout-state.ts";
 import type { SortKey } from "../logic/sort-players.ts";
-import { AttributeValue } from "./attribute-value.tsx";
+import { AttributeValue, GainValue } from "./attribute-value.tsx";
 import { PositionName } from "./position-name.tsx";
 import { ATTRIBUTE_LABELS, formatNumber, RANGE_LABELS, TEXT } from "./text.ts";
 import { useColumnWidths } from "./use-column-widths.ts";
@@ -18,17 +18,14 @@ const OVERSCAN_ROWS = 12;
 
 type TextColumn = keyof typeof TEXT.columns;
 
-const TEXT_COLUMNS: readonly TextColumn[] = [
-  "name",
-  "age",
-  "positionCode",
+// The ratings follow the position, before the wide text columns, so they show without scrolling sideways.
+const LEAD_COLUMNS: readonly TextColumn[] = ["name", "age", "positionCode"];
+const DETAIL_COLUMNS: readonly TextColumn[] = [
   "clubName",
   "leagueName",
   "nationalityName",
   "contractEndYear",
   "price",
-  "overall",
-  "potential",
 ];
 const TABLE_ATTRIBUTES: readonly AttributeName[] = [
   "sprintspeed",
@@ -125,7 +122,7 @@ const ColumnValue = (props: { player: Player; column: SortKey; ratingCode: numbe
   const { player, column, ratingCode } = props;
   const value = numberIn(player, column, ratingCode);
   if (value !== null) {
-    return column === "ratingGain" ? TEXT.signed(value) : <AttributeValue value={value} />;
+    return column === "ratingGain" ? <GainValue value={value} /> : <AttributeValue value={value} />;
   }
   return isTextColumn(column) ? cellContent(player, column) : null;
 };
@@ -217,11 +214,12 @@ const useTableColumns = ({
 }) => {
   const columns = useMemo(
     (): readonly SortKey[] => [
-      ...TEXT_COLUMNS.slice(0, -2).filter((column) => priced || column !== "price"),
+      ...LEAD_COLUMNS,
       "overall",
       ...(ratingCode === null ? [] : (["positionRating", "ratingGain"] as const)),
       ...(showPotential ? ["potential" as const] : []),
       ...ranged,
+      ...DETAIL_COLUMNS.filter((column) => priced || column !== "price"),
       ...TABLE_ATTRIBUTES.filter((name) => !ranged.includes(name)),
     ],
     [ratingCode, showPotential, ranged, priced],

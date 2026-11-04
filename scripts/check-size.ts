@@ -41,14 +41,21 @@ export interface BuildSizes {
 // 2 605 -> 2 720, precache 382 254 -> 383 126.
 // Raised 2026-11-04 for the gain of a position over the OVR (filter, column, card) and the game's full
 // position names on the card: JS gzip 110 042 -> 110 653, precache 383 507 -> 384 846.
+// Raised 2026-11-04 for the filter sections' open and closed marker (UI audit): CSS gzip 2 709 -> 2 768.
+// Raised 2026-11-04 for the header's check for a new version and its messages: precache 385 121 ->
+// 386 162.
+// Raised 2026-11-04 for the card's gains before the ratings, coloured by sign: CSS gzip 2 790 -> 2 824.
+// Raised 2026-11-04 for closing the update check's result and saying what an update keeps: precache
+// 386 572 -> 387 219.
 // Raised 2026-11-04 for the transfer price and market wage (the game's formulas, their tuning values,
 // the price column, card fields, filters and sort): JS gzip 110 042 -> 111 622, precache 383 507 ->
-// 387 676; with the position gain above: JS gzip 112 214, precache 389 001.
+// 387 676; with the position gain above: JS gzip 112 214, precache 389 001; with the update check and
+// the UI audit fixes above, and the save's currency: JS gzip 113 115, precache 391 994.
 export const SIZE_BUDGETS: BuildSizes = {
-  jsGzipBytes: 110 * 1024,
-  cssGzipBytes: 2750,
+  jsGzipBytes: 111 * 1024,
+  cssGzipBytes: 2850,
   serviceWorkerBytes: 11 * 1024,
-  precacheBytes: 381 * 1024,
+  precacheBytes: 384 * 1024,
 };
 
 const SIZE_KEYS = [

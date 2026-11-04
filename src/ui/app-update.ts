@@ -7,9 +7,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * - waiting: a new release is stored and waits;
  * - installing: the user asked for it, the page reloads once it has taken over;
  * - outdated: another window installed it, this page still runs the old code;
- * - failed: a new release could not be stored or did not take over.
+ * - failed: a new release could not be stored or did not take over;
+ * - checking, downloading, current, unreachable: a check the user asked for (checkForUpdate).
  */
-export type UpdateStatus = "idle" | "waiting" | "installing" | "outdated" | "failed";
+export type UpdateStatus =
+  | "idle"
+  | "waiting"
+  | "installing"
+  | "outdated"
+  | "failed"
+  | "checking"
+  | "downloading"
+  | "current"
+  | "unreachable";
 
 /** What the app reads of a service worker and of its registration; the browser's objects satisfy it. */
 interface WorkerLike {
@@ -26,6 +36,30 @@ export interface RegistrationLike {
   addEventListener: (type: "updatefound", listener: () => void) => void;
   removeEventListener: (type: "updatefound", listener: () => void) => void;
 }
+
+/** A registration that can look for a new worker: the browser's registration satisfies it. */
+export interface UpdatableRegistration extends RegistrationLike {
+  update: () => Promise<unknown>;
+}
+
+/**
+ * Looks for a new release on request. The server is asked first: without a network the browser resolves
+ * update() as if nothing were new, which would tell an offline user the app is up to date. A new worker
+ * found is still downloading; the watcher reports it once it waits.
+ */
+export const checkForUpdate = async (
+  registration: UpdatableRegistration,
+  reachable: () => Promise<boolean>,
+): Promise<UpdateStatus> => {
+  if (!(await reachable())) return "unreachable";
+  try {
+    await registration.update();
+  } catch {
+    return "failed";
+  }
+  if (registration.installing !== null) return "downloading";
+  return registration.waiting === null ? "current" : "waiting";
+};
 
 /** The message the worker answers with skipWaiting; the worker names it too. */
 const TAKE_OVER_MESSAGE = { type: "psp-fifa10-scout:take-over" };
@@ -110,10 +144,71 @@ const reloadPage = () => {
   window.location.reload();
 };
 
-/** The update prompt's state and actions (React); `install` also serves "outdated" as a plain reload. */
+/** A server that accepts the request but never answers counts as unreachable after this long. */
+const REACHABLE_TIMEOUT_MS = 8000;
+
+/** Whether the server answers for the worker script, past every cache; the worker leaves HEAD alone. */
+const serverReachable = (): Promise<boolean> =>
+  fetch(new URL("sw.js", document.baseURI), {
+    method: "HEAD",
+    cache: "no-store",
+    signal: AbortSignal.timeout(REACHABLE_TIMEOUT_MS),
+  }).then(
+    (response) => response.ok,
+    () => false,
+  );
+
+/** How long "up to date" stays before it goes by itself. */
+const CURRENT_SHOWN_MS = 5000;
+
+/** A result with no action of its own, which the user can close: up to date, unreachable, failed. */
+export const isDismissible = (status: UpdateStatus): boolean =>
+  status === "current" || status === "unreachable" || status === "failed";
+
+/**
+ * Whether a check may start: not while one runs, and not while a release waits to be installed (its
+ * prompt with the reload button would give way to the check's result).
+ */
+export const canCheck = (status: UpdateStatus): boolean =>
+  !["checking", "downloading", "installing", "waiting", "outdated"].includes(status);
+
+/** The header's check button, where focus goes when the prompt's close button it was on goes. */
+export const UPDATE_CHECK_ID = "update-check";
+
+const keepFocusOnCheck = () => {
+  if (document.activeElement?.closest(".update-prompt")) {
+    document.getElementById(UPDATE_CHECK_ID)?.focus();
+  }
+};
+
+/**
+ * "Up to date" needs no answer: it goes by itself, unless a newer status replaced it meanwhile (a release
+ * installed in another window); errors stay until closed.
+ */
+const useExpiringCurrent = (
+  status: UpdateStatus,
+  setStatus: (update: (shown: UpdateStatus) => UpdateStatus) => void,
+) => {
+  useEffect(() => {
+    if (status !== "current") return undefined;
+    const timer = setTimeout(() => {
+      keepFocusOnCheck();
+      setStatus((shown) => (shown === "current" ? "idle" : shown));
+    }, CURRENT_SHOWN_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [status, setStatus]);
+};
+
+/**
+ * The update prompt's state and actions (React); `install` also serves "outdated" as a plain reload,
+ * `check` looks for a new release on request once a worker is registered (`registered`).
+ */
 export const useAppUpdate = () => {
   const [status, setStatus] = useState<UpdateStatus>("idle");
-  const registration = useRef<RegistrationLike | null>(null);
+  const [registered, setRegistered] = useState(false);
+  const registration = useRef<UpdatableRegistration | null>(null);
   const stopWatching = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -125,14 +220,20 @@ export const useAppUpdate = () => {
       if (next === "waiting") timer = setTimeout(() => setStatus(next), WAITING_SHOWN_AFTER_MS);
       else setStatus(next);
     };
-    navigator.serviceWorker.getRegistration().then(
-      (found) => {
-        if (!mounted || found === undefined) return;
-        registration.current = found;
-        stopWatching.current = watchForUpdates(found, report);
-      },
-      () => undefined,
-    );
+    // On a first visit the lookup can run before register() has made the registration (the
+    // specification does not order them); then the worker's readiness brings it.
+    navigator.serviceWorker
+      .getRegistration()
+      .then((found) => found ?? navigator.serviceWorker.ready)
+      .then(
+        (found) => {
+          if (!mounted) return;
+          registration.current = found;
+          setRegistered(true);
+          stopWatching.current = watchForUpdates(found, report);
+        },
+        () => undefined,
+      );
     return () => {
       mounted = false;
       clearTimeout(timer);
@@ -153,5 +254,18 @@ export const useAppUpdate = () => {
     if (!started) setStatus("failed");
   }, [status]);
 
-  return { status, install };
+  const check = useCallback(() => {
+    const found = registration.current;
+    if (found === null) return;
+    setStatus("checking");
+    checkForUpdate(found, serverReachable).then(setStatus, () => setStatus("failed"));
+  }, []);
+
+  const dismiss = useCallback(() => {
+    keepFocusOnCheck();
+    setStatus("idle");
+  }, []);
+  useExpiringCurrent(status, setStatus);
+
+  return { status, install, check, dismiss, registered };
 };

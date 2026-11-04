@@ -1,6 +1,6 @@
 // The app state as a reducer with pure transitions, and the pure view helpers the screens share.
 import { SCOUT_CONFIG } from "./config.ts";
-import { FLAG_KEYS, LIST_FIELDS, RANGE_KEYS } from "./filter-players.ts";
+import { filterPlayers, FLAG_KEYS, LIST_FIELDS, RANGE_KEYS } from "./filter-players.ts";
 import type { FlagKey, ListKey, PlayerFilters, Range, RangeKey } from "./filter-players.ts";
 import { defaultLanguage } from "./game-names.ts";
 import type { GameLanguages } from "./game-names.ts";
@@ -435,3 +435,9 @@ export const facetOptions = (
     },
   };
 };
+
+/** How many players the list shows with the current filters, for the start screen's button. */
+export const listedCount = (state: ScoutState): number =>
+  state.players === null
+    ? 0
+    : filterPlayers(state.players, effectiveFilters(state.filters, state.myTeamId)).length;

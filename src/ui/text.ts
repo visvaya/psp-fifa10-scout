@@ -237,7 +237,7 @@ export const TEXT = {
   gameStored: "Wybierz plik ponownie tylko po zmianie gry.",
   gameLoaded: (name: string | null): string =>
     name === null ? "Zapamiętana baza gry" : `Wczytano: ${name}`,
-  showPlayers: (value: number): string => `Pokaż zawodników (${String(value)})`,
+  showPlayers: (value: number): string => `Pokaż zawodników (${formatNumber(value)})`,
   preparing: "Przygotowuję aplikację…",
   saveStep: "2. Zapis kariery (opcjonalnie)",
   saveInput: "Wybierz DATA.BIN i PARAM.SFO",
@@ -268,10 +268,20 @@ export const TEXT = {
   installHelp:
     "Po pierwszym otwarciu narzędzie działa też bez internetu. iPhone: w Safari wybierz Udostępnij, potem Do ekranu początkowego. Chrome i Edge: menu przeglądarki, potem Zainstaluj aplikację.",
   update: {
-    waiting: "Dostępna jest nowa wersja.",
+    waiting:
+      "Dostępna jest nowa wersja. Wczytane dane gry, zapis kariery i filtry zostaną zachowane.",
     installing: "Instalowanie nowej wersji…",
-    outdated: "Nowa wersja została zainstalowana w innym oknie.",
+    outdated:
+      "Nowa wersja została zainstalowana w innym oknie. Wczytane dane gry, zapis kariery i filtry zostaną zachowane.",
     failed: "Nie udało się pobrać nowej wersji. Spróbuj później.",
+    checking: "Sprawdzanie aktualizacji…",
+    downloading: "Pobieranie nowej wersji…",
+    current: "Masz najnowszą wersję.",
+    unreachable: "Brak połączenia z internetem, nie można sprawdzić aktualizacji.",
+    check: "Sprawdź aktualizacje",
+    checkMark: "↻",
+    dismiss: "Zamknij komunikat",
+    dismissMark: "×",
     reload: "Odśwież",
   },
   noData: "Nie wczytano jeszcze bazy gry.",
@@ -344,8 +354,8 @@ export const TEXT = {
     openMark: "▾",
     closedMark: "▸",
     positionWithName: (name: string, abbreviation: string): string => `${name} (${abbreviation})`,
-    /** The gain over the OVR after a rating, empty at no gain. */
-    gain: (value: number): string => (value === 0 ? "" : ` (${signed(value)})`),
+    /** The gain over the OVR before a rating, in brackets, with the space before the rating. */
+    gain: (value: number): string => `(${signed(value)}) `,
     foot: "Lepsza noga",
     left: "lewa",
     right: "prawa",

@@ -6,12 +6,13 @@ import {
   attributeBand,
   DEFAULT_SORT,
   effectiveFilters,
+  listedCount,
   facetOptions,
   initialScoutState,
   scoutReducer,
 } from "./scout-state.ts";
 import type { FilterId, ScoutState } from "./scout-state.ts";
-import { testPlayer } from "./test-support/player-fixtures.ts";
+import { TEST_CAREER, testPlayer } from "./test-support/player-fixtures.ts";
 
 const PLAYERS = [testPlayer({ id: 1 }), testPlayer({ id: 2, clubId: 7 })];
 const loading = scoutReducer(initialScoutState, { type: "load-started", requestId: 1 });
@@ -57,12 +58,7 @@ describe("scoutReducer loading", () => {
       loading: null,
       view: "start",
     });
-    const career = {
-      managerName: "A",
-      clubName: "B",
-      lastGameDate: new Date(0),
-      currency: 0 as const,
-    };
+    const career = TEST_CAREER;
     expect(scoutReducer(loading, { ...SUCCEEDED, myTeamId: 5, career }).career).toBe(career);
   });
 
@@ -324,6 +320,11 @@ describe("actionOf", () => {
 });
 
 describe("effectiveFilters", () => {
+  it("count the players the list shows, as the start screen's button does", () => {
+    const filtered = { ...loaded(), filters: { lists: { clubId: [7] } } };
+    expect([initialScoutState, loaded(), filtered].map(listedCount)).toEqual([0, 2, 1]);
+  });
+
   it("keeps the players one can sign, or only free agents in a career", () => {
     expect(effectiveFilters({}, null)).toEqual({ availableOnly: true });
     expect(effectiveFilters({}, 7)).toEqual({ availableOnly: true });
