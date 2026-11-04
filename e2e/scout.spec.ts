@@ -48,6 +48,10 @@ test.describe("wide table", () => {
         .evaluate((summary) => getComputedStyle(summary, "::before").content);
     expect(await marker(false)).not.toBe("none");
     expect(await marker(true)).not.toBe(await marker(false));
+    // The marker stays out of what a screen reader reads.
+    await expect(page.locator("details.filter-section > summary").first()).toHaveAccessibleName(
+      "Podstawowe",
+    );
   });
 });
 
