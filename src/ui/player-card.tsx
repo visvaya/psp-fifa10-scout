@@ -41,10 +41,15 @@ const optional = (value: number | string | null): ReactNode =>
 const basics = (
   player: Player,
   showPotential: boolean,
+  names: PositionNames,
 ): readonly (readonly [string, ReactNode])[] => [
   [
     TEXT.card.position,
-    <PositionName key="position" code={player.positionCode} name={player.positionName} />,
+    <PositionName
+      key="position"
+      code={player.positionCode}
+      name={names.short(player.positionCode)}
+    />,
   ],
   [TEXT.card.age, TEXT.years(player.age)],
   [TEXT.card.club, clubText(player)],
@@ -134,7 +139,7 @@ export const PlayerCard = (props: {
   );
   return (
     <ModalDialog title={player.name} className="card" onClose={onClose} returnFocus={returnFocus}>
-      <Facts facts={basics(player, showPotential)} />
+      <Facts facts={basics(player, showPotential, names)} />
       {career ? (
         <section aria-labelledby="career-title">
           <h3 id="career-title">{TEXT.card.career}</h3>
