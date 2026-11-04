@@ -10,24 +10,29 @@ import { createRequire } from "node:module";
 export const CI_WORKFLOW = ".github/workflows/ci.yml";
 
 const IMAGE =
-  /^\s*image:\s*mcr\.microsoft\.com\/playwright:v(\d+\.\d+\.\d+)-noble(@sha256:[0-9a-f]{64})?\s*$/m;
+  /^\s*image:\s*mcr\.microsoft\.com\/playwright:v(\d+\.\d+\.\d+)-noble(@sha256:[0-9a-f]{64})?\s*$/gm;
 
-/** Null when the image matches the installed version and has a digest; otherwise what to do. */
+/**
+ * Null when every Playwright image in the workflow matches the installed version and has a digest;
+ * otherwise what to do.
+ */
 export const checkPlaywrightImage = (workflow: string, installed: string): string | null => {
-  const match = IMAGE.exec(workflow);
-  if (match === null) return `no mcr.microsoft.com/playwright image found in ${CI_WORKFLOW}`;
-  const [, version, digest] = match;
+  const images = [...workflow.matchAll(IMAGE)];
+  if (images.length === 0) return `no mcr.microsoft.com/playwright image found in ${CI_WORKFLOW}`;
   const tag = `v${installed}-noble`;
   const bump =
     `set the image in ${CI_WORKFLOW} to mcr.microsoft.com/playwright:${tag}@<digest>, the digest from ` +
     `curl -sI -H "Accept: application/vnd.oci.image.index.v1+json" ` +
     `https://mcr.microsoft.com/v2/playwright/manifests/${tag} (header Docker-Content-Digest)`;
-  if (version !== installed) {
-    return `the CI image has Playwright v${version ?? "?"}, the project ${installed}: ${bump}`;
-  }
-  return digest === undefined
-    ? `the CI image is pinned by tag only, add its digest: ${bump}`
-    : null;
+  const problems = images.map(([, version, digest]) => {
+    if (version !== installed) {
+      return `the CI image has Playwright v${version ?? "?"}, the project ${installed}: ${bump}`;
+    }
+    return digest === undefined
+      ? `the CI image is pinned by tag only, add its digest: ${bump}`
+      : null;
+  });
+  return problems.find((problem) => problem !== null) ?? null;
 };
 
 /* v8 ignore start -- process glue */

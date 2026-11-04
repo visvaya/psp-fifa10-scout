@@ -30,6 +30,13 @@ describe("checkPlaywrightImage", () => {
     ).toContain("digest");
   });
 
+  it("checks every Playwright image, not only the first", () => {
+    const twoJobs =
+      workflow(`mcr.microsoft.com/playwright:v1.64.1-noble@${DIGEST}`) +
+      "  other:\n    container:\n      image: mcr.microsoft.com/playwright:v1.64.1-noble\n";
+    expect(checkPlaywrightImage(twoJobs, "1.64.1")).toContain("digest");
+  });
+
   it("reports a workflow without the image", () => {
     expect(checkPlaywrightImage("jobs: {}\n", "1.64.1")).toContain(CI_WORKFLOW);
   });
