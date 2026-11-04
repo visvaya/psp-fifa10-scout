@@ -102,7 +102,9 @@ h3 {
   outline-offset: 2px;
 }
 
-.visually-hidden {
+/* The full name of a scrolled phone row stays for screen readers, as its short form is hidden from them. */
+.visually-hidden,
+[data-scrolled] .has-initial > .player-row-name-full {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -505,6 +507,9 @@ input[type="number"] {
   z-index: 1;
   display: grid;
   min-width: 0;
+  /* The room of its column, less how far the list has scrolled, down to the least width: the name narrows
+     as the columns slide out from under it. */
+  width: max(var(--phone-name-least), calc(var(--phone-name) - var(--phone-scroll, 0px)));
   height: 100%;
   align-content: center;
   padding-left: var(--space-4);
@@ -526,6 +531,20 @@ input[type="number"] {
 
 .player-row-name {
   font-weight: 600;
+}
+
+/* The list and its labels measure widths in cqw, as their own width without a scrollbar. */
+.phone-scroll,
+.player-rows-header {
+  container-type: inline-size;
+}
+
+.player-row-name-short {
+  display: none;
+}
+
+[data-scrolled] .has-initial > .player-row-name-short {
+  display: inline;
 }
 
 .player-row-meta {
@@ -558,6 +577,7 @@ input[type="number"] {
   position: sticky;
   left: 0;
   z-index: 1;
+  width: max(var(--phone-name-least), calc(var(--phone-name) - var(--phone-scroll, 0px)));
   background: var(--color-bg);
 }
 

@@ -153,6 +153,7 @@ describe("buildPlayers from fifa.db", () => {
     expect(byId(players, 158_023)).toEqual({
       id: 158_023,
       name: "Lionel Messi",
+      initialName: "L. Messi",
       searchName: "lionel messi",
       nameOrder: 1,
       youth: false,
@@ -204,6 +205,8 @@ describe("buildPlayers from fifa.db", () => {
   it("trims one-name players and names the centre-left positions as the game does", () => {
     expect(byId(players, 7)).toMatchObject({
       name: "Ronaldinho",
+      // One name: nothing to shorten.
+      initialName: null,
       nameOrder: 2,
       age: 19,
       positionName: "LCDM",
