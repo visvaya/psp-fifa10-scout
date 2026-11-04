@@ -61,10 +61,15 @@ const basics = (
   player: Player,
   showPotential: boolean,
   currency: CurrencyCode | null,
+  names: PositionNames,
 ): readonly (readonly [string, ReactNode])[] => [
   [
     TEXT.card.position,
-    <PositionName key="position" code={player.positionCode} name={player.positionName} />,
+    <PositionName
+      key="position"
+      code={player.positionCode}
+      name={names.short(player.positionCode)}
+    />,
   ],
   [TEXT.card.age, TEXT.years(player.age)],
   [TEXT.card.club, clubText(player)],
@@ -157,7 +162,7 @@ export const PlayerCard = (props: {
   );
   return (
     <ModalDialog title={player.name} className="card" onClose={onClose} returnFocus={returnFocus}>
-      <Facts facts={basics(player, showPotential, currency)} />
+      <Facts facts={basics(player, showPotential, currency, names)} />
       {player.wageMax === null ? null : <p className="help">{TEXT.card.wageNote}</p>}
       {career ? (
         <section aria-labelledby="career-title">
