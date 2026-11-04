@@ -4,7 +4,7 @@ import { useLayoutEffect, useReducer, useRef, useState } from "react";
 import type { JSX, ReactNode } from "react";
 import type { Range } from "../logic/filter-players.ts";
 import { searchKey } from "../logic/players.ts";
-import { caretAfterDigits, digitsBefore, groupedValue } from "./grouped-number.ts";
+import { caretAfterDigits, editGrouped } from "./grouped-number.ts";
 import { formatNumber, TEXT } from "./text.ts";
 
 /** Longer choice lists get a search box. */
@@ -45,8 +45,8 @@ const GroupedInput = (props: {
   const input = useRef<HTMLInputElement>(null);
   // Digits before the caret at the last keystroke, null when the field changed otherwise.
   const caret = useRef<number | null>(null);
-  // Each keystroke renders, so an edit that changes no digit (a deleted separator) still puts the caret
-  // back; React then restores the grouped text.
+  // Each keystroke renders, so an edit that changes no digit (a letter typed) still puts the caret back;
+  // React then restores the grouped text.
   const [, rerender] = useReducer((count: number) => count + 1, 0);
   const text = props.value === undefined ? "" : formatNumber(props.value);
   useLayoutEffect(() => {
@@ -64,9 +64,16 @@ const GroupedInput = (props: {
       value={text}
       onChange={(event) => {
         const { value, selectionStart } = event.currentTarget;
-        caret.current = digitsBefore(value, selectionStart ?? value.length);
+        const { nativeEvent } = event;
+        const typed = editGrouped({
+          shown: text,
+          typed: value,
+          caret: selectionStart ?? value.length,
+          inputType: nativeEvent instanceof InputEvent ? nativeEvent.inputType : "",
+        });
+        caret.current = typed.digitsBeforeCaret;
         rerender();
-        props.onChange(groupedValue(value));
+        props.onChange(typed.value);
       }}
     />
   );

@@ -246,17 +246,25 @@ test.describe("career prices on a phone", () => {
     await from.press("ArrowRight");
     await from.pressSequentially("23");
     await expect(from).toHaveValue("12\u00a0300\u00a0000\u00a0000");
-    // Deleting a separator changes no digit: the field keeps "10 000" and the caret where it was, so the next
-    // digit goes there. (Polish groups from five digits: 1000 has no separator.)
+    // A key that meets a separator deletes the digit beyond it, and the caret stays at the edit.
+    // (Polish groups from five digits: 1000 has no separator.)
+    const caretAt = async (position: number) =>
+      from.evaluate((input: HTMLInputElement, at) => {
+        input.setSelectionRange(at, at);
+      }, position);
     await from.fill("10000");
     await expect(from).toHaveValue("10\u00a0000");
-    await from.evaluate((input: HTMLInputElement) => {
-      input.setSelectionRange(3, 3);
-    });
+    await caretAt(3);
     await from.press("Backspace");
-    await expect(from).toHaveValue("10\u00a0000");
+    await expect(from).toHaveValue("1000");
     await from.pressSequentially("5");
-    await expect(from).toHaveValue("105\u00a0000");
+    await expect(from).toHaveValue("15\u00a0000");
+    await from.fill("10000");
+    await caretAt(2);
+    await from.press("Delete");
+    await expect(from).toHaveValue("1000");
+    await from.pressSequentially("7");
+    await expect(from).toHaveValue("10\u00a0700");
     await from.fill("");
     await expect(from).toHaveValue("");
   });
