@@ -46,6 +46,8 @@ test.describe("phone", () => {
     await page.getByRole("button", { name: "Zamknij" }).click();
     const labels = page.locator(".player-rows-header .column-label");
     await expect(labels).toHaveText(["OVR", "POT"]);
+    // Both fit: no shadow tells of further columns.
+    await expect(page.locator(".phone-list")).not.toHaveAttribute("data-more");
     const numbers = page.locator(".player-row").first().locator(".rating");
     const [labelCentres, numberCentres] = await Promise.all([
       Promise.all([0, 1].map(async (index) => centre(labels.nth(index)))),
@@ -206,6 +208,19 @@ test.describe("phone name column", () => {
     const cells = row.locator(".player-row-cell");
     await expect(cells.nth(1)).toBeInViewport({ ratio: 1 });
     await expect(cells.nth(2)).not.toBeInViewport({ ratio: 1 });
+    // The third column starts under the solid half of the shadow at the right edge, so none of its
+    // label shows cut off.
+    const frame = page.locator(".phone-list");
+    await expect(frame).toHaveAttribute("data-more");
+    const [third, list] = await Promise.all([
+      page.locator(".player-rows-header .column-label").nth(2).boundingBox(),
+      page.locator(".scroll").evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        return { right: box.left + element.clientWidth };
+      }),
+    ]);
+    const shadowPx = 16;
+    expect(third?.x ?? Number.NaN).toBeGreaterThanOrEqual(list.right - shadowPx / 2);
     const name = row.locator(".player-row-text");
     const wide = (await name.boundingBox())?.width ?? Number.NaN;
     await page.locator(".scroll").evaluate((element) => {
@@ -215,6 +230,8 @@ test.describe("phone name column", () => {
     await page.locator(".scroll").evaluate(scrollToEnd);
     await expect(cells.last()).toBeInViewport();
     await expect.poll(async () => (await name.boundingBox())?.width).toBeLessThan(wide - 30);
+    await expect(frame).not.toHaveAttribute("data-more");
+    await expect(frame).toHaveAttribute("data-scrolled");
     await page.locator(".scroll").evaluate((element) => {
       element.scrollTo(element.scrollLeft, element.scrollHeight);
     });
@@ -271,6 +288,25 @@ test.describe("open dialog", () => {
 
 test.describe("career prices on a phone", () => {
   test.use(PHONE);
+
+  // A price runs to millions, wider than its label: the column fits the longest amount in full.
+  test("shows whole prices and wages in their columns", async ({ page }) => {
+    await page.goto("/");
+    await pickGame(page, SYNTHETIC_DB_PATH);
+    await page.getByLabel("Wybierz DATA.BIN i PARAM.SFO").setInputFiles([...SYNTHETIC_SAVE_PATHS]);
+    await page.getByRole("button", { name: /^Pokaż zawodników/u }).click();
+    // The most expensive player first: his amount is the longest.
+    const showsWhole = async (sortBy: string, amount: RegExp) => {
+      await page.getByLabel("Sortuj według").selectOption({ label: sortBy });
+      const cell = page.locator(".player-row").first().locator(".player-row-cell").last();
+      await expect(cell).toHaveText(amount);
+      expect(await cell.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(
+        true,
+      );
+    };
+    await showsWhole("Cena", /\d\u00a0\d{3}\u00a0\d{3}$/u);
+    await showsWhole("Zarobki rynkowe (szacunek)", /\d\u00a0\d{3}$/u);
+  });
 
   // Prices run to nine digits: the fields group them as they are typed and give them the row.
   test("groups the digits of a price as it is typed, keeping the caret", async ({ page }) => {

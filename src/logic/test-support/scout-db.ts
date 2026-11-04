@@ -6,7 +6,7 @@ import type { TableSpec } from "../../data/test-support/synthetic-ea-db.ts";
 import { countryKey, labelKey, leagueKey, teamKey } from "../../data/game-locale.ts";
 import { buildLocale } from "../../data/test-support/synthetic-locale.ts";
 import { buildFileList, buildParamSfo } from "../../data/test-support/synthetic-save.ts";
-import { flatCurves, floatBits, playerRow, table } from "./player-fixtures.ts";
+import { attributes, flatCurves, floatBits, playerRow, table } from "./player-fixtures.ts";
 
 /** Days since 1582-10-14, the fifa.db birthdate epoch. */
 const born = (year: number): number => (Date.UTC(year, 0, 15) - Date.UTC(1582, 9, 14)) / 86_400_000;
@@ -41,8 +41,8 @@ const PLAYERS = table("players", [
     nationality: 52,
     preferredposition1: 14,
     potential: 95,
-    sprintspeed: 92,
-    dribbling: 96,
+    // A star's ratings, so his price runs to millions and the price columns are tested against it.
+    ...attributes(85, { sprintspeed: 92, dribbling: 96 }),
     technicaldribbler: 1,
   }),
   playerRow({

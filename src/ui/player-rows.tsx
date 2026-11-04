@@ -1,6 +1,6 @@
 // The filtered players on phones: two-line rows with the filtered and sorted values as columns,
 // scrolled sideways under the kept name.
-import { useMemo, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import type { CSSProperties, Dispatch, JSX, RefObject } from "react";
 import { phoneColumns } from "../logic/phone-columns.ts";
 import type { Player } from "../logic/players.ts";
@@ -10,7 +10,9 @@ import {
   clubText,
   ColumnValue,
   columnLabel,
+  columnText,
   ROW_HEIGHT_REM,
+  rootFontPx,
   ShortlistStar,
   ShortlistWords,
   useRows,
@@ -28,10 +30,10 @@ declare module "react" {
 
 /**
  * The phone rows in rem, alike for the rows and their smaller labels: the name's least width, a rating's
- * width, a label's width per character and its padding. The name never takes more than nameMaxCqw of the
- * list's width, so with enlarged text the numbers keep room beside it. Before scrolling the name keeps the
- * room left by the first fullColumns number columns; a name longer than initialAboveChars shows its first
- * name as an initial once the list scrolls.
+ * width, a label's width per character and the padding of a label or a value. The name never takes more
+ * than nameMaxCqw of the list's width, so with enlarged text the numbers keep room beside it. Before
+ * scrolling the name keeps the room left by the first fullColumns number columns; a name longer than
+ * initialAboveChars shows its first name as an initial once the list scrolls.
  */
 const PHONE = {
   nameMinRem: 9,
@@ -40,18 +42,50 @@ const PHONE = {
   initialAboveChars: 14,
   ratingRem: 2.25,
   labelRemPerChar: 0.5,
-  labelPaddingRem: 0.5,
+  paddingRem: 0.5,
 } as const;
-/** The width of a phone number column in rem: a rating's, or its label's when that is wider. */
-const phoneColumnRem = (label: string): number =>
-  Math.max(PHONE.ratingRem, label.length * PHONE.labelRemPerChar + PHONE.labelPaddingRem);
+/** The width of a phone number column in rem: a rating's, its label's or its widest value's. */
+const phoneColumnRem = (label: string, valueRem: number): number =>
+  Math.max(
+    PHONE.ratingRem,
+    label.length * PHONE.labelRemPerChar + PHONE.paddingRem,
+    valueRem + PHONE.paddingRem,
+  );
+
+/**
+ * The widest of these texts in rem, in the rows' font; every digit as wide as a 0, as the page's tabular
+ * digits are (a canvas does not apply them).
+ */
+const widestTextRem = (texts: readonly string[]): number => {
+  const context = document.createElement("canvas").getContext("2d");
+  if (context === null || texts.length === 0) return 0;
+  const style = getComputedStyle(document.body);
+  context.font = `${style.fontSize} ${style.fontFamily}`;
+  const shapes = new Set(texts.map((text) => text.replaceAll(/\d/gu, "0")));
+  const widest = Math.max(...[...shapes].map((text) => context.measureText(text).width));
+  return widest / rootFontPx();
+};
+
+/** Each column's widest text in rem over every player, so the widths stay put whatever the filters. */
+const useValueRems = (
+  players: readonly Player[],
+  columns: readonly SortKey[],
+  ratingCode: number | null,
+): readonly number[] =>
+  useMemo(
+    () =>
+      columns.map((column) =>
+        widestTextRem(players.flatMap((player) => columnText(player, column, ratingCode) ?? [])),
+      ),
+    [players, columns, ratingCode],
+  );
 
 /**
  * The phone rows' grid, shared by the header so each label stands over its column: the values for the
  * rules in styles.css.
  */
-const phoneLayout = (labels: readonly string[]): CSSProperties => {
-  const widths = labels.map(phoneColumnRem);
+const phoneLayout = (labels: readonly string[], valueRems: readonly number[]): CSSProperties => {
+  const widths = labels.map((label, index) => phoneColumnRem(label, valueRems[index] ?? 0));
   const sum = widths.reduce((total, width) => total + width, 0);
   const full = widths.slice(0, PHONE.fullColumns);
   const fullRem = full.reduce((total, width) => total + width, 0);
@@ -108,12 +142,22 @@ const PhoneName = ({ player }: { player: Player }) =>
     </span>
   );
 
-/** Tells styles.css how far the list has scrolled sideways, on the list and its labels alike. */
-const followScroll = (scrollLeft: number, elements: readonly (HTMLElement | null)[]): void => {
-  for (const element of elements) {
-    element?.style.setProperty("--phone-scroll", `${String(scrollLeft)}px`);
-    element?.toggleAttribute("data-scrolled", scrollLeft > 0);
-  }
+/**
+ * Tells styles.css, on the frame of the list and its labels, how far the list has scrolled sideways,
+ * whether columns lie beyond its right edge and how wide its scrollbar is.
+ */
+const followScroll = (list: HTMLElement, frame: HTMLElement): void => {
+  const { scrollLeft, clientWidth, offsetWidth } = list;
+  // From where the last label ends rather than from the scroll width: Chromium can stop short of the
+  // scroll width by the scrollbar's width. A pixel's leeway for rounding.
+  const lastLabel = frame.querySelector(".player-rows-grid > :last-child");
+  const more =
+    (lastLabel?.getBoundingClientRect().right ?? 0) >
+    list.getBoundingClientRect().left + clientWidth + 1;
+  frame.style.setProperty("--phone-scroll", `${String(scrollLeft)}px`);
+  frame.style.setProperty("--phone-scrollbar", `${String(offsetWidth - clientWidth)}px`);
+  frame.toggleAttribute("data-scrolled", scrollLeft > 0);
+  frame.toggleAttribute("data-more", more);
 };
 
 /** One phone row: the name with club, position and age, then the number columns. */
@@ -154,9 +198,40 @@ const PhoneRow = (props: {
   );
 };
 
+/**
+ * The frame and the rows for followScroll, which also runs as the screen, the text size and the columns
+ * change, as they move the edges as much as scrolling does.
+ */
+const useFollowedEdges = (scrollRef: RefObject<HTMLDivElement | null>) => {
+  const frameRef = useRef<HTMLDivElement>(null);
+  const rowsRef = useRef<HTMLOListElement>(null);
+  useLayoutEffect(() => {
+    const [frame, list, rows] = [frameRef.current, scrollRef.current, rowsRef.current];
+    if (frame === null || list === null || rows === null) return undefined;
+    const observer = new ResizeObserver(() => {
+      followScroll(list, frame);
+    });
+    observer.observe(list);
+    observer.observe(rows);
+    return () => {
+      observer.disconnect();
+    };
+  }, [scrollRef]);
+  return { frameRef, rowsRef };
+};
+
 export const PlayerCards = (props: ListProps): JSX.Element => {
-  const { players, showPotential, ratingCode, ratingName, ranges, currency, sort, dispatch } =
-    props;
+  const {
+    players,
+    allPlayers,
+    showPotential,
+    ratingCode,
+    ratingName,
+    ranges,
+    currency,
+    sort,
+    dispatch,
+  } = props;
   const columns = useMemo(
     () => phoneColumns({ showPotential, ratingCode, ranges, sortKey: sort.key }),
     [showPotential, ratingCode, ranges, sort.key],
@@ -165,23 +240,28 @@ export const PlayerCards = (props: ListProps): JSX.Element => {
   const labels = columns.map((column) =>
     column === "potential" ? TEXT.potentialShort : columnLabel(column, ratingName, currency),
   );
-  const layout = phoneLayout(labels);
+  const layout = phoneLayout(labels, useValueRems(allPlayers, columns, ratingCode));
   const headerRef = useRef<HTMLDivElement>(null);
   const { scrollRef, items, before, after } = useRows(players.length, ROW_HEIGHT_REM.list);
+  const { frameRef, rowsRef } = useFollowedEdges(scrollRef);
   return (
-    <>
+    <div ref={frameRef} className="phone-list">
       <RowsHeader ref={headerRef} labels={labels} layout={layout} />
       <div
         ref={scrollRef}
         className="scroll phone-scroll"
         onScroll={(event) => {
-          const { scrollLeft } = event.currentTarget;
+          const list = event.currentTarget;
           // The labels follow the columns sideways; the kept name narrows as they go.
-          if (headerRef.current !== null) headerRef.current.scrollLeft = scrollLeft;
-          followScroll(scrollLeft, [event.currentTarget, headerRef.current]);
+          if (headerRef.current !== null) headerRef.current.scrollLeft = list.scrollLeft;
+          if (frameRef.current !== null) followScroll(list, frameRef.current);
         }}
       >
-        <ol className="player-rows" style={{ ...layout, paddingTop: before, paddingBottom: after }}>
+        <ol
+          ref={rowsRef}
+          className="player-rows"
+          style={{ ...layout, paddingTop: before, paddingBottom: after }}
+        >
           {items.map((item) => {
             const player = players[item.index];
             if (player === undefined) return null;
@@ -199,6 +279,6 @@ export const PlayerCards = (props: ListProps): JSX.Element => {
           })}
         </ol>
       </div>
-    </>
+    </div>
   );
 };
