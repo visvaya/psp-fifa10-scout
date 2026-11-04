@@ -8,7 +8,7 @@ import { PlayerCard } from "./player-card.tsx";
 import type { PositionNames } from "./position-name.tsx";
 import { StartScreen } from "./start-screen.tsx";
 import { TEXT } from "./text.ts";
-import { useAppUpdate } from "./app-update.ts";
+import { canCheck, useAppUpdate } from "./app-update.ts";
 import { UpdatePrompt } from "./update-prompt.tsx";
 import { useMediaQuery } from "./use-media-query.ts";
 import { useScoutFiles } from "./use-scout-files.ts";
@@ -66,17 +66,16 @@ const TopBar = (props: {
   dispatch: Dispatch<ScoutAction>;
 }) => {
   const { view, update, dispatch } = props;
-  const busy = ["checking", "downloading", "installing"].includes(update.status);
   return (
     <header className="topbar">
       <h1>{TEXT.appTitle}</h1>
-      {update.canCheck ? (
+      {update.registered ? (
         <button
           type="button"
           className="button"
           aria-label={TEXT.update.check}
           title={TEXT.update.check}
-          disabled={busy}
+          disabled={!canCheck(update.status)}
           onClick={update.check}
         >
           <span aria-hidden="true">{TEXT.update.checkMark}</span>

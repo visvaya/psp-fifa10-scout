@@ -144,20 +144,34 @@ const reloadPage = () => {
   window.location.reload();
 };
 
+/** A server that accepts the request but never answers counts as unreachable after this long. */
+const REACHABLE_TIMEOUT_MS = 8000;
+
 /** Whether the server answers for the worker script, past every cache; the worker leaves HEAD alone. */
 const serverReachable = (): Promise<boolean> =>
-  fetch(new URL("sw.js", document.baseURI), { method: "HEAD", cache: "no-store" }).then(
+  fetch(new URL("sw.js", document.baseURI), {
+    method: "HEAD",
+    cache: "no-store",
+    signal: AbortSignal.timeout(REACHABLE_TIMEOUT_MS),
+  }).then(
     (response) => response.ok,
     () => false,
   );
 
 /**
+ * Whether a check may start: not while one runs, and not while a release waits to be installed (its
+ * prompt with the reload button would give way to the check's result).
+ */
+export const canCheck = (status: UpdateStatus): boolean =>
+  !["checking", "downloading", "installing", "waiting", "outdated"].includes(status);
+
+/**
  * The update prompt's state and actions (React); `install` also serves "outdated" as a plain reload,
- * `check` looks for a new release on request once a worker is registered (`canCheck`).
+ * `check` looks for a new release on request once a worker is registered (`registered`).
  */
 export const useAppUpdate = () => {
   const [status, setStatus] = useState<UpdateStatus>("idle");
-  const [canCheck, setCanCheck] = useState(false);
+  const [registered, setRegistered] = useState(false);
   const registration = useRef<UpdatableRegistration | null>(null);
   const stopWatching = useRef<(() => void) | null>(null);
 
@@ -174,7 +188,7 @@ export const useAppUpdate = () => {
       (found) => {
         if (!mounted || found === undefined) return;
         registration.current = found;
-        setCanCheck(true);
+        setRegistered(true);
         stopWatching.current = watchForUpdates(found, report);
       },
       () => undefined,
@@ -206,5 +220,5 @@ export const useAppUpdate = () => {
     checkForUpdate(found, serverReachable).then(setStatus, () => setStatus("failed"));
   }, []);
 
-  return { status, install, check, canCheck };
+  return { status, install, check, registered };
 };

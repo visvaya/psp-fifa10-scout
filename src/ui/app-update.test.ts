@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkForUpdate, installUpdate, watchForUpdates } from "./app-update.ts";
+import { canCheck, checkForUpdate, installUpdate, watchForUpdates } from "./app-update.ts";
 import type { RegistrationLike, UpdateStatus } from "./app-update.ts";
 
 /** A service worker whose state the test moves on; it records what the page sent it. */
@@ -155,6 +155,19 @@ const withUpdate = (registration: ReturnType<typeof makeRegistration>, update: (
       return Promise.resolve();
     },
   });
+
+describe("canCheck", () => {
+  it("lets a check start only when none runs and no release waits to be installed", () => {
+    expect((["idle", "current", "unreachable", "failed"] as const).map(canCheck)).toEqual([
+      true,
+      true,
+      true,
+      true,
+    ]);
+    const busy = ["checking", "downloading", "installing", "waiting", "outdated"] as const;
+    expect(busy.map(canCheck)).toEqual([false, false, false, false, false]);
+  });
+});
 
 describe("checkForUpdate", () => {
   it("asks the server first: without a network it says so instead of up to date", async () => {
