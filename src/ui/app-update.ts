@@ -172,6 +172,35 @@ export const isDismissible = (status: UpdateStatus): boolean =>
 export const canCheck = (status: UpdateStatus): boolean =>
   !["checking", "downloading", "installing", "waiting", "outdated"].includes(status);
 
+/** The header's check button, where focus goes when the prompt's close button it was on goes. */
+export const UPDATE_CHECK_ID = "update-check";
+
+const keepFocusOnCheck = () => {
+  if (document.activeElement?.closest(".update-prompt")) {
+    document.getElementById(UPDATE_CHECK_ID)?.focus();
+  }
+};
+
+/**
+ * "Up to date" needs no answer: it goes by itself, unless a newer status replaced it meanwhile (a release
+ * installed in another window); errors stay until closed.
+ */
+const useExpiringCurrent = (
+  status: UpdateStatus,
+  setStatus: (update: (shown: UpdateStatus) => UpdateStatus) => void,
+) => {
+  useEffect(() => {
+    if (status !== "current") return undefined;
+    const timer = setTimeout(() => {
+      keepFocusOnCheck();
+      setStatus((shown) => (shown === "current" ? "idle" : shown));
+    }, CURRENT_SHOWN_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [status, setStatus]);
+};
+
 /**
  * The update prompt's state and actions (React); `install` also serves "outdated" as a plain reload,
  * `check` looks for a new release on request once a worker is registered (`registered`).
@@ -233,17 +262,10 @@ export const useAppUpdate = () => {
   }, []);
 
   const dismiss = useCallback(() => {
+    keepFocusOnCheck();
     setStatus("idle");
   }, []);
-
-  // "Up to date" needs no answer: it goes by itself; errors stay until closed.
-  useEffect(() => {
-    if (status !== "current") return undefined;
-    const timer = setTimeout(dismiss, CURRENT_SHOWN_MS);
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [status, dismiss]);
+  useExpiringCurrent(status, setStatus);
 
   return { status, install, check, dismiss, registered };
 };

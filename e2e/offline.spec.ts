@@ -132,8 +132,11 @@ test("a new release is offered and installs on request, under a sub-path", async
     await context.setOffline(true);
     await check.click();
     await expect(status).toContainText("Brak połączenia");
-    await status.getByRole("button", { name: "Zamknij komunikat" }).click();
+    // Closed from the keyboard, focus goes back to the check rather than to nowhere.
+    await status.getByRole("button", { name: "Zamknij komunikat" }).focus();
+    await page.keyboard.press("Enter");
     await expect(status).toBeEmpty();
+    await expect(check).toBeFocused();
     await context.setOffline(false);
 
     await host.release();

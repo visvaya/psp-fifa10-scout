@@ -8,7 +8,7 @@ import { PlayerCard } from "./player-card.tsx";
 import type { PositionNames } from "./position-name.tsx";
 import { StartScreen } from "./start-screen.tsx";
 import { TEXT } from "./text.ts";
-import { canCheck, useAppUpdate } from "./app-update.ts";
+import { canCheck, UPDATE_CHECK_ID, useAppUpdate } from "./app-update.ts";
 import { UpdatePrompt } from "./update-prompt.tsx";
 import { useMediaQuery } from "./use-media-query.ts";
 import { useScoutFiles } from "./use-scout-files.ts";
@@ -73,6 +73,7 @@ const TopBar = (props: {
         <button
           type="button"
           className="button"
+          id={UPDATE_CHECK_ID}
           aria-label={TEXT.update.check}
           title={TEXT.update.check}
           disabled={!canCheck(update.status)}
