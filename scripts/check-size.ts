@@ -59,13 +59,16 @@ export interface BuildSizes {
 // (#48): JS gzip 113 754, precache 393 860.
 // Raised 2026-11-04 for the value each filter chip shows ("Szybkość: od 90"): JS gzip 111 538 -> 112 012,
 // precache 387 977 -> 389 553; on top of the transfer price: JS gzip 114 297, precache 395 644.
+// Raised 2026-11-04 for price and wage filters typed with grouped digits in wider fields: precache
+// 395 693 -> 396 576; with a key at a separator deleting the digit beyond it: JS gzip 114 767.
 // Raised 2026-11-04 for the phone name column that narrows as the list scrolls, with the initial of a long
-// first name: CSS gzip 2 904 -> 3 005, precache 395 693 -> 396 931.
+// first name: CSS gzip 2 904 -> 3 005, precache 395 693 -> 396 931; on top of the grouped fields: JS gzip
+// 115 021, CSS gzip 3 031, precache 398 276.
 export const SIZE_BUDGETS: BuildSizes = {
-  jsGzipBytes: 112 * 1024,
+  jsGzipBytes: 113 * 1024,
   cssGzipBytes: 3050,
   serviceWorkerBytes: 11 * 1024,
-  precacheBytes: 388 * 1024,
+  precacheBytes: 389 * 1024,
 };
 
 const SIZE_KEYS = [

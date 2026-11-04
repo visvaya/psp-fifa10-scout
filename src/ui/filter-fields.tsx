@@ -1,10 +1,11 @@
 // The filter controls: a collapsible section, a range, a multiple choice (searchable when long) and a
 // yes / no / any choice. Each takes its value and reports a new one; the form maps them to filters.
-import { useState } from "react";
+import { useLayoutEffect, useReducer, useRef, useState } from "react";
 import type { JSX, ReactNode } from "react";
 import type { Range } from "../logic/filter-players.ts";
 import { searchKey } from "../logic/players.ts";
-import { TEXT } from "./text.ts";
+import { caretAfterDigits, editGrouped } from "./grouped-number.ts";
+import { formatNumber, TEXT } from "./text.ts";
 
 /** Longer choice lists get a search box. */
 const SEARCH_FROM_CHOICES = 12;
@@ -33,33 +34,90 @@ export const Section = (props: {
   );
 };
 
+/**
+ * A whole number shown with its digits grouped ("1 000 000") while it is typed; the caret stays after the
+ * same digit when the field regroups them.
+ */
+const GroupedInput = (props: {
+  value: number | undefined;
+  onChange: (value: number | undefined) => void;
+}) => {
+  const input = useRef<HTMLInputElement>(null);
+  // Digits before the caret at the last keystroke, null when the field changed otherwise.
+  const caret = useRef<number | null>(null);
+  // Each keystroke renders, so an edit that changes no digit (a letter typed) still puts the caret back;
+  // React then restores the grouped text.
+  const [, rerender] = useReducer((count: number) => count + 1, 0);
+  const text = props.value === undefined ? "" : formatNumber(props.value);
+  useLayoutEffect(() => {
+    const element = input.current;
+    if (element === null || caret.current === null) return;
+    const position = caretAfterDigits(text, caret.current);
+    element.setSelectionRange(position, position);
+    caret.current = null;
+  });
+  return (
+    <input
+      ref={input}
+      type="text"
+      inputMode="numeric"
+      value={text}
+      onChange={(event) => {
+        const { value, selectionStart } = event.currentTarget;
+        const { nativeEvent } = event;
+        const typed = editGrouped({
+          shown: text,
+          typed: value,
+          caret: selectionStart ?? value.length,
+          inputType: nativeEvent instanceof InputEvent ? nativeEvent.inputType : "",
+        });
+        caret.current = typed.digitsBeforeCaret;
+        rerender();
+        props.onChange(typed.value);
+      }}
+    />
+  );
+};
+
 export const RangeField = (props: {
   label: string;
   range: Range | undefined;
   /** Accepts values below zero, as a difference does. */
   allowNegative?: boolean;
+  /** Large amounts (price, wage): digits grouped while typed, in wider fields. */
+  grouped?: boolean;
   onChange: (range: Range) => void;
 }): JSX.Element => {
   const range = props.range ?? {};
+  const grouped = props.grouped === true;
   return (
     <fieldset className="field">
       <legend>{props.label}</legend>
-      <div className="range">
+      <div className={grouped ? "range grouped" : "range"}>
         {(["min", "max"] as const).map((bound) => (
           <label key={bound} className="range-input">
             <span>{TEXT[bound]}</span>
-            <input
-              type="number"
-              inputMode="numeric"
-              min={props.allowNegative === true ? undefined : 0}
-              value={range[bound] ?? ""}
-              onChange={(event) => {
-                props.onChange({
-                  ...range,
-                  [bound]: numberOrUndefined(event.currentTarget.value),
-                });
-              }}
-            />
+            {grouped ? (
+              <GroupedInput
+                value={range[bound]}
+                onChange={(value) => {
+                  props.onChange({ ...range, [bound]: value });
+                }}
+              />
+            ) : (
+              <input
+                type="number"
+                inputMode="numeric"
+                min={props.allowNegative === true ? undefined : 0}
+                value={range[bound] ?? ""}
+                onChange={(event) => {
+                  props.onChange({
+                    ...range,
+                    [bound]: numberOrUndefined(event.currentTarget.value),
+                  });
+                }}
+              />
+            )}
           </label>
         ))}
       </div>
