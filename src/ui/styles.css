@@ -652,6 +652,24 @@ input[type="number"] {
   cursor: pointer;
 }
 
+/* display: flex drops the native marker, so the section draws its own; "/ ''" keeps it out of the
+   accessible name, older browsers take the plain content before it. */
+.filter-section > summary::before {
+  content: "▸";
+  content: "▸" / "";
+  width: 1.25em;
+  color: var(--color-muted);
+}
+
+.filter-section[open] > summary::before {
+  content: "▾";
+  content: "▾" / "";
+}
+
+.filter-section > summary::-webkit-details-marker {
+  display: none;
+}
+
 .filter-section-body {
   display: grid;
   gap: var(--space-4);

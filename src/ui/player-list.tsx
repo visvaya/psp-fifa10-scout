@@ -18,16 +18,13 @@ const OVERSCAN_ROWS = 12;
 
 type TextColumn = keyof typeof TEXT.columns;
 
-const TEXT_COLUMNS: readonly TextColumn[] = [
-  "name",
-  "age",
-  "positionCode",
+// The ratings follow the position, before the wide text columns, so they show without scrolling sideways.
+const LEAD_COLUMNS: readonly TextColumn[] = ["name", "age", "positionCode"];
+const DETAIL_COLUMNS: readonly TextColumn[] = [
   "clubName",
   "leagueName",
   "nationalityName",
   "contractEndYear",
-  "overall",
-  "potential",
 ];
 const TABLE_ATTRIBUTES: readonly AttributeName[] = [
   "sprintspeed",
@@ -213,11 +210,12 @@ const useTableColumns = ({
 }: Pick<ListProps, "ratingCode" | "ratingName" | "showPotential" | "rangedAttributes">) => {
   const columns = useMemo(
     (): readonly SortKey[] => [
-      ...TEXT_COLUMNS.slice(0, -2),
+      ...LEAD_COLUMNS,
       "overall",
       ...(ratingCode === null ? [] : (["positionRating", "ratingGain"] as const)),
       ...(showPotential ? ["potential" as const] : []),
       ...ranged,
+      ...DETAIL_COLUMNS,
       ...TABLE_ATTRIBUTES.filter((name) => !ranged.includes(name)),
     ],
     [ratingCode, showPotential, ranged],
