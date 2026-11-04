@@ -1,6 +1,7 @@
 // Loading the user's files into player summaries: the pure part of the worker protocol. The worker
 // calls loadScout and posts what it reports; the UI never parses files on its own thread.
 import { careerManager, parseCareerSave } from "../data/career-save.ts";
+import type { CurrencyCode } from "../data/career-save.ts";
 import { parseEaDb, readTable } from "../data/ea-db.ts";
 import type { EaDb } from "../data/ea-db.ts";
 import { readLocale } from "../data/game-locale.ts";
@@ -47,6 +48,8 @@ export interface CareerSummary {
   /** The user's club as fifa.db names it, null when the save links it to no club. */
   readonly clubName: string | null;
   readonly lastGameDate: Date;
+  /** The currency the career shows money in. */
+  readonly currency: CurrencyCode;
 }
 
 export interface LoadResult {
@@ -169,7 +172,7 @@ export const loadScout = async (
   const career = await atStage("save", async () =>
     parseCareerSave(db, readSaveData(await bytesOf(save.dataBin), await bytesOf(save.paramSfo))),
   );
-  const { teamId, managerName, lastGameDate } = await atStage("save", () =>
+  const { teamId, managerName, lastGameDate, currency } = await atStage("save", () =>
     careerManager(db, career),
   );
   onPhase("players");
@@ -178,7 +181,7 @@ export const loadScout = async (
   return {
     players,
     myTeamId: teamId,
-    career: { managerName, clubName, lastGameDate },
+    career: { managerName, clubName, lastGameDate, currency },
     gameDb,
     ...names,
   };

@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import type { JSX, ReactNode } from "react";
+import type { CurrencyCode } from "../data/career-save.ts";
 import type { AttributeName, Player } from "../logic/players.ts";
 import { nameTextIdOf, POSITION_CODES, RATING_CHOICES, ratingCodeOf } from "../logic/positions.ts";
 import { AttributeValue } from "./attribute-value.tsx";
@@ -39,20 +40,26 @@ const optional = (value: number | string | null): ReactNode =>
   value === null ? TEXT.card.none : typeof value === "number" ? formatNumber(value) : value;
 
 /** Price and wage, career only: the user's squad shows its stored wage, others an estimate. */
-const money = ({ price, wage, wageMax }: Player): readonly (readonly [string, ReactNode])[] =>
-  price === null || wage === null
+const money = (
+  { price, wage, wageMax }: Player,
+  currency: CurrencyCode | null,
+): readonly (readonly [string, ReactNode])[] =>
+  price === null || wage === null || currency === null
     ? []
     : [
-        [TEXT.card.price, formatNumber(price)],
+        [TEXT.card.price, TEXT.card.money(price, currency)],
         [
           TEXT.card.wage,
-          wageMax === null ? formatNumber(wage) : TEXT.card.wageEstimate(wage, wageMax),
+          wageMax === null
+            ? TEXT.card.money(wage, currency)
+            : TEXT.card.wageEstimate(wage, wageMax, currency),
         ],
       ];
 
 const basics = (
   player: Player,
   showPotential: boolean,
+  currency: CurrencyCode | null,
 ): readonly (readonly [string, ReactNode])[] => [
   [
     TEXT.card.position,
@@ -63,7 +70,7 @@ const basics = (
   [TEXT.card.league, optional(player.leagueName)],
   [TEXT.card.nationality, optional(player.nationalityName)],
   [TEXT.card.contract, player.contractEndYear ?? TEXT.card.none],
-  ...money(player),
+  ...money(player, currency),
   [TEXT.columns.overall, <AttributeValue key="overall" value={player.overall} />],
   ...(showPotential
     ? [[TEXT.card.potential, <AttributeValue key="potential" value={player.potential} />] as const]
@@ -133,19 +140,21 @@ const ChoiceRatings = (props: { player: Player; names: PositionNames }) => {
 export const PlayerCard = (props: {
   player: Player;
   career: boolean;
+  /** The career's currency, null without a career. */
+  currency: CurrencyCode | null;
   showPotential: boolean;
   /** Position names in the chosen language. */
   names: PositionNames;
   onClose: () => void;
 }): JSX.Element => {
-  const { player, career, showPotential, names, onClose } = props;
+  const { player, career, currency, showPotential, names, onClose } = props;
   const returnFocus = useCallback(
     () => document.querySelector<HTMLElement>(`[data-player-id="${String(player.id)}"]`),
     [player.id],
   );
   return (
     <ModalDialog title={player.name} className="card" onClose={onClose} returnFocus={returnFocus}>
-      <Facts facts={basics(player, showPotential)} />
+      <Facts facts={basics(player, showPotential, currency)} />
       {player.wageMax === null ? null : <p className="help">{TEXT.card.wageNote}</p>}
       {career ? (
         <section aria-labelledby="career-title">

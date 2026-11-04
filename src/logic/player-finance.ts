@@ -4,7 +4,7 @@ import { careerManager, effectiveRows } from "../data/career-save.ts";
 import type { CareerSave } from "../data/career-save.ts";
 import type { EaDb, EaDbRow } from "../data/ea-db.ts";
 import { SCOUT_CONFIG } from "./config.ts";
-import { marketWage, transferPrice } from "./transfer-price.ts";
+import { exchangeRate, marketWage, transferPrice } from "./transfer-price.ts";
 import type { PriceInput } from "./transfer-price.ts";
 
 export interface Finance {
@@ -42,7 +42,8 @@ const float32 = (bits: number): number => {
 
 /** Prices and wages on the save's date; players without a club or free-agent link get none. */
 export const financeOf = (db: EaDb, save: CareerSave): ((input: FinanceInput) => Finance) => {
-  const { teamId: userTeamId, lastGameDate } = careerManager(db, save);
+  const { teamId: userTeamId, lastGameDate, currency } = careerManager(db, save);
+  const rate = exchangeRate(currency);
   const freeAgentLinks = new Map(
     effectiveRows(db, save, "teamplayerlinks")
       .filter((link) => num(link, "teamid") === SCOUT_CONFIG.freeAgentTeamId)
@@ -51,7 +52,8 @@ export const financeOf = (db: EaDb, save: CareerSave): ((input: FinanceInput) =>
   const storedWages = new Map(
     effectiveRows(db, save, "career_extra_user_team_info").map((row) => [
       num(row, "playerid"),
-      Math.round(float32(num(row, "wage"))),
+      // Stored in euro, not always round (raises in later seasons).
+      Math.round(float32(num(row, "wage")) * rate),
     ]),
   );
   return ({ row, age, club, overallAt }) => {
@@ -71,6 +73,7 @@ export const financeOf = (db: EaDb, save: CareerSave): ((input: FinanceInput) =>
       playingStyle: num(row, "playingstyle"),
       // A free agent counts OVR / 5 as both league and team prestige.
       prestige: club?.prestige ?? 2 * Math.floor(overall / 5),
+      exchangeRate: rate,
     };
     const stored = num(link, "teamid") === userTeamId ? storedWages.get(id) : undefined;
     const wage = marketWage(input, false);

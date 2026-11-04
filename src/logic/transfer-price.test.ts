@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { marketWage, roundPrice, transferPrice } from "./transfer-price.ts";
+import { exchangeRate, marketWage, roundPrice, transferPrice } from "./transfer-price.ts";
 import type { PriceInput } from "./transfer-price.ts";
 
 /** OVR + OVR in five years = 195, the divider: the base is exactly 100 000 + 39 000 000. */
@@ -15,6 +15,7 @@ const NEUTRAL: PriceInput = {
   internationalReputation: 1,
   playingStyle: 13,
   prestige: 30,
+  exchangeRate: 1,
 };
 
 /** The price with the neutral adjustments plus `extra` (fractions of the base), central midfield 0.85. */
@@ -191,6 +192,19 @@ describe("marketWage", () => {
     expect(marketWage(input, false)).toBe(wageWith(-0.2 + 0.25 + 0.2));
     expect(marketWage({ ...WAGE_NEUTRAL, internationalReputation: 4 }, false)).toBe(
       wageWith(-0.2 + 0.1),
+    );
+  });
+});
+
+describe("currency", () => {
+  it("rates the euro, the pound and the dollar by the save's currency code", () => {
+    expect(([0, 1, 2] as const).map(exchangeRate)).toEqual([1, 0.86, 1.41]);
+  });
+
+  it("converts to the selected currency before rounding", () => {
+    expect(transferPrice({ ...NEUTRAL, exchangeRate: 0.86 })).toBe(priceWith(0, 0.85 * 0.86));
+    expect(marketWage({ ...WAGE_NEUTRAL, exchangeRate: 1.41 }, true)).toBe(
+      wageWith(-0.2, 1.3 * 1.41),
     );
   });
 });

@@ -57,7 +57,12 @@ describe("scoutReducer loading", () => {
       loading: null,
       view: "start",
     });
-    const career = { managerName: "A", clubName: "B", lastGameDate: new Date(0) };
+    const career = {
+      managerName: "A",
+      clubName: "B",
+      lastGameDate: new Date(0),
+      currency: 0 as const,
+    };
     expect(scoutReducer(loading, { ...SUCCEEDED, myTeamId: 5, career }).career).toBe(career);
   });
 

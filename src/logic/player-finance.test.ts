@@ -91,6 +91,7 @@ const SAVE: CareerSave = new Map([
         firstname: "A",
         surname: "B",
         last_game_number: daysSince1582(2009, 7, 25) * 1024,
+        currency: 0,
       }),
     ],
   ],
@@ -126,6 +127,7 @@ const input = (overrides: Partial<PriceInput> = {}): PriceInput => ({
   internationalReputation: 4,
   playingStyle: 13,
   prestige: 21,
+  exchangeRate: 1,
   ...overrides,
 });
 
@@ -161,6 +163,17 @@ describe("career prices and wages", () => {
       wage: marketWage(free, false),
       wageMax: marketWage(free, true),
     });
+  });
+
+  it("prices in the save's currency, the stored wages too", () => {
+    const [manager] = SAVE.get("team_manager") ?? [];
+    const inPounds: CareerSave = new Map([
+      ...SAVE,
+      ["team_manager", [row({ ...manager, currency: 1 })]],
+    ]);
+    const player = (id: number) => buildPlayers(DB, inPounds).find((each) => each.id === id);
+    expect(player(1)?.price).toBe(transferPrice(input({ exchangeRate: 0.86 })));
+    expect(player(4)?.wage).toBe(Math.round(1234 * 0.86));
   });
 
   it("leaves players without a club or without a save unpriced", () => {

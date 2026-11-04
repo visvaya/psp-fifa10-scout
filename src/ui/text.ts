@@ -1,4 +1,5 @@
 /** Every text the user reads, in one module, with the Polish number and plural helpers. */
+import type { CurrencyCode } from "../data/career-save.ts";
 import type { CareerSummary, LoadErrorKind, LoadPhase, LoadStage } from "../logic/load-scout.ts";
 import type { FlagKey, ListKey, RangeFields, RangeKey } from "../logic/filter-players.ts";
 import { isAttributeName } from "../logic/players.ts";
@@ -7,6 +8,9 @@ import type { PositionGroup } from "../logic/positions.ts";
 import type { ClubStatus, MyClub, ScoutError } from "../logic/scout-state.ts";
 
 const NBSP = " ";
+
+/** By the save's currency code, as the game shows them. */
+const CURRENCY_SYMBOLS = ["€", "£", "$"] as const;
 
 export interface PluralForms {
   readonly one: string;
@@ -359,8 +363,10 @@ export const TEXT = {
     price: "Cena",
     wage: "Zarobki rynkowe",
     wageNote: `Na mecz, wzorem gry. Po wygaśnięciu kontraktu gra może doliczyć 30${NBSP}% (wolny transfer).`,
-    wageEstimate: (low: number, high: number): string =>
-      `${low === high ? formatNumber(low) : `${formatNumber(low)}–${formatNumber(high)}`}${NBSP}(szacunek)`,
+    money: (amount: number, currency: CurrencyCode): string =>
+      `${formatNumber(amount)}${NBSP}${CURRENCY_SYMBOLS[currency]}`,
+    wageEstimate: (low: number, high: number, currency: CurrencyCode): string =>
+      `${low === high ? formatNumber(low) : `${formatNumber(low)}–${formatNumber(high)}`}${NBSP}${CURRENCY_SYMBOLS[currency]}${NBSP}(szacunek)`,
     none: "brak",
   },
 } as const;

@@ -4,7 +4,9 @@
 // Source of the tuning values: the game's live tuning registry, read from RAM while the game runs; they
 // differ from the defaults compiled into the executable (for example the divider 195, not 190).
 // Verified on the game's transfer-market screen: 24 of 24 prices and 6 of 6 market wages exactly.
-// Amounts are in the game's money with currency 0 (exchange rate 1.0).
+// Amounts are in euro, converted to the save's currency before the game's rounding.
+
+import type { CurrencyCode } from "../data/career-save.ts";
 
 /** Bands as [lowest value, adjustment], highest first; a value takes the first band it reaches. */
 type Bands = readonly (readonly [number, number])[];
@@ -74,6 +76,9 @@ const PRICE_TUNING = {
   /** Lowest OVR of the gold, silver and bronze playing-style tiers; style codes 0..12 have tiers. */
   styleTierOverallMin: [85, 80, 75],
   styleCodesBelow: 13,
+  /** Per euro, by the save's currency code (`team_manager.currency`): euro, pound, dollar. Code 0 is the
+   * euro on the game's screen; the pound and dollar order follows from the rates. */
+  exchangeRates: [1, 0.86, 1.41],
 } as const;
 
 type PriceGroup = keyof typeof PRICE_TUNING.valuePosition;
@@ -103,7 +108,13 @@ export interface PriceInput {
   readonly playingStyle: number;
   /** League prestige plus team prestige. */
   readonly prestige: number;
+  /** The save's currency per euro. */
+  readonly exchangeRate: number;
 }
+
+/** The exchange rate of a currency code from the save. */
+export const exchangeRate = (currency: CurrencyCode): number =>
+  PRICE_TUNING.exchangeRates[currency];
 
 const band = (bands: Bands, value: number): number =>
   bands.find(([lowest]) => value >= lowest)?.[1] ?? 0;
@@ -159,7 +170,7 @@ export const transferPrice = (input: PriceInput): number => {
     (current, k) => (current + k * base > 0 ? current + k * base : current),
     base,
   );
-  return roundPrice(total * t.valuePosition[groupOf(input.positionCode)]);
+  return roundPrice(total * t.valuePosition[groupOf(input.positionCode)] * input.exchangeRate);
 };
 
 /** The market wage per match; `bosman` adds the free-transfer factor. */
@@ -174,5 +185,5 @@ export const marketWage = (input: PriceInput, bosman: boolean): number => {
   const rating = (input.overall + input.overallIn5Years) / t.wageOverallDivider;
   const factor = (rating ** t.wageOverallPower + t.wageOverallOffset) * t.wageOverallMultiplier;
   const wage = (base + t.wageOffset + k * base) * factor;
-  return roundPrice(bosman ? wage * t.wageBosmanMultiplier : wage);
+  return roundPrice((bosman ? wage * t.wageBosmanMultiplier : wage) * input.exchangeRate);
 };
