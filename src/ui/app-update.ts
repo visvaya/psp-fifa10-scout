@@ -184,15 +184,20 @@ export const useAppUpdate = () => {
       if (next === "waiting") timer = setTimeout(() => setStatus(next), WAITING_SHOWN_AFTER_MS);
       else setStatus(next);
     };
-    navigator.serviceWorker.getRegistration().then(
-      (found) => {
-        if (!mounted || found === undefined) return;
-        registration.current = found;
-        setRegistered(true);
-        stopWatching.current = watchForUpdates(found, report);
-      },
-      () => undefined,
-    );
+    // On a first visit the lookup can run before register() has made the registration (the
+    // specification does not order them); then the worker's readiness brings it.
+    navigator.serviceWorker
+      .getRegistration()
+      .then((found) => found ?? navigator.serviceWorker.ready)
+      .then(
+        (found) => {
+          if (!mounted) return;
+          registration.current = found;
+          setRegistered(true);
+          stopWatching.current = watchForUpdates(found, report);
+        },
+        () => undefined,
+      );
     return () => {
       mounted = false;
       clearTimeout(timer);

@@ -29,6 +29,8 @@ const offlineReady = (page: Page) =>
 test("after one visit the app starts without a network", async ({ page, context }) => {
   await page.goto("/");
   await offlineReady(page);
+  // On the first visit too, once the worker is registered, the header offers the check.
+  await expect(page.getByRole("button", { name: "Sprawdź aktualizacje" })).toBeVisible();
 
   await context.setOffline(true);
   await page.reload();
