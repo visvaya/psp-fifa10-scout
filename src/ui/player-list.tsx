@@ -2,12 +2,13 @@
 // screens, a two-line list on phones.
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useCallback, useMemo, useRef } from "react";
-import type { Dispatch, JSX } from "react";
+import type { Dispatch, JSX, ReactNode } from "react";
 import { isAttributeName } from "../logic/players.ts";
 import type { AttributeName, Player } from "../logic/players.ts";
 import type { ScoutAction, ScoutSort } from "../logic/scout-state.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 import { AttributeValue } from "./attribute-value.tsx";
+import { PositionName } from "./position-name.tsx";
 import { ATTRIBUTE_LABELS, RANGE_LABELS, TEXT } from "./text.ts";
 import { useColumnWidths } from "./use-column-widths.ts";
 
@@ -91,6 +92,14 @@ const cellText = (player: Player, key: TextColumn): string | number =>
       ? clubText(player)
       : (player[key] ?? "");
 
+/** A text cell; the position in the colour of its line. */
+const cellContent = (player: Player, key: TextColumn): ReactNode =>
+  key === "positionCode" ? (
+    <PositionName code={player.positionCode} name={player.positionName} />
+  ) : (
+    cellText(player, key)
+  );
+
 /** The rating a column shows with its colour band, or null for a text column. */
 const ratingIn = (player: Player, column: SortKey, ratingCode: number | null): number | null => {
   if (column === "overall") return player.overall;
@@ -159,7 +168,7 @@ const TableRow = ({
           {rating !== null ? (
             <AttributeValue value={rating} />
           ) : isTextColumn(column) ? (
-            cellText(player, column)
+            cellContent(player, column)
           ) : null}
         </td>
       );
@@ -320,7 +329,11 @@ export const PlayerCards = (props: ListProps): JSX.Element => {
                   <span className="player-row-text">
                     <span className="player-row-name">{player.name}</span>
                     <span className="player-row-meta">
-                      {TEXT.rowMeta(clubText(player), player.positionName, TEXT.years(player.age))}
+                      {clubText(player)}
+                      {TEXT.rowMetaSeparator}
+                      <PositionName code={player.positionCode} name={player.positionName} />
+                      {TEXT.rowMetaSeparator}
+                      {TEXT.years(player.age)}
                     </span>
                   </span>
                   <span className="player-row-numbers">

@@ -36,6 +36,8 @@ test.describe("wide screen", () => {
     await name.click();
     const card = page.getByRole("dialog", { name: "Paweł Brożek" });
     await expect(card.getByText("Wisła Kraków")).toBeVisible();
+    // A forward, in the game's colour for attackers.
+    await expect(card.locator(".position")).toHaveCSS("color", "rgb(153, 0, 0)");
     await expect(card.getByRole("heading", { name: "OVR na pozycjach" })).toBeVisible();
     await expect(card.getByText(/^Libero: SW/u)).toBeHidden();
     await expect(card.getByRole("definition").filter({ hasText: /^~około 58$/u })).toBeVisible();

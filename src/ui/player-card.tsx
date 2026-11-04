@@ -5,6 +5,7 @@ import { POSITION_GROUP_ROWS, positionCodesOf, rowRating } from "../logic/positi
 import type { PositionGroup } from "../logic/positions.ts";
 import { AttributeValue } from "./attribute-value.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
+import { PositionName } from "./position-name.tsx";
 import { clubText } from "./player-list.tsx";
 import {
   ATTRIBUTE_GROUP_LABELS,
@@ -47,7 +48,10 @@ const basics = (
   player: Player,
   showPotential: boolean,
 ): readonly (readonly [string, ReactNode])[] => [
-  [TEXT.card.position, player.positionName],
+  [
+    TEXT.card.position,
+    <PositionName key="position" code={player.positionCode} name={player.positionName} />,
+  ],
   [TEXT.card.age, TEXT.years(player.age)],
   [TEXT.card.club, clubText(player)],
   [TEXT.card.league, optional(player.leagueName)],

@@ -284,8 +284,7 @@ export const TEXT = {
   activeFiltersCount: (value: number): string => `Aktywne filtry (${String(value)})`,
   removeMark: "×",
   sortMark: { ascending: "▲", descending: "▼" },
-  rowMeta: (club: string, position: string, age: string): string =>
-    `${club} · ${position} · ${age}`,
+  rowMetaSeparator: " · ",
   anyOption: "Dowolna",
   min: "od",
   max: "do",

@@ -45,6 +45,25 @@ const GROUPS: readonly (readonly [PositionGroup, readonly number[]])[] = [
  */
 export const POSITION_GROUPS: readonly PositionGroup[] = GROUPS.map(([group]) => group);
 
+/**
+ * The game's position lines, as its screens colour positions (ClubPlayerList.apt,
+ * ConvertPositionStringToColorId): goalkeeper 0, defence 1..8, midfield 9..25, attack 26..31.
+ */
+export type PositionLine = "goalkeeper" | "defence" | "midfield" | "attack";
+
+const MIN_DEFENCE_CODE = 1;
+const MIN_MIDFIELD_CODE = 9;
+const MIN_ATTACK_CODE = 26;
+
+export const lineOf = (code: number): PositionLine =>
+  code < MIN_DEFENCE_CODE
+    ? "goalkeeper"
+    : code < MIN_MIDFIELD_CODE
+      ? "defence"
+      : code < MIN_ATTACK_CODE
+        ? "midfield"
+        : "attack";
+
 /** The codes of a group, in code order. */
 export const positionCodesOf = (group: PositionGroup): readonly number[] =>
   GROUPS.find(([candidate]) => candidate === group)?.[1] ?? [];
