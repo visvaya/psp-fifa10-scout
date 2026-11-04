@@ -105,6 +105,8 @@ export const attributesOf = (row: EaDbRow): Attributes => {
 export interface Player extends Finance {
   readonly id: number;
   readonly name: string;
+  /** The first name as an initial ("L. Messi"), for narrow places; null for a player with one name. */
+  readonly initialName: string | null;
   /** The name folded by searchKey, for text search. */
   readonly searchName: string;
   /** Position in alphabetical order of names (ties by id): Polish, or the chosen game language's. */
@@ -309,7 +311,8 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
   const position = positionOf(num(row, "preferredposition1"));
   const stats = context.stats.get(id);
   const nationalityId = num(row, "nationality");
-  const name = `${String(row["firstname"])} ${String(row["surname"])}`.trim();
+  const [firstName, surname] = [String(row["firstname"]).trim(), String(row["surname"]).trim()];
+  const name = `${firstName} ${surname}`.trim();
   const { attributes, overallAt } = context.rate(row);
   const age = ageOn(birthdateToDate(num(row, "birthdate")), context.referenceDate);
   const { club } = context.placements.get(id) ?? {};
@@ -320,6 +323,7 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
   return {
     id,
     name,
+    initialName: firstName === "" || surname === "" ? null : `${firstName.charAt(0)}. ${surname}`,
     searchName: searchKey(name),
     youth: id >= SCOUT_CONFIG.youthPlayerIdStart,
     freeAgent: context.freeAgents.has(id),

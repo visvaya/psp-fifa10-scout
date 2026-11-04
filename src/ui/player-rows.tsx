@@ -27,12 +27,16 @@ declare module "react" {
 
 /**
  * The phone rows in rem, alike for the rows and their smaller labels: the name's least width, a rating's
- * width, a label's width per character and its padding. The name never takes more than nameMaxVw of the
- * screen, so with enlarged text the numbers keep room beside it.
+ * width, a label's width per character and its padding. The name never takes more than nameMaxCqw of the
+ * list's width, so with enlarged text the numbers keep room beside it. Before scrolling the name keeps the
+ * room left by the first fullColumns number columns; a name longer than initialAboveChars shows its first
+ * name as an initial once the list scrolls.
  */
 const PHONE = {
   nameMinRem: 9,
-  nameMaxVw: 45,
+  nameMaxCqw: 45,
+  fullColumns: 2,
+  initialAboveChars: 14,
   ratingRem: 2.25,
   labelRemPerChar: 0.5,
   labelPaddingRem: 0.5,
@@ -48,11 +52,17 @@ const phoneColumnRem = (label: string): number =>
 const phoneLayout = (labels: readonly string[]): CSSProperties => {
   const widths = labels.map(phoneColumnRem);
   const sum = widths.reduce((total, width) => total + width, 0);
-  const name = `min(${String(PHONE.nameMinRem)}rem, ${String(PHONE.nameMaxVw)}vw)`;
+  const full = widths.slice(0, PHONE.fullColumns);
+  const fullRem = full.reduce((total, width) => total + width, 0);
+  const least = `min(${String(PHONE.nameMinRem)}rem, ${String(PHONE.nameMaxCqw)}cqw)`;
+  // The list's width (cqw: its container) less the first columns, their gaps and the right padding.
+  const name = `max(${least}, calc(100cqw - ${String(fullRem)}rem - ${String(full.length)} * var(--space-2) - var(--space-4)))`;
   return {
-    "--phone-columns": `minmax(${name}, 1fr) ${widths.map((width) => `${String(width)}rem`).join(" ")}`,
+    "--phone-name-least": least,
+    "--phone-name": name,
+    "--phone-columns": `minmax(var(--phone-name), 1fr) ${widths.map((width) => `${String(width)}rem`).join(" ")}`,
     // At least the screen; wider when the columns do not fit, so the list scrolls sideways.
-    "--phone-width": `max(100%, calc(${name} + ${String(sum)}rem + ${String(widths.length)} * var(--space-2) + var(--space-4)))`,
+    "--phone-width": `max(100%, calc(var(--phone-name) + ${String(sum)}rem + ${String(widths.length)} * var(--space-2) + var(--space-4)))`,
   };
 };
 
@@ -78,6 +88,31 @@ const RowsHeader = ({
   </div>
 );
 
+/** The name; a long one also as "A. Surname", which styles.css shows instead once the list scrolls. */
+const PhoneName = ({ player }: { player: Player }) =>
+  player.initialName !== null && player.name.length > PHONE.initialAboveChars ? (
+    <span className="player-row-name has-initial">
+      <span className="player-row-name-full">{player.name}</span>
+      <span className="player-row-name-short" aria-hidden="true">
+        {player.initialName}
+      </span>
+      <ShortlistMark player={player} />
+    </span>
+  ) : (
+    <span className="player-row-name">
+      {player.name}
+      <ShortlistMark player={player} />
+    </span>
+  );
+
+/** Tells styles.css how far the list has scrolled sideways, on the list and its labels alike. */
+const followScroll = (scrollLeft: number, elements: readonly (HTMLElement | null)[]): void => {
+  for (const element of elements) {
+    element?.style.setProperty("--phone-scroll", `${String(scrollLeft)}px`);
+    element?.toggleAttribute("data-scrolled", scrollLeft > 0);
+  }
+};
+
 /** One phone row: the name with club, position and age, then the number columns. */
 const PhoneRow = (props: {
   player: Player;
@@ -97,10 +132,7 @@ const PhoneRow = (props: {
       }}
     >
       <span className="player-row-text">
-        <span className="player-row-name">
-          {player.name}
-          <ShortlistMark player={player} />
-        </span>
+        <PhoneName player={player} />
         <span className="player-row-meta">
           {clubText(player)}
           {TEXT.rowMetaSeparator}
@@ -138,11 +170,12 @@ export const PlayerCards = (props: ListProps): JSX.Element => {
       <RowsHeader ref={headerRef} labels={labels} layout={layout} />
       <div
         ref={scrollRef}
-        className="scroll"
+        className="scroll phone-scroll"
         onScroll={(event) => {
-          // The labels follow the columns sideways.
-          if (headerRef.current !== null)
-            headerRef.current.scrollLeft = event.currentTarget.scrollLeft;
+          const { scrollLeft } = event.currentTarget;
+          // The labels follow the columns sideways; the kept name narrows as they go.
+          if (headerRef.current !== null) headerRef.current.scrollLeft = scrollLeft;
+          followScroll(scrollLeft, [event.currentTarget, headerRef.current]);
         }}
       >
         <ol className="player-rows" style={{ ...layout, paddingTop: before, paddingBottom: after }}>

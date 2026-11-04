@@ -81,6 +81,7 @@ export const testPlayer = (overrides: Partial<Player> = {}): Player => {
   const player: Player = {
     id: 1,
     name: "First Last",
+    initialName: "F. Last",
     searchName: "",
     nameOrder: 0,
     youth: false,
