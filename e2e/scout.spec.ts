@@ -55,6 +55,27 @@ test.describe("wide table", () => {
   });
 });
 
+test.describe("stored state", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  test("keeps the game database and filters after a reload", async ({ page }) => {
+    await loadDatabase(page);
+    await page.getByRole("checkbox", { name: "Bramkarz" }).check();
+    await expectStoredPositionGroup(page, "goalkeeper");
+    await page.reload();
+    // The restore is too fast to catch its skeleton reliably; the stored game opens the list directly.
+    await expect(page.getByRole("checkbox", { name: "Bramkarz" })).toBeChecked();
+    await expect(page.getByRole("table")).toBeVisible();
+    // The start screen's button counts what the list shows, filters included.
+    const listed = (await page.locator(".count").textContent())?.match(/^\d+/u)?.[0];
+    await page.getByRole("button", { name: "Pliki" }).click();
+    await expect(page.getByText(`Wczytano: ${path.basename(SYNTHETIC_DB_PATH)}`)).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: `Pokaż zawodników (${String(listed)})` }),
+    ).toBeVisible();
+  });
+});
+
 test.describe("wide screen", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
@@ -99,18 +120,6 @@ test.describe("wide screen", () => {
     await expect(page.getByRole("radio", { name: "tylko wolni zawodnicy" })).toHaveCount(0);
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("wolny");
     await expect(page.getByText("Żaden zawodnik nie spełnia filtrów.")).toBeVisible();
-  });
-
-  test("keeps the game database and filters after a reload", async ({ page }) => {
-    await loadDatabase(page);
-    await page.getByRole("checkbox", { name: "Bramkarz" }).check();
-    await expectStoredPositionGroup(page, "goalkeeper");
-    await page.reload();
-    // The restore is too fast to catch its skeleton reliably; the stored game opens the list directly.
-    await expect(page.getByRole("checkbox", { name: "Bramkarz" })).toBeChecked();
-    await expect(page.getByRole("table")).toBeVisible();
-    await page.getByRole("button", { name: "Pliki" }).click();
-    await expect(page.getByText(`Wczytano: ${path.basename(SYNTHETIC_DB_PATH)}`)).toBeVisible();
   });
 
   test("explains a wrong game file and keeps the start screen", async ({ page }) => {

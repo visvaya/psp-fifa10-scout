@@ -101,7 +101,7 @@ const inRange =
   };
 
 /** One a club can sign: with a club, a free agent or academy youth; not a legend or national-team-only. */
-export const isAvailable = (player: Player): boolean =>
+const isAvailable = (player: Player): boolean =>
   player.clubId !== null || player.youth || player.freeAgent;
 
 /** In the user's club: linked to it, or a youth-pool player without a club, who sits in its academy. */

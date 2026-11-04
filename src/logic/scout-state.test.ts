@@ -6,6 +6,7 @@ import {
   attributeBand,
   DEFAULT_SORT,
   effectiveFilters,
+  listedCount,
   facetOptions,
   initialScoutState,
   scoutReducer,
@@ -319,6 +320,11 @@ describe("actionOf", () => {
 });
 
 describe("effectiveFilters", () => {
+  it("count the players the list shows, as the start screen's button does", () => {
+    const filtered = { ...loaded(), filters: { lists: { clubId: [7] } } };
+    expect([initialScoutState, loaded(), filtered].map(listedCount)).toEqual([0, 2, 1]);
+  });
+
   it("keeps the players one can sign, or only free agents in a career", () => {
     expect(effectiveFilters({}, null)).toEqual({ availableOnly: true });
     expect(effectiveFilters({}, 7)).toEqual({ availableOnly: true });
