@@ -229,6 +229,10 @@ test.describe("career save", () => {
       .click();
     await expectCount(page, "62 zawodników");
   });
+});
+
+test.describe("career prices", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
 
   test("prices players, sorts and filters by price and estimates the wage", async ({ page }) => {
     await page.goto("/");

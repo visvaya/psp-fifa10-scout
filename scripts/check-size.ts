@@ -50,7 +50,8 @@ export interface BuildSizes {
 // Raised 2026-11-04 for the transfer price and market wage (the game's formulas, their tuning values,
 // the price column, card fields, filters and sort): JS gzip 110 042 -> 111 622, precache 383 507 ->
 // 387 676; with the position gain above: JS gzip 112 214, precache 389 001; with the update check and
-// the UI audit fixes above, and the save's currency: JS gzip 113 115, precache 391 994.
+// the UI audit fixes above, and the save's currency: JS gzip 113 115, precache 391 994; with the
+// position name and chip fixes (#44, #45): JS gzip 113 218, precache 392 271.
 export const SIZE_BUDGETS: BuildSizes = {
   jsGzipBytes: 111 * 1024,
   cssGzipBytes: 2850,
