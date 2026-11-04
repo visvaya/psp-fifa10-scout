@@ -84,7 +84,7 @@ export interface ListProps {
 }
 
 /** The root font size in px, which enlarged text raises. */
-const rootFontPx = (): number =>
+export const rootFontPx = (): number =>
   Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
 
 export const useRows = (count: number, rowHeightRem: number) => {
@@ -155,6 +155,18 @@ const numberIn = (player: Player, column: SortKey, ratingCode: number | null): n
       : ratingGain(player, ratingCode)
     : ratingIn(player, column, ratingCode);
 
+/** A column's text as ColumnValue shows it, or null for a rating or the gain, drawn as badges. */
+export const columnText = (
+  player: Player,
+  column: SortKey,
+  ratingCode: number | null,
+): string | null => {
+  if (numberIn(player, column, ratingCode) !== null) return null;
+  if (isTextColumn(column)) return String(cellText(player, column));
+  const field = isRangeKey(column) ? rangeValue(player, column) : null;
+  return field === null ? null : formatNumber(field);
+};
+
 /** A column's value: a rating with its colour band, the gain with its sign, a number, or the text. */
 export const ColumnValue = (props: {
   player: Player;
@@ -166,9 +178,9 @@ export const ColumnValue = (props: {
   if (value !== null) {
     return column === "ratingGain" ? <GainValue value={value} /> : <AttributeValue value={value} />;
   }
-  if (isTextColumn(column)) return cellContent(player, column);
-  const field = isRangeKey(column) ? rangeValue(player, column) : null;
-  return field === null ? null : formatNumber(field);
+  return isTextColumn(column)
+    ? cellContent(player, column)
+    : columnText(player, column, ratingCode);
 };
 
 const isNumberColumn = (column: SortKey): boolean => column !== "name" && !column.endsWith("Name");

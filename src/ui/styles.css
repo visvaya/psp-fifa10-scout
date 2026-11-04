@@ -7,6 +7,8 @@
   --color-ink: #1b2420;
   --color-muted: #4f5a54;
   --color-line: #d6d0c0;
+  /* The edge of a list that scrolls on beyond it. */
+  --color-shadow: rgb(27 36 32 / 0.2);
   --color-accent: #1d6b3c;
   --color-accent-ink: #ffffff;
   --color-error: #a3261b;
@@ -52,6 +54,8 @@
     --color-ink: #e6ebe4;
     --color-muted: #a9b3ac;
     --color-line: #34403a;
+    /* A dark shadow would not show on the dark background: a faint light edge instead. */
+    --color-shadow: rgb(230 235 228 / 0.16);
     --color-accent: #6ccf93;
     --color-accent-ink: #0c1a11;
     --color-error: #ff8f84;
@@ -397,6 +401,8 @@ input[inputmode="numeric"] {
   flex: 1;
   min-height: 0;
   overflow: auto;
+  /* No bounce at the edges (iOS Safari), sideways as well as down. */
+  overscroll-behavior: none;
   scrollbar-gutter: stable;
   border-top: 1px solid var(--color-line);
 }
@@ -476,6 +482,36 @@ input[inputmode="numeric"] {
 }
 
 /* Phone rows */
+/* The labels and the list, with the scroll state that player-rows.tsx sets on it. */
+.phone-list {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Columns beyond the right edge: a shadow there, over the start of the next column, so no cut-off
+   letter shows and the list reads as going on. */
+.phone-list[data-more]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: var(--phone-scrollbar, 0px);
+  bottom: 0;
+  z-index: 2;
+  width: var(--space-4);
+  background:
+    linear-gradient(to left, var(--color-shadow), transparent),
+    linear-gradient(to right, transparent, var(--color-bg) 50%);
+  pointer-events: none;
+}
+
+/* Scrolled sideways: a shadow where the columns go under the kept name. */
+[data-scrolled] :is(.player-row-text, .player-rows-grid > :first-child) {
+  box-shadow: var(--space-2) 0 var(--space-2) calc(-1 * var(--space-2)) var(--color-shadow);
+}
+
 .player-rows {
   width: var(--phone-width);
   margin: 0;
@@ -563,7 +599,7 @@ input[inputmode="numeric"] {
 }
 
 /* Labels over the phone rows' numbers, outside the scroller so they stay put vertically; they follow the
-   list sideways (player-list.tsx), and the gutter keeps them aligned where scrollbars take space. */
+   list sideways (player-rows.tsx), and the gutter keeps them aligned where scrollbars take space. */
 .player-rows-header {
   padding: var(--space-1) 0;
   overflow: hidden;
