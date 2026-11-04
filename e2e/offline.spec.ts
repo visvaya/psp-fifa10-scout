@@ -140,6 +140,8 @@ test("a new release is offered and installs on request, under a sub-path", async
     // The browser looks for a new worker on navigations; on an open page the header's check asks.
     await check.click();
     const prompt = page.getByRole("status").filter({ hasText: "Dostępna jest nowa wersja." });
+    // It says what the reload keeps, so nobody fears loading the game again.
+    await expect(prompt).toContainText("dane gry, zapis kariery i filtry zostaną zachowane");
     await expect(prompt).toBeVisible();
     await expect(page.getByLabel(GAME_INPUT)).toBeEnabled();
     const { violations } = await new AxeBuilder({ page }).analyze();

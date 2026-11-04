@@ -262,9 +262,11 @@ export const TEXT = {
   installHelp:
     "Po pierwszym otwarciu narzędzie działa też bez internetu. iPhone: w Safari wybierz Udostępnij, potem Do ekranu początkowego. Chrome i Edge: menu przeglądarki, potem Zainstaluj aplikację.",
   update: {
-    waiting: "Dostępna jest nowa wersja.",
+    waiting:
+      "Dostępna jest nowa wersja. Wczytane dane gry, zapis kariery i filtry zostaną zachowane.",
     installing: "Instalowanie nowej wersji…",
-    outdated: "Nowa wersja została zainstalowana w innym oknie.",
+    outdated:
+      "Nowa wersja została zainstalowana w innym oknie. Wczytane dane gry, zapis kariery i filtry zostaną zachowane.",
     failed: "Nie udało się pobrać nowej wersji. Spróbuj później.",
     checking: "Sprawdzanie aktualizacji…",
     downloading: "Pobieranie nowej wersji…",
