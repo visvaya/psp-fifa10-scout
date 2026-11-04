@@ -140,11 +140,16 @@ const styleTier = ({ playingStyle, overall }: PriceInput): number => {
 const styleAdjustment = (adjustments: readonly number[], input: PriceInput): number =>
   adjustments[styleTier(input)] ?? 0;
 
-/** The game's rounding (vaddr 0x08972914): units rounded at 6, then two significant digits half up. */
-export const roundPrice = (amount: number): number => {
+/** The game's rounding of money on screen (wages, budget): to whole units, then the units digit at 6. */
+export const roundMoney = (amount: number): number => {
   const whole = Math.floor(amount + 0.5);
   const units = whole % 10;
-  const rounded = whole - units + (units >= 6 ? 10 : 0);
+  return whole - units + (units >= 6 ? 10 : 0);
+};
+
+/** The game's rounding of prices (vaddr 0x08972914): roundMoney, then two significant digits half up. */
+export const roundPrice = (amount: number): number => {
+  const rounded = roundMoney(amount);
   let power = 1;
   while (power < rounded) power *= 10;
   if (power < 1000) return rounded;

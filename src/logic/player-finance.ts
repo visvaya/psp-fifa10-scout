@@ -4,7 +4,7 @@ import { careerManager, effectiveRows } from "../data/career-save.ts";
 import type { CareerSave } from "../data/career-save.ts";
 import type { EaDb, EaDbRow } from "../data/ea-db.ts";
 import { SCOUT_CONFIG } from "./config.ts";
-import { exchangeRate, marketWage, transferPrice } from "./transfer-price.ts";
+import { exchangeRate, marketWage, roundMoney, transferPrice } from "./transfer-price.ts";
 import type { PriceInput } from "./transfer-price.ts";
 
 export interface Finance {
@@ -52,8 +52,9 @@ export const financeOf = (db: EaDb, save: CareerSave): ((input: FinanceInput) =>
   const storedWages = new Map(
     effectiveRows(db, save, "career_extra_user_team_info").map((row) => [
       num(row, "playerid"),
-      // Stored in euro, not always round (raises in later seasons).
-      Math.round(float32(num(row, "wage")) * rate),
+      // Stored in euro, not always round (raises in later seasons); the game shows it converted and
+      // rounded at the units digit (four of four squad wages on its screen in dollars).
+      roundMoney(float32(num(row, "wage")) * rate),
     ]),
   );
   return ({ row, age, club, overallAt }) => {

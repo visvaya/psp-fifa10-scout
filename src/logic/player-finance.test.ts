@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { parseCareerSave } from "../data/career-save.ts";
+import { careerManager, parseCareerSave } from "../data/career-save.ts";
 import type { CareerSave } from "../data/career-save.ts";
 import { parseEaDb } from "../data/ea-db.ts";
 import type { EaDbRow } from "../data/ea-db.ts";
@@ -9,7 +9,7 @@ import { baseOverall, CURVE_COLUMNS } from "./overall-rating.ts";
 import { buildPlayers } from "./players.ts";
 import type { Player } from "./players.ts";
 import { attributes, playerRow, table } from "./test-support/player-fixtures.ts";
-import { marketWage, roundPrice, transferPrice } from "./transfer-price.ts";
+import { marketWage, roundMoney, roundPrice, transferPrice } from "./transfer-price.ts";
 import type { PriceInput } from "./transfer-price.ts";
 
 const daysSince1582 = (year: number, month: number, day: number): number =>
@@ -152,7 +152,7 @@ describe("career prices and wages", () => {
   });
 
   it("keeps the stored wage of the user's squad", () => {
-    expect(byId(4)).toMatchObject({ wage: 1234, wageMax: null });
+    expect(byId(4)).toMatchObject({ wage: 1230, wageMax: null });
     expect(byId(4)?.price).toBe(transferPrice(input({ contractYearsLeft: 2, prestige: 16 })));
   });
 
@@ -173,7 +173,7 @@ describe("career prices and wages", () => {
     ]);
     const player = (id: number) => buildPlayers(DB, inPounds).find((each) => each.id === id);
     expect(player(1)?.price).toBe(transferPrice(input({ exchangeRate: 0.86 })));
-    expect(player(4)?.wage).toBe(Math.round(1234 * 0.86));
+    expect(player(4)?.wage).toBe(roundMoney(1234 * 0.86));
   });
 
   it("leaves players without a club or without a save unpriced", () => {
@@ -261,11 +261,15 @@ describe.runIf(existsSync(realDbPath) && existsSync(realCareerPath))("real caree
 
   it("keeps the stored wages of the user's squad", () => {
     const { db, save } = loadReal();
+    const { teamId } = careerManager(db, save);
     const players = new Map(buildPlayers(db, save).map((player) => [player.id, player]));
-    const stored = save.get("career_extra_user_team_info") ?? [];
+    // Players who have left the squad keep a row here but get the market estimate.
+    const stored = (save.get("career_extra_user_team_info") ?? []).filter(
+      (entry) => players.get(Number(entry["playerid"]))?.clubId === teamId,
+    );
     const kept = stored.filter((entry) => {
       const player = players.get(Number(entry["playerid"]));
-      return player?.wage === Math.round(as32(Number(entry["wage"]))) && player.wageMax === null;
+      return player?.wage === roundMoney(as32(Number(entry["wage"]))) && player.wageMax === null;
     });
     expect(stored.length).toBeGreaterThan(0);
     expect(kept).toHaveLength(stored.length);

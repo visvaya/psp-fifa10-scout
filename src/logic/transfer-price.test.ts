@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { exchangeRate, marketWage, roundPrice, transferPrice } from "./transfer-price.ts";
+import {
+  exchangeRate,
+  marketWage,
+  roundMoney,
+  roundPrice,
+  transferPrice,
+} from "./transfer-price.ts";
 import type { PriceInput } from "./transfer-price.ts";
 
 /** OVR + OVR in five years = 195, the divider: the base is exactly 100 000 + 39 000 000. */
@@ -22,21 +28,29 @@ const NEUTRAL: PriceInput = {
 const priceWith = (extra: number, multiplier = 0.85): number =>
   roundPrice(BASE * (1 + 0.3 - 0.05 + extra) * multiplier);
 
-describe("roundPrice", () => {
+describe("the game's money rounding", () => {
+  // Amount, as wages and budgets show it (roundMoney), as prices show it (roundPrice). Rows of numbers
+  // look alike by nature. jscpd:ignore-start
   it.each([
-    [0, 0],
-    [10, 10],
-    [95, 90],
-    [95.6, 100],
-    [994, 990],
-    [1000, 1000],
-    [1044, 1000],
-    [1046, 1100],
-    [15_449_999.6, 15_000_000],
-    [15_500_000, 16_000_000],
-    [33_249_000, 33_000_000],
-  ])("rounds %s to %s", (amount, rounded) => {
-    expect(roundPrice(amount)).toBe(rounded);
+    [0, 0, 0],
+    [10, 10, 10],
+    [95, 90, 90],
+    [95.6, 100, 100],
+    [994, 990, 990],
+    [1000, 1000, 1000],
+    [1044, 1040, 1000],
+    [1046, 1050, 1100],
+    [4089.49, 4090, 4100],
+    [6570, 6570, 6600],
+    [8742.2, 8740, 8700],
+    [15_449_999.6, 15_450_000, 15_000_000],
+    [15_500_000, 15_500_000, 16_000_000],
+    [33_249_000, 33_249_000, 33_000_000],
+    [2_917_008, 2_917_010, 2_900_000],
+    // jscpd:ignore-end
+  ])("rounds %s to %s as money and %s as a price", (amount, money, price) => {
+    expect(roundMoney(amount)).toBe(money);
+    expect(roundPrice(amount)).toBe(price);
   });
 });
 
