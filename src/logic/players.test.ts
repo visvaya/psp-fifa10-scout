@@ -74,7 +74,13 @@ const DB = parseEaDb(
         birthdate: BORN_1989_07_10,
         preferredposition1: 12,
       }),
-      playerRow({ playerid: 8, nationality: 37, preferredposition1: 24 }),
+      playerRow({
+        playerid: 8,
+        firstname: " Jan ",
+        surname: " Kowalski ",
+        nationality: 37,
+        preferredposition1: 24,
+      }),
       playerRow({ playerid: 400_001, nationality: 37 }),
       playerRow({ playerid: 400_002, nationality: 37, preferredposition1: 30 }),
       playerRow({ playerid: 400_003, nationality: 37 }),
@@ -153,6 +159,7 @@ describe("buildPlayers from fifa.db", () => {
     expect(byId(players, 158_023)).toEqual({
       id: 158_023,
       name: "Lionel Messi",
+      initialName: "L. Messi",
       searchName: "lionel messi",
       nameOrder: 1,
       youth: false,
@@ -204,6 +211,8 @@ describe("buildPlayers from fifa.db", () => {
   it("trims one-name players and names the centre-left positions as the game does", () => {
     expect(byId(players, 7)).toMatchObject({
       name: "Ronaldinho",
+      // One name: nothing to shorten.
+      initialName: null,
       nameOrder: 2,
       age: 19,
       positionName: "LCDM",
@@ -213,6 +222,10 @@ describe("buildPlayers from fifa.db", () => {
       nationalTeamId: null,
     });
     expect(byId(players, 8)).toMatchObject({
+      // Both parts trimmed before they are joined and shortened.
+      name: "Jan Kowalski",
+      initialName: "J. Kowalski",
+      searchName: "jan kowalski",
       positionName: "LCAM",
       positionGroup: "attacking-midfield",
     });

@@ -186,6 +186,50 @@ const enlargeText = () => {
   });
 };
 
+test.describe("phone name column", () => {
+  test.use(PHONE);
+
+  // The name keeps the room the first two number columns leave; scrolled sideways it narrows to its minimum,
+  // and a name too long for that gives its first name as an initial.
+  test("shows two number columns beside the name, then narrows the name as the list scrolls", async ({
+    page,
+  }) => {
+    await loadDatabase(page);
+    await page.getByRole("button", { name: "Filtry" }).click();
+    const dialog = page.getByRole("dialog", { name: "Filtry" });
+    await dialog.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
+    await dialog.getByText("Atrybuty", { exact: true }).click();
+    await dialog.getByLabel("Dodaj atrybut").selectOption({ label: "Szybkość" });
+    await dialog.getByRole("group", { name: "Szybkość" }).getByLabel("od").fill("10");
+    await dialog.getByRole("button", { name: "Zamknij" }).click();
+    const row = page.locator(".player-row").first();
+    const cells = row.locator(".player-row-cell");
+    await expect(cells.nth(1)).toBeInViewport({ ratio: 1 });
+    await expect(cells.nth(2)).not.toBeInViewport({ ratio: 1 });
+    const name = row.locator(".player-row-text");
+    const wide = (await name.boundingBox())?.width ?? Number.NaN;
+    await page.locator(".scroll").evaluate((element) => {
+      element.scrollTo(30, 0);
+    });
+    await expect.poll(async () => (await name.boundingBox())?.width).toBeCloseTo(wide - 30, 0);
+    await page.locator(".scroll").evaluate(scrollToEnd);
+    await expect(cells.last()).toBeInViewport();
+    await expect.poll(async () => (await name.boundingBox())?.width).toBeLessThan(wide - 30);
+    await page.locator(".scroll").evaluate((element) => {
+      element.scrollTo(element.scrollLeft, element.scrollHeight);
+    });
+    const short = page
+      .locator(".player-row", { hasText: "Bardzo-Długie" })
+      .locator(".player-row-name-short");
+    await expect(short).toBeVisible();
+    await expect(short).toHaveText(/^G\. Numer 9 Bardzo/u);
+    await page.locator(".scroll").evaluate((element) => {
+      element.scrollTo(0, element.scrollTop);
+    });
+    await expect(short).toBeHidden();
+  });
+});
+
 test.describe("enlarged text", () => {
   test.use(PHONE);
 
