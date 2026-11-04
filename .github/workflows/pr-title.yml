@@ -37,4 +37,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq .title | pnpm exec commitlint
+        # A failed API call (a GitHub 502) gets two retries and then an error of its own, rather than an
+        # empty title that commitlint reports as a bad one.
+        run: |
+          for attempt in 1 2 3; do
+            title=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq .title) && break
+            if [ "$attempt" = 3 ]; then echo "::error::could not read the pull request title"; exit 1; fi
+            sleep 10
+          done
+          printf '%s\n' "$title" | pnpm exec commitlint
