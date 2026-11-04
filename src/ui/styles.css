@@ -474,6 +474,7 @@ input[type="number"] {
 
 /* Phone rows */
 .player-rows {
+  width: var(--phone-width);
   margin: 0;
   padding-left: 0;
   list-style: none;
@@ -483,6 +484,7 @@ input[type="number"] {
    sideways when the columns do not fit; the name stays at the left. */
 .player-row {
   display: grid;
+  grid-template-columns: var(--phone-columns);
   align-items: center;
   column-gap: var(--space-2);
   width: 100%;
@@ -545,6 +547,8 @@ input[type="number"] {
 
 .player-rows-grid {
   display: grid;
+  grid-template-columns: var(--phone-columns);
+  width: var(--phone-width);
   column-gap: var(--space-2);
   padding-right: var(--space-4);
 }

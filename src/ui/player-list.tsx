@@ -2,7 +2,7 @@
 // screens, a two-line list on phones.
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useCallback, useMemo, useRef } from "react";
-import type { Dispatch, JSX, ReactNode, RefObject } from "react";
+import type { CSSProperties, Dispatch, JSX, ReactNode, RefObject } from "react";
 import { isRangeKey, rangeValue, ratingGain } from "../logic/filter-players.ts";
 import type { PlayerFilters } from "../logic/filter-players.ts";
 import { phoneColumns } from "../logic/phone-columns.ts";
@@ -14,6 +14,13 @@ import { AttributeValue, GainValue } from "./attribute-value.tsx";
 import { PositionName } from "./position-name.tsx";
 import { ATTRIBUTE_LABELS, formatNumber, RANGE_LABELS, TEXT } from "./text.ts";
 import { useColumnWidths } from "./use-column-widths.ts";
+
+declare module "react" {
+  // CSS custom properties in the style type: the phone layout passes its computed widths to styles.css.
+  interface CSSProperties {
+    [property: `--${string}`]: string | undefined;
+  }
+}
 
 const ROW_HEIGHT_PX = { table: 40, list: 64 } as const;
 /**
@@ -318,14 +325,17 @@ export const PlayerTable = (props: ListProps): JSX.Element => {
 const phoneColumnRem = (label: string): number =>
   Math.max(PHONE.ratingRem, label.length * PHONE.labelRemPerChar + PHONE.labelPaddingRem);
 
-/** The phone rows' grid, shared by the header so each label stands over its column. */
-const phoneLayout = (labels: readonly string[]) => {
+/**
+ * The phone rows' grid, shared by the header so each label stands over its column: the values for the
+ * rules in styles.css.
+ */
+const phoneLayout = (labels: readonly string[]): CSSProperties => {
   const widths = labels.map(phoneColumnRem);
   const sum = widths.reduce((total, width) => total + width, 0);
   return {
-    gridTemplateColumns: `minmax(${String(PHONE.nameMinRem)}rem, 1fr) ${widths.map((width) => `${String(width)}rem`).join(" ")}`,
+    "--phone-columns": `minmax(${String(PHONE.nameMinRem)}rem, 1fr) ${widths.map((width) => `${String(width)}rem`).join(" ")}`,
     // At least the screen; wider when the columns do not fit, so the list scrolls sideways.
-    width: `max(100%, calc(${String(PHONE.nameMinRem)}rem + ${String(sum)}rem + ${String(widths.length)} * var(--space-2) + var(--space-4) * 2))`,
+    "--phone-width": `max(100%, calc(${String(PHONE.nameMinRem)}rem + ${String(sum)}rem + ${String(widths.length)} * var(--space-2) + var(--space-4) * 2))`,
   };
 };
 
@@ -337,7 +347,7 @@ const RowsHeader = ({
 }: {
   ref: RefObject<HTMLDivElement | null>;
   labels: readonly string[];
-  layout: ReturnType<typeof phoneLayout>;
+  layout: CSSProperties;
 }) => (
   <div ref={ref} className="player-rows-header" aria-hidden="true">
     <div className="player-rows-grid" style={layout}>
@@ -356,16 +366,14 @@ const PhoneRow = (props: {
   player: Player;
   columns: readonly SortKey[];
   labels: readonly string[];
-  gridTemplateColumns: string;
   ratingCode: number | null;
   dispatch: Dispatch<ScoutAction>;
 }) => {
-  const { player, columns, labels, gridTemplateColumns, ratingCode, dispatch } = props;
+  const { player, columns, labels, ratingCode, dispatch } = props;
   return (
     <button
       type="button"
       className="player-row"
-      style={{ gridTemplateColumns }}
       data-player-id={player.id}
       onClick={() => {
         dispatch({ type: "player-opened", id: player.id });
@@ -416,10 +424,7 @@ export const PlayerCards = (props: ListProps): JSX.Element => {
             headerRef.current.scrollLeft = event.currentTarget.scrollLeft;
         }}
       >
-        <ol
-          className="player-rows"
-          style={{ width: layout.width, paddingTop: before, paddingBottom: after }}
-        >
+        <ol className="player-rows" style={{ ...layout, paddingTop: before, paddingBottom: after }}>
           {items.map((item) => {
             const player = players[item.index];
             if (player === undefined) return null;
@@ -429,7 +434,6 @@ export const PlayerCards = (props: ListProps): JSX.Element => {
                   player={player}
                   columns={columns}
                   labels={labels}
-                  gridTemplateColumns={layout.gridTemplateColumns}
                   ratingCode={ratingCode}
                   dispatch={dispatch}
                 />

@@ -49,9 +49,11 @@ export interface BuildSizes {
 // 386 572 -> 387 219.
 // Raised 2026-11-04 for the phone rows' columns of the filtered values, scrolled sideways under a kept
 // name: JS gzip 111 432 -> 111 865, CSS gzip 2 831 -> 2 881, precache 387 561 -> 388 735.
+// Raised 2026-11-04 for the phone grid's rules moving from style props into styles.css (review): CSS gzip
+// 2 881 -> 2 904.
 export const SIZE_BUDGETS: BuildSizes = {
   jsGzipBytes: 110 * 1024,
-  cssGzipBytes: 2900,
+  cssGzipBytes: 2950,
   serviceWorkerBytes: 11 * 1024,
   precacheBytes: 380 * 1024,
 };
