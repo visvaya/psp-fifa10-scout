@@ -126,6 +126,14 @@ const ColumnValue = (props: { player: Player; column: SortKey; ratingCode: numbe
   return isTextColumn(column) ? cellContent(player, column) : null;
 };
 
+const isNumberColumn = (column: SortKey): boolean => column !== "name" && !column.endsWith("Name");
+
+const SortMark = (props: { column: SortKey; sort: ScoutSort }) => (
+  <span aria-hidden="true" className="sort-mark">
+    {props.sort.key === props.column ? TEXT.sortMark[props.sort.direction] : ""}
+  </span>
+);
+
 const HeaderCell = ({
   column,
   sort,
@@ -135,7 +143,7 @@ const HeaderCell = ({
   <th
     scope="col"
     aria-sort={sort.key === column ? sort.direction : undefined}
-    className={column === "name" || column.endsWith("Name") ? "" : "num"}
+    className={isNumberColumn(column) ? "num" : ""}
   >
     <button
       type="button"
@@ -144,10 +152,10 @@ const HeaderCell = ({
         dispatch({ type: "sort-changed", key: column });
       }}
     >
-      {columnLabel(column, ratingName)}
-      <span aria-hidden="true" className="sort-mark">
-        {sort.key === column ? TEXT.sortMark[sort.direction] : ""}
-      </span>
+      {/* In a number column the mark goes first, so the heading ends where the right-aligned values end. */}
+      {isNumberColumn(column) ? <SortMark column={column} sort={sort} /> : null}
+      <span className="sort-label">{columnLabel(column, ratingName)}</span>
+      {isNumberColumn(column) ? null : <SortMark column={column} sort={sort} />}
     </button>
   </th>
 );
