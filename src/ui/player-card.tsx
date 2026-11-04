@@ -67,8 +67,9 @@ const choicePositions = (code: number, names: PositionNames): string =>
   )
     .map((other) => {
       const full = names.full(other);
-      const short = names.short(other);
-      return full === undefined ? short : TEXT.card.positionWithName(full, short);
+      return full === undefined
+        ? names.short(other)
+        : TEXT.card.positionWithName(full, names.abbreviation(other));
     })
     .join(TEXT.rowMetaSeparator);
 

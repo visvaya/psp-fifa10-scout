@@ -62,21 +62,24 @@ export const gameNamesOf = (table: ReadonlyMap<number, string>, ids: NameIds): G
   }),
 });
 
-const abbreviation = (names: GameNames | null, code: number): string =>
+/** A position's abbreviation in the game language, else the game's English name. */
+export const abbreviationIn = (names: GameNames | null, code: number): string =>
   names?.positions[code] ?? positionOf(code).name;
 
 /**
  * A position's abbreviation in the game language, else the game's English name, for choosing a
- * position: where the language gives two positions one abbreviation (Polish PN for RF and RS), the
- * English name follows it.
+ * position. The English name follows an abbreviation that could mean another position: one the
+ * language gives two positions (Polish PN for RF and RS), or another position's English one (Polish ST
+ * for the sweeper, English ST for the striker).
  */
 export const positionNameIn = (names: GameNames | null, code: number): string => {
-  const name = abbreviation(names, code);
-  const shared = POSITION_CODES.some(
-    (other) => other !== code && abbreviation(names, other) === name,
+  const name = abbreviationIn(names, code);
+  const confusing = POSITION_CODES.some(
+    (other) =>
+      other !== code && (abbreviationIn(names, other) === name || positionOf(other).name === name),
   );
   const english = positionOf(code).name;
-  return shared && name !== english ? `${name} (${english})` : name;
+  return confusing && name !== english ? `${name} (${english})` : name;
 };
 
 const nameOr = (

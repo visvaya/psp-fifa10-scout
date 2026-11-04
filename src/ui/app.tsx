@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useReducer } from "react";
 import type { Dispatch, JSX } from "react";
-import { collatorFor, localizePlayers, positionNameIn } from "../logic/game-names.ts";
+import {
+  abbreviationIn,
+  collatorFor,
+  localizePlayers,
+  positionNameIn,
+} from "../logic/game-names.ts";
 import { activeLanguage, initialScoutState, scoutReducer } from "../logic/scout-state.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
 import { ListView } from "./list-view.tsx";
@@ -28,6 +33,7 @@ const useGameNames = (state: ScoutState) => {
   const positionNames = useMemo(
     (): PositionNames => ({
       short: (code) => positionNameIn(names, code),
+      abbreviation: (code) => abbreviationIn(names, code),
       full: (code) => names?.positionNames[code],
     }),
     [names],

@@ -89,7 +89,7 @@ export const positionCodesOf = (group: PositionGroup): readonly number[] =>
 /**
  * The choices of the position rating filter, by the codes naming each: one per way the game rates a
  * position (its distinct OVR weight rows), in code order. The first code is the one rated and stored,
- * and its group names the choice; wingers rate as side midfielders.
+ * and the groups of its codes name it; wingers rate as side midfielders.
  */
 export const RATING_CHOICES: readonly (readonly [number, ...number[]])[] = [
   [0],
@@ -98,7 +98,7 @@ export const RATING_CHOICES: readonly (readonly [number, ...number[]])[] = [
   [3, 7],
   [5],
   [11],
-  [15, 19],
+  [15, 19, 14, 20],
   [17],
   [23],
   [30],
