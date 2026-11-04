@@ -55,6 +55,7 @@ export const playerRow = (overrides: Row): Row => ({
   internationalreputation: 1,
   learningspeed: 3,
   retirementage: 35,
+  playingstyle: 13,
   ...Object.fromEntries(TRAIT_NAMES.map((name) => [name, 0])),
   ...attributes(50),
   ...overrides,
@@ -107,6 +108,9 @@ export const testPlayer = (overrides: Partial<Player> = {}): Player => {
     appearances: null,
     injuryDays: null,
     transferListed: false,
+    price: null,
+    wage: null,
+    wageMax: null,
     ...overrides,
   };
   return { ...player, searchName: searchKey(player.name) };

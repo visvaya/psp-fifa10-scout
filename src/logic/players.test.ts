@@ -121,6 +121,7 @@ const SAVE: CareerSave = new Map([
   ["career_youth_accademy", [row({ playerid: 400_001, dummy: 0 })]],
   ["career_transfer_list", [row({ playerid: 400_003 })]],
   ["career_players_grown_attributes", [row({ playerid: 7, potential_delta: -25 })]],
+  ["career_extra_user_team_info", []],
   [
     "playerstats",
     [
@@ -201,6 +202,9 @@ describe("buildPlayers from fifa.db", () => {
       appearances: null,
       injuryDays: null,
       transferListed: false,
+      price: null,
+      wage: null,
+      wageMax: null,
     });
     // jscpd:ignore-end
   });

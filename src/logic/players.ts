@@ -14,6 +14,8 @@ import {
   potentialDeltas,
   readCurves,
 } from "./overall-rating.ts";
+import { financeOf, NO_FINANCE } from "./player-finance.ts";
+import type { Finance, FinanceInput } from "./player-finance.ts";
 import { byGroup, positionOf } from "./positions.ts";
 import type { PositionGroup } from "./positions.ts";
 
@@ -100,7 +102,7 @@ export const attributesOf = (row: EaDbRow): Attributes => {
   return Object.freeze(record);
 };
 
-export interface Player {
+export interface Player extends Finance {
   readonly id: number;
   readonly name: string;
   /** The name folded by searchKey, for text search. */
@@ -173,6 +175,8 @@ interface Team {
   readonly leagueName: string;
   readonly level: number;
   readonly rating: number;
+  /** League prestige plus team prestige. */
+  readonly prestige: number;
 }
 
 interface Placement {
@@ -188,12 +192,14 @@ interface Context {
   readonly transferList: ReadonlySet<number>;
   readonly freeAgents: ReadonlySet<number>;
   readonly rate: (row: EaDbRow) => Rating;
+  /** Career only. */
+  readonly finance: ((input: FinanceInput) => Finance) | null;
 }
 
 /** A player's attributes as the list shows them and his OVR at any position code. */
 interface Rating {
   readonly attributes: Attributes;
-  readonly overallAt: (positionCode: number) => number;
+  readonly overallAt: (positionCode: number, yearsAhead?: number) => number;
 }
 
 const num = (row: EaDbRow, key: string): number => Number(row[key]);
@@ -219,7 +225,8 @@ const teamsById = (db: EaDb): ReadonlyMap<number, Team> => {
       const leagueId = num(league, "leagueid");
       const [name, leagueName] = [String(row["teamname"]), String(league["leaguename"])];
       const [level, rating] = [num(league, "level"), num(row, "overallrating")];
-      return [[id, { id, name, leagueId, leagueName, level, rating }]];
+      const prestige = num(league, "leagueprestige") + num(row, "internationalprestige");
+      return [[id, { id, name, leagueId, leagueName, level, rating, prestige }]];
     }),
   );
 };
@@ -291,6 +298,9 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
   const nationalityId = num(row, "nationality");
   const name = `${String(row["firstname"])} ${String(row["surname"])}`.trim();
   const { attributes, overallAt } = context.rate(row);
+  const age = ageOn(birthdateToDate(num(row, "birthdate")), context.referenceDate);
+  const { club } = context.placements.get(id) ?? {};
+  const money = club && { link: club.link, prestige: club.team.prestige };
   const overallByCode = byPositionCode(overallAt);
   const rate = (code: number): number => overallByCode[code] ?? 0;
   const [potential, overall] = [num(row, "potential"), rate(num(row, "preferredposition1"))];
@@ -300,7 +310,7 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
     searchName: searchKey(name),
     youth: id >= SCOUT_CONFIG.youthPlayerIdStart,
     freeAgent: context.freeAgents.has(id),
-    age: ageOn(birthdateToDate(num(row, "birthdate")), context.referenceDate),
+    age,
     positionCode: num(row, "preferredposition1"),
     positionName: position.name,
     positionGroup: position.group,
@@ -323,6 +333,7 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
     appearances: statOf(stats, "appearances"),
     injuryDays: statOf(stats, "injurydaysout"),
     transferListed: context.transferList.has(id),
+    ...(context.finance?.({ row, age, club: money, overallAt }) ?? NO_FINANCE),
   };
 };
 
@@ -356,23 +367,27 @@ const rater = (db: EaDb, save: CareerSave | undefined): Context["rate"] => {
   const date = seasonStartDate(db, save);
   return (row) => {
     const potential = num(row, "potential") + (deltas.get(num(row, "playerid")) ?? 0);
-    const aged = careerAttributes(
-      {
-        attributes: attributesOf(row),
-        potential,
-        birthdate: birthdateToDate(num(row, "birthdate")),
-        developmentTypeCode: num(row, "developmenttypecode"),
-        developmentStyleCode: num(row, "developmentstylecode"),
-      },
-      date,
-      curves,
-    );
+    const input = {
+      attributes: attributesOf(row),
+      potential,
+      birthdate: birthdateToDate(num(row, "birthdate")),
+      developmentTypeCode: num(row, "developmenttypecode"),
+      developmentStyleCode: num(row, "developmentstylecode"),
+    };
+    const aged = careerAttributes(input, date, curves);
     const attributes = attributesOf(
       Object.fromEntries(ATTRIBUTE_NAMES.map((name) => [name, aged(name)])),
     );
     return {
       attributes,
-      overallAt: (code) => cappedOverall((name) => attributes[name], code, potential),
+      overallAt: (code, yearsAhead = 0) =>
+        cappedOverall(
+          yearsAhead === 0
+            ? (name) => attributes[name]
+            : careerAttributes(input, date, curves, yearsAhead),
+          code,
+          potential,
+        ),
     };
   };
 };
@@ -405,6 +420,7 @@ export const buildPlayers = (db: EaDb, save?: CareerSave): readonly Player[] => 
         .map((row) => num(row, "playerid")),
     ),
     rate: rater(db, save),
+    finance: save === undefined ? null : financeOf(db, save),
   };
   // The game keeps generated players out of the leagues until it places them (overall-rating.md, F2).
   const placed = new Set(

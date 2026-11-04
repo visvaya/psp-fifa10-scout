@@ -52,6 +52,7 @@ const save = (fixtures: readonly EaDbRow[]): CareerSave =>
     ["career_transfer_list", []],
     ["career_youth_accademy", []],
     ["career_players_grown_attributes", []],
+    ["career_extra_user_team_info", []],
   ]);
 
 describe("career ratings", () => {

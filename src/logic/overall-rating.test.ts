@@ -133,6 +133,12 @@ describe("careerAttributes", () => {
     const aged = careerAttributes(player(), LATER, CURVES);
     expect([aged("finishing"), aged("sprintspeed"), aged("reflexes")]).toEqual([60, 40, 40]);
   });
+
+  it("ages a player some years further, as the game's OVR in five years", () => {
+    // Age 16 on 2005-03-01, rated as 21: the curves' values at 21.
+    const later = careerAttributes(player(), new Date("2005-03-01"), CURVES, 5);
+    expect([later("finishing"), later("sprintspeed")]).toEqual([60, 40]);
+  });
 });
 
 describe("careerOverall", () => {
