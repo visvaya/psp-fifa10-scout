@@ -167,6 +167,20 @@ describe("scout store", () => {
     expect(await loadPreferences({ schemaVersion: 2, value: "junk" })).toBeNull();
   });
 
+  it("restores the price and wage ranges and sorting by them", async () => {
+    const stored = (["price", "wage"] as const).map((key): Preferences => ({
+      filters: { ranges: { [key]: { min: 0, max: 1_000_000 } } },
+      sort: { key, direction: "ascending" },
+      showPotential: false,
+    }));
+    const loaded = await Promise.all(
+      stored.map(async (value) =>
+        loadPreferences({ schemaVersion: SCHEMA_VERSION.preferences, value }),
+      ),
+    );
+    expect(loaded).toEqual(stored);
+  });
+
   it("drops unknown and malformed filter values", async () => {
     const value = {
       filters: {
