@@ -1,12 +1,12 @@
 // The filtered players, virtualized with fixed row heights: a sortable native table on wide
-// screens, a two-line list on phones.
+// screens; the phone rows (player-rows.tsx) share its columns, values and virtual rows.
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import type { CSSProperties, Dispatch, JSX, ReactNode, RefObject } from "react";
+import type { Dispatch, JSX, ReactNode } from "react";
 import { isRangeKey, rangeValue, ratingGain } from "../logic/filter-players.ts";
 import type { PlayerFilters } from "../logic/filter-players.ts";
-import { phoneColumns } from "../logic/phone-columns.ts";
 import { isAttributeName } from "../logic/players.ts";
+import type { CurrencyCode } from "../data/career-save.ts";
 import type { AttributeName, Player } from "../logic/players.ts";
 import type { ScoutAction, ScoutSort } from "../logic/scout-state.ts";
 import type { SortKey } from "../logic/sort-players.ts";
@@ -15,27 +15,8 @@ import { PositionName } from "./position-name.tsx";
 import { ATTRIBUTE_LABELS, formatNumber, RANGE_LABELS, TEXT } from "./text.ts";
 import { useColumnWidths } from "./use-column-widths.ts";
 
-declare module "react" {
-  // CSS custom properties in the style type: the phone layout passes its computed widths to styles.css.
-  interface CSSProperties {
-    [property: `--${string}`]: string | undefined;
-  }
-}
-
 /** Row heights as styles.css sets them (td 2.5rem, .player-row 4rem). */
-const ROW_HEIGHT_REM = { table: 2.5, list: 4 } as const;
-/**
- * The phone rows in rem, alike for the rows and their smaller labels: the name's least width, a rating's
- * width, a label's width per character and its padding. The name never takes more than nameMaxVw of the
- * screen, so with enlarged text the numbers keep room beside it.
- */
-const PHONE = {
-  nameMinRem: 9,
-  nameMaxVw: 45,
-  ratingRem: 2.25,
-  labelRemPerChar: 0.5,
-  labelPaddingRem: 0.5,
-} as const;
+export const ROW_HEIGHT_REM = { table: 2.5, list: 4 } as const;
 const OVERSCAN_ROWS = 12;
 
 type TextColumn = keyof typeof TEXT.columns;
@@ -62,8 +43,18 @@ const isTextColumn = (key: string): key is TextColumn => key in TEXT.columns;
 
 const isRangeField = (key: string): key is keyof typeof RANGE_LABELS => key in RANGE_LABELS;
 
-/** ratingName: the name of the position rating filter's position, in the game language. */
-export const columnLabel = (key: SortKey, ratingName: string | null = null): string => {
+/**
+ * ratingName: the name of the position rating filter's position, in the game language; currency: the
+ * career's, named in the price and wage headings.
+ */
+export const columnLabel = (
+  key: SortKey,
+  ratingName: string | null = null,
+  currency: CurrencyCode | null = null,
+): string => {
+  if ((key === "price" || key === "wage") && currency !== null) {
+    return TEXT.withCurrency(columnLabel(key, ratingName), currency);
+  }
   if (key === "positionRating") {
     return ratingName === null ? TEXT.columns.overall : TEXT.ratingAt(ratingName);
   }
@@ -73,7 +64,7 @@ export const columnLabel = (key: SortKey, ratingName: string | null = null): str
   return isRangeField(key) ? RANGE_LABELS[key] : key;
 };
 
-interface ListProps {
+export interface ListProps {
   readonly players: readonly Player[];
   /** Every player of the game: the table's column widths fit them all, whatever the filters. */
   readonly allPlayers: readonly Player[];
@@ -87,6 +78,8 @@ interface ListProps {
   readonly rangedAttributes: readonly AttributeName[];
   /** The range filters, whose values the phone rows show as columns. */
   readonly ranges: PlayerFilters["ranges"];
+  /** The career's currency, null without a career. */
+  readonly currency: CurrencyCode | null;
   readonly dispatch: Dispatch<ScoutAction>;
 }
 
@@ -94,7 +87,7 @@ interface ListProps {
 const rootFontPx = (): number =>
   Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
 
-const useRows = (count: number, rowHeightRem: number) => {
+export const useRows = (count: number, rowHeightRem: number) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const rowHeight = rowHeightRem * rootFontPx();
   // oxlint-disable-next-line react/incompatible-library -- no React Compiler in this build
@@ -151,7 +144,11 @@ const numberIn = (player: Player, column: SortKey, ratingCode: number | null): n
     : ratingIn(player, column, ratingCode);
 
 /** A column's value: a rating with its colour band, the gain with its sign, a number, or the text. */
-const ColumnValue = (props: { player: Player; column: SortKey; ratingCode: number | null }) => {
+export const ColumnValue = (props: {
+  player: Player;
+  column: SortKey;
+  ratingCode: number | null;
+}) => {
   const { player, column, ratingCode } = props;
   const value = numberIn(player, column, ratingCode);
   if (value !== null) {
@@ -172,10 +169,10 @@ const SortMark = (props: { column: SortKey; sort: ScoutSort }) => (
 
 const HeaderCell = ({
   column,
+  label,
   sort,
-  ratingName,
   dispatch,
-}: { column: SortKey } & Pick<ListProps, "sort" | "ratingName" | "dispatch">) => (
+}: { column: SortKey; label: string } & Pick<ListProps, "sort" | "dispatch">) => (
   <th
     scope="col"
     aria-sort={sort.key === column ? sort.direction : undefined}
@@ -190,7 +187,7 @@ const HeaderCell = ({
     >
       {/* In a number column the mark goes first, so the heading ends where the right-aligned values end. */}
       {isNumberColumn(column) ? <SortMark column={column} sort={sort} /> : null}
-      <span className="sort-label">{columnLabel(column, ratingName)}</span>
+      <span className="sort-label">{label}</span>
       {isNumberColumn(column) ? null : <SortMark column={column} sort={sort} />}
     </button>
   </th>
@@ -251,8 +248,12 @@ const useTableColumns = ({
   ratingName,
   showPotential,
   rangedAttributes: ranged,
+  currency,
   priced,
-}: Pick<ListProps, "ratingCode" | "ratingName" | "showPotential" | "rangedAttributes"> & {
+}: Pick<
+  ListProps,
+  "ratingCode" | "ratingName" | "showPotential" | "rangedAttributes" | "currency"
+> & {
   readonly priced: boolean;
 }) => {
   const columns = useMemo(
@@ -267,7 +268,10 @@ const useTableColumns = ({
     ],
     [ratingCode, showPotential, ranged, priced],
   );
-  const label = useCallback((column: SortKey) => columnLabel(column, ratingName), [ratingName]);
+  const label = useCallback(
+    (column: SortKey) => columnLabel(column, ratingName, currency),
+    [ratingName, currency],
+  );
   return { columns, label };
 };
 
@@ -282,7 +286,7 @@ const ColumnGroup = ({ widths }: { widths: readonly number[] | null }) =>
   );
 
 export const PlayerTable = (props: ListProps): JSX.Element => {
-  const { players, allPlayers, sort, ratingCode, ratingName, dispatch } = props;
+  const { players, allPlayers, sort, ratingCode, dispatch } = props;
   const { scrollRef, items, before, after } = useRows(players.length, ROW_HEIGHT_REM.table);
   // Prices exist only in a career.
   const priced = useMemo(() => allPlayers.some((player) => player.price !== null), [allPlayers]);
@@ -310,8 +314,8 @@ export const PlayerTable = (props: ListProps): JSX.Element => {
               <HeaderCell
                 key={column}
                 column={column}
+                label={label(column)}
                 sort={sort}
-                ratingName={ratingName}
                 dispatch={dispatch}
               />
             ))}
@@ -336,131 +340,5 @@ export const PlayerTable = (props: ListProps): JSX.Element => {
         </tbody>
       </table>
     </div>
-  );
-};
-
-/** The width of a phone number column in rem: a rating's, or its label's when that is wider. */
-const phoneColumnRem = (label: string): number =>
-  Math.max(PHONE.ratingRem, label.length * PHONE.labelRemPerChar + PHONE.labelPaddingRem);
-
-/**
- * The phone rows' grid, shared by the header so each label stands over its column: the values for the
- * rules in styles.css.
- */
-const phoneLayout = (labels: readonly string[]): CSSProperties => {
-  const widths = labels.map(phoneColumnRem);
-  const sum = widths.reduce((total, width) => total + width, 0);
-  const name = `min(${String(PHONE.nameMinRem)}rem, ${String(PHONE.nameMaxVw)}vw)`;
-  return {
-    "--phone-columns": `minmax(${name}, 1fr) ${widths.map((width) => `${String(width)}rem`).join(" ")}`,
-    // At least the screen; wider when the columns do not fit, so the list scrolls sideways.
-    "--phone-width": `max(100%, calc(${name} + ${String(sum)}rem + ${String(widths.length)} * var(--space-2) + var(--space-4)))`,
-  };
-};
-
-/** Labels over the phone rows' numbers; visual only, as each row names its numbers for screen readers. */
-const RowsHeader = ({
-  ref,
-  labels,
-  layout,
-}: {
-  ref: RefObject<HTMLDivElement | null>;
-  labels: readonly string[];
-  layout: CSSProperties;
-}) => (
-  <div ref={ref} className="player-rows-header" aria-hidden="true">
-    <div className="player-rows-grid" style={layout}>
-      <span />
-      {labels.map((label) => (
-        <span key={label} className="column-label">
-          {label}
-        </span>
-      ))}
-    </div>
-  </div>
-);
-
-/** One phone row: the name with club, position and age, then the number columns. */
-const PhoneRow = (props: {
-  player: Player;
-  columns: readonly SortKey[];
-  labels: readonly string[];
-  ratingCode: number | null;
-  dispatch: Dispatch<ScoutAction>;
-}) => {
-  const { player, columns, labels, ratingCode, dispatch } = props;
-  return (
-    <button
-      type="button"
-      className="player-row"
-      data-player-id={player.id}
-      onClick={() => {
-        dispatch({ type: "player-opened", id: player.id });
-      }}
-    >
-      <span className="player-row-text">
-        <span className="player-row-name">{player.name}</span>
-        <span className="player-row-meta">
-          {clubText(player)}
-          {TEXT.rowMetaSeparator}
-          <PositionName code={player.positionCode} name={player.positionName} />
-          {TEXT.rowMetaSeparator}
-          {TEXT.years(player.age)}
-        </span>
-      </span>
-      {columns.map((column, index) => (
-        <span key={column} className="player-row-cell">
-          <span className="visually-hidden">{labels[index]}</span>
-          <ColumnValue player={player} column={column} ratingCode={ratingCode} />
-        </span>
-      ))}
-    </button>
-  );
-};
-
-export const PlayerCards = (props: ListProps): JSX.Element => {
-  const { players, showPotential, ratingCode, ratingName, ranges, sort, dispatch } = props;
-  const columns = useMemo(
-    () => phoneColumns({ showPotential, ratingCode, ranges, sortKey: sort.key }),
-    [showPotential, ratingCode, ranges, sort.key],
-  );
-  // The potential's short label, as the narrow rows have always shown it.
-  const labels = columns.map((column) =>
-    column === "potential" ? TEXT.potentialShort : columnLabel(column, ratingName),
-  );
-  const layout = phoneLayout(labels);
-  const headerRef = useRef<HTMLDivElement>(null);
-  const { scrollRef, items, before, after } = useRows(players.length, ROW_HEIGHT_REM.list);
-  return (
-    <>
-      <RowsHeader ref={headerRef} labels={labels} layout={layout} />
-      <div
-        ref={scrollRef}
-        className="scroll"
-        onScroll={(event) => {
-          // The labels follow the columns sideways.
-          if (headerRef.current !== null)
-            headerRef.current.scrollLeft = event.currentTarget.scrollLeft;
-        }}
-      >
-        <ol className="player-rows" style={{ ...layout, paddingTop: before, paddingBottom: after }}>
-          {items.map((item) => {
-            const player = players[item.index];
-            if (player === undefined) return null;
-            return (
-              <li key={player.id} aria-setsize={players.length} aria-posinset={item.index + 1}>
-                <PhoneRow
-                  player={player}
-                  columns={columns}
-                  labels={labels}
-                  ratingCode={ratingCode}
-                  dispatch={dispatch}
-                />
-              </li>
-            );
-          })}
-        </ol>
-      </div>
-    </>
   );
 };

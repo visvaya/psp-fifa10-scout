@@ -49,7 +49,8 @@ const money = (
     : [
         [TEXT.card.price, TEXT.card.money(price, currency)],
         [
-          TEXT.card.wage,
+          // A null wageMax: the wage stored in the user's own player's contract.
+          wageMax === null ? TEXT.card.contractWage : TEXT.card.wage,
           wageMax === null
             ? TEXT.card.money(wage, currency)
             : TEXT.card.wageEstimate(wage, wageMax, currency),

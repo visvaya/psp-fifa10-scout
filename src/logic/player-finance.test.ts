@@ -8,7 +8,7 @@ import { buildEaDb } from "../data/test-support/synthetic-ea-db.ts";
 import { baseOverall, CURVE_COLUMNS } from "./overall-rating.ts";
 import { buildPlayers } from "./players.ts";
 import type { Player } from "./players.ts";
-import { attributes, playerRow, table } from "./test-support/player-fixtures.ts";
+import { attributes, floatBits, playerRow, table } from "./test-support/player-fixtures.ts";
 import { marketWage, roundMoney, roundPrice, transferPrice } from "./transfer-price.ts";
 import type { PriceInput } from "./transfer-price.ts";
 
@@ -74,13 +74,6 @@ const row = (values: Readonly<Record<string, number | string>>): EaDbRow => Obje
 
 const link = (playerid: number, teamid: number, year: number): EaDbRow =>
   row({ playerid, teamid, jerseynumber: playerid, yearcontractvalidtil: year });
-
-/** A float32 as the u32 bits the save stores. */
-const floatBits = (value: number): number => {
-  const view = new DataView(new ArrayBuffer(4));
-  view.setFloat32(0, value, true);
-  return view.getUint32(0, true);
-};
 
 const SAVE: CareerSave = new Map([
   [

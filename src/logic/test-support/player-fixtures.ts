@@ -25,6 +25,13 @@ export const table = (name: string, rows: readonly Row[]): TableSpec => {
 };
 
 /** fifa.db `curves` with one flat curve (id 1, the game's fallback), so career ratings age nothing. */
+/** A float32 as the u32 bits the save stores. */
+export const floatBits = (value: number): number => {
+  const view = new DataView(new ArrayBuffer(4));
+  view.setFloat32(0, value, true);
+  return view.getUint32(0, true);
+};
+
 export const flatCurves = (): TableSpec =>
   table("curves", [
     Object.fromEntries([["id", 1], ...CURVE_COLUMNS.map((column) => [column, 50])]),

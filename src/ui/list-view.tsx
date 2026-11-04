@@ -9,7 +9,8 @@ import { sortPlayers } from "../logic/sort-players.ts";
 import { FilterChips } from "./filter-chips.tsx";
 import { FilterForm } from "./filter-form.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
-import { columnLabel, PlayerCards, PlayerTable } from "./player-list.tsx";
+import { columnLabel, PlayerTable } from "./player-list.tsx";
+import { PlayerCards } from "./player-rows.tsx";
 import { ratingAbbreviation } from "./position-name.tsx";
 import { TEXT } from "./text.ts";
 
@@ -201,6 +202,7 @@ const ListResults = ({
           ratingName={ratingName}
           rangedAttributes={ranged}
           ranges={ranges}
+          currency={state.career?.currency ?? null}
           dispatch={dispatch}
         />
       )}

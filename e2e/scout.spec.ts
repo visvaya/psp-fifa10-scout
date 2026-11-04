@@ -259,13 +259,19 @@ test.describe("career prices", () => {
     await pickGame(page, SYNTHETIC_DB_PATH);
     await page.getByLabel("Wybierz DATA.BIN i PARAM.SFO").setInputFiles([...SYNTHETIC_SAVE_PATHS]);
     await page.getByRole("button", { name: /^Pokaż zawodników/u }).click();
-    const header = page.getByRole("columnheader", { name: /^Cena/u });
+    // The list names the save's currency once, in the heading (the synthetic save: euro).
+    const header = page.getByRole("columnheader", { name: /^Cena \(€\)/u });
     await header.getByRole("button").click();
     await expect(header).toHaveAttribute("aria-sort", "descending");
     await page.getByRole("button", { name: "Lionel Messi" }).click();
     const card = page.getByRole("dialog", { name: "Lionel Messi" });
     await expect(card.getByRole("term").filter({ hasText: /^Cena$/u })).toBeVisible();
     await expect(card.getByText(/ \(szacunek\)$/u)).toBeVisible();
+    await page.keyboard.press("Escape");
+    // The user's own player shows the wage stored in his contract, not the market's.
+    await page.getByRole("button", { name: "Paweł Brożek" }).click();
+    const own = page.getByRole("dialog", { name: "Paweł Brożek" });
+    await expect(own.getByRole("term").filter({ hasText: /^Zarobki z kontraktu$/u })).toBeVisible();
     await page.keyboard.press("Escape");
     await page.getByText("Kariera", { exact: true }).click();
     await page.getByRole("group", { name: "Cena", exact: true }).getByLabel("od").fill("1");

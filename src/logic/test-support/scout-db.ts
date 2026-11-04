@@ -6,7 +6,7 @@ import type { TableSpec } from "../../data/test-support/synthetic-ea-db.ts";
 import { countryKey, labelKey, leagueKey, teamKey } from "../../data/game-locale.ts";
 import { buildLocale } from "../../data/test-support/synthetic-locale.ts";
 import { buildFileList, buildParamSfo } from "../../data/test-support/synthetic-save.ts";
-import { flatCurves, playerRow, table } from "./player-fixtures.ts";
+import { flatCurves, floatBits, playerRow, table } from "./player-fixtures.ts";
 
 /** Days since 1582-10-14, the fifa.db birthdate epoch. */
 const born = (year: number): number => (Date.UTC(year, 0, 15) - Date.UTC(1582, 9, 14)) / 86_400_000;
@@ -125,7 +125,10 @@ export const buildScoutDb = (): Uint8Array =>
     empty("career_youth_accademy"),
     empty("career_transfer_list"),
     empty("career_players_grown_attributes"),
-    empty("career_extra_user_team_info"),
+    // Brożek plays for the user's club: the card shows his contract's wage, not the market's.
+    table("career_extra_user_team_info", [
+      { playerid: 7, wage: floatBits(5700), bonus: 0, bonus_type: 0, contract_status: 0 },
+    ]),
     flatCurves(),
   ]);
 
