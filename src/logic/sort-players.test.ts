@@ -96,6 +96,20 @@ describe("sortPlayers", () => {
     expect(order()).toEqual([5, 3, 2, 1]);
   });
 
+  it("sorts by the gain of the chosen position over the OVR, missing without a choice", () => {
+    const rated = PLAYERS.map((player) => ({
+      ...player,
+      overall: 50 + player.id,
+      overallByCode: player.overallByCode.map((value, code) => (code === 4 ? 60 : value)),
+    }));
+    const order = (code?: number) =>
+      sortPlayers(rated, "ratingGain", "descending", { ratingCode: code }).map(
+        (player) => player.id,
+      );
+    expect(order(4)).toEqual([1, 2, 3, 5]);
+    expect(order()).toEqual(sortPlayers(rated, "name", "ascending").map((player) => player.id));
+  });
+
   it("sorts by an attribute", () => {
     expect(ids("dribbling", "descending")).toEqual([2, 3, 5, 1]);
   });

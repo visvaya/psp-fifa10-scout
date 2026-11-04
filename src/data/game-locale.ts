@@ -1,8 +1,9 @@
 // FIFA 10 (PSP) text tables (data/gui/locale): <lang>.loc holds the strings of one language in index
 // order, string.idx (shared by every language of its directory) maps 32-bit keys to those indices.
 // Names of clubs, leagues and countries use key = BASE + digits33(id [+ variant]), where digits33 reads
-// the decimal digits as base-33 digits (docs/specs/game-localization.md); fixed labels such as
-// position abbreviations use key = labelKey(their English name). Little-endian throughout:
+// the decimal digits as base-33 digits (docs/specs/game-localization.md). Other texts use the game's
+// string hash of their id: position abbreviations "TM_<name>" (labelKey), numbered texts "<n>"
+// (textKey, the game's $CG_n). Little-endian throughout:
 //   .loc       "LOCH", u32 header size, u32 0, u32 section count, u32 section offset; at that offset
 //              "LOCL", u32 size, u32 0, u32 N, N x u32 offset from the section start, then UTF-16LE
 //              strings, each NUL-terminated.
@@ -18,7 +19,7 @@ const U32 = 2 ** 32;
 const TEAM_BASE = 0x7f03b722;
 const LEAGUE_BASE = 0xa6800d62;
 const COUNTRY_BASE = 0xffe6e6e7;
-const LABEL_SEED = 58_175;
+const STRING_HASH_SEED = 0xff_ff_ff_ff;
 
 const viewOf = (bytes: Uint8Array): DataView =>
   new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -109,11 +110,17 @@ export const leagueKey = (leagueId: number, variant: 0 | 1 | 2 | 3): number =>
 
 export const countryKey = (countryId: number): number => keyOf(COUNTRY_BASE, String(countryId));
 
-/** Key of a fixed label: a multiplier-33 hash of its English name ("GK", "RCDM"). */
-export const labelKey = (label: string): number => {
-  let key = LABEL_SEED;
-  for (let index = 0; index < label.length; index += 1) {
-    key = (key * 33 + label.charCodeAt(index)) % U32;
+/** The game's string hash: multiplier 33 over the characters, from all bits set. */
+const stringKey = (text: string): number => {
+  let key = STRING_HASH_SEED;
+  for (let index = 0; index < text.length; index += 1) {
+    key = (key * 33 + text.charCodeAt(index)) % U32;
   }
   return key;
 };
+
+/** Key of a position abbreviation by the game's English name ("GK", "RCDM"). */
+export const labelKey = (label: string): number => stringKey(`TM_${label}`);
+
+/** Key of a numbered game text, such as 1592 for "Goalkeeper". */
+export const textKey = (id: number): number => stringKey(String(id));

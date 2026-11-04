@@ -38,12 +38,16 @@ test.describe("wide screen", () => {
     await expect(card.getByText("Wisła Kraków")).toBeVisible();
     // A forward, in the game's colour for attackers.
     await expect(card.locator(".position")).toHaveCSS("color", "rgb(153, 0, 0)");
-    await expect(card.getByRole("heading", { name: "OVR na pozycjach" })).toBeVisible();
-    await expect(card.getByText(/^Libero: SW/u)).toBeHidden();
-    await expect(card.getByRole("definition").filter({ hasText: /^~około 58$/u })).toBeVisible();
-    await card.getByText("Boczny obrońca", { exact: true }).click();
-    await expect(card.getByText("Boczny obrońca: RB, LB · OVR 58", { exact: true })).toBeVisible();
-    await expect(card.getByText("Libero: SW · OVR 57", { exact: true })).toBeVisible();
+    // One row per way the game rates a position, with the gain over his OVR (49 as a striker).
+    const row = (label: RegExp) => card.locator(".facts > div").filter({ hasText: label });
+    await expect(row(/^Boczny obrońca/u).getByRole("definition")).toHaveText("58 (+9)");
+    await expect(row(/^Libero/u).getByRole("definition")).toHaveText("57 (+8)");
+    await expect(card.getByText("RB · LB", { exact: true })).toBeHidden();
+    const positions = card.getByRole("button", { name: "OVR na pozycjach" });
+    await positions.click();
+    await expect(positions).toHaveAttribute("aria-expanded", "true");
+    await expect(card.getByText("RB · LB", { exact: true })).toBeVisible();
+    await expect(card.getByText("SW", { exact: true })).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(card).toBeHidden();
     await expect(name).toBeFocused();
@@ -216,6 +220,13 @@ test.describe("filter panel", () => {
     const header = page.getByRole("columnheader", { name: /^OVR RB\/LB/u });
     await header.getByRole("button").click();
     await expect(header).toHaveAttribute("aria-sort", "descending");
+    const gain = page.getByRole("columnheader", { name: /^Różnica RB\/LB/u });
+    await gain.getByRole("button").click();
+    await expect(gain).toHaveAttribute("aria-sort", "descending");
+    const gainRange = rating.getByRole("group", { name: "Różnica do OVR" }).getByLabel("od");
+    await gainRange.fill("99");
+    await expect(page.getByText("Żaden zawodnik nie spełnia filtrów.")).toBeVisible();
+    await gainRange.fill("");
     await rating.getByRole("group", { name: "OVR RB/LB" }).getByLabel("od").fill("99");
     await expect(page.getByText("Żaden zawodnik nie spełnia filtrów.")).toBeVisible();
     await page.getByRole("button", { name: "Usuń filtr: Ocena na pozycji" }).click();

@@ -3,7 +3,6 @@ import type { TableSpec } from "../../data/test-support/synthetic-ea-db.ts";
 import { ATTRIBUTE_NAMES, attributesOf, searchKey, TRAIT_NAMES } from "../players.ts";
 import type { Attributes, Player } from "../players.ts";
 import { CURVE_COLUMNS } from "../overall-rating.ts";
-import { byGroup } from "../positions.ts";
 
 type Row = Readonly<Record<string, number | string>>;
 
@@ -88,7 +87,6 @@ export const testPlayer = (overrides: Partial<Player> = {}): Player => {
     developmentType: 1,
     developmentStyle: 2,
     traits: [],
-    overallByGroup: byGroup(() => 50),
     overallByCode: Array.from({ length: 32 }, () => 50),
     attributes: attributes(50),
     clubId: 10,

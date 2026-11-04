@@ -2,7 +2,7 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } f
 import type { Dispatch, JSX, ReactNode } from "react";
 import { filterPlayers, rangedAttributes } from "../logic/filter-players.ts";
 import type { Player } from "../logic/players.ts";
-import { activeFilters, effectiveFilters } from "../logic/scout-state.ts";
+import { activeFilters, effectiveFilters, RATING_SORT_KEYS } from "../logic/scout-state.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
 import { SORTABLE_KEYS } from "../logic/scout-store.ts";
 import { sortPlayers } from "../logic/sort-players.ts";
@@ -58,7 +58,7 @@ const SortControls = ({
         {SORTABLE_KEYS.filter(
           (key) =>
             (state.showPotential || (key !== "potential" && key !== "growth")) &&
-            (key !== "positionRating" || state.filters.positionRating !== undefined),
+            (!RATING_SORT_KEYS.has(key) || state.filters.positionRating !== undefined),
         ).map((key) => (
           <option key={key} value={key}>
             {columnLabel(key, ratingName)}

@@ -1,19 +1,13 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import type { JSX, ReactNode } from "react";
 import type { AttributeName, Player } from "../logic/players.ts";
-import { POSITION_GROUP_ROWS, positionCodesOf, rowRating } from "../logic/positions.ts";
-import type { PositionGroup } from "../logic/positions.ts";
+import { nameTextIdOf, POSITION_CODES, RATING_CHOICES, ratingCodeOf } from "../logic/positions.ts";
 import { AttributeValue } from "./attribute-value.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
-import { PositionName } from "./position-name.tsx";
+import { PositionName, ratingChoiceName } from "./position-name.tsx";
+import type { PositionNames } from "./position-name.tsx";
 import { clubText } from "./player-list.tsx";
-import {
-  ATTRIBUTE_GROUP_LABELS,
-  ATTRIBUTE_LABELS,
-  formatNumber,
-  POSITION_GROUP_LABELS,
-  TEXT,
-} from "./text.ts";
+import { ATTRIBUTE_GROUP_LABELS, ATTRIBUTE_LABELS, formatNumber, TEXT } from "./text.ts";
 
 const ATTRIBUTE_GROUPS: readonly (readonly [
   keyof typeof ATTRIBUTE_GROUP_LABELS,
@@ -79,52 +73,60 @@ const basics = (
   [TEXT.card.weight, TEXT.card.weightValue(player.weight)],
 ];
 
-/** A row's OVR, after "~" where its groups rate differently (the sweeper's rounding). */
-const RowRating = (props: {
-  ratings: Readonly<Record<PositionGroup, number>>;
-  row: readonly [PositionGroup, ...PositionGroup[]];
-}) => {
-  const { value, approximate } = rowRating(props.ratings, props.row);
-  return (
-    <>
-      {approximate ? (
-        <>
-          <span aria-hidden="true">{TEXT.card.approximateMark}</span>
-          <span className="visually-hidden">{TEXT.card.approximately}</span>
-        </>
-      ) : null}
-      <AttributeValue value={value} />
-    </>
-  );
-};
+/** The positions a rating choice covers, by their full names in the game language where it has them. */
+const choicePositions = (code: number, names: PositionNames): string =>
+  POSITION_CODES.filter(
+    (other) => ratingCodeOf(other) === code && nameTextIdOf(other) !== undefined,
+  )
+    .map((other) => {
+      const full = names.full(other);
+      const short = names.short(other);
+      return full === undefined ? short : TEXT.card.positionWithName(full, short);
+    })
+    .join(TEXT.rowMetaSeparator);
 
-/** OVR per card row; each row opens to its groups and their positions in the game language. */
-const GroupRatings = (props: { player: Player; positionName: (code: number) => string }) => {
-  const { player, positionName } = props;
+/**
+ * OVR per rating choice, with the gain over the OVR; one switch at the heading shows the positions
+ * each choice covers.
+ */
+const ChoiceRatings = (props: { player: Player; names: PositionNames }) => {
+  const { player, names } = props;
+  const [open, setOpen] = useState(false);
   return (
-    <dl className="facts">
-      {POSITION_GROUP_ROWS.map((row) => (
-        <div key={row[0]}>
-          <dt>
-            <details>
-              <summary>{POSITION_GROUP_LABELS[row[0]]}</summary>
-              {row.map((group) => (
-                <p key={group}>
-                  {TEXT.card.groupPositions(
-                    POSITION_GROUP_LABELS[group],
-                    positionCodesOf(group).map(positionName),
-                    row.length > 1 ? player.overallByGroup[group] : null,
-                  )}
-                </p>
-              ))}
-            </details>
-          </dt>
-          <dd>
-            <RowRating ratings={player.overallByGroup} row={row} />
-          </dd>
-        </div>
-      ))}
-    </dl>
+    <section aria-labelledby="overall-title">
+      <h3 id="overall-title">
+        <button
+          type="button"
+          className="sort-button"
+          aria-expanded={open}
+          onClick={() => {
+            setOpen(!open);
+          }}
+        >
+          {TEXT.card.overallByGroup}{" "}
+          <span aria-hidden="true" className="sort-mark">
+            {open ? TEXT.card.openMark : TEXT.card.closedMark}
+          </span>
+        </button>
+      </h3>
+      <dl className="facts">
+        {RATING_CHOICES.map(([code]) => {
+          const rating = player.overallByCode[code] ?? null;
+          return (
+            <div key={code}>
+              <dt>
+                {ratingChoiceName(code)}
+                {open ? <p>{choicePositions(code, names)}</p> : null}
+              </dt>
+              <dd>
+                {rating === null ? null : <AttributeValue value={rating} />}
+                {rating === null ? null : TEXT.card.gain(rating - player.overall)}
+              </dd>
+            </div>
+          );
+        })}
+      </dl>
+    </section>
   );
 };
 
@@ -132,11 +134,11 @@ export const PlayerCard = (props: {
   player: Player;
   career: boolean;
   showPotential: boolean;
-  /** A position's name in the chosen language (positionNameIn). */
-  positionName: (code: number) => string;
+  /** Position names in the chosen language. */
+  names: PositionNames;
   onClose: () => void;
 }): JSX.Element => {
-  const { player, career, showPotential, positionName, onClose } = props;
+  const { player, career, showPotential, names, onClose } = props;
   const returnFocus = useCallback(
     () => document.querySelector<HTMLElement>(`[data-player-id="${String(player.id)}"]`),
     [player.id],
@@ -159,16 +161,13 @@ export const PlayerCard = (props: {
           />
         </section>
       ) : null}
-      <section aria-labelledby="overall-title">
-        <h3 id="overall-title">{TEXT.card.overallByGroup}</h3>
-        <GroupRatings player={player} positionName={positionName} />
-      </section>
+      <ChoiceRatings player={player} names={names} />
       <div className="attribute-groups">
-        {ATTRIBUTE_GROUPS.map(([group, names]) => (
+        {ATTRIBUTE_GROUPS.map(([group, attributes]) => (
           <section key={group} aria-labelledby={`group-${group}`}>
             <h3 id={`group-${group}`}>{ATTRIBUTE_GROUP_LABELS[group]}</h3>
             <Facts
-              facts={names.map((name) => [
+              facts={attributes.map((name) => [
                 ATTRIBUTE_LABELS[name],
                 <AttributeValue key={name} value={player.attributes[name]} />,
               ])}

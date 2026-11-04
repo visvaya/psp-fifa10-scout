@@ -1,9 +1,9 @@
 // Club, league, country and position names in a language of the game (from its locale files), applied
 // over the English fifa.db names; any name the game does not have keeps the fifa.db one.
-import { countryKey, labelKey, leagueKey, teamKey } from "../data/game-locale.ts";
+import { countryKey, labelKey, leagueKey, teamKey, textKey } from "../data/game-locale.ts";
 import { nameCollator, withNameOrder } from "./players.ts";
 import type { Player } from "./players.ts";
-import { POSITION_CODES, positionOf } from "./positions.ts";
+import { nameTextIdOf, POSITION_CODES, positionOf } from "./positions.ts";
 
 /** Names by id; plain records so they store and post as they are. */
 export interface GameNames {
@@ -12,6 +12,8 @@ export interface GameNames {
   readonly countries: Readonly<Record<number, string>>;
   /** Abbreviations by position code. */
   readonly positions: Readonly<Record<number, string>>;
+  /** Full names by position code, for the codes the game names. */
+  readonly positionNames: Readonly<Record<number, string>>;
 }
 
 /** The names of each language read so far, by its code (the .loc file stem, such as "pol_pl"). */
@@ -54,6 +56,10 @@ export const gameNamesOf = (table: ReadonlyMap<number, string>, ids: NameIds): G
   }),
   countries: named(ids.countries, (id) => table.get(countryKey(id))),
   positions: named(POSITION_CODES, (code) => table.get(labelKey(positionOf(code).name))),
+  positionNames: named(POSITION_CODES, (code) => {
+    const id = nameTextIdOf(code);
+    return id === undefined ? undefined : table.get(textKey(id));
+  }),
 });
 
 const abbreviation = (names: GameNames | null, code: number): string =>

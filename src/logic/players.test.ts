@@ -9,7 +9,6 @@ import { filterPlayers } from "./filter-players.ts";
 import { attributesOf, buildPlayers, searchKey } from "./players.ts";
 import { sortPlayers } from "./sort-players.ts";
 import { baseOverall, byPositionCode } from "./overall-rating.ts";
-import { byGroup } from "./positions.ts";
 import { attributes, flatCurves, playerRow, table } from "./test-support/player-fixtures.ts";
 
 const daysSince1582 = (year: number, month: number, day: number): number =>
@@ -176,13 +175,6 @@ describe("buildPlayers from fifa.db", () => {
       developmentType: 3,
       developmentStyle: 5,
       traits: ["playmaker", "technicaldribbler"],
-      overallByGroup: {
-        ...byGroup(() => 50),
-        goalkeeper: 41,
-        "side-midfield": 60,
-        wingers: 60,
-        "wing-backs": 54,
-      },
       overallByCode: byPositionCode((code) => baseOverall(MESSI_ATTRIBUTES, code)),
       attributes: MESSI_ATTRIBUTES,
       clubId: 241,
@@ -298,7 +290,7 @@ describe("buildPlayers with a career save", () => {
 
   it("rates players in career mode, capped at the career potential", () => {
     expect(byId(players, 158_023)?.overall).toBe(60);
-    expect(byId(players, 7)).toMatchObject({ overall: 45, overallByGroup: { goalkeeper: 45 } });
+    expect(byId(players, 7)?.overall).toBe(45);
     expect(byId(players, 7)?.overallByCode[0]).toBe(45);
   });
 

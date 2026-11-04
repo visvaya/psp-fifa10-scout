@@ -1,7 +1,8 @@
 // The one load/save adapter: the extracted fifa.db, the career save and the filter and sort preferences, each stored
 // as { schemaVersion, value } in a key-value backend (IndexedDB in the browser, memory otherwise).
 // Nothing leaves the device. Preferences 2 and 3 migrate to 4, a fifa.db 1 (bare bytes) to 2 (bytes and
-// the game file's name) and languages 1 to 2 (no position names); any other version or shape is ignored, and
+// the game file's name) and languages 1 and 2 to 3 (empty for the position names they lack); any other
+// version or shape is ignored, and
 // unknown or malformed filter values are dropped one by one.
 import type { GameLanguages, GameNames } from "./game-names.ts";
 import { FLAG_KEYS, LIST_FIELDS, RANGE_KEYS } from "./filter-players.ts";
@@ -17,9 +18,9 @@ import type { SortKey } from "./sort-players.ts";
 /**
  * Per record, so a change to the preferences keeps the stored fifa.db. Preferences 2: clubStatus;
  * 3: ranges, lists and flags, showPotential; 4: sweeper, side midfield and wingers as groups. Game
- * database 2: the game file's name. Languages 2: position names.
+ * database 2: the game file's name. Languages 2: position abbreviations; 3: full position names.
  */
-export const SCHEMA_VERSION = { gameDb: 2, preferences: 4, languages: 2, careerSave: 1 } as const;
+export const SCHEMA_VERSION = { gameDb: 2, preferences: 4, languages: 3, careerSave: 1 } as const;
 
 export interface StorageBackend {
   readonly get: (key: string) => Promise<unknown>;
@@ -61,6 +62,7 @@ export const SORTABLE_KEYS: readonly SortKey[] = [
   "price",
   "wage",
   "positionRating",
+  "ratingGain",
   ...ATTRIBUTE_NAMES,
 ];
 
@@ -100,6 +102,12 @@ const parseRange = (value: unknown): Range => {
   };
 };
 
+/** The gain range of a position rating, left out when it sets no bound. */
+const parseGain = (value: unknown): { gain?: Range } => {
+  const gain = parseRange(value);
+  return Object.keys(gain).length === 0 ? {} : { gain };
+};
+
 /**
  * A position rating filter with a known position code 0..31, moved to its rating choice's code (rated
  * the same way), or undefined.
@@ -107,7 +115,7 @@ const parseRange = (value: unknown): Range => {
 const parsePositionRating = (value: unknown): PositionRating | undefined => {
   const { code } = recordOf(value);
   return Number.isInteger(code) && isFiniteNumber(code) && code >= 0 && code < OVR_WEIGHTS.length
-    ? { code: ratingCodeOf(code), ...parseRange(value) }
+    ? { code: ratingCodeOf(code), ...parseRange(value), ...parseGain(recordOf(value)["gain"]) }
     : undefined;
 };
 
@@ -230,15 +238,29 @@ const isNameRecord = (value: unknown): boolean =>
 
 const isGameNames = (value: unknown): value is GameNames =>
   isRecord(value) &&
-  [value["teams"], value["leagues"], value["countries"], value["positions"]].every(isNameRecord);
+  [
+    value["teams"],
+    value["leagues"],
+    value["countries"],
+    value["positions"],
+    value["positionNames"],
+  ].every(isNameRecord);
 
-/** The stored languages whose names have the expected shape; version 1 had no position names. */
+/** What the earlier versions of the stored languages lack, as empty names. */
+const LANGUAGES_LACK: Readonly<Record<number, Readonly<Record<string, object>>>> = {
+  1: { positions: {}, positionNames: {} },
+  2: { positionNames: {} },
+  [SCHEMA_VERSION.languages]: {},
+};
+
+/** The stored languages whose names have the expected shape, earlier versions completed. */
 const parseLanguages = (record: unknown): GameLanguages => {
-  const v1 = versioned(record, 1);
-  const value = v1 ?? versioned(record, SCHEMA_VERSION.languages);
+  const version = recordOf(record)["schemaVersion"];
+  const lack = typeof version === "number" ? LANGUAGES_LACK[version] : undefined;
+  if (lack === undefined) return {};
   return Object.fromEntries(
-    Object.entries(recordOf(value)).flatMap(([code, stored]) => {
-      const names = v1 === undefined ? stored : { ...recordOf(stored), positions: {} };
+    Object.entries(recordOf(recordOf(record)["value"])).flatMap(([code, stored]) => {
+      const names = { ...recordOf(stored), ...lack };
       return isGameNames(names) ? [[code, names] as const] : [];
     }),
   );
