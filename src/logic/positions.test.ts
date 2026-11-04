@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   byGroup,
+  lineOf,
   POSITION_CODES,
   POSITION_GROUP_ROWS,
   POSITION_GROUPS,
@@ -54,6 +55,18 @@ describe("positionOf", () => {
       approximate: false,
     });
     expect(rowRating(ratings, ["goalkeeper"])).toEqual({ value: 70, approximate: false });
+  });
+
+  it("puts codes in the game's lines, which it colours", () => {
+    expect([0, 1, 8, 9, 25, 26, 31].map(lineOf)).toEqual([
+      "goalkeeper",
+      "defence",
+      "defence",
+      "midfield",
+      "midfield",
+      "attack",
+      "attack",
+    ]);
   });
 
   it("uses the game's own names, which key the abbreviation of every language", () => {

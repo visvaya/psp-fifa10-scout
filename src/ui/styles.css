@@ -16,6 +16,11 @@
   --color-band-average: #f1d65c;
   --color-band-low: #f3a964;
   --color-band-ink: #1b2420;
+  /* Position lines in the game's colours (ClubPlayerList.apt), darkened where text needs 4.5:1. */
+  --color-position-goalkeeper: #8a6400;
+  --color-position-defence: #000099;
+  --color-position-midfield: #007a00;
+  --color-position-attack: #990000;
 
   --font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-size-sm: 0.875rem;
@@ -50,6 +55,10 @@
     --color-accent: #6ccf93;
     --color-accent-ink: #0c1a11;
     --color-error: #ff8f84;
+    --color-position-goalkeeper: #cc9900;
+    --color-position-defence: #8fa3ff;
+    --color-position-midfield: #33bb33;
+    --color-position-attack: #ff7f7f;
   }
 }
 
@@ -537,6 +546,28 @@ input[type="number"] {
   font-weight: 600;
   text-align: center;
 }
+
+.position {
+  font-weight: 600;
+}
+
+/* One colour per line, alike by nature. jscpd:ignore-start */
+.position-goalkeeper {
+  color: var(--color-position-goalkeeper);
+}
+
+.position-defence {
+  color: var(--color-position-defence);
+}
+
+.position-midfield {
+  color: var(--color-position-midfield);
+}
+
+.position-attack {
+  color: var(--color-position-attack);
+}
+/* jscpd:ignore-end */
 
 .rating-high {
   background: var(--color-band-high);
