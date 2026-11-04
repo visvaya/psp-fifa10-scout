@@ -109,6 +109,7 @@ export const RANGE_LABELS: Readonly<Record<RangeFields, string>> = {
   overall: "OVR",
   potential: "Potencjał",
   growth: "Zapas rozwoju",
+  peak: "Szczyt OVR",
   height: "Wzrost (cm)",
   weight: "Waga (kg)",
   weakFoot: "Słabsza noga (1–5)",
@@ -364,6 +365,9 @@ export const TEXT = {
     nationality: "Narodowość",
     contract: "Kontrakt do",
     potential: "Potencjał",
+    peak: "Szczyt OVR",
+    peakNote: (potential: number, peak: number): string =>
+      `Szczyt OVR to prognoza z krzywych rozwoju gry, ta sama co na jej wykresie rozwoju; nie obejmuje przyszłych przyrostów z meczów i treningu.${peak < potential ? ` Potencjału ${formatNumber(potential)} zawodnik według niej nie osiągnie.` : ""}`,
     overallByGroup: "OVR na pozycjach",
     openMark: "▾",
     closedMark: "▸",

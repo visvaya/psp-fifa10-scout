@@ -286,7 +286,7 @@ const basicSection = (kit: Kit, showPotential: boolean) => {
         positionName={positionName}
         change={change}
       />
-      {showPotential ? [range("potential"), range("growth")] : null}
+      {showPotential ? [range("potential"), range("growth"), range("peak")] : null}
     </Section>
   );
 };

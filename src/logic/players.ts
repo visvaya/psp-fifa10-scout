@@ -12,9 +12,12 @@ import {
   byPositionCode,
   cappedOverall,
   careerAttributes,
+  peakOverall,
   potentialDeltas,
   readCurves,
 } from "./overall-rating.ts";
+import { placementsOf, teamFields, teamsById } from "./placements.ts";
+import type { Placement } from "./placements.ts";
 import { financeOf, NO_FINANCE } from "./player-finance.ts";
 import type { Finance, FinanceInput } from "./player-finance.ts";
 import { positionOf } from "./positions.ts";
@@ -125,7 +128,10 @@ export interface Player extends Finance {
   readonly height: number;
   /** Kilograms. */
   readonly weight: number;
+  /** With a save, the career potential: the database's plus the save's potential delta. */
   readonly potential: number;
+  /** The highest OVR the development curves project at the preferred position; career only. */
+  readonly peak: number | null;
   /** OVR at the preferred position: aged to the season's first match day with a save, from fifa.db without. */
   readonly overall: number;
   /** Potential minus OVR. */
@@ -171,22 +177,6 @@ export interface Player extends Finance {
   readonly shortlisted: boolean;
 }
 
-interface Team {
-  readonly id: number;
-  readonly name: string;
-  readonly leagueId: number;
-  readonly leagueName: string;
-  readonly level: number;
-  readonly rating: number;
-  /** League prestige plus team prestige. */
-  readonly prestige: number;
-}
-
-interface Placement {
-  readonly club?: { readonly team: Team; readonly link: EaDbRow };
-  readonly national?: Team;
-}
-
 interface Context {
   readonly referenceDate: Date;
   readonly placements: ReadonlyMap<number, Placement>;
@@ -203,7 +193,10 @@ interface Context {
 /** A player's attributes as the list shows them and his OVR at any position code. */
 interface Rating {
   readonly attributes: Attributes;
+  readonly potential: number;
   readonly overallAt: (positionCode: number, yearsAhead?: number) => number;
+  /** Career only: without a save nothing ages. */
+  readonly peak: number | null;
 }
 
 const num = (row: EaDbRow, key: string): number => Number(row[key]);
@@ -227,74 +220,8 @@ const shortlistOf = (db: EaDb, save: CareerSave | undefined): readonly EaDbRow[]
   );
 };
 
-/** Teams that belong to a league, with that league. */
-const teamsById = (db: EaDb): ReadonlyMap<number, Team> => {
-  const leagues = new Map(readTable(db, "leagues").map((row) => [num(row, "leagueid"), row]));
-  const leagueOfTeam = new Map(
-    readTable(db, "leagueteamlinks").map((row) => [num(row, "teamid"), num(row, "leagueid")]),
-  );
-  return new Map(
-    readTable(db, "teams").flatMap((row): [number, Team][] => {
-      const id = num(row, "teamid");
-      const league = leagues.get(leagueOfTeam.get(id) ?? -1);
-      if (league === undefined) return [];
-      const leagueId = num(league, "leagueid");
-      const [name, leagueName] = [String(row["teamname"]), String(league["leaguename"])];
-      const [level, rating] = [num(league, "level"), num(row, "overallrating")];
-      const prestige = num(league, "leagueprestige") + num(row, "internationalprestige");
-      return [[id, { id, name, leagueId, leagueName, level, rating, prestige }]];
-    }),
-  );
-};
-
-/** Each linked player's club (first link to a club league) and national team. */
-const placementsOf = (
-  links: readonly EaDbRow[],
-  teams: ReadonlyMap<number, Team>,
-): ReadonlyMap<number, Placement> => {
-  const placements = new Map<number, Placement>();
-  for (const link of links) {
-    const team = teams.get(num(link, "teamid"));
-    const playerId = num(link, "playerid");
-    const placement = placements.get(playerId) ?? {};
-    if (team === undefined) continue;
-    if (team.level < SCOUT_CONFIG.clubLeagueLevelBelow && placement.club === undefined) {
-      placements.set(playerId, { ...placement, club: { team, link } });
-    } else if (team.level === SCOUT_CONFIG.nationalLeagueLevel) {
-      placements.set(playerId, { ...placement, national: team });
-    }
-  }
-  return placements;
-};
-
 const statOf = (stats: EaDbRow | undefined, key: string): number | null =>
   stats === undefined ? null : num(stats, key);
-
-const NO_CLUB = {
-  clubId: null,
-  clubName: null,
-  clubRating: null,
-  leagueId: null,
-  leagueName: null,
-  contractEndYear: null,
-  jerseyNumber: null,
-} as const;
-
-const teamFields = ({ club, national }: Placement) => ({
-  ...(club === undefined
-    ? NO_CLUB
-    : {
-        clubId: club.team.id,
-        clubName: club.team.name,
-        clubRating: club.team.rating,
-        leagueId: club.team.leagueId,
-        leagueName: club.team.leagueName,
-        contractEndYear: num(club.link, "yearcontractvalidtil"),
-        jerseyNumber: num(club.link, "jerseynumber"),
-      }),
-  nationalTeamId: national?.id ?? null,
-  nationalTeamName: national?.name ?? null,
-});
 
 const profileFields = (row: EaDbRow) => ({
   bodyType: num(row, "bodysizecode"),
@@ -314,13 +241,13 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
   const nationalityId = num(row, "nationality");
   const [firstName, surname] = [String(row["firstname"]).trim(), String(row["surname"]).trim()];
   const name = `${firstName} ${surname}`.trim();
-  const { attributes, overallAt } = context.rate(row);
+  const { attributes, potential, overallAt, peak } = context.rate(row);
   const age = ageOn(birthdateToDate(num(row, "birthdate")), context.referenceDate);
   const { club } = context.placements.get(id) ?? {};
   const money = club && { link: club.link, prestige: club.team.prestige };
   const overallByCode = byPositionCode(overallAt);
   const rate = (code: number): number => overallByCode[code] ?? 0;
-  const [potential, overall] = [num(row, "potential"), rate(num(row, "preferredposition1"))];
+  const overall = rate(num(row, "preferredposition1"));
   return {
     id,
     name,
@@ -336,6 +263,7 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
     height: num(row, "height"),
     weight: num(row, "weight"),
     potential,
+    peak,
     overall,
     growth: potential - overall,
     ...profileFields(row),
@@ -378,7 +306,12 @@ const rater = (db: EaDb, save: CareerSave | undefined): Context["rate"] => {
   if (save === undefined)
     return (row) => {
       const attributes = attributesOf(row);
-      return { attributes, overallAt: (code) => baseOverall(attributes, code) };
+      return {
+        attributes,
+        potential: num(row, "potential"),
+        overallAt: (code) => baseOverall(attributes, code),
+        peak: null,
+      };
     };
   const curves = readCurves(db);
   const deltas = potentialDeltas(db, save);
@@ -406,16 +339,19 @@ const rater = (db: EaDb, save: CareerSave | undefined): Context["rate"] => {
     const attributes = attributesOf(
       Object.fromEntries(ATTRIBUTE_NAMES.map((name) => [name, aged(name)])),
     );
+    const overallAt = (code: number, yearsAhead = 0): number =>
+      cappedOverall(
+        yearsAhead === 0
+          ? (name) => attributes[name]
+          : careerAttributes(input, date, curves, yearsAhead),
+        code,
+        potential,
+      );
     return {
       attributes,
-      overallAt: (code, yearsAhead = 0) =>
-        cappedOverall(
-          yearsAhead === 0
-            ? (name) => attributes[name]
-            : careerAttributes(input, date, curves, yearsAhead),
-          code,
-          potential,
-        ),
+      potential,
+      overallAt,
+      peak: peakOverall(overallAt, num(row, "preferredposition1")),
     };
   };
 };

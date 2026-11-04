@@ -11,6 +11,7 @@ import type { CareerSave } from "../data/career-save.ts";
 import { effectiveRows } from "../data/career-save.ts";
 import { readTable } from "../data/ea-db.ts";
 import type { EaDb } from "../data/ea-db.ts";
+import { SCOUT_CONFIG } from "./config.ts";
 import type { AttributeName, Attributes } from "./players.ts";
 
 type WeightRow = readonly (readonly [AttributeName, number])[];
@@ -247,6 +248,20 @@ export const careerAttributes = (
   };
   return aged;
 };
+
+/**
+ * The highest OVR the development curves project at a position, this season and the coming ones: the
+ * game's development chart shows the same projection season by season (52, 55, 57 for a junior).
+ */
+export const peakOverall = (
+  overallAt: (positionCode: number, yearsAhead?: number) => number,
+  positionCode: number,
+): number =>
+  Math.max(
+    ...Array.from({ length: SCOUT_CONFIG.peakProjectionYears + 1 }, (_, years) =>
+      overallAt(positionCode, years),
+    ),
+  );
 
 /** OVR at a position from career attributes, capped at the potential. */
 export const cappedOverall = (

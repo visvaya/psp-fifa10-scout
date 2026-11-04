@@ -142,6 +142,7 @@ const cellContent = (player: Player, key: TextColumn): ReactNode =>
 const ratingIn = (player: Player, column: SortKey, ratingCode: number | null): number | null => {
   if (column === "overall") return player.overall;
   if (column === "potential") return player.potential;
+  if (column === "peak") return player.peak;
   if (column === "positionRating")
     return player.overallByCode[ratingCode ?? player.positionCode] ?? null;
   return isAttributeName(column) ? player.attributes[column] : null;
@@ -287,7 +288,7 @@ const useTableColumns = ({
       ...LEAD_COLUMNS,
       "overall",
       ...(ratingCode === null ? [] : (["positionRating", "ratingGain"] as const)),
-      ...(showPotential ? ["potential" as const] : []),
+      ...(showPotential ? (["potential", ...(priced ? (["peak"] as const) : [])] as const) : []),
       ...ranged,
       ...DETAIL_COLUMNS.filter((column) => priced || column !== "price"),
       ...TABLE_ATTRIBUTES.filter((name) => !ranged.includes(name)),

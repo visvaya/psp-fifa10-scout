@@ -8,6 +8,7 @@ import {
   cappedOverall,
   careerAttributes,
   OVR_WEIGHTS,
+  peakOverall,
   potentialDeltas,
   readCurves,
 } from "./overall-rating.ts";
@@ -184,6 +185,18 @@ describe("careerOverall", () => {
       [15, curve(20, { 21: 60 })],
     ]);
     expect(careerOverall(player(), ST, LATER, rising)).toBe(99);
+  });
+});
+
+describe("peakOverall", () => {
+  // The game's development chart for a junior: 52 this season, then 55 and 57 (2011-04-06 save).
+  it("takes the highest OVR the curves project over the coming seasons", () => {
+    const chart = [52, 55, 57, 60, 61, 61, 62, 62, 61, 60];
+    expect(peakOverall((_code, years = 0) => chart[years] ?? 40, 11)).toBe(62);
+  });
+
+  it("keeps today's OVR for a player already past his peak", () => {
+    expect(peakOverall((_code, years = 0) => 80 - years, 25)).toBe(80);
   });
 });
 

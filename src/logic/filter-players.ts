@@ -14,6 +14,7 @@ const RANGE_FIELDS = [
   "overall",
   "potential",
   "growth",
+  "peak",
   "height",
   "weight",
   "weakFoot",

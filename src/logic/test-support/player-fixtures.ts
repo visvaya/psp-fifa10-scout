@@ -94,6 +94,7 @@ export const testPlayer = (overrides: Partial<Player> = {}): Player => {
     height: 180,
     weight: 75,
     potential: 70,
+    peak: null,
     overall: 50,
     growth: 20,
     bodyType: 2,

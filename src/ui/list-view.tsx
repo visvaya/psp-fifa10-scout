@@ -5,7 +5,7 @@ import type { Player } from "../logic/players.ts";
 import { activeFilters, effectiveFilters, RATING_SORT_KEYS } from "../logic/scout-state.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
 import { SORTABLE_KEYS } from "../logic/scout-store.ts";
-import { sortPlayers } from "../logic/sort-players.ts";
+import { POTENTIAL_KEYS, sortPlayers } from "../logic/sort-players.ts";
 import { FilterChips } from "./filter-chips.tsx";
 import { FilterForm } from "./filter-form.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
@@ -58,7 +58,7 @@ const SortControls = ({
       >
         {SORTABLE_KEYS.filter(
           (key) =>
-            (state.showPotential || (key !== "potential" && key !== "growth")) &&
+            (state.showPotential || !POTENTIAL_KEYS.has(key)) &&
             (!RATING_SORT_KEYS.has(key) || state.filters.positionRating !== undefined),
         ).map((key) => (
           <option key={key} value={key}>
