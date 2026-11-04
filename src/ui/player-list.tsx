@@ -1,7 +1,7 @@
 // The filtered players, virtualized with fixed row heights: a sortable native table on wide
 // screens, a two-line list on phones.
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { CSSProperties, Dispatch, JSX, ReactNode, RefObject } from "react";
 import { isRangeKey, rangeValue, ratingGain } from "../logic/filter-players.ts";
 import type { PlayerFilters } from "../logic/filter-players.ts";
@@ -22,7 +22,8 @@ declare module "react" {
   }
 }
 
-const ROW_HEIGHT_PX = { table: 40, list: 64 } as const;
+/** Row heights as styles.css sets them (td 2.5rem, .player-row 4rem). */
+const ROW_HEIGHT_REM = { table: 2.5, list: 4 } as const;
 /**
  * The phone rows in rem, alike for the rows and their smaller labels: the name's least width, a rating's
  * width, a label's width per character and its padding. The name never takes more than nameMaxVw of the
@@ -88,8 +89,13 @@ interface ListProps {
   readonly dispatch: Dispatch<ScoutAction>;
 }
 
-const useRows = (count: number, rowHeight: number) => {
+/** The root font size in px, which enlarged text raises. */
+const rootFontPx = (): number =>
+  Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+
+const useRows = (count: number, rowHeightRem: number) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const rowHeight = rowHeightRem * rootFontPx();
   // oxlint-disable-next-line react/incompatible-library -- no React Compiler in this build
   const virtualizer = useVirtualizer({
     count,
@@ -97,6 +103,10 @@ const useRows = (count: number, rowHeight: number) => {
     estimateSize: () => rowHeight,
     overscan: OVERSCAN_ROWS,
   });
+  // The virtualizer keeps its sizes; a new root font size (larger text) must lay the rows out again.
+  useEffect(() => {
+    virtualizer.measure();
+  }, [virtualizer, rowHeight]);
   const items = virtualizer.getVirtualItems();
   const before = items[0]?.start ?? 0;
   const after = virtualizer.getTotalSize() - (items.at(-1)?.end ?? 0);
@@ -269,7 +279,7 @@ const ColumnGroup = ({ widths }: { widths: readonly number[] | null }) =>
 
 export const PlayerTable = (props: ListProps): JSX.Element => {
   const { players, allPlayers, sort, ratingCode, ratingName, dispatch } = props;
-  const { scrollRef, items, before, after } = useRows(players.length, ROW_HEIGHT_PX.table);
+  const { scrollRef, items, before, after } = useRows(players.length, ROW_HEIGHT_REM.table);
   const { columns, label } = useTableColumns(props);
   const tableRef = useRef<HTMLTableElement>(null);
   const widths = useColumnWidths({
@@ -414,7 +424,7 @@ export const PlayerCards = (props: ListProps): JSX.Element => {
   );
   const layout = phoneLayout(labels);
   const headerRef = useRef<HTMLDivElement>(null);
-  const { scrollRef, items, before, after } = useRows(players.length, ROW_HEIGHT_PX.list);
+  const { scrollRef, items, before, after } = useRows(players.length, ROW_HEIGHT_REM.list);
   return (
     <>
       <RowsHeader ref={headerRef} labels={labels} layout={layout} />

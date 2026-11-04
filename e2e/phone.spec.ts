@@ -178,6 +178,32 @@ test.describe("phone columns", () => {
   });
 });
 
+/** Runs in the page before its scripts: the root font at 32 px, as a browser's larger text sets it. */
+const enlargeText = () => {
+  document.addEventListener("DOMContentLoaded", () => {
+    document.documentElement.style.fontSize = "32px";
+  });
+};
+
+test.describe("enlarged text", () => {
+  test.use(PHONE);
+
+  // A row is 4rem: with a 32 px root font the list must place rows by 128 px, not the 64 px of the default.
+  test("places the rows by their height when the text is enlarged", async ({ page }) => {
+    await page.addInitScript(enlargeText);
+    await page.setViewportSize({ width: 390, height: 1600 });
+    await loadDatabase(page);
+    const list = page.locator(".scroll");
+    await list.evaluate((element) => {
+      element.scrollTo(0, 128 * 20);
+    });
+    const row = page.locator('.player-rows li[aria-posinset="21"]');
+    await expect(row).toBeInViewport();
+    const [rowBox, listBox] = await Promise.all([row.boundingBox(), list.boundingBox()]);
+    expect(Math.abs((rowBox?.y ?? Number.NaN) - (listBox?.y ?? Number.NaN))).toBeLessThan(4);
+  });
+});
+
 test.describe("open dialog", () => {
   test.use(PHONE);
 
