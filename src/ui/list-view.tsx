@@ -200,6 +200,7 @@ const ListResults = ({
           ratingCode={ratingCode}
           ratingName={ratingName}
           rangedAttributes={ranged}
+          ranges={ranges}
           dispatch={dispatch}
         />
       )}

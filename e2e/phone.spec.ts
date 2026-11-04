@@ -43,7 +43,7 @@ test.describe("phone", () => {
     await page.getByRole("button", { name: "Filtry" }).click();
     await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
     await page.getByRole("button", { name: "Zamknij" }).click();
-    const labels = page.locator(".player-rows-header > span");
+    const labels = page.locator(".player-rows-header .column-label");
     await expect(labels).toHaveText(["OVR", "POT"]);
     const numbers = page.locator(".player-row").first().locator(".rating");
     const [labelCentres, numberCentres] = await Promise.all([
@@ -88,19 +88,6 @@ test.describe("phone list with filters", () => {
     await expect(chip).toBeVisible();
   });
 
-  test("shows a filtered attribute before OVR when nothing else takes that place", async ({
-    page,
-  }) => {
-    await loadDatabase(page);
-    await page.getByRole("button", { name: "Filtry" }).click();
-    const dialog = page.getByRole("dialog", { name: "Filtry" });
-    await dialog.getByText("Atrybuty", { exact: true }).click();
-    await dialog.getByLabel("Dodaj atrybut").selectOption({ label: "Przyspieszenie" });
-    await dialog.getByRole("group", { name: "Przyspieszenie" }).getByLabel("od").fill("10");
-    await dialog.getByRole("button", { name: "Zamknij" }).click();
-    await expect(page.locator(".player-rows-header > span")).toHaveText(["Przyspieszenie", "OVR"]);
-  });
-
   test("keeps an attribute's field while its value is retyped after the dialog reopens", async ({
     page,
   }) => {
@@ -122,6 +109,98 @@ test.describe("phone list with filters", () => {
     await expect(from).toBeVisible();
     await from.fill("20");
     await expect(from).toHaveValue("20");
+  });
+});
+
+const scrollToEnd = (element: Element) => {
+  element.scrollTo(element.scrollWidth, 0);
+};
+const scrollLeftOf = (element: Element) => element.scrollLeft;
+
+test.describe("phone columns", () => {
+  test.use(PHONE);
+
+  test("shows the filtered values after OVR, scrolling sideways with the name kept", async ({
+    page,
+  }) => {
+    await loadDatabase(page);
+    await page.getByRole("button", { name: "Filtry" }).click();
+    const dialog = page.getByRole("dialog", { name: "Filtry" });
+    await dialog.getByText("Atrybuty", { exact: true }).click();
+    await dialog.getByLabel("Dodaj atrybut").selectOption({ label: "Przyspieszenie" });
+    await dialog.getByRole("group", { name: "Przyspieszenie" }).getByLabel("od").fill("10");
+    await dialog.getByLabel("Dodaj atrybut").selectOption({ label: "Szybkość" });
+    await dialog.getByRole("group", { name: "Szybkość" }).getByLabel("od").fill("10");
+    await dialog
+      .getByRole("group", { name: "Ocena na pozycji" })
+      .getByLabel("Pozycja")
+      .selectOption({ label: "Środkowy obrońca (CB)" });
+    await dialog.getByRole("button", { name: "Zamknij" }).click();
+    await expect(page.locator(".player-rows-header .column-label")).toHaveText([
+      "OVR",
+      "OVR CB",
+      "Różnica CB",
+      "Przyspieszenie",
+      "Szybkość",
+    ]);
+    // More than fits: the list scrolls sideways, the labels with it, and the name stays at the left.
+    const list = page.locator(".scroll");
+    await list.evaluate(scrollToEnd);
+    const scrolled = await list.evaluate(scrollLeftOf);
+    expect(scrolled).toBeGreaterThan(0);
+    const header = page.locator(".player-rows-header");
+    await expect.poll(async () => header.evaluate(scrollLeftOf)).toBe(scrolled);
+    const name = await page.locator(".player-row-name").first().boundingBox();
+    expect(name?.x ?? Number.NaN).toBeLessThan(20);
+    const lastCell = page.locator(".player-row").first().locator(".player-row-cell").last();
+    await expect(lastCell).toBeInViewport();
+  });
+
+  // With enlarged text the kept name must not cover the screen, or the numbers scroll under it.
+  test("keeps room for the numbers beside the name with large text", async ({ page }) => {
+    // Tall enough for rows under the enlarged toolbar.
+    await page.setViewportSize({ width: 320, height: 1400 });
+    await loadDatabase(page);
+    await page.getByRole("button", { name: "Filtry" }).click();
+    const dialog = page.getByRole("dialog", { name: "Filtry" });
+    await dialog.getByText("Atrybuty", { exact: true }).click();
+    await dialog.getByLabel("Dodaj atrybut").selectOption({ label: "Szybkość" });
+    await dialog.getByRole("group", { name: "Szybkość" }).getByLabel("od").fill("10");
+    await dialog.getByRole("button", { name: "Zamknij" }).click();
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = "32px";
+    });
+    const row = page.locator(".player-row").first();
+    const name = await row.locator(".player-row-text").boundingBox();
+    expect(name?.width ?? Number.NaN).toBeLessThanOrEqual(320 * 0.45 + 1);
+    await page.locator(".scroll").evaluate(scrollToEnd);
+    await expect(row.locator(".player-row-cell").last()).toBeInViewport();
+  });
+});
+
+/** Runs in the page before its scripts: the root font at 32 px, as a browser's larger text sets it. */
+const enlargeText = () => {
+  document.addEventListener("DOMContentLoaded", () => {
+    document.documentElement.style.fontSize = "32px";
+  });
+};
+
+test.describe("enlarged text", () => {
+  test.use(PHONE);
+
+  // A row is 4rem: with a 32 px root font the list must place rows by 128 px, not the 64 px of the default.
+  test("places the rows by their height when the text is enlarged", async ({ page }) => {
+    await page.addInitScript(enlargeText);
+    await page.setViewportSize({ width: 390, height: 1600 });
+    await loadDatabase(page);
+    const list = page.locator(".scroll");
+    await list.evaluate((element) => {
+      element.scrollTo(0, 128 * 20);
+    });
+    const row = page.locator('.player-rows li[aria-posinset="21"]');
+    await expect(row).toBeInViewport();
+    const [rowBox, listBox] = await Promise.all([row.boundingBox(), list.boundingBox()]);
+    expect(Math.abs((rowBox?.y ?? Number.NaN) - (listBox?.y ?? Number.NaN))).toBeLessThan(4);
   });
 });
 
