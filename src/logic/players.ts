@@ -7,6 +7,7 @@ import type { EaDb, EaDbRow } from "../data/ea-db.ts";
 import { SaveFormatError } from "../data/save-format-error.ts";
 import { SCOUT_CONFIG } from "./config.ts";
 import {
+  attributeGains,
   baseOverall,
   byPositionCode,
   cappedOverall,
@@ -381,11 +382,21 @@ const rater = (db: EaDb, save: CareerSave | undefined): Context["rate"] => {
     };
   const curves = readCurves(db);
   const deltas = potentialDeltas(db, save);
+  const gains = attributeGains(db, save);
   const date = seasonStartDate(db, save);
   return (row) => {
     const potential = num(row, "potential") + (deltas.get(num(row, "playerid")) ?? 0);
+    const gain = gains.get(num(row, "playerid"));
     const input = {
-      attributes: attributesOf(row),
+      // The gains count before ageing, as the database attributes they add to.
+      attributes:
+        gain === undefined
+          ? attributesOf(row)
+          : attributesOf(
+              Object.fromEntries(
+                ATTRIBUTE_NAMES.map((name) => [name, num(row, name) + gain(name)]),
+              ),
+            ),
       potential,
       birthdate: birthdateToDate(num(row, "birthdate")),
       developmentTypeCode: num(row, "developmenttypecode"),

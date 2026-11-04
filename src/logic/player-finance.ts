@@ -1,6 +1,6 @@
 // Each career player's transfer price and market wage (transfer-price.ts), with his club's prestige
 // and his contract. The user's squad keeps the wages stored in the save.
-import { careerManager, effectiveRows } from "../data/career-save.ts";
+import { careerManager, effectiveRows, seasonStartDate } from "../data/career-save.ts";
 import type { CareerSave } from "../data/career-save.ts";
 import type { EaDb, EaDbRow } from "../data/ea-db.ts";
 import { SCOUT_CONFIG } from "./config.ts";
@@ -42,8 +42,11 @@ const float32 = (bits: number): number => {
 
 /** Prices and wages on the save's date; players without a club or free-agent link get none. */
 export const financeOf = (db: EaDb, save: CareerSave): ((input: FinanceInput) => Finance) => {
-  const { teamId: userTeamId, lastGameDate, currency } = careerManager(db, save);
+  const { teamId: userTeamId, currency } = careerManager(db, save);
   const rate = exchangeRate(currency);
+  // The game counts contract years from the year the season started: in April 2011 a contract to 2013
+  // shows three years.
+  const seasonYear = seasonStartDate(db, save).getUTCFullYear();
   const freeAgentLinks = new Map(
     effectiveRows(db, save, "teamplayerlinks")
       .filter((link) => num(link, "teamid") === SCOUT_CONFIG.freeAgentTeamId)
@@ -69,7 +72,7 @@ export const financeOf = (db: EaDb, save: CareerSave): ((input: FinanceInput) =>
       overall,
       overallIn5Years: overallAt(preferred, PROJECTION_YEARS),
       age,
-      contractYearsLeft: num(link, "yearcontractvalidtil") - lastGameDate.getUTCFullYear(),
+      contractYearsLeft: num(link, "yearcontractvalidtil") - seasonYear,
       internationalReputation: num(row, "internationalreputation"),
       playingStyle: num(row, "playingstyle"),
       // A free agent counts OVR / 5 as both league and team prestige.

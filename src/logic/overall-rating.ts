@@ -166,6 +166,21 @@ export const potentialDeltas = (db: EaDb, save: CareerSave): ReadonlyMap<number,
     ]),
   );
 
+/**
+ * The attribute gains the save records per player id (`<attribute>_delta`, the user's squad): from
+ * matches played, training and the season change.
+ */
+export const attributeGains = (
+  db: EaDb,
+  save: CareerSave,
+): ReadonlyMap<number, (name: AttributeName) => number> =>
+  new Map(
+    effectiveRows(db, save, "career_players_grown_attributes").map((row) => [
+      Number(row["playerid"]),
+      (name: AttributeName) => Number(row[`${name}_delta`] ?? 0),
+    ]),
+  );
+
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(Math.max(value, min), max);
 
