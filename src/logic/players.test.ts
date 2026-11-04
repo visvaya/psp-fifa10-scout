@@ -309,6 +309,22 @@ describe("buildPlayers with a career save", () => {
     expect(byId(players, 7)?.overallByCode[0]).toBe(45);
   });
 
+  // The user's players gain attributes from matches, training and the season change; the save keeps them.
+  it("adds the attribute gains the save records", () => {
+    const grown: CareerSave = new Map([
+      ...SAVE,
+      [
+        "career_players_grown_attributes",
+        [row({ playerid: 158_023, potential_delta: 0, finishing_delta: 10 })],
+      ],
+    ]);
+    const before = byId(players, 158_023);
+    const after = byId(buildPlayers(DB, grown), 158_023);
+    expect(after?.attributes.finishing).toBe((before?.attributes.finishing ?? 0) + 10);
+    expect(after?.overallByCode[29]).toBeGreaterThan(before?.overallByCode[29] ?? 0);
+    expect(after?.attributes.dribbling).toBe(before?.attributes.dribbling);
+  });
+
   it("adds career stats where the save has them", () => {
     expect(byId(players, 158_023)).toMatchObject({
       form: 3,

@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { careerManager, parseCareerSave } from "../data/career-save.ts";
+import { careerManager, parseCareerSave, seasonStartDate } from "../data/career-save.ts";
 import type { CareerSave } from "../data/career-save.ts";
 import { parseEaDb } from "../data/ea-db.ts";
 import type { EaDbRow } from "../data/ea-db.ts";
@@ -169,6 +169,25 @@ describe("career prices and wages", () => {
     expect(player(4)?.wage).toBe(roundMoney(1234 * 0.86));
   });
 
+  // In April 2011 the game shows a contract to 2013 as three years: it counts from the season's first
+  // year (2010/11), not from the calendar year.
+  it("counts the contract years from the year the season started", () => {
+    const [manager] = SAVE.get("team_manager") ?? [];
+    const spring: CareerSave = new Map([
+      ...SAVE,
+      ["team_manager", [row({ ...manager, last_game_number: daysSince1582(2011, 4, 6) * 1024 })]],
+      ["fixtures", [row({ game_number: daysSince1582(2010, 7, 24) * 1024 })]],
+      ["teamplayerlinks", [link(1, 241, 2011)]],
+    ]);
+    const player = buildPlayers(DB, spring).find((each) => each.id === 1);
+    const oneYear = input({ contractYearsLeft: 1, age: 26 });
+    expect(player).toMatchObject({
+      price: transferPrice(oneYear),
+      wage: marketWage(oneYear, false),
+      wageMax: marketWage(oneYear, false),
+    });
+  });
+
   it("leaves players without a club or without a save unpriced", () => {
     expect(byId(6)).toMatchObject({ price: null, wage: null, wageMax: null });
     const base = buildPlayers(DB).find((player) => player.id === 1);
@@ -239,7 +258,16 @@ describe.runIf(existsSync(realDbPath) && existsSync(realCareerPath))("real caree
     );
     const before = new Map(atOldClub.map((player) => [player.id, player.price ?? 0]));
     const { lowest, highest, rounding } = CPU_FEE_RATIO;
-    const ratios = sold.map(
+    // In later seasons a fifa.db contract has often run out: the clubs renewed it, and the contract at
+    // the sale is not in the save, so that fee says nothing about the formula.
+    const seasonYear = seasonStartDate(db, save).getUTCFullYear();
+    // The contract of the club the player is priced at, not any of his links (a national team's too).
+    const contracts = new Map(atOldClub.map((player) => [player.id, player.contractEndYear ?? 0]));
+    const priced = sold.filter(
+      (entry) => (contracts.get(Number(entry["playerid"])) ?? 0) > seasonYear,
+    );
+    expect(priced.every((entry) => (before.get(Number(entry["playerid"])) ?? 0) > 0)).toBe(true);
+    const ratios = priced.map(
       (entry) => as32(Number(entry["paid"])) / (before.get(Number(entry["playerid"])) ?? 0),
     );
     const fits = ratios.filter(
@@ -247,9 +275,11 @@ describe.runIf(existsSync(realDbPath) && existsSync(realCareerPath))("real caree
         ratio >= (lowest * (1 - rounding)) / (1 + rounding) &&
         ratio <= (highest * (1 + rounding)) / (1 - rounding),
     );
-    process.stdout.write(`CPU fees within the band: ${String(fits.length)} of ${String(sold.length)}
-`);
-    expect(fits).toHaveLength(sold.length);
+    process.stdout.write(
+      `CPU fees within the band: ${String(fits.length)} of ${String(priced.length)} (${String(sold.length - priced.length)} with an unknown contract)
+`,
+    );
+    expect(fits).toHaveLength(priced.length);
   });
 
   it("keeps the stored wages of the user's squad", () => {
