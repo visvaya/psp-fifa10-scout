@@ -265,6 +265,7 @@ export const TEXT = {
   positionRating: "Ocena na pozycji",
   position: "Pozycja",
   ratingAt: (position: string): string => `OVR ${position}`,
+  ratingChoice: (group: string, abbreviation: string): string => `${group} (${abbreviation})`,
   text: "Nazwisko",
   clubStatus: "Zawodnicy",
   myClub: "Mój klub",

@@ -3,7 +3,7 @@ import type { Dispatch, JSX } from "react";
 import type { FlagKey, ListKey, Range, RangeKey } from "../logic/filter-players.ts";
 import { ATTRIBUTE_NAMES, TRAIT_NAMES } from "../logic/players.ts";
 import type { AttributeName, Player, TraitName } from "../logic/players.ts";
-import { POSITION_CODES, POSITION_GROUPS } from "../logic/positions.ts";
+import { POSITION_GROUPS } from "../logic/positions.ts";
 import { activeFilters, facetOptions } from "../logic/scout-state.ts";
 import type {
   ClubStatus,
@@ -21,6 +21,7 @@ import {
   Section,
 } from "./filter-fields.tsx";
 import type { Choice } from "./filter-fields.tsx";
+import { PositionRatingField } from "./position-rating-field.tsx";
 import {
   ATTRIBUTE_LABELS,
   CLUB_STATUS_LABELS,
@@ -119,42 +120,6 @@ const CareerClubFields = ({ filters, change }: { filters: ScoutFilters; change: 
     />
   </>
 );
-
-/** A position (any of the 32 codes) and a range of the OVR there. */
-const positionRatingField = ({ filters, change, positionName }: Kit) => {
-  const rating = filters.positionRating;
-  return (
-    <fieldset className="field">
-      <legend>{TEXT.positionRating}</legend>
-      <label className="field">
-        <span>{TEXT.position}</span>
-        <select
-          value={rating?.code ?? ""}
-          onChange={(event) => {
-            const code = numberOrUndefined(event.currentTarget.value);
-            change({ positionRating: code === undefined ? undefined : { ...rating, code } });
-          }}
-        >
-          <option value="">{TEXT.anyOption}</option>
-          {POSITION_CODES.map((code) => (
-            <option key={code} value={code}>
-              {positionName(code)}
-            </option>
-          ))}
-        </select>
-      </label>
-      {rating === undefined ? null : (
-        <RangeField
-          label={TEXT.ratingAt(positionName(rating.code))}
-          range={rating}
-          onChange={(range) => {
-            change({ positionRating: { ...range, code: rating.code } });
-          }}
-        />
-      )}
-    </fieldset>
-  );
-};
 
 const ContractField = (props: {
   years: readonly number[];
@@ -304,7 +269,11 @@ const basicSection = (kit: Kit, showPotential: boolean) => {
       )}
       {range("age")}
       {range("overall")}
-      {positionRatingField(kit)}
+      <PositionRatingField
+        rating={filters.positionRating}
+        positionName={positionName}
+        change={change}
+      />
       {showPotential ? [range("potential"), range("growth")] : null}
     </Section>
   );

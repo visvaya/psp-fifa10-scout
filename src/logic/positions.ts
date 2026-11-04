@@ -25,19 +25,26 @@ const NAMES = (
 /** Every preferred position code, 0..31. */
 export const POSITION_CODES: readonly number[] = NAMES.map((_, code) => code);
 
-const GROUPS: readonly (readonly [PositionGroup, readonly number[]])[] = [
-  ["goalkeeper", [0]],
-  ["sweeper", [1]],
-  ["wing-backs", [2, 8]],
-  ["full-backs", [3, 7]],
-  ["centre-backs", [4, 5, 6]],
-  ["defensive-midfield", [9, 10, 11, 12, 13]],
-  ["wingers", [14, 20]],
-  ["side-midfield", [15, 19]],
-  ["central-midfield", [16, 17, 18]],
-  ["attacking-midfield", [21, 22, 23, 24, 25]],
-  ["forwards", [26, 27, 28, 29, 30, 31]],
+// Each group: its codes, and the code its position rating is taken at (RATING_CHOICES).
+const GROUPS: readonly (readonly [PositionGroup, readonly number[], number])[] = [
+  ["goalkeeper", [0], 0],
+  ["sweeper", [1], 1],
+  ["wing-backs", [2, 8], 2],
+  ["full-backs", [3, 7], 3],
+  ["centre-backs", [4, 5, 6], 5],
+  ["defensive-midfield", [9, 10, 11, 12, 13], 11],
+  ["wingers", [14, 20], 15],
+  ["side-midfield", [15, 19], 15],
+  ["central-midfield", [16, 17, 18], 17],
+  ["attacking-midfield", [21, 22, 23, 24, 25], 23],
+  ["forwards", [26, 27, 28, 29, 30, 31], 30],
 ];
+
+const groupOf = (code: number): (typeof GROUPS)[number] => {
+  const entry = GROUPS.find(([, codes]) => codes.includes(code));
+  if (entry === undefined) throw new SaveFormatError(`Unknown position code ${String(code)}`);
+  return entry;
+};
 
 /**
  * The groups by their first code: the game lists positions in code order (its position names, the OVR
@@ -86,6 +93,33 @@ export const POSITION_GROUP_ROWS: readonly (readonly [PositionGroup, ...Position
   ["forwards"],
 ];
 
+/**
+ * The choices of the position rating filter, by the codes naming each: one per way the game rates a
+ * position (its distinct OVR weight rows), in code order. The first code is the one rated and stored,
+ * and its group names the choice; wingers rate as side midfielders.
+ */
+export const RATING_CHOICES: readonly (readonly [number, ...number[]])[] = [
+  [0],
+  [1],
+  [2, 8],
+  [3, 7],
+  [5],
+  [11],
+  [15, 19],
+  [17],
+  [23],
+  [30],
+];
+
+/** The codes naming the rating choice of a position code, rated the same way as it. */
+export const ratingChoiceOf = (code: number): readonly [number, ...number[]] => {
+  const ratedAt = groupOf(code)[2];
+  return RATING_CHOICES.find(([first]) => first === ratedAt) ?? [ratedAt];
+};
+
+/** The code a position is rated and stored at: its rating choice's first code. */
+export const ratingCodeOf = (code: number): number => groupOf(code)[2];
+
 /** A card row's OVR: its first group's, approximate where another group of the row rates otherwise. */
 export const rowRating = (
   ratings: Readonly<Record<PositionGroup, number>>,
@@ -112,8 +146,7 @@ export const byGroup = <T>(value: (code: number) => T): Readonly<Record<Position
 
 /** The short name and group of a preferred position code. */
 export const positionOf = (code: number): { name: string; group: PositionGroup } => {
-  const group = GROUPS.find(([, codes]) => codes.includes(code))?.[0];
-  if (group === undefined) throw new SaveFormatError(`Unknown position code ${String(code)}`);
+  const [group] = groupOf(code);
   // NAMES covers the same codes 0..31 as GROUPS.
   return { name: NAMES[code] ?? "", group };
 };

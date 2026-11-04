@@ -38,7 +38,7 @@ describe("scout store", () => {
         ranges: { age: { min: 18, max: 23 }, dribbling: { min: 80 } },
         lists: { positionGroup: ["wingers"], preferredFoot: ["left"], leagueId: [53] },
         flags: { leadership: true, diver: false },
-        positionRating: { code: 7, min: 70 },
+        positionRating: { code: 3, min: 70 },
         clubStatus: "free-agents",
         myClub: "only",
       },
@@ -184,6 +184,10 @@ describe("scout store", () => {
         value: { filters: { positionRating }, sort: DEFAULT_SORT },
       });
     expect((await rating({ code: 0, max: "9" }))?.filters).toEqual({ positionRating: { code: 0 } });
+    // Codes rated alike move to their rating choice: right centre-back to centre-back.
+    expect((await rating({ code: 4, min: 60 }))?.filters).toEqual({
+      positionRating: { code: 5, min: 60 },
+    });
     expect((await rating({ code: 1.5 }))?.filters).toEqual({});
     expect((await rating(5))?.filters).toEqual({});
     expect(await loadPreferences({ schemaVersion: 3, value })).toEqual({
