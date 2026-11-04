@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import type { JSX, ReactNode } from "react";
 import type { AttributeName, Player } from "../logic/players.ts";
 import { nameTextIdOf, POSITION_CODES, RATING_CHOICES, ratingCodeOf } from "../logic/positions.ts";
-import { AttributeValue } from "./attribute-value.tsx";
+import { AttributeValue, GainValue } from "./attribute-value.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
 import { PositionName, ratingChoiceName } from "./position-name.tsx";
 import type { PositionNames } from "./position-name.tsx";
@@ -73,7 +73,7 @@ const choicePositions = (code: number, names: PositionNames): string =>
     .join(TEXT.rowMetaSeparator);
 
 /**
- * OVR per rating choice, with the gain over the OVR; one switch at the heading shows the positions
+ * OVR per rating choice, after the gain over the OVR so the ratings line up; one switch at the heading shows the positions
  * each choice covers.
  */
 const ChoiceRatings = (props: { player: Player; names: PositionNames }) => {
@@ -105,9 +105,9 @@ const ChoiceRatings = (props: { player: Player; names: PositionNames }) => {
                 {ratingChoiceName(code)}
                 {open ? <p>{choicePositions(code, names)}</p> : null}
               </dt>
-              <dd>
+              <dd className="rated">
+                {rating === null ? null : <GainValue value={rating - player.overall} bracketed />}
                 {rating === null ? null : <AttributeValue value={rating} />}
-                {rating === null ? null : TEXT.card.gain(rating - player.overall)}
               </dd>
             </div>
           );

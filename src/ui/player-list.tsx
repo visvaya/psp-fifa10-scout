@@ -8,7 +8,7 @@ import { isAttributeName } from "../logic/players.ts";
 import type { AttributeName, Player } from "../logic/players.ts";
 import type { ScoutAction, ScoutSort } from "../logic/scout-state.ts";
 import type { SortKey } from "../logic/sort-players.ts";
-import { AttributeValue } from "./attribute-value.tsx";
+import { AttributeValue, GainValue } from "./attribute-value.tsx";
 import { PositionName } from "./position-name.tsx";
 import { ATTRIBUTE_LABELS, RANGE_LABELS, TEXT } from "./text.ts";
 import { useColumnWidths } from "./use-column-widths.ts";
@@ -121,7 +121,7 @@ const ColumnValue = (props: { player: Player; column: SortKey; ratingCode: numbe
   const { player, column, ratingCode } = props;
   const value = numberIn(player, column, ratingCode);
   if (value !== null) {
-    return column === "ratingGain" ? TEXT.signed(value) : <AttributeValue value={value} />;
+    return column === "ratingGain" ? <GainValue value={value} /> : <AttributeValue value={value} />;
   }
   return isTextColumn(column) ? cellContent(player, column) : null;
 };
