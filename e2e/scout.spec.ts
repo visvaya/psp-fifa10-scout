@@ -237,7 +237,9 @@ test.describe("career save", () => {
     await expectCount(page, "21 zawodników");
     await page.getByRole("radio", { name: "ukryj zawodników mojego klubu" }).check();
     await expectCount(page, "41 zawodników");
-    await page.getByRole("button", { name: "Usuń filtr: ukryj zawodników mojego klubu" }).click();
+    await page
+      .getByRole("button", { name: "Usuń filtr: Ukryj zawodników mojego klubu", exact: true })
+      .click();
     await expectCount(page, "62 zawodników");
   });
 });

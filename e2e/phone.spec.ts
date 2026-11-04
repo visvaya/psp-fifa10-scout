@@ -28,7 +28,14 @@ test.describe("phone", () => {
     await dialog.getByRole("button", { name: "Zamknij" }).click();
     await expect(page.getByRole("button", { name: "Filtry (1)" })).toBeFocused();
     await page.getByRole("button", { name: /^Paweł Brożek/u }).click();
-    await expect(page.getByRole("dialog", { name: "Paweł Brożek" })).toBeVisible();
+    const card = page.getByRole("dialog", { name: "Paweł Brożek" });
+    await expect(card).toBeVisible();
+    // A tap inside keeps the card; a tap on the backdrop beside it closes it, as a click does.
+    await card.getByRole("heading", { name: "Paweł Brożek" }).tap();
+    await expect(card).toBeVisible();
+    const box = await card.boundingBox();
+    await page.touchscreen.tap(Math.max(1, (box?.x ?? 8) / 2), 420);
+    await expect(card).toBeHidden();
   });
 
   test("labels the numbers above the rows, each over its column", async ({ page }) => {
@@ -92,6 +99,29 @@ test.describe("phone list with filters", () => {
     await dialog.getByRole("group", { name: "Przyspieszenie" }).getByLabel("od").fill("10");
     await dialog.getByRole("button", { name: "Zamknij" }).click();
     await expect(page.locator(".player-rows-header > span")).toHaveText(["Przyspieszenie", "OVR"]);
+  });
+
+  test("keeps an attribute's field while its value is retyped after the dialog reopens", async ({
+    page,
+  }) => {
+    await loadDatabase(page);
+    const open = async () => {
+      await page.getByRole("button", { name: /^Filtry/u }).click();
+      return page.getByRole("dialog", { name: "Filtry" });
+    };
+    let dialog = await open();
+    await dialog.getByText("Atrybuty", { exact: true }).click();
+    await dialog.getByLabel("Dodaj atrybut").selectOption({ label: "Przyspieszenie" });
+    await dialog.getByRole("group", { name: "Przyspieszenie" }).getByLabel("od").fill("10");
+    await dialog.getByRole("button", { name: "Zamknij" }).click();
+    dialog = await open();
+    await dialog.getByText("Atrybuty", { exact: true }).click();
+    const from = dialog.getByRole("group", { name: "Przyspieszenie" }).getByLabel("od");
+    // Clearing the value to type a new one must not take the field away.
+    await from.fill("");
+    await expect(from).toBeVisible();
+    await from.fill("20");
+    await expect(from).toHaveValue("20");
   });
 });
 
