@@ -6,7 +6,7 @@ import type { TableSpec } from "../../data/test-support/synthetic-ea-db.ts";
 import { countryKey, labelKey, leagueKey, teamKey } from "../../data/game-locale.ts";
 import { buildLocale } from "../../data/test-support/synthetic-locale.ts";
 import { buildFileList, buildParamSfo } from "../../data/test-support/synthetic-save.ts";
-import { flatCurves, playerRow, table } from "./player-fixtures.ts";
+import { flatCurves, floatBits, playerRow, table } from "./player-fixtures.ts";
 
 /** Days since 1582-10-14, the fifa.db birthdate epoch. */
 const born = (year: number): number => (Date.UTC(year, 0, 15) - Date.UTC(1582, 9, 14)) / 86_400_000;
@@ -77,13 +77,13 @@ export const SCOUT_USER_TEAM_ID = 1873;
 export const buildScoutDb = (): Uint8Array =>
   buildEaDb([
     table("leagues", [
-      { leagueid: 53, leaguename: "Spain Primera Division (1)", level: 1 },
-      { leagueid: 76, leaguename: "Rest of World", level: 4 },
+      { leagueid: 53, leaguename: "Spain Primera Division (1)", level: 1, leagueprestige: 19 },
+      { leagueid: 76, leaguename: "Rest of World", level: 4, leagueprestige: 5 },
     ]),
     table("teams", [
-      { teamid: 241, teamname: "FC Barcelona", overallrating: 84 },
-      { teamid: 1873, teamname: "Wisła Kraków", overallrating: 66 },
-      { teamid: 10, teamname: "Łódzki KS", overallrating: 58 },
+      { teamid: 241, teamname: "FC Barcelona", overallrating: 84, internationalprestige: 19 },
+      { teamid: 1873, teamname: "Wisła Kraków", overallrating: 66, internationalprestige: 6 },
+      { teamid: 10, teamname: "Łódzki KS", overallrating: 58, internationalprestige: 4 },
     ]),
     table("leagueteamlinks", [
       { leagueid: 53, teamid: 241 },
@@ -96,13 +96,20 @@ export const buildScoutDb = (): Uint8Array =>
     ]),
     PLAYERS,
     table("teamplayerlinks", [
-      { teamid: 241, playerid: 158_023, jerseynumber: 10, yearcontractvalidtil: 2014 },
-      { teamid: 1873, playerid: 7, jerseynumber: 9, yearcontractvalidtil: 2010 },
+      {
+        teamid: 241,
+        playerid: 158_023,
+        jerseynumber: 10,
+        yearcontractvalidtil: 2014,
+        position: 33,
+      },
+      { teamid: 1873, playerid: 7, jerseynumber: 9, yearcontractvalidtil: 2010, position: 33 },
       ...generated.map((_, index) => ({
         teamid: CLUBS[index % CLUBS.length] ?? 10,
         playerid: 1000 + index,
         jerseynumber: index + 1,
-        yearcontractvalidtil: 2010 + (index % 5),
+        yearcontractvalidtil: 2009 + (index % 5),
+        position: 33,
       })),
     ]),
     table("team_manager", [
@@ -118,6 +125,10 @@ export const buildScoutDb = (): Uint8Array =>
     empty("career_youth_accademy"),
     empty("career_transfer_list"),
     empty("career_players_grown_attributes"),
+    // Brożek plays for the user's club: the card shows his contract's wage, not the market's.
+    table("career_extra_user_team_info", [
+      { playerid: 7, wage: floatBits(5700), bonus: 0, bonus_type: 0, contract_status: 0 },
+    ]),
     flatCurves(),
   ]);
 

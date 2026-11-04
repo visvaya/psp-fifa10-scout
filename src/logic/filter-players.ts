@@ -25,6 +25,8 @@ const RANGE_FIELDS = [
   "form",
   "morale",
   "injuryDays",
+  "price",
+  "wage",
 ] as const satisfies readonly (keyof Player)[];
 
 export type RangeFields = (typeof RANGE_FIELDS)[number];
@@ -81,7 +83,8 @@ export const ratingGain = (player: Player, code: number): number | null => {
 
 type Predicate = (player: Player) => boolean;
 
-const rangeValue = (player: Player, key: RangeKey): number | null =>
+/** A player's value for a range filter: a field, or an attribute. */
+export const rangeValue = (player: Player, key: RangeKey): number | null =>
   isAttributeName(key) ? player.attributes[key] : player[key];
 
 const hasFlag = (player: Player, flag: FlagKey): boolean => {
@@ -141,10 +144,20 @@ const predicates = (filters: PlayerFilters): readonly Predicate[] => {
 };
 
 /** The attributes with a set range, in the order they were added: the list shows them as columns. */
+export const isRangeKey = (key: string): key is RangeKey =>
+  RANGE_KEYS.some((candidate) => candidate === key);
+
+/** The range filters that set a bound, in the order they were added. */
+export const rangedKeys = (ranges: PlayerFilters["ranges"]): readonly RangeKey[] =>
+  Object.entries(ranges ?? {}).flatMap(([key, range]) => {
+    const found = RANGE_KEYS.find((candidate) => candidate === key);
+    return found !== undefined && (range?.min !== undefined || range?.max !== undefined)
+      ? [found]
+      : [];
+  });
+
 export const rangedAttributes = (ranges: PlayerFilters["ranges"]): readonly AttributeName[] =>
-  Object.entries(ranges ?? {}).flatMap(([key, range]) =>
-    isAttributeName(key) && (range?.min !== undefined || range?.max !== undefined) ? [key] : [],
-  );
+  rangedKeys(ranges).filter(isAttributeName);
 
 /** The players that pass every set filter; empty filters return all of them. */
 export const filterPlayers = (

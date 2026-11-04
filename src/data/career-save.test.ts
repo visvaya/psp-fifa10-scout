@@ -150,6 +150,17 @@ describe("parseCareerSave", () => {
     expect(() => careerManager(DB, parse([]))).toThrow(/no user team/);
   });
 
+  it("reads the currency, euro for a table without the column, and rejects an unknown one", () => {
+    const user = parse([MANAGERS])
+      .get("team_manager")
+      ?.find((row) => row["team_id"] !== -1);
+    const withCurrency = (currency: number) =>
+      careerManager(DB, new Map([["team_manager", [{ ...user, currency }]]]));
+    expect(careerManager(DB, parse([MANAGERS, LINKS])).currency).toBe(0);
+    expect(withCurrency(2).currency).toBe(2);
+    expect(() => withCurrency(3)).toThrow(/unknown currency 3/);
+  });
+
   it("reads a bitmap over several bytes and chunks that end at the end of the file", () => {
     const stats = { ...STATS_CLEAR, rows: 1, records: le32(7) };
     expect(effectiveRows(DB, parse([{ ...stats, bitmap: [0xff, 0x01] }]), "playerstats")).toEqual([

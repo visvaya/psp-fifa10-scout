@@ -118,14 +118,25 @@ export const effectiveRows: (db: EaDb, save: CareerSave, name: CareerTable) => r
 const gameDate = (gameNumber: number): Date =>
   birthdateToDate(Math.floor(gameNumber / GAME_INDEX_SCALE));
 
-/** The user team, manager name and date of the last played game, from team_manager. */
+/** The currency the career shows money in: 0 euro, 1 pound, 2 dollar. */
+export type CurrencyCode = 0 | 1 | 2;
+
+const isCurrencyCode = (code: number): code is CurrencyCode =>
+  code === 0 || code === 1 || code === 2;
+
+/** The user team, manager name, currency and date of the last played game, from team_manager. */
 export const careerManager = (
   db: EaDb,
   save: CareerSave,
-): { teamId: number; managerName: string; lastGameDate: Date } => {
+): { teamId: number; managerName: string; currency: CurrencyCode; lastGameDate: Date } => {
   const user = rowsOf(db, save, "team_manager").find((row) => row["team_id"] !== -1);
   if (user === undefined) throw new SaveFormatError("Save has no user team");
+  // A table without the column (test schemas) counts as euro.
+  const currency = Number(user["currency"] ?? 0);
+  if (!isCurrencyCode(currency))
+    throw new SaveFormatError(`Save has unknown currency ${String(currency)}`);
   return {
+    currency,
     teamId: Number(user["team_id"]),
     managerName: `${String(user["firstname"])} ${String(user["surname"])}`.trim(),
     lastGameDate: gameDate(Number(user["last_game_number"])),

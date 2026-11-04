@@ -12,7 +12,7 @@ import {
   scoutReducer,
 } from "./scout-state.ts";
 import type { FilterId, ScoutState } from "./scout-state.ts";
-import { testPlayer } from "./test-support/player-fixtures.ts";
+import { TEST_CAREER, testPlayer } from "./test-support/player-fixtures.ts";
 
 const PLAYERS = [testPlayer({ id: 1 }), testPlayer({ id: 2, clubId: 7 })];
 const loading = scoutReducer(initialScoutState, { type: "load-started", requestId: 1 });
@@ -58,7 +58,7 @@ describe("scoutReducer loading", () => {
       loading: null,
       view: "start",
     });
-    const career = { managerName: "A", clubName: "B", lastGameDate: new Date(0) };
+    const career = TEST_CAREER;
     expect(scoutReducer(loading, { ...SUCCEEDED, myTeamId: 5, career }).career).toBe(career);
   });
 
