@@ -224,7 +224,9 @@ test.describe("career save", () => {
     await expectCount(page, "21 zawodników");
     await page.getByRole("radio", { name: "ukryj zawodników mojego klubu" }).check();
     await expectCount(page, "41 zawodników");
-    await page.getByRole("button", { name: "Usuń filtr: ukryj zawodników mojego klubu" }).click();
+    await page
+      .getByRole("button", { name: "Usuń filtr: Ukryj zawodników mojego klubu", exact: true })
+      .click();
     await expectCount(page, "62 zawodników");
   });
 
@@ -266,6 +268,10 @@ test.describe("filter panel", () => {
   test("rates players at a chosen position and sorts by it", async ({ page }) => {
     await loadDatabase(page);
     const rating = page.getByRole("group", { name: "Ocena na pozycji" });
+    // A choice of two groups names both, group by group in the order of its name.
+    await expect(
+      rating.getByRole("option", { name: "Skrzydłowy / boczny pomocnik (RWM/LWM; RM/LM)" }),
+    ).toHaveCount(1);
     await rating.getByLabel("Pozycja").selectOption({ label: "Boczny obrońca (RB/LB)" });
     const header = page.getByRole("columnheader", { name: /^OVR RB\/LB/u });
     await header.getByRole("button").click();

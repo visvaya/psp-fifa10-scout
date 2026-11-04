@@ -19,8 +19,9 @@ const isOutside = (event: MouseEvent<HTMLDialogElement>): boolean => {
 };
 
 /**
- * A native modal dialog: focus moves in, Escape closes it, focus returns to the opener. With a mouse,
- * a click on the backdrop closes it too; a drag that starts inside (selecting text) does not.
+ * A native modal dialog: focus moves in, Escape closes it, focus returns to the opener. A click or tap
+ * on the backdrop closes it too; a press that starts inside (selecting text, scrolling the card) does
+ * not.
  */
 export const ModalDialog = ({
   returnFocus,
@@ -47,7 +48,7 @@ export const ModalDialog = ({
       aria-labelledby="dialog-title"
       onClose={onClose}
       onPointerDown={(event) => {
-        pressedOutside.current = event.pointerType === "mouse" && isOutside(event);
+        pressedOutside.current = isOutside(event);
       }}
       onClick={(event) => {
         // Each press counts once; a keyboard click (detail 0) never closes, whatever came before.

@@ -54,6 +54,23 @@ describe("positionNameIn", () => {
     expect(positionNameIn(null, 0)).toBe("GK");
   });
 
+  it("adds the English name where the abbreviation is another position's English one", () => {
+    const names = {
+      teams: {},
+      leagues: {},
+      countries: {},
+      // Polish: ST is the sweeper (English ST: striker), LS the left winger (English LS: left striker).
+      positions: { 1: "ST", 20: "LS", 30: "N", 31: "LN" },
+      positionNames: {},
+    };
+    expect([1, 20, 30, 31].map((code) => positionNameIn(names, code))).toEqual([
+      "ST (SW)",
+      "LS (LWM)",
+      "N",
+      "LN",
+    ]);
+  });
+
   it("adds the English name where the language gives two positions one abbreviation", () => {
     const names = {
       teams: {},

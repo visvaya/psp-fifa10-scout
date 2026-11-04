@@ -69,7 +69,7 @@ describe("positionOf", () => {
   });
 
   it("names a code's rating choice by its codes", () => {
-    expect([7, 14, 4, 0].map(ratingChoiceOf)).toEqual([[3, 7], [15, 19], [5], [0]]);
+    expect([7, 14, 4, 0].map(ratingChoiceOf)).toEqual([[3, 7], [15, 19, 14, 20], [5], [0]]);
   });
 
   it("uses the game's own names, which key the abbreviation of every language", () => {

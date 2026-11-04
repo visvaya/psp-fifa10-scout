@@ -15,13 +15,18 @@ const FILTER_LABELS = new Map<FilterId, string>([
   ...FLAG_KEYS.map((key) => [`flags.${key}`, FLAG_LABELS[key]] as const),
 ]);
 
-/** The chip text: the filter's name, with yes or no for a trait; the chosen option for "my club". */
+/**
+ * The chip text, from a capital letter: the filter's name, with yes or no for a trait; the chosen
+ * option for "my club".
+ */
 const chipText = (id: FilterId, filters: ScoutFilters): string => {
-  if (id === "myClub" && filters.myClub !== undefined) return MY_CLUB_LABELS[filters.myClub];
+  if (id === "myClub" && filters.myClub !== undefined) {
+    return TEXT.capitalized(MY_CLUB_LABELS[filters.myClub]);
+  }
   const label = FILTER_LABELS.get(id) ?? id;
   const flag = FLAG_KEYS.find((key) => `flags.${key}` === id);
   const wanted = flag === undefined ? undefined : filters.flags?.[flag];
-  return wanted === undefined ? label : TEXT.flagChip(label, wanted);
+  return TEXT.capitalized(wanted === undefined ? label : TEXT.flagChip(label, wanted));
 };
 
 export const FilterChips = (props: {

@@ -307,6 +307,8 @@ export const TEXT = {
   searchIn: (label: string): string => `Szukaj: ${label}`,
   flagValues: { any: "obojętne", yes: "tak", no: "nie" },
   flagChip: (label: string, wanted: boolean): string => `${label}: ${wanted ? "tak" : "nie"}`,
+  /** The text from a capital letter, as a chip starts. */
+  capitalized: (text: string): string => text.charAt(0).toLocaleUpperCase("pl") + text.slice(1),
   code: (prefix: string, value: number): string => `${prefix} ${String(value)}`,
   codePrefix: { bodyType: "typ", developmentType: "typ", developmentStyle: "styl" },
   filtersWithCount: (value: number): string =>

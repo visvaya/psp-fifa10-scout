@@ -161,6 +161,9 @@ const AttributeRanges = (props: {
             label={ATTRIBUTE_LABELS[name]}
             range={props.ranges?.[name]}
             onChange={(range) => {
+              // A field being edited stays until removed: clearing its value to type a new one
+              // drops the empty range from the filters, which alone would take the field away.
+              if (!added.includes(name)) setAdded([...added, name]);
               props.onChange(name, range);
             }}
           />
