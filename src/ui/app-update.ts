@@ -158,12 +158,48 @@ const serverReachable = (): Promise<boolean> =>
     () => false,
   );
 
+/** How long "up to date" stays before it goes by itself. */
+const CURRENT_SHOWN_MS = 5000;
+
+/** A result with no action of its own, which the user can close: up to date, unreachable, failed. */
+export const isDismissible = (status: UpdateStatus): boolean =>
+  status === "current" || status === "unreachable" || status === "failed";
+
 /**
  * Whether a check may start: not while one runs, and not while a release waits to be installed (its
  * prompt with the reload button would give way to the check's result).
  */
 export const canCheck = (status: UpdateStatus): boolean =>
   !["checking", "downloading", "installing", "waiting", "outdated"].includes(status);
+
+/** The header's check button, where focus goes when the prompt's close button it was on goes. */
+export const UPDATE_CHECK_ID = "update-check";
+
+const keepFocusOnCheck = () => {
+  if (document.activeElement?.closest(".update-prompt")) {
+    document.getElementById(UPDATE_CHECK_ID)?.focus();
+  }
+};
+
+/**
+ * "Up to date" needs no answer: it goes by itself, unless a newer status replaced it meanwhile (a release
+ * installed in another window); errors stay until closed.
+ */
+const useExpiringCurrent = (
+  status: UpdateStatus,
+  setStatus: (update: (shown: UpdateStatus) => UpdateStatus) => void,
+) => {
+  useEffect(() => {
+    if (status !== "current") return undefined;
+    const timer = setTimeout(() => {
+      keepFocusOnCheck();
+      setStatus((shown) => (shown === "current" ? "idle" : shown));
+    }, CURRENT_SHOWN_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [status, setStatus]);
+};
 
 /**
  * The update prompt's state and actions (React); `install` also serves "outdated" as a plain reload,
@@ -225,5 +261,11 @@ export const useAppUpdate = () => {
     checkForUpdate(found, serverReachable).then(setStatus, () => setStatus("failed"));
   }, []);
 
-  return { status, install, check, registered };
+  const dismiss = useCallback(() => {
+    keepFocusOnCheck();
+    setStatus("idle");
+  }, []);
+  useExpiringCurrent(status, setStatus);
+
+  return { status, install, check, dismiss, registered };
 };
