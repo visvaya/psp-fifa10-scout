@@ -1,19 +1,22 @@
 // The filtered players, virtualized with fixed row heights: a sortable native table on wide
-// screens, a two-line list on phones.
+// screens; the phone rows (player-rows.tsx) share its columns, values and virtual rows.
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Dispatch, JSX, ReactNode } from "react";
-import { ratingGain } from "../logic/filter-players.ts";
+import { isRangeKey, rangeValue, ratingGain } from "../logic/filter-players.ts";
+import type { PlayerFilters } from "../logic/filter-players.ts";
 import { isAttributeName } from "../logic/players.ts";
+import type { CurrencyCode } from "../data/career-save.ts";
 import type { AttributeName, Player } from "../logic/players.ts";
 import type { ScoutAction, ScoutSort } from "../logic/scout-state.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 import { AttributeValue, GainValue } from "./attribute-value.tsx";
 import { PositionName } from "./position-name.tsx";
-import { ATTRIBUTE_LABELS, RANGE_LABELS, TEXT } from "./text.ts";
+import { ATTRIBUTE_LABELS, formatNumber, RANGE_LABELS, TEXT } from "./text.ts";
 import { useColumnWidths } from "./use-column-widths.ts";
 
-const ROW_HEIGHT_PX = { table: 40, list: 64 } as const;
+/** Row heights as styles.css sets them (td 2.5rem, .player-row 4rem). */
+export const ROW_HEIGHT_REM = { table: 2.5, list: 4 } as const;
 const OVERSCAN_ROWS = 12;
 
 type TextColumn = keyof typeof TEXT.columns;
@@ -25,6 +28,7 @@ const DETAIL_COLUMNS: readonly TextColumn[] = [
   "leagueName",
   "nationalityName",
   "contractEndYear",
+  "price",
 ];
 const TABLE_ATTRIBUTES: readonly AttributeName[] = [
   "sprintspeed",
@@ -39,8 +43,18 @@ const isTextColumn = (key: string): key is TextColumn => key in TEXT.columns;
 
 const isRangeField = (key: string): key is keyof typeof RANGE_LABELS => key in RANGE_LABELS;
 
-/** ratingName: the name of the position rating filter's position, in the game language. */
-export const columnLabel = (key: SortKey, ratingName: string | null = null): string => {
+/**
+ * ratingName: the name of the position rating filter's position, in the game language; currency: the
+ * career's, named in the price and wage headings.
+ */
+export const columnLabel = (
+  key: SortKey,
+  ratingName: string | null = null,
+  currency: CurrencyCode | null = null,
+): string => {
+  if ((key === "price" || key === "wage") && currency !== null) {
+    return TEXT.withCurrency(columnLabel(key, ratingName), currency);
+  }
   if (key === "positionRating") {
     return ratingName === null ? TEXT.columns.overall : TEXT.ratingAt(ratingName);
   }
@@ -50,7 +64,7 @@ export const columnLabel = (key: SortKey, ratingName: string | null = null): str
   return isRangeField(key) ? RANGE_LABELS[key] : key;
 };
 
-interface ListProps {
+export interface ListProps {
   readonly players: readonly Player[];
   /** Every player of the game: the table's column widths fit them all, whatever the filters. */
   readonly allPlayers: readonly Player[];
@@ -62,11 +76,20 @@ interface ListProps {
   readonly ratingName: string | null;
   /** Attributes with a range filter, shown as columns after OVR (rangedAttributes). */
   readonly rangedAttributes: readonly AttributeName[];
+  /** The range filters, whose values the phone rows show as columns. */
+  readonly ranges: PlayerFilters["ranges"];
+  /** The career's currency, null without a career. */
+  readonly currency: CurrencyCode | null;
   readonly dispatch: Dispatch<ScoutAction>;
 }
 
-const useRows = (count: number, rowHeight: number) => {
+/** The root font size in px, which enlarged text raises. */
+const rootFontPx = (): number =>
+  Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+
+export const useRows = (count: number, rowHeightRem: number) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const rowHeight = rowHeightRem * rootFontPx();
   // oxlint-disable-next-line react/incompatible-library -- no React Compiler in this build
   const virtualizer = useVirtualizer({
     count,
@@ -74,6 +97,10 @@ const useRows = (count: number, rowHeight: number) => {
     estimateSize: () => rowHeight,
     overscan: OVERSCAN_ROWS,
   });
+  // The virtualizer keeps its sizes; a new root font size (larger text) must lay the rows out again.
+  useEffect(() => {
+    virtualizer.measure();
+  }, [virtualizer, rowHeight]);
   const items = virtualizer.getVirtualItems();
   const before = items[0]?.start ?? 0;
   const after = virtualizer.getTotalSize() - (items.at(-1)?.end ?? 0);
@@ -84,12 +111,12 @@ const useRows = (count: number, rowHeight: number) => {
 export const clubText = (player: Player): string =>
   player.clubName ?? (player.youth && !player.freeAgent ? TEXT.youth : TEXT.freeAgent);
 
-const cellText = (player: Player, key: TextColumn): string | number =>
-  key === "positionCode"
-    ? player.positionName
-    : key === "clubName"
-      ? clubText(player)
-      : (player[key] ?? "");
+const cellText = (player: Player, key: TextColumn): string | number => {
+  if (key === "positionCode") return player.positionName;
+  if (key === "clubName") return clubText(player);
+  if (key === "price") return player.price === null ? "" : formatNumber(player.price);
+  return player[key] ?? "";
+};
 
 /** A text cell; the position in the colour of its line. */
 const cellContent = (player: Player, key: TextColumn): ReactNode =>
@@ -116,14 +143,20 @@ const numberIn = (player: Player, column: SortKey, ratingCode: number | null): n
       : ratingGain(player, ratingCode)
     : ratingIn(player, column, ratingCode);
 
-/** A column's value: a rating with its colour band, the gain with its sign, or the text. */
-const ColumnValue = (props: { player: Player; column: SortKey; ratingCode: number | null }) => {
+/** A column's value: a rating with its colour band, the gain with its sign, a number, or the text. */
+export const ColumnValue = (props: {
+  player: Player;
+  column: SortKey;
+  ratingCode: number | null;
+}) => {
   const { player, column, ratingCode } = props;
   const value = numberIn(player, column, ratingCode);
   if (value !== null) {
     return column === "ratingGain" ? <GainValue value={value} /> : <AttributeValue value={value} />;
   }
-  return isTextColumn(column) ? cellContent(player, column) : null;
+  if (isTextColumn(column)) return cellContent(player, column);
+  const field = isRangeKey(column) ? rangeValue(player, column) : null;
+  return field === null ? null : formatNumber(field);
 };
 
 const isNumberColumn = (column: SortKey): boolean => column !== "name" && !column.endsWith("Name");
@@ -136,10 +169,10 @@ const SortMark = (props: { column: SortKey; sort: ScoutSort }) => (
 
 const HeaderCell = ({
   column,
+  label,
   sort,
-  ratingName,
   dispatch,
-}: { column: SortKey } & Pick<ListProps, "sort" | "ratingName" | "dispatch">) => (
+}: { column: SortKey; label: string } & Pick<ListProps, "sort" | "dispatch">) => (
   <th
     scope="col"
     aria-sort={sort.key === column ? sort.direction : undefined}
@@ -154,7 +187,7 @@ const HeaderCell = ({
     >
       {/* In a number column the mark goes first, so the heading ends where the right-aligned values end. */}
       {isNumberColumn(column) ? <SortMark column={column} sort={sort} /> : null}
-      <span className="sort-label">{columnLabel(column, ratingName)}</span>
+      <span className="sort-label">{label}</span>
       {isNumberColumn(column) ? null : <SortMark column={column} sort={sort} />}
     </button>
   </th>
@@ -215,7 +248,14 @@ const useTableColumns = ({
   ratingName,
   showPotential,
   rangedAttributes: ranged,
-}: Pick<ListProps, "ratingCode" | "ratingName" | "showPotential" | "rangedAttributes">) => {
+  currency,
+  priced,
+}: Pick<
+  ListProps,
+  "ratingCode" | "ratingName" | "showPotential" | "rangedAttributes" | "currency"
+> & {
+  readonly priced: boolean;
+}) => {
   const columns = useMemo(
     (): readonly SortKey[] => [
       ...LEAD_COLUMNS,
@@ -223,12 +263,15 @@ const useTableColumns = ({
       ...(ratingCode === null ? [] : (["positionRating", "ratingGain"] as const)),
       ...(showPotential ? ["potential" as const] : []),
       ...ranged,
-      ...DETAIL_COLUMNS,
+      ...DETAIL_COLUMNS.filter((column) => priced || column !== "price"),
       ...TABLE_ATTRIBUTES.filter((name) => !ranged.includes(name)),
     ],
-    [ratingCode, showPotential, ranged],
+    [ratingCode, showPotential, ranged, priced],
   );
-  const label = useCallback((column: SortKey) => columnLabel(column, ratingName), [ratingName]);
+  const label = useCallback(
+    (column: SortKey) => columnLabel(column, ratingName, currency),
+    [ratingName, currency],
+  );
   return { columns, label };
 };
 
@@ -243,9 +286,11 @@ const ColumnGroup = ({ widths }: { widths: readonly number[] | null }) =>
   );
 
 export const PlayerTable = (props: ListProps): JSX.Element => {
-  const { players, allPlayers, sort, ratingCode, ratingName, dispatch } = props;
-  const { scrollRef, items, before, after } = useRows(players.length, ROW_HEIGHT_PX.table);
-  const { columns, label } = useTableColumns(props);
+  const { players, allPlayers, sort, ratingCode, dispatch } = props;
+  const { scrollRef, items, before, after } = useRows(players.length, ROW_HEIGHT_REM.table);
+  // Prices exist only in a career.
+  const priced = useMemo(() => allPlayers.some((player) => player.price !== null), [allPlayers]);
+  const { columns, label } = useTableColumns({ ...props, priced });
   const tableRef = useRef<HTMLTableElement>(null);
   const widths = useColumnWidths({
     table: tableRef,
@@ -269,8 +314,8 @@ export const PlayerTable = (props: ListProps): JSX.Element => {
               <HeaderCell
                 key={column}
                 column={column}
+                label={label(column)}
                 sort={sort}
-                ratingName={ratingName}
                 dispatch={dispatch}
               />
             ))}
@@ -295,88 +340,5 @@ export const PlayerTable = (props: ListProps): JSX.Element => {
         </tbody>
       </table>
     </div>
-  );
-};
-
-/** The column the phone row shows before OVR: the position rating, else the sorted attribute, else
- * the first ranged attribute. One column only: two long attribute labels would not fit side by side. */
-const keyColumn = ({
-  sort,
-  ratingCode,
-  rangedAttributes: ranged,
-}: Pick<ListProps, "sort" | "ratingCode" | "rangedAttributes">): SortKey | null => {
-  if (ratingCode !== null) return sort.key === "ratingGain" ? "ratingGain" : "positionRating";
-  return isAttributeName(sort.key) ? sort.key : (ranged[0] ?? null);
-};
-
-/** Labels over the phone rows' numbers; visual only, as each row names its numbers for screen readers. */
-const RowsHeader = ({
-  column,
-  ratingName,
-  showPotential,
-}: { column: SortKey | null } & Pick<ListProps, "ratingName" | "showPotential">) => (
-  <div className="player-rows-header" aria-hidden="true">
-    {column === null ? null : <span>{columnLabel(column, ratingName)}</span>}
-    <span>{TEXT.columns.overall}</span>
-    {showPotential ? <span>{TEXT.potentialShort}</span> : null}
-  </div>
-);
-
-export const PlayerCards = (props: ListProps): JSX.Element => {
-  const { players, showPotential, ratingCode, ratingName, dispatch } = props;
-  const column = keyColumn(props);
-  const { scrollRef, items, before, after } = useRows(players.length, ROW_HEIGHT_PX.list);
-  return (
-    <>
-      <RowsHeader column={column} ratingName={ratingName} showPotential={showPotential} />
-      <div ref={scrollRef} className="scroll">
-        <ol className="player-rows" style={{ paddingTop: before, paddingBottom: after }}>
-          {items.map((item) => {
-            const player = players[item.index];
-            if (player === undefined) return null;
-            const extra = column === null ? null : numberIn(player, column, ratingCode);
-            return (
-              <li key={player.id} aria-setsize={players.length} aria-posinset={item.index + 1}>
-                <button
-                  type="button"
-                  className="player-row"
-                  data-player-id={player.id}
-                  onClick={() => {
-                    dispatch({ type: "player-opened", id: player.id });
-                  }}
-                >
-                  <span className="player-row-text">
-                    <span className="player-row-name">{player.name}</span>
-                    <span className="player-row-meta">
-                      {clubText(player)}
-                      {TEXT.rowMetaSeparator}
-                      <PositionName code={player.positionCode} name={player.positionName} />
-                      {TEXT.rowMetaSeparator}
-                      {TEXT.years(player.age)}
-                    </span>
-                  </span>
-                  <span className="player-row-numbers">
-                    {extra === null || column === null ? null : (
-                      <>
-                        <span className="visually-hidden">{columnLabel(column, ratingName)}</span>
-                        <ColumnValue player={player} column={column} ratingCode={ratingCode} />
-                      </>
-                    )}
-                    <span className="visually-hidden">{TEXT.columns.overall}</span>
-                    <AttributeValue value={player.overall} />
-                    {showPotential ? (
-                      <>
-                        <span className="visually-hidden">{TEXT.columns.potential}</span>
-                        <AttributeValue value={player.potential} />
-                      </>
-                    ) : null}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ol>
-      </div>
-    </>
   );
 };

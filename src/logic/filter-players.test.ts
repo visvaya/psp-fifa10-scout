@@ -95,6 +95,22 @@ describe("filterPlayers", () => {
     expect(ids({ ranges: { dribbling: { max: 50 } } })).toEqual([1, 3, 4]);
   });
 
+  it("ranges the price and the wage, never passing a player without them", () => {
+    const players = [
+      testPlayer({ id: 1, price: 0, wage: 0 }),
+      testPlayer({ id: 2, price: 500_000, wage: 1200 }),
+      testPlayer({ id: 3, price: null, wage: null }),
+    ];
+    const kept = (filters: PlayerFilters) =>
+      filterPlayers(players, filters).map((player) => player.id);
+    expect(kept({ ranges: { price: { min: 0 } } })).toEqual([1, 2]);
+    expect(kept({ ranges: { price: { min: 1 } } })).toEqual([2]);
+    expect(kept({ ranges: { price: { max: 0 } } })).toEqual([1]);
+    expect(kept({ ranges: { wage: { min: 0 } } })).toEqual([1, 2]);
+    expect(kept({ ranges: { wage: { min: 1 } } })).toEqual([2]);
+    expect(kept({ ranges: { wage: { max: 1000 } } })).toEqual([1]);
+  });
+
   it("leaves out players without the value when a range applies to it", () => {
     expect(ids({ ranges: { clubRating: { max: 99 } } })).toEqual([1, 2, 4]);
     expect(ids({ ranges: { contractEndYear: { max: 2012 } } })).toEqual([1, 4]);

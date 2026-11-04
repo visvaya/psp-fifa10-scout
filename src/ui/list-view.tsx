@@ -9,7 +9,8 @@ import { sortPlayers } from "../logic/sort-players.ts";
 import { FilterChips } from "./filter-chips.tsx";
 import { FilterForm } from "./filter-form.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
-import { columnLabel, PlayerCards, PlayerTable } from "./player-list.tsx";
+import { columnLabel, PlayerTable } from "./player-list.tsx";
+import { PlayerCards } from "./player-rows.tsx";
 import { ratingAbbreviation } from "./position-name.tsx";
 import { TEXT } from "./text.ts";
 
@@ -188,7 +189,13 @@ const ListResults = ({
         <SortControls state={state} ratingName={ratingName} dispatch={dispatch} />
         <ResultCount count={visible.length} />
       </div>
-      <FilterChips filters={state.filters} folded={!wide} dispatch={dispatch} />
+      <FilterChips
+        filters={state.filters}
+        players={players}
+        positionName={positionName}
+        folded={!wide}
+        dispatch={dispatch}
+      />
       {visible.length === 0 ? (
         <NoMatches dispatch={dispatch} />
       ) : (
@@ -200,6 +207,8 @@ const ListResults = ({
           ratingCode={ratingCode}
           ratingName={ratingName}
           rangedAttributes={ranged}
+          ranges={ranges}
+          currency={state.career?.currency ?? null}
           dispatch={dispatch}
         />
       )}

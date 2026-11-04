@@ -95,6 +95,7 @@ describe("loadScout", () => {
       managerName: "Anna Kariera",
       clubName: "Wisła Kraków",
       lastGameDate: new Date(Date.UTC(2009, 7, 8)),
+      currency: 0,
     });
   });
 

@@ -209,18 +209,19 @@ const gameAge = (birthdate: Date, on: Date): number =>
   Math.trunc((on.getTime() - birthdate.getTime()) / DAY_MS / DAYS_PER_YEAR);
 
 /** Each attribute on a career date, as the game shows it: aged along its curve, at 10..99 and at most
- * max(potential, value). */
+ * max(potential, value). `yearsAhead` ages the player further, as the game's OVR in five years. */
 export const careerAttributes = (
   player: CareerRatingInput,
   careerDate: Date,
   curves: Curves,
+  yearsAhead = 0,
 ): ((name: AttributeName) => number) => {
   const { attributes, potential, developmentTypeCode: type, developmentStyleCode: style } = player;
   const curveAt = (id: number, age: number): number => {
     const values = curves.get(id) ?? curves.get(1) ?? [];
     return values[clamp(age, CURVE_AGE_MIN, CURVE_AGE_MAX) - CURVE_AGE_MIN] ?? 0;
   };
-  const ageNow = gameAge(player.birthdate, careerDate);
+  const ageNow = gameAge(player.birthdate, careerDate) + yearsAhead;
   const ageRef = gameAge(player.birthdate, CAREER_REFERENCE_DATE);
   const aged = (name: AttributeName): number => {
     const value = attributes[name];

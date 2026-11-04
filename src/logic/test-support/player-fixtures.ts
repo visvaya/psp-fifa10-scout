@@ -3,6 +3,7 @@ import type { TableSpec } from "../../data/test-support/synthetic-ea-db.ts";
 import { ATTRIBUTE_NAMES, attributesOf, searchKey, TRAIT_NAMES } from "../players.ts";
 import type { Attributes, Player } from "../players.ts";
 import { CURVE_COLUMNS } from "../overall-rating.ts";
+import type { CareerSummary } from "../load-scout.ts";
 
 type Row = Readonly<Record<string, number | string>>;
 
@@ -24,6 +25,13 @@ export const table = (name: string, rows: readonly Row[]): TableSpec => {
 };
 
 /** fifa.db `curves` with one flat curve (id 1, the game's fallback), so career ratings age nothing. */
+/** A float32 as the u32 bits the save stores. */
+export const floatBits = (value: number): number => {
+  const view = new DataView(new ArrayBuffer(4));
+  view.setFloat32(0, value, true);
+  return view.getUint32(0, true);
+};
+
 export const flatCurves = (): TableSpec =>
   table("curves", [
     Object.fromEntries([["id", 1], ...CURVE_COLUMNS.map((column) => [column, 50])]),
@@ -54,12 +62,21 @@ export const playerRow = (overrides: Row): Row => ({
   internationalreputation: 1,
   learningspeed: 3,
   retirementage: 35,
+  playingstyle: 13,
   ...Object.fromEntries(TRAIT_NAMES.map((name) => [name, 0])),
   ...attributes(50),
   ...overrides,
 });
 
 /** A complete summary of a club player, with `overrides` on top. */
+/** A loaded career, for state tests. */
+export const TEST_CAREER: CareerSummary = {
+  managerName: "A",
+  clubName: "B",
+  lastGameDate: new Date(0),
+  currency: 0,
+};
+
 export const testPlayer = (overrides: Partial<Player> = {}): Player => {
   const player: Player = {
     id: 1,
@@ -105,6 +122,9 @@ export const testPlayer = (overrides: Partial<Player> = {}): Player => {
     appearances: null,
     injuryDays: null,
     transferListed: false,
+    price: null,
+    wage: null,
+    wageMax: null,
     ...overrides,
   };
   return { ...player, searchName: searchKey(player.name) };

@@ -1,4 +1,5 @@
 /** Every text the user reads, in one module, with the Polish number and plural helpers. */
+import type { CurrencyCode } from "../data/career-save.ts";
 import type { CareerSummary, LoadErrorKind, LoadPhase, LoadStage } from "../logic/load-scout.ts";
 import type { FlagKey, ListKey, RangeFields, RangeKey } from "../logic/filter-players.ts";
 import { isAttributeName } from "../logic/players.ts";
@@ -7,6 +8,9 @@ import type { PositionGroup } from "../logic/positions.ts";
 import type { ClubStatus, MyClub, ScoutError } from "../logic/scout-state.ts";
 
 const NBSP = " ";
+
+/** By the save's currency code, as the game shows them. */
+const CURRENCY_SYMBOLS = ["€", "£", "$"] as const;
 
 export interface PluralForms {
   readonly one: string;
@@ -116,6 +120,8 @@ export const RANGE_LABELS: Readonly<Record<RangeFields, string>> = {
   form: "Forma",
   morale: "Morale",
   injuryDays: "Kontuzja (dni)",
+  price: "Cena",
+  wage: "Zarobki rynkowe (szacunek)",
 };
 
 export const rangeLabel = (key: RangeKey): string =>
@@ -290,7 +296,11 @@ export const TEXT = {
   groupList: (labels: readonly string[]): string =>
     labels.map((label, index) => (index === 0 ? label : label.toLocaleLowerCase("pl"))).join(" / "),
   ratingGain: "Różnica do OVR",
+  /** A money column's heading with the save's currency, once for the whole list. */
+  withCurrency: (label: string, currency: CurrencyCode): string =>
+    `${label} (${CURRENCY_SYMBOLS[currency]})`,
   gainAt: (position: string): string => `Różnica ${position}`,
+  ratingGainShort: "różnica",
   signed: (value: number): string => signed(value),
   text: "Nazwisko",
   clubStatus: "Zawodnicy",
@@ -300,7 +310,12 @@ export const TEXT = {
   removeAttribute: (label: string): string => `Usuń atrybut: ${label}`,
   searchIn: (label: string): string => `Szukaj: ${label}`,
   flagValues: { any: "obojętne", yes: "tak", no: "nie" },
-  flagChip: (label: string, wanted: boolean): string => `${label}: ${wanted ? "tak" : "nie"}`,
+  chip: (label: string, value: string): string => `${label}: ${value}`,
+  /** A chip's values: the first ones by name, then how many more ("Argentina, Brazil +2"). */
+  chipValues: (shown: readonly string[], more: number): string =>
+    more > 0 ? `${shown.join(", ")} +${String(more)}` : shown.join(", "),
+  /** The parts of one chip value, as the position rating's position, bounds and gain. */
+  chipParts: (parts: readonly string[]): string => parts.join(", "),
   /** The text from a capital letter, as a chip starts. */
   capitalized: (text: string): string => text.charAt(0).toLocaleUpperCase("pl") + text.slice(1),
   code: (prefix: string, value: number): string => `${prefix} ${String(value)}`,
@@ -329,6 +344,7 @@ export const TEXT = {
     leagueName: "Liga",
     nationalityName: "Narodowość",
     contractEndYear: "Kontrakt do",
+    price: "Cena",
     overall: "OVR",
     potential: "Potencjał",
   },
@@ -367,6 +383,14 @@ export const TEXT = {
     morale: "Morale",
     goals: "Gole",
     appearances: "Występy",
+    price: "Cena",
+    wage: "Zarobki rynkowe",
+    contractWage: "Zarobki z kontraktu",
+    wageNote: `Na mecz, wzorem gry. Po wygaśnięciu kontraktu gra może doliczyć 30${NBSP}% (wolny transfer).`,
+    money: (amount: number, currency: CurrencyCode): string =>
+      `${formatNumber(amount)}${NBSP}${CURRENCY_SYMBOLS[currency]}`,
+    wageEstimate: (low: number, high: number, currency: CurrencyCode): string =>
+      `${low === high ? formatNumber(low) : `${formatNumber(low)}–${formatNumber(high)}`}${NBSP}${CURRENCY_SYMBOLS[currency]}${NBSP}(szacunek)`,
     none: "brak",
   },
 } as const;

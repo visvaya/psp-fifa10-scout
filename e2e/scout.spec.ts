@@ -251,6 +251,39 @@ test.describe("career save", () => {
   });
 });
 
+test.describe("career prices", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  test("prices players, sorts and filters by price and estimates the wage", async ({ page }) => {
+    await page.goto("/");
+    await pickGame(page, SYNTHETIC_DB_PATH);
+    await page.getByLabel("Wybierz DATA.BIN i PARAM.SFO").setInputFiles([...SYNTHETIC_SAVE_PATHS]);
+    await page.getByRole("button", { name: /^Pokaż zawodników/u }).click();
+    // The list names the save's currency once, in the heading (the synthetic save: euro).
+    const header = page.getByRole("columnheader", { name: /^Cena \(€\)/u });
+    await header.getByRole("button").click();
+    await expect(header).toHaveAttribute("aria-sort", "descending");
+    await page.getByRole("button", { name: "Lionel Messi" }).click();
+    const card = page.getByRole("dialog", { name: "Lionel Messi" });
+    await expect(card.getByRole("term").filter({ hasText: /^Cena$/u })).toBeVisible();
+    await expect(card.getByText(/ \(szacunek\)$/u)).toBeVisible();
+    await page.keyboard.press("Escape");
+    // The user's own player shows the wage stored in his contract, not the market's.
+    await page.getByRole("button", { name: "Paweł Brożek" }).click();
+    const own = page.getByRole("dialog", { name: "Paweł Brożek" });
+    await expect(own.getByRole("term").filter({ hasText: /^Zarobki z kontraktu$/u })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await page.getByText("Kariera", { exact: true }).click();
+    await page.getByRole("group", { name: "Cena", exact: true }).getByLabel("od").fill("1");
+    await page
+      .getByRole("group", { name: "Zarobki rynkowe (szacunek)" })
+      .getByLabel("od")
+      .fill("1");
+    // A fifth of the generated players' contracts run out in 2009: their price is 0.
+    await expectCount(page, "50 zawodników");
+  });
+});
+
 test.describe("filter panel", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
@@ -298,6 +331,9 @@ test.describe("filter panel", () => {
     await page.getByLabel("Dodaj atrybut").selectOption({ label: "Szybkość" });
     await page.getByRole("group", { name: "Szybkość" }).getByLabel("od").fill("90");
     await expectCount(page, "1 zawodnik");
+    // Each chip says what its filter takes.
+    const chips = page.getByRole("list", { name: "Aktywne filtry" }).getByRole("button");
+    await expect(chips).toHaveText(["Szybkość: od 90×", "Narodowość: Argentina, Poland×"]);
     await page.getByRole("button", { name: "Usuń atrybut: Szybkość" }).click();
     await page.getByText("Cechy", { exact: true }).click();
     await page.getByLabel("Drybler techniczny").selectOption("yes");

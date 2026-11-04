@@ -35,3 +35,16 @@ describe("TEXT.resultCount", () => {
     expect(TEXT.resultCount(13_045)).toBe("13 045 zawodników");
   });
 });
+
+describe("TEXT.card money", () => {
+  it("labels one wage or a range in the save's currency as an estimate", () => {
+    expect(TEXT.card.wageEstimate(4500, 4500, 0)).toBe("4500 € (szacunek)");
+    expect(TEXT.card.wageEstimate(10_000, 13_000, 2)).toBe(
+      `${formatNumber(10_000)}–${formatNumber(13_000)} $ (szacunek)`,
+    );
+  });
+
+  it("shows money with the currency symbol", () => {
+    expect(TEXT.card.money(33_000_000, 1)).toBe(`${formatNumber(33_000_000)} £`);
+  });
+});

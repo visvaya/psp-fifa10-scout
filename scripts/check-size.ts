@@ -47,11 +47,23 @@ export interface BuildSizes {
 // Raised 2026-11-04 for the card's gains before the ratings, coloured by sign: CSS gzip 2 790 -> 2 824.
 // Raised 2026-11-04 for closing the update check's result and saying what an update keeps: precache
 // 386 572 -> 387 219.
+// Raised 2026-11-04 for the phone rows' columns of the filtered values, scrolled sideways under a kept
+// name: JS gzip 111 432 -> 111 865, CSS gzip 2 831 -> 2 881, precache 387 561 -> 388 735.
+// Raised 2026-11-04 for the phone grid's rules moving from style props into styles.css (review): CSS gzip
+// 2 881 -> 2 904, precache 389 094 -> 389 121 (with the name's width capped for large text).
+// Raised 2026-11-04 for the transfer price and market wage (the game's formulas, their tuning values,
+// the price column, card fields, filters and sort): JS gzip 110 042 -> 111 622, precache 383 507 ->
+// 387 676; with the position gain above: JS gzip 112 214, precache 389 001; with the update check and
+// the UI audit fixes above, and the save's currency: JS gzip 113 115, precache 391 994; with the
+// position name and chip fixes (#44, #45): JS gzip 113 218, precache 392 271; with the phone columns
+// (#48): JS gzip 113 754, precache 393 860.
+// Raised 2026-11-04 for the value each filter chip shows ("Szybkość: od 90"): JS gzip 111 538 -> 112 012,
+// precache 387 977 -> 389 553; on top of the transfer price: JS gzip 114 297, precache 395 644.
 export const SIZE_BUDGETS: BuildSizes = {
-  jsGzipBytes: 109 * 1024,
-  cssGzipBytes: 2850,
+  jsGzipBytes: 112 * 1024,
+  cssGzipBytes: 2950,
   serviceWorkerBytes: 11 * 1024,
-  precacheBytes: 379 * 1024,
+  precacheBytes: 387 * 1024,
 };
 
 const SIZE_KEYS = [
