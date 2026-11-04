@@ -652,6 +652,21 @@ input[type="number"] {
   cursor: pointer;
 }
 
+/* display: flex drops the native marker, so the section draws its own. */
+.filter-section > summary::before {
+  content: "▸";
+  width: 1.25em;
+  color: var(--color-muted);
+}
+
+.filter-section[open] > summary::before {
+  content: "▾";
+}
+
+.filter-section > summary::-webkit-details-marker {
+  display: none;
+}
+
 .filter-section-body {
   display: grid;
   gap: var(--space-4);

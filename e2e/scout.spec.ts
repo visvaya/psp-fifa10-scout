@@ -19,6 +19,38 @@ import {
 
 guardSecurityPolicy();
 
+test.describe("wide table", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  test("shows the ratings without scrolling sideways and marks the filter sections", async ({
+    page,
+  }) => {
+    await loadDatabase(page);
+    const scroll = page.locator(".table-scroll");
+    const rightOf = async (name: RegExp) => {
+      const box = await page.getByRole("columnheader", { name }).boundingBox();
+      return (box?.x ?? Infinity) + (box?.width ?? 0);
+    };
+    const edge = async () => {
+      const box = await scroll.boundingBox();
+      return (box?.x ?? 0) + (box?.width ?? 0);
+    };
+    await page
+      .getByRole("group", { name: "Ocena na pozycji" })
+      .getByLabel("Pozycja")
+      .selectOption({ label: "Środkowy obrońca (CB)" });
+    expect(await rightOf(/^OVR$/u)).toBeLessThanOrEqual(await edge());
+    expect(await rightOf(/^Różnica CB/u)).toBeLessThanOrEqual(await edge());
+    const marker = (open: boolean) =>
+      page
+        .locator(`details.filter-section${open ? "[open]" : ":not([open])"} > summary`)
+        .first()
+        .evaluate((summary) => getComputedStyle(summary, "::before").content);
+    expect(await marker(false)).not.toBe("none");
+    expect(await marker(true)).not.toBe(await marker(false));
+  });
+});
+
 test.describe("wide screen", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
@@ -120,7 +152,8 @@ test.describe("table and dialogs", () => {
     await page.getByLabel("Dodaj atrybut").selectOption({ label: "Przyspieszenie" });
     await page.getByRole("group", { name: "Przyspieszenie" }).getByLabel("od").fill("10");
     const headers = page.getByRole("columnheader");
-    await expect(headers.nth(8)).toHaveText("Przyspieszenie");
+    await expect(headers.nth(3)).toHaveText(/^OVR/u);
+    await expect(headers.nth(4)).toHaveText("Przyspieszenie");
     await page.getByRole("button", { name: "Usuń atrybut: Przyspieszenie" }).click();
     await expect(page.getByRole("columnheader", { name: "Przyspieszenie" })).toHaveCount(0);
   });
