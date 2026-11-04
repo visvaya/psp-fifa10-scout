@@ -1,6 +1,6 @@
 // The filter controls: a collapsible section, a range, a multiple choice (searchable when long) and a
 // yes / no / any choice. Each takes its value and reports a new one; the form maps them to filters.
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useReducer, useRef, useState } from "react";
 import type { JSX, ReactNode } from "react";
 import type { Range } from "../logic/filter-players.ts";
 import { searchKey } from "../logic/players.ts";
@@ -45,6 +45,9 @@ const GroupedInput = (props: {
   const input = useRef<HTMLInputElement>(null);
   // Digits before the caret at the last keystroke, null when the field changed otherwise.
   const caret = useRef<number | null>(null);
+  // Each keystroke renders, so an edit that changes no digit (a deleted separator) still puts the caret
+  // back; React then restores the grouped text.
+  const [, rerender] = useReducer((count: number) => count + 1, 0);
   const text = props.value === undefined ? "" : formatNumber(props.value);
   useLayoutEffect(() => {
     const element = input.current;
@@ -52,7 +55,7 @@ const GroupedInput = (props: {
     const position = caretAfterDigits(text, caret.current);
     element.setSelectionRange(position, position);
     caret.current = null;
-  }, [text]);
+  });
   return (
     <input
       ref={input}
@@ -62,6 +65,7 @@ const GroupedInput = (props: {
       onChange={(event) => {
         const { value, selectionStart } = event.currentTarget;
         caret.current = digitsBefore(value, selectionStart ?? value.length);
+        rerender();
         props.onChange(groupedValue(value));
       }}
     />
