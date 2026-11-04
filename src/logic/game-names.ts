@@ -79,7 +79,7 @@ export const positionNameIn = (names: GameNames | null, code: number): string =>
       other !== code && (abbreviationIn(names, other) === name || positionOf(other).name === name),
   );
   const english = positionOf(code).name;
-  return confusing && name !== english ? `${name} (${english})` : name;
+  return confusing && name !== english ? `${name} (ang. ${english})` : name;
 };
 
 const nameOr = (

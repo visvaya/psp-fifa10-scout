@@ -352,6 +352,8 @@ export const TEXT = {
     /** The gain over the OVR before a rating, in brackets, with the space before the rating. */
     gain: (value: number): string => `(${signed(value)}) `,
     foot: "Lepsza noga",
+    weakFoot: "Słabsza noga",
+    weakFootValue: (stars: number): string => `${formatNumber(stars)} z 5`,
     left: "lewa",
     right: "prawa",
     height: "Wzrost",

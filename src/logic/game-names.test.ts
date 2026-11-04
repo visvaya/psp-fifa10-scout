@@ -64,8 +64,8 @@ describe("positionNameIn", () => {
       positionNames: {},
     };
     expect([1, 20, 30, 31].map((code) => positionNameIn(names, code))).toEqual([
-      "ST (SW)",
-      "LS (LWM)",
+      "ST (ang. SW)",
+      "LS (ang. LWM)",
       "N",
       "LN",
     ]);
@@ -79,8 +79,8 @@ describe("positionNameIn", () => {
       positions: { 26: "PN", 29: "PN" },
       positionNames: {},
     };
-    expect(positionNameIn(names, 26)).toBe("PN (RF)");
-    expect(positionNameIn(names, 29)).toBe("PN (RS)");
+    expect(positionNameIn(names, 26)).toBe("PN (ang. RF)");
+    expect(positionNameIn(names, 29)).toBe("PN (ang. RS)");
     const partial = {
       teams: {},
       leagues: {},
@@ -88,7 +88,7 @@ describe("positionNameIn", () => {
       positions: { 20: "LS" },
       positionNames: {},
     };
-    expect(positionNameIn(partial, 20)).toBe("LS (LWM)");
+    expect(positionNameIn(partial, 20)).toBe("LS (ang. LWM)");
     expect(positionNameIn(partial, 31)).toBe("LS");
   });
 });
