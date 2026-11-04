@@ -106,6 +106,8 @@ export const RANGE_LABELS: Readonly<Record<RangeFields, string>> = {
   form: "Forma",
   morale: "Morale",
   injuryDays: "Kontuzja (dni)",
+  price: "Cena",
+  wage: "Zarobki rynkowe (szacunek)",
 };
 
 export const rangeLabel = (key: RangeKey): string =>
@@ -301,6 +303,7 @@ export const TEXT = {
     leagueName: "Liga",
     nationalityName: "Narodowość",
     contractEndYear: "Kontrakt do",
+    price: "Cena",
     overall: "OVR",
     potential: "Potencjał",
   },
@@ -336,6 +339,11 @@ export const TEXT = {
     morale: "Morale",
     goals: "Gole",
     appearances: "Występy",
+    price: "Cena",
+    wage: "Zarobki rynkowe",
+    wageNote: `Zarobki rynkowe na mecz liczone wzorem gry. Gdy kontrakt wygasł, gra może doliczyć 30${NBSP}% (wolny transfer).`,
+    wageEstimate: (low: number, high: number): string =>
+      `${low === high ? formatNumber(low) : `${formatNumber(low)}–${formatNumber(high)}`}${NBSP}(szacunek)`,
     none: "brak",
   },
 } as const;

@@ -173,6 +173,29 @@ test.describe("career save", () => {
     await page.getByRole("button", { name: "Usuń filtr: ukryj zawodników mojego klubu" }).click();
     await expectCount(page, "62 zawodników");
   });
+
+  test("prices players, sorts and filters by price and estimates the wage", async ({ page }) => {
+    await page.goto("/");
+    await pickGame(page, SYNTHETIC_DB_PATH);
+    await page.getByLabel("Wybierz DATA.BIN i PARAM.SFO").setInputFiles([...SYNTHETIC_SAVE_PATHS]);
+    await page.getByRole("button", { name: /^Pokaż zawodników/u }).click();
+    const header = page.getByRole("columnheader", { name: /^Cena/u });
+    await header.getByRole("button").click();
+    await expect(header).toHaveAttribute("aria-sort", "descending");
+    await page.getByRole("button", { name: "Lionel Messi" }).click();
+    const card = page.getByRole("dialog", { name: "Lionel Messi" });
+    await expect(card.getByRole("term").filter({ hasText: /^Cena$/u })).toBeVisible();
+    await expect(card.getByText(/ \(szacunek\)$/u)).toBeVisible();
+    await page.keyboard.press("Escape");
+    await page.getByText("Kariera", { exact: true }).click();
+    await page.getByRole("group", { name: "Cena", exact: true }).getByLabel("od").fill("1");
+    await page
+      .getByRole("group", { name: "Zarobki rynkowe (szacunek)" })
+      .getByLabel("od")
+      .fill("1");
+    // A fifth of the generated players' contracts run out in 2009: their price is 0.
+    await expectCount(page, "50 zawodników");
+  });
 });
 
 test.describe("filter panel", () => {

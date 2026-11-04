@@ -9,7 +9,7 @@ import type { ScoutAction, ScoutSort } from "../logic/scout-state.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 import { AttributeValue } from "./attribute-value.tsx";
 import { PositionName } from "./position-name.tsx";
-import { ATTRIBUTE_LABELS, RANGE_LABELS, TEXT } from "./text.ts";
+import { ATTRIBUTE_LABELS, formatNumber, RANGE_LABELS, TEXT } from "./text.ts";
 import { useColumnWidths } from "./use-column-widths.ts";
 
 const ROW_HEIGHT_PX = { table: 40, list: 64 } as const;
@@ -25,6 +25,7 @@ const TEXT_COLUMNS: readonly TextColumn[] = [
   "leagueName",
   "nationalityName",
   "contractEndYear",
+  "price",
   "overall",
   "potential",
 ];
@@ -85,12 +86,12 @@ const useRows = (count: number, rowHeight: number) => {
 export const clubText = (player: Player): string =>
   player.clubName ?? (player.youth && !player.freeAgent ? TEXT.youth : TEXT.freeAgent);
 
-const cellText = (player: Player, key: TextColumn): string | number =>
-  key === "positionCode"
-    ? player.positionName
-    : key === "clubName"
-      ? clubText(player)
-      : (player[key] ?? "");
+const cellText = (player: Player, key: TextColumn): string | number => {
+  if (key === "positionCode") return player.positionName;
+  if (key === "clubName") return clubText(player);
+  if (key === "price") return player.price === null ? "" : formatNumber(player.price);
+  return player[key] ?? "";
+};
 
 /** A text cell; the position in the colour of its line. */
 const cellContent = (player: Player, key: TextColumn): ReactNode =>
@@ -197,17 +198,20 @@ const useTableColumns = ({
   ratingName,
   showPotential,
   rangedAttributes: ranged,
-}: Pick<ListProps, "ratingCode" | "ratingName" | "showPotential" | "rangedAttributes">) => {
+  priced,
+}: Pick<ListProps, "ratingCode" | "ratingName" | "showPotential" | "rangedAttributes"> & {
+  readonly priced: boolean;
+}) => {
   const columns = useMemo(
     (): readonly SortKey[] => [
-      ...TEXT_COLUMNS.slice(0, -2),
+      ...TEXT_COLUMNS.slice(0, -2).filter((column) => priced || column !== "price"),
       "overall",
       ...(ratingCode === null ? [] : ["positionRating" as const]),
       ...(showPotential ? ["potential" as const] : []),
       ...ranged,
       ...TABLE_ATTRIBUTES.filter((name) => !ranged.includes(name)),
     ],
-    [ratingCode, showPotential, ranged],
+    [ratingCode, showPotential, ranged, priced],
   );
   const label = useCallback((column: SortKey) => columnLabel(column, ratingName), [ratingName]);
   return { columns, label };
@@ -226,7 +230,9 @@ const ColumnGroup = ({ widths }: { widths: readonly number[] | null }) =>
 export const PlayerTable = (props: ListProps): JSX.Element => {
   const { players, allPlayers, sort, ratingCode, ratingName, dispatch } = props;
   const { scrollRef, items, before, after } = useRows(players.length, ROW_HEIGHT_PX.table);
-  const { columns, label } = useTableColumns(props);
+  // Prices exist only in a career.
+  const priced = useMemo(() => allPlayers.some((player) => player.price !== null), [allPlayers]);
+  const { columns, label } = useTableColumns({ ...props, priced });
   const tableRef = useRef<HTMLTableElement>(null);
   const widths = useColumnWidths({
     table: tableRef,

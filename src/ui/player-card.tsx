@@ -44,6 +44,18 @@ const Facts = ({ facts }: { facts: readonly (readonly [string, ReactNode])[] }) 
 const optional = (value: number | string | null): ReactNode =>
   value === null ? TEXT.card.none : typeof value === "number" ? formatNumber(value) : value;
 
+/** Price and wage, career only: the user's squad shows its stored wage, others an estimate. */
+const money = ({ price, wage, wageMax }: Player): readonly (readonly [string, ReactNode])[] =>
+  price === null || wage === null
+    ? []
+    : [
+        [TEXT.card.price, formatNumber(price)],
+        [
+          TEXT.card.wage,
+          wageMax === null ? formatNumber(wage) : TEXT.card.wageEstimate(wage, wageMax),
+        ],
+      ];
+
 const basics = (
   player: Player,
   showPotential: boolean,
@@ -57,6 +69,7 @@ const basics = (
   [TEXT.card.league, optional(player.leagueName)],
   [TEXT.card.nationality, optional(player.nationalityName)],
   [TEXT.card.contract, player.contractEndYear ?? TEXT.card.none],
+  ...money(player),
   [TEXT.columns.overall, <AttributeValue key="overall" value={player.overall} />],
   ...(showPotential
     ? [[TEXT.card.potential, <AttributeValue key="potential" value={player.potential} />] as const]
@@ -131,6 +144,7 @@ export const PlayerCard = (props: {
   return (
     <ModalDialog title={player.name} className="card" onClose={onClose} returnFocus={returnFocus}>
       <Facts facts={basics(player, showPotential)} />
+      {player.wageMax === null ? null : <p className="help">{TEXT.card.wageNote}</p>}
       {career ? (
         <section aria-labelledby="career-title">
           <h3 id="career-title">{TEXT.card.career}</h3>

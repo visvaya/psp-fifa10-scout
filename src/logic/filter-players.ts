@@ -25,6 +25,8 @@ const RANGE_FIELDS = [
   "form",
   "morale",
   "injuryDays",
+  "price",
+  "wage",
 ] as const satisfies readonly (keyof Player)[];
 
 export type RangeFields = (typeof RANGE_FIELDS)[number];

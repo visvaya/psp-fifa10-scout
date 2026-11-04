@@ -58,6 +58,8 @@ export const SORTABLE_KEYS: readonly SortKey[] = [
   "form",
   "morale",
   "injuryDays",
+  "price",
+  "wage",
   "positionRating",
   ...ATTRIBUTE_NAMES,
 ];
