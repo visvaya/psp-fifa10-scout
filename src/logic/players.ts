@@ -14,7 +14,7 @@ import {
   potentialDeltas,
   readCurves,
 } from "./overall-rating.ts";
-import { byGroup, positionOf } from "./positions.ts";
+import { positionOf } from "./positions.ts";
 import type { PositionGroup } from "./positions.ts";
 
 // Column names, alike by nature. jscpd:ignore-start
@@ -139,8 +139,6 @@ export interface Player {
   readonly developmentStyle: number;
   /** The yes/no columns set for him, in TRAIT_NAMES order. */
   readonly traits: readonly TraitName[];
-  /** OVR at each position group, rated the same way. */
-  readonly overallByGroup: Readonly<Record<PositionGroup, number>>;
   /** OVR at each position code 0..31, rated the same way. */
   readonly overallByCode: readonly number[];
   readonly attributes: Attributes;
@@ -311,7 +309,6 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
     overall,
     growth: potential - overall,
     ...profileFields(row),
-    overallByGroup: byGroup(rate),
     overallByCode,
     attributes,
     ...teamFields(context.placements.get(id) ?? {}),

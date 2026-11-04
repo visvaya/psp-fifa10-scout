@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { teamKey, textKey } from "../data/game-locale.ts";
+import { buildLocale } from "../data/test-support/synthetic-locale.ts";
 import { SaveFormatError } from "../data/save-format-error.ts";
 import { buildIso } from "../data/test-support/synthetic-iso.ts";
 import { buildParamSfo } from "../data/test-support/synthetic-save.ts";
@@ -32,10 +34,16 @@ describe("loadScout", () => {
     leagues: { 53: "Liga BBVA (Hiszpania)", 76: "Reszta Świata" },
     countries: { 37: "Polska", 52: "Argentyna" },
     positions: { 0: "BR" },
+    positionNames: {},
   };
 
   it("reads every language of a disc image for the database's ids", async () => {
     const { loc, idx } = buildScoutLocale();
+    // The full position names sit in the cgexport directory; the main directory's texts win.
+    const names = buildLocale([
+      [textKey(1592), "Bramkarz"],
+      [teamKey(10, 0), "Inna nazwa"],
+    ]);
     const locale = "PSP_GAME/USRDIR/data/gui/locale";
     const iso = buildIso([
       {
@@ -46,9 +54,14 @@ describe("loadScout", () => {
       { path: `${locale}/string.idx`, bytes: idx },
       { path: `${locale}/pol_pl.loc`, bytes: loc },
       { path: `${locale}/eng_us.loc`, bytes: loc },
+      { path: `${locale}/cgexport/string.idx`, bytes: names.idx },
+      { path: `${locale}/cgexport/pol_pl.loc`, bytes: names.loc },
     ]);
     const result = await loadScout({ game: blob(iso) }, () => undefined);
-    expect(result.languages).toEqual({ eng_us: POLISH, pol_pl: POLISH });
+    expect(result.languages).toEqual({
+      eng_us: POLISH,
+      pol_pl: { ...POLISH, positionNames: { 0: "Bramkarz" } },
+    });
   });
 
   it("reads an attached language file with its index", async () => {

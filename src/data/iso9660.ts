@@ -155,28 +155,22 @@ const readDatabaseFromIso = async (read: ReadRange): Promise<Uint8Array> => {
   return readVolumeFile(volume, DATABASE_PATH, MAX_DATABASE_BYTES);
 };
 
-export interface IsoLocales {
+interface LocaleTables {
   /** The string.idx shared by every language of the directory. */
   readonly idx: Uint8Array;
   /** Each <lang>.loc by its language code (the file name stem), in name order. */
   readonly languages: readonly (readonly [string, Uint8Array])[];
 }
 
-/**
- * The main text tables (data/gui/locale) of a disc image, or null when the file is no disc image or
- * has no such directory (a bare fifa.db). Throws SaveFormatError on a malformed image or file.
- */
-export const readIsoLocales = async (
-  read: ReadRange,
-  fileBytes: number,
-): Promise<IsoLocales | null> => {
-  if (fileBytes < PVD_OFFSET + SECTOR_BYTES) return null;
-  if (!isIsoVolume(await readExactly(read, PVD_OFFSET, 6))) return null;
-  const volume = await openVolume(read);
-  const directory = await resolvePath(volume, LOCALE_PATH).catch((error: unknown) => {
-    if (error instanceof SaveFormatError && error.message === notFound(LOCALE_PATH).message) {
-      return null;
-    }
+export interface IsoLocales extends LocaleTables {
+  /** The cgexport subdirectory (the full position names among its texts), or null without one. */
+  readonly cgexport: LocaleTables | null;
+}
+
+/** The text tables of one locale directory, or null when it is missing or has no index or language. */
+const readLocaleTables = async (volume: Volume, path: string): Promise<LocaleTables | null> => {
+  const directory = await resolvePath(volume, path).catch((error: unknown) => {
+    if (error instanceof SaveFormatError && error.message === notFound(path).message) return null;
     throw error;
   });
   if (directory?.directory !== true) return null;
@@ -198,6 +192,23 @@ export const readIsoLocales = async (
       ),
     ),
   };
+};
+
+/**
+ * The main text tables (data/gui/locale) of a disc image with those of its cgexport subdirectory, or
+ * null when the file is no disc image or has no such directory (a bare fifa.db). Throws
+ * SaveFormatError on a malformed image or file.
+ */
+export const readIsoLocales = async (
+  read: ReadRange,
+  fileBytes: number,
+): Promise<IsoLocales | null> => {
+  if (fileBytes < PVD_OFFSET + SECTOR_BYTES) return null;
+  if (!isIsoVolume(await readExactly(read, PVD_OFFSET, 6))) return null;
+  const volume = await openVolume(read);
+  const main = await readLocaleTables(volume, LOCALE_PATH);
+  if (main === null) return null;
+  return { ...main, cgexport: await readLocaleTables(volume, `${LOCALE_PATH}/cgexport`) };
 };
 
 /**

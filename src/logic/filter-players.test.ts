@@ -115,6 +115,20 @@ describe("filterPlayers", () => {
     expect(at({ positionRating: { code: 40 } })).toEqual([]);
   });
 
+  it("ranges the gain of the chosen position over the OVR", () => {
+    const rated = PLAYERS.map((player) => ({
+      ...player,
+      overall: 15,
+      overallByCode: player.overallByCode.map((value, code) =>
+        code === 1 ? player.id * 10 : value,
+      ),
+    }));
+    const at = (filters: PlayerFilters) => filterPlayers(rated, filters).map((player) => player.id);
+    // Gains: -5, 5, 15, 25.
+    expect(at({ positionRating: { code: 1, gain: { min: 0, max: 20 } } })).toEqual([2, 3]);
+    expect(at({ positionRating: { code: 1, gain: { max: -1 } } })).toEqual([1]);
+  });
+
   it("requires a trait or its absence", () => {
     expect(ids({ flags: { playmaker: true } })).toEqual([2]);
     expect(ids({ flags: { playmaker: false } })).toEqual([1, 3, 4]);

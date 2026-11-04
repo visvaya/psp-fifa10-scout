@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useReducer } from "react";
+import { useEffect, useMemo, useReducer } from "react";
 import type { Dispatch, JSX } from "react";
 import { collatorFor, localizePlayers, positionNameIn } from "../logic/game-names.ts";
 import { activeLanguage, initialScoutState, scoutReducer } from "../logic/scout-state.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
 import { ListView } from "./list-view.tsx";
 import { PlayerCard } from "./player-card.tsx";
+import type { PositionNames } from "./position-name.tsx";
 import { StartScreen } from "./start-screen.tsx";
 import { TEXT } from "./text.ts";
 import { UpdatePrompt } from "./update-prompt.tsx";
@@ -23,8 +24,14 @@ const useGameNames = (state: ScoutState) => {
     () => (state.players === null ? null : localizePlayers(state.players, names, collator)),
     [state.players, names, collator],
   );
-  const positionName = useCallback((code: number) => positionNameIn(names, code), [names]);
-  return { language, players, collator, positionName };
+  const positionNames = useMemo(
+    (): PositionNames => ({
+      short: (code) => positionNameIn(names, code),
+      full: (code) => names?.positionNames[code],
+    }),
+    [names],
+  );
+  return { language, players, collator, positionNames };
 };
 
 /** Stores the preferences and the languages read, once the stored ones were restored. */
@@ -73,7 +80,7 @@ export const App = (): JSX.Element => {
   const [state, dispatch] = useReducer(scoutReducer, initialScoutState);
   const files = useScoutFiles(dispatch);
   const wide = useMediaQuery(WIDE_QUERY);
-  const { language, players, collator, positionName } = useGameNames(state);
+  const { language, players, collator, positionNames } = useGameNames(state);
   useStoredState(state, files);
   const { view, showPotential } = state;
 
@@ -88,7 +95,7 @@ export const App = (): JSX.Element => {
             state={state}
             players={players}
             collator={collator}
-            positionName={positionName}
+            positionName={positionNames.short}
             wide={wide}
             dispatch={dispatch}
           />
@@ -108,7 +115,7 @@ export const App = (): JSX.Element => {
       {openPlayer === undefined ? null : (
         <PlayerCard
           player={openPlayer}
-          positionName={positionName}
+          names={positionNames}
           career={state.myTeamId !== null}
           showPotential={showPotential}
           onClose={() => {

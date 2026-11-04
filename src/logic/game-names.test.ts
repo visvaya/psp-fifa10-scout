@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countryKey, labelKey, leagueKey, teamKey } from "../data/game-locale.ts";
+import { countryKey, labelKey, leagueKey, teamKey, textKey } from "../data/game-locale.ts";
 import {
   collatorFor,
   defaultLanguage,
@@ -22,6 +22,8 @@ const TABLE = new Map([
   [countryKey(37), "Polska"],
   [labelKey("GK"), "BR"],
   [labelKey("RCDM"), "PŚPD"],
+  [textKey(1592), "Bramkarz"],
+  [textKey(1621), "Czyściciel pola"],
 ]);
 
 describe("gameNamesOf", () => {
@@ -33,23 +35,42 @@ describe("gameNamesOf", () => {
       leagues: { 19: "Bundesliga (Niemcy)", 76: "Reszta Świata" },
       countries: { 37: "Polska" },
       positions: { 0: "BR", 10: "PŚPD" },
+      positionNames: { 0: "Bramkarz", 1: "Czyściciel pola" },
     });
   });
 });
 
 describe("positionNameIn", () => {
   it("names a position in the game language, else by the game's English name", () => {
-    const names = { teams: {}, leagues: {}, countries: {}, positions: { 0: "BR" } };
+    const names = {
+      teams: {},
+      leagues: {},
+      countries: {},
+      positions: { 0: "BR" },
+      positionNames: {},
+    };
     expect(positionNameIn(names, 0)).toBe("BR");
     expect(positionNameIn(names, 10)).toBe("RCDM");
     expect(positionNameIn(null, 0)).toBe("GK");
   });
 
   it("adds the English name where the language gives two positions one abbreviation", () => {
-    const names = { teams: {}, leagues: {}, countries: {}, positions: { 26: "PN", 29: "PN" } };
+    const names = {
+      teams: {},
+      leagues: {},
+      countries: {},
+      positions: { 26: "PN", 29: "PN" },
+      positionNames: {},
+    };
     expect(positionNameIn(names, 26)).toBe("PN (RF)");
     expect(positionNameIn(names, 29)).toBe("PN (RS)");
-    const partial = { teams: {}, leagues: {}, countries: {}, positions: { 20: "LS" } };
+    const partial = {
+      teams: {},
+      leagues: {},
+      countries: {},
+      positions: { 20: "LS" },
+      positionNames: {},
+    };
     expect(positionNameIn(partial, 20)).toBe("LS (LWM)");
     expect(positionNameIn(partial, 31)).toBe("LS");
   });
@@ -61,6 +82,7 @@ describe("localizePlayers", () => {
     leagues: { 19: "Bundesliga (Niemcy)" },
     countries: { 37: "Polska" },
     positions: { 17: "ŚP" },
+    positionNames: {},
   };
 
   it("replaces the club, league, national team, nationality and position names it knows", () => {

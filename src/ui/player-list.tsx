@@ -3,6 +3,7 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useCallback, useMemo, useRef } from "react";
 import type { Dispatch, JSX, ReactNode } from "react";
+import { ratingGain } from "../logic/filter-players.ts";
 import { isAttributeName } from "../logic/players.ts";
 import type { AttributeName, Player } from "../logic/players.ts";
 import type { ScoutAction, ScoutSort } from "../logic/scout-state.ts";
@@ -46,6 +47,7 @@ export const columnLabel = (key: SortKey, ratingName: string | null = null): str
   if (key === "positionRating") {
     return ratingName === null ? TEXT.columns.overall : TEXT.ratingAt(ratingName);
   }
+  if (key === "ratingGain") return ratingName === null ? TEXT.ratingGain : TEXT.gainAt(ratingName);
   if (isAttributeName(key)) return ATTRIBUTE_LABELS[key];
   if (isTextColumn(key)) return TEXT.columns[key];
   return isRangeField(key) ? RANGE_LABELS[key] : key;
@@ -109,6 +111,24 @@ const ratingIn = (player: Player, column: SortKey, ratingCode: number | null): n
   return isAttributeName(column) ? player.attributes[column] : null;
 };
 
+/** A column's number: a rating, or the gain of the chosen position over the OVR. */
+const numberIn = (player: Player, column: SortKey, ratingCode: number | null): number | null =>
+  column === "ratingGain"
+    ? ratingCode === null
+      ? null
+      : ratingGain(player, ratingCode)
+    : ratingIn(player, column, ratingCode);
+
+/** A column's value: a rating with its colour band, the gain with its sign, or the text. */
+const ColumnValue = (props: { player: Player; column: SortKey; ratingCode: number | null }) => {
+  const { player, column, ratingCode } = props;
+  const value = numberIn(player, column, ratingCode);
+  if (value !== null) {
+    return column === "ratingGain" ? TEXT.signed(value) : <AttributeValue value={value} />;
+  }
+  return isTextColumn(column) ? cellContent(player, column) : null;
+};
+
 const HeaderCell = ({
   column,
   sort,
@@ -161,18 +181,11 @@ const TableRow = ({
         {player.name}
       </button>
     </th>
-    {columns.slice(1).map((column) => {
-      const rating = ratingIn(player, column, ratingCode);
-      return (
-        <td key={column} className={column.endsWith("Name") ? "" : "num"}>
-          {rating !== null ? (
-            <AttributeValue value={rating} />
-          ) : isTextColumn(column) ? (
-            cellContent(player, column)
-          ) : null}
-        </td>
-      );
-    })}
+    {columns.slice(1).map((column) => (
+      <td key={column} className={column.endsWith("Name") ? "" : "num"}>
+        <ColumnValue player={player} column={column} ratingCode={ratingCode} />
+      </td>
+    ))}
   </tr>
 );
 
@@ -202,7 +215,7 @@ const useTableColumns = ({
     (): readonly SortKey[] => [
       ...TEXT_COLUMNS.slice(0, -2),
       "overall",
-      ...(ratingCode === null ? [] : ["positionRating" as const]),
+      ...(ratingCode === null ? [] : (["positionRating", "ratingGain"] as const)),
       ...(showPotential ? ["potential" as const] : []),
       ...ranged,
       ...TABLE_ATTRIBUTES.filter((name) => !ranged.includes(name)),
@@ -286,7 +299,7 @@ const keyColumn = ({
   ratingCode,
   rangedAttributes: ranged,
 }: Pick<ListProps, "sort" | "ratingCode" | "rangedAttributes">): SortKey | null => {
-  if (ratingCode !== null) return "positionRating";
+  if (ratingCode !== null) return sort.key === "ratingGain" ? "ratingGain" : "positionRating";
   return isAttributeName(sort.key) ? sort.key : (ranged[0] ?? null);
 };
 
@@ -315,7 +328,7 @@ export const PlayerCards = (props: ListProps): JSX.Element => {
           {items.map((item) => {
             const player = players[item.index];
             if (player === undefined) return null;
-            const extra = column === null ? null : ratingIn(player, column, ratingCode);
+            const extra = column === null ? null : numberIn(player, column, ratingCode);
             return (
               <li key={player.id} aria-setsize={players.length} aria-posinset={item.index + 1}>
                 <button
@@ -337,12 +350,10 @@ export const PlayerCards = (props: ListProps): JSX.Element => {
                     </span>
                   </span>
                   <span className="player-row-numbers">
-                    {extra === null ? null : (
+                    {extra === null || column === null ? null : (
                       <>
-                        <span className="visually-hidden">
-                          {column === null ? null : columnLabel(column, ratingName)}
-                        </span>
-                        <AttributeValue value={extra} />
+                        <span className="visually-hidden">{columnLabel(column, ratingName)}</span>
+                        <ColumnValue player={player} column={column} ratingCode={ratingCode} />
                       </>
                     )}
                     <span className="visually-hidden">{TEXT.columns.overall}</span>

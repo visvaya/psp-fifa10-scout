@@ -36,6 +36,8 @@ export const Section = (props: {
 export const RangeField = (props: {
   label: string;
   range: Range | undefined;
+  /** Accepts values below zero, as a difference does. */
+  allowNegative?: boolean;
   onChange: (range: Range) => void;
 }): JSX.Element => {
   const range = props.range ?? {};
@@ -49,7 +51,7 @@ export const RangeField = (props: {
             <input
               type="number"
               inputMode="numeric"
-              min={0}
+              min={props.allowNegative === true ? undefined : 0}
               value={range[bound] ?? ""}
               onChange={(event) => {
                 props.onChange({
