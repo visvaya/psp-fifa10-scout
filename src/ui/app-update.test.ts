@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { installUpdate, watchForUpdates } from "./app-update.ts";
+import { checkForUpdate, installUpdate, watchForUpdates } from "./app-update.ts";
 import type { RegistrationLike, UpdateStatus } from "./app-update.ts";
 
 /** A service worker whose state the test moves on; it records what the page sent it. */
@@ -143,5 +143,52 @@ describe("installUpdate", () => {
     installUpdate(registration, report, () => undefined);
     waiting.moveTo("redundant");
     expect(reports).toEqual(["installing", "failed"]);
+  });
+});
+
+const reachable = () => Promise.resolve(true);
+// The same object, so the check sees what update() changed on it, as on a real registration.
+const withUpdate = (registration: ReturnType<typeof makeRegistration>, update: () => void) =>
+  Object.assign(registration, {
+    update: () => {
+      update();
+      return Promise.resolve();
+    },
+  });
+
+describe("checkForUpdate", () => {
+  it("asks the server first: without a network it says so instead of up to date", async () => {
+    const registration = withUpdate(makeRegistration(makeWorker("activated")), () => undefined);
+    expect(await checkForUpdate(registration, () => Promise.resolve(false))).toBe("unreachable");
+  });
+
+  it("reports a release being downloaded, one that waits, or none", async () => {
+    const base = makeRegistration(makeWorker("activated"));
+    const found = withUpdate(base, () => {
+      base.installing = makeWorker("installing");
+    });
+    expect(await checkForUpdate(found, reachable)).toBe("downloading");
+    base.installing = null;
+    base.waiting = makeWorker("installed");
+    expect(
+      await checkForUpdate(
+        withUpdate(base, () => undefined),
+        reachable,
+      ),
+    ).toBe("waiting");
+    base.waiting = null;
+    expect(
+      await checkForUpdate(
+        withUpdate(base, () => undefined),
+        reachable,
+      ),
+    ).toBe("current");
+  });
+
+  it("reports a failed check when the browser cannot fetch or run the new worker", async () => {
+    const registration = Object.assign(makeRegistration(makeWorker("activated")), {
+      update: () => Promise.reject(new TypeError("Failed to update")),
+    });
+    expect(await checkForUpdate(registration, reachable)).toBe("failed");
   });
 });

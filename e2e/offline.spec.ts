@@ -117,11 +117,19 @@ test("a new release is offered and installs on request, under a sub-path", async
     await page.reload();
     expect(await page.evaluate(() => navigator.serviceWorker.controller !== null)).toBe(true);
 
+    // The header's check: up to date, then unreachable without a network rather than up to date.
+    const check = page.getByRole("button", { name: "Sprawdź aktualizacje" });
+    const status = page.locator(".update-prompt");
+    await check.click();
+    await expect(status).toHaveText("Masz najnowszą wersję.");
+    await context.setOffline(true);
+    await check.click();
+    await expect(status).toHaveText(/^Brak połączenia/u);
+    await context.setOffline(false);
+
     await host.release();
-    // The browser looks for a new worker on navigations; an open page asks for one here.
-    await page.evaluate(async () => {
-      await (await navigator.serviceWorker.getRegistration())?.update();
-    });
+    // The browser looks for a new worker on navigations; on an open page the header's check asks.
+    await check.click();
     const prompt = page.getByRole("status").filter({ hasText: "Dostępna jest nowa wersja." });
     await expect(prompt).toBeVisible();
     await expect(page.getByLabel(GAME_INPUT)).toBeEnabled();

@@ -1,13 +1,13 @@
 import type { JSX } from "react";
-import { useAppUpdate } from "./app-update.ts";
+import type { UpdateStatus } from "./app-update.ts";
 import { TEXT } from "./text.ts";
 
 /**
- * The "new version" prompt under the top bar. The region is always there, so a screen reader hears each
- * change; it is empty until a release waits, is being installed or could not be stored.
+ * The update prompt under the top bar. The region is always there, so a screen reader hears each change;
+ * it is empty until a check runs, a release waits, is being installed or could not be stored.
  */
-export const UpdatePrompt = (): JSX.Element => {
-  const { status, install } = useAppUpdate();
+export const UpdatePrompt = (props: { status: UpdateStatus; install: () => void }): JSX.Element => {
+  const { status, install } = props;
   const canReload = status === "waiting" || status === "outdated";
   return (
     <output className="update-prompt">
