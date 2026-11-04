@@ -770,6 +770,23 @@ input[type="number"] {
   text-align: right;
 }
 
+/* The gain and its rating stay on one line, beside a label that wraps. */
+.facts dd.rated {
+  white-space: nowrap;
+}
+
+.gain-up {
+  color: var(--color-accent);
+}
+
+.gain-down {
+  color: var(--color-error);
+}
+
+.gain-none {
+  color: var(--color-muted);
+}
+
 .facts dt p {
   margin: var(--space-1) 0 0;
 }
