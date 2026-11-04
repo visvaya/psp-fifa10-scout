@@ -52,6 +52,7 @@ describe("scout store", () => {
         leagues: { 2: "Liga" },
         countries: { 37: "Polska" },
         positions: { 0: "BR" },
+        positionNames: {},
       },
     };
     await store.saveGameDb(Uint8Array.of(1, 2, 3), "fifa.iso");
@@ -98,7 +99,13 @@ describe("scout store", () => {
 
   it("drops stored languages of a wrong shape one by one", async () => {
     const backend = memoryBackend();
-    const good = { teams: { 1: "Klub" }, leagues: {}, countries: {}, positions: { 0: "BR" } };
+    const good = {
+      teams: { 1: "Klub" },
+      leagues: {},
+      countries: {},
+      positions: { 0: "BR" },
+      positionNames: {},
+    };
     await backend.set("languages", {
       schemaVersion: SCHEMA_VERSION.languages,
       value: {
@@ -114,12 +121,21 @@ describe("scout store", () => {
     expect((await createScoutStore(backend).load()).languages).toEqual({});
   });
 
+  it("loads languages stored before positions had full names, with abbreviations only", async () => {
+    const backend = memoryBackend();
+    const v2 = { teams: {}, leagues: {}, countries: {}, positions: { 0: "BR" } };
+    await backend.set("languages", { schemaVersion: 2, value: { pol_pl: v2 } });
+    expect((await createScoutStore(backend).load()).languages).toEqual({
+      pol_pl: { ...v2, positionNames: {} },
+    });
+  });
+
   it("loads languages stored before positions had names, with no position names", async () => {
     const backend = memoryBackend();
     const v1 = { teams: { 1: "Klub" }, leagues: {}, countries: {} };
     await backend.set("languages", { schemaVersion: 1, value: { pol_pl: v1 } });
     expect((await createScoutStore(backend).load()).languages).toEqual({
-      pol_pl: { ...v1, positions: {} },
+      pol_pl: { ...v1, positions: {}, positionNames: {} },
     });
   });
 
@@ -184,6 +200,9 @@ describe("scout store", () => {
         value: { filters: { positionRating }, sort: DEFAULT_SORT },
       });
     expect((await rating({ code: 0, max: "9" }))?.filters).toEqual({ positionRating: { code: 0 } });
+    expect((await rating({ code: 5, gain: { min: "x", max: -2 } }))?.filters).toEqual({
+      positionRating: { code: 5, gain: { max: -2 } },
+    });
     // Codes rated alike move to their rating choice: right centre-back to centre-back.
     expect((await rating({ code: 4, min: 60 }))?.filters).toEqual({
       positionRating: { code: 5, min: 60 },

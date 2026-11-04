@@ -69,7 +69,15 @@ export interface PlayerFilters {
 
 export interface PositionRating extends Range {
   readonly code: number;
+  /** The OVR at the code minus the OVR at the preferred position. */
+  readonly gain?: Range;
 }
+
+/** The OVR at a position code minus the OVR at the preferred position, or null without that rating. */
+export const ratingGain = (player: Player, code: number): number | null => {
+  const rating = player.overallByCode[code];
+  return rating === undefined ? null : rating - player.overall;
+};
 
 type Predicate = (player: Player) => boolean;
 
@@ -114,6 +122,9 @@ const predicates = (filters: PlayerFilters): readonly Predicate[] => {
     ...(rating === undefined
       ? []
       : [inRange(rating, (player) => player.overallByCode[rating.code])]),
+    ...(rating?.gain === undefined
+      ? []
+      : [inRange(rating.gain, (player) => ratingGain(player, rating.code))]),
     ...FLAG_KEYS.flatMap((flag) => {
       const wanted = filters.flags?.[flag];
       return wanted === undefined ? [] : [(player: Player) => hasFlag(player, flag) === wanted];

@@ -309,6 +309,18 @@ describe("readIsoLocales", () => {
         ["eng_us", Uint8Array.of(4)],
         ["pol_pl", Uint8Array.of(3)],
       ],
+      cgexport: null,
+    });
+  });
+
+  it("also reads the cgexport directory, which holds the full position names", async () => {
+    const image = localeIso([
+      { path: `${LOCALE}/cgexport/string.idx`, bytes: Uint8Array.of(7) },
+      { path: `${LOCALE}/cgexport/pol_pl.loc`, bytes: Uint8Array.of(8) },
+    ]);
+    expect((await readIsoLocales(reader(image).read, image.length))?.cgexport).toEqual({
+      idx: Uint8Array.of(7),
+      languages: [["pol_pl", Uint8Array.of(8)]],
     });
   });
 

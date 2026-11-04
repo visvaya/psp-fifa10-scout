@@ -224,10 +224,13 @@ const withPotential = (preferences: Preferences): Preferences => {
   };
 };
 
+/** The sort keys that need a chosen position (the position rating filter). */
+export const RATING_SORT_KEYS: ReadonlySet<SortKey> = new Set(["positionRating", "ratingGain"]);
+
 /** Preferences whose sort fits the filters: by position rating only while a position is chosen. */
 const consistent = (preferences: Preferences): Preferences => {
   const shown = withPotential(preferences);
-  return shown.sort.key === "positionRating" && shown.filters.positionRating === undefined
+  return RATING_SORT_KEYS.has(shown.sort.key) && shown.filters.positionRating === undefined
     ? { ...shown, sort: DEFAULT_SORT }
     : shown;
 };

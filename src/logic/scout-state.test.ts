@@ -29,7 +29,13 @@ const SUCCEEDED = {
 const loaded = (myTeamId: number | null = null, from: ScoutState = loading): ScoutState =>
   scoutReducer(from, { ...SUCCEEDED, myTeamId });
 
-const NAMES = { teams: { 1: "Klub" }, leagues: {}, countries: {}, positions: {} };
+const NAMES = {
+  teams: { 1: "Klub" },
+  leagues: {},
+  countries: {},
+  positions: {},
+  positionNames: {},
+};
 
 describe("scoutReducer loading", () => {
   it("starts empty on the start view", () => {
@@ -257,6 +263,8 @@ describe("scoutReducer filters, sort and card", () => {
     expect(rated.sort).toEqual({ key: "positionRating", direction: "descending" });
     expect(activeFilters(rated.filters)).toEqual(["positionRating"]);
     expect(remove(rated, "positionRating")).toMatchObject({ filters: {}, sort: DEFAULT_SORT });
+    const byGain = scoutReducer(rated, { type: "sort-changed", key: "ratingGain" });
+    expect(remove(byGain, "positionRating")).toMatchObject({ sort: DEFAULT_SORT });
     const restored = scoutReducer(initialScoutState, {
       type: "preferences-restored",
       preferences: { filters: {}, sort: rated.sort, showPotential: true },

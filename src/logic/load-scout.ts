@@ -131,8 +131,18 @@ const readLanguages = async (
   return atStage("game", async () => {
     const files = await readIsoLocales(read, game.size);
     if (files === null) return {};
+    const { cgexport } = files;
     return Object.fromEntries(
-      files.languages.map(([code, loc]) => [code, gameNamesOf(readLocale(loc, files.idx), ids)]),
+      files.languages.map(([code, loc]) => {
+        const extra = cgexport?.languages.find(([candidate]) => candidate === code)?.[1];
+        const main = readLocale(loc, files.idx);
+        // The main directory's texts win over cgexport's, as the game reads them first.
+        const table =
+          cgexport === null || extra === undefined
+            ? main
+            : new Map([...readLocale(extra, cgexport.idx), ...main]);
+        return [code, gameNamesOf(table, ids)];
+      }),
     );
   });
 };

@@ -11,6 +11,7 @@ import {
   parseStringIdx,
   readLocale,
   teamKey,
+  textKey,
 } from "./game-locale.ts";
 import { SaveFormatError } from "./save-format-error.ts";
 import { buildLoc, buildLocale, buildStringIdx } from "./test-support/synthetic-locale.ts";
@@ -152,18 +153,28 @@ describe("labelKey", () => {
   });
 });
 
+describe("textKey", () => {
+  it("keys a numbered game text, such as the position names 1592..1621", () => {
+    expect(textKey(1592)).toBe(0x9af10);
+    expect(textKey(1621)).toBe(0x9b269);
+  });
+});
+
 // The game files never enter the repository. Point GAME_LOCALE_DIR at an extracted
 // PSP_GAME/USRDIR/data/gui/locale directory to check them locally.
 const realLocaleDir = process.env["GAME_LOCALE_DIR"] ?? "";
 
-const table = (lang: string) =>
+const table = (lang: string, directory = "") =>
   readLocale(
-    readFileSync(path.join(realLocaleDir, `${lang}.loc`)),
-    readFileSync(path.join(realLocaleDir, "string.idx")),
+    readFileSync(path.join(realLocaleDir, directory, `${lang}.loc`)),
+    readFileSync(path.join(realLocaleDir, directory, "string.idx")),
   );
 
 const positionNames = (label: string) =>
   ["eng_us", "pol_pl", "cze_cz", "hun_hu"].map((lang) => table(lang).get(labelKey(label)));
+
+const fullPositionNames = (id: number) =>
+  ["eng_us", "pol_pl", "cze_cz", "hun_hu"].map((lang) => table(lang, "cgexport").get(textKey(id)));
 
 describe.runIf(realLocaleDir !== "" && existsSync(realLocaleDir))("real locale files", () => {
   it("names countries, clubs and cups in Polish and Czech", () => {
@@ -178,5 +189,15 @@ describe.runIf(realLocaleDir !== "" && existsSync(realLocaleDir))("real locale f
     expect(positionNames("ST")).toEqual(["ST", "N", "ST", "CS"]);
     expect(positionNames("RCDM")).toEqual(["RCDM", "PŚPD", "PSSZ", "JKVK"]);
     expect(positionNames("LWM")).toEqual(["LWM", "LS", "ZLK", "BOK"]);
+  });
+
+  it("names positions in full by their text ids", () => {
+    expect(fullPositionNames(1600)).toEqual([
+      "Right Centre Back",
+      "Prawy/środkowy obrońca",
+      "Pravý střední obránce",
+      "Jobb középhátvéd",
+    ]);
+    expect(fullPositionNames(1621)).toEqual(["Sweeper", "Czyściciel pola", "Libero", "Söprögető"]);
   });
 });

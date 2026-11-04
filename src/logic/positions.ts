@@ -22,6 +22,42 @@ const NAMES = (
   "RAM RCAM CAM LCAM LAM RF CF LF RS ST LS"
 ).split(" ");
 
+// The game's full position names by code: text ids 1592..1621 (textKey). Codes 10, 12, 22 and 24
+// have none; RCF and LCF (1595, 1601) have no code.
+const NAME_TEXT_IDS: Readonly<Record<number, number>> = {
+  0: 1592,
+  1: 1621,
+  2: 1607,
+  3: 1599,
+  4: 1600,
+  5: 1605,
+  6: 1594,
+  7: 1593,
+  8: 1608,
+  9: 1610,
+  11: 1611,
+  13: 1612,
+  14: 1613,
+  15: 1604,
+  16: 1602,
+  17: 1620,
+  18: 1596,
+  19: 1598,
+  20: 1614,
+  21: 1615,
+  23: 1616,
+  25: 1617,
+  26: 1603,
+  27: 1606,
+  28: 1597,
+  29: 1618,
+  30: 1609,
+  31: 1619,
+};
+
+/** The id of a position's full name in the game texts, or undefined for the codes it does not name. */
+export const nameTextIdOf = (code: number): number | undefined => NAME_TEXT_IDS[code];
+
 /** Every preferred position code, 0..31. */
 export const POSITION_CODES: readonly number[] = NAMES.map((_, code) => code);
 
