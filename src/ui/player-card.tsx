@@ -73,7 +73,7 @@ const choicePositions = (code: number, names: PositionNames): string =>
     .join(TEXT.rowMetaSeparator);
 
 /**
- * OVR per rating choice, with the gain over the OVR; one switch at the heading shows the positions
+ * OVR per rating choice, after the gain over the OVR so the ratings line up; one switch at the heading shows the positions
  * each choice covers.
  */
 const ChoiceRatings = (props: { player: Player; names: PositionNames }) => {
@@ -105,9 +105,9 @@ const ChoiceRatings = (props: { player: Player; names: PositionNames }) => {
                 {ratingChoiceName(code)}
                 {open ? <p>{choicePositions(code, names)}</p> : null}
               </dt>
-              <dd>
-                {rating === null ? null : <AttributeValue value={rating} />}
+              <dd className="rated">
                 {rating === null ? null : TEXT.card.gain(rating - player.overall)}
+                {rating === null ? null : <AttributeValue value={rating} />}
               </dd>
             </div>
           );

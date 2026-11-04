@@ -343,8 +343,8 @@ export const TEXT = {
     openMark: "▾",
     closedMark: "▸",
     positionWithName: (name: string, abbreviation: string): string => `${name} (${abbreviation})`,
-    /** The gain over the OVR after a rating, empty at no gain. */
-    gain: (value: number): string => (value === 0 ? "" : ` (${signed(value)})`),
+    /** The gain over the OVR before a rating, empty at no gain. */
+    gain: (value: number): string => (value === 0 ? "" : `(${signed(value)}) `),
     foot: "Lepsza noga",
     left: "lewa",
     right: "prawa",
