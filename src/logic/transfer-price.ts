@@ -78,7 +78,8 @@ const PRICE_TUNING = {
 
 type PriceGroup = keyof typeof PRICE_TUNING.valuePosition;
 
-/** The game's position groups for money, by lowest position code (codes 2 and 3 are full-backs). */
+/** The game's position groups for money, by lowest position code (codes 2 and 3 are full-backs);
+ * codes 0 and 1 are goalkeepers. */
 const PRICE_GROUPS: readonly (readonly [number, PriceGroup])[] = [
   [26, "ST"],
   [21, "AM"],
@@ -87,7 +88,6 @@ const PRICE_GROUPS: readonly (readonly [number, PriceGroup])[] = [
   [7, "FB"],
   [4, "CB"],
   [2, "FB"],
-  [0, "GK"],
 ];
 
 export interface PriceInput {
@@ -113,11 +113,9 @@ const groupOf = (positionCode: number): PriceGroup =>
 
 /** A goalkeeper counts five years younger, but only to reach the two oldest bands. */
 const ageAdjustment = (bands: Bands, { age, positionCode }: PriceInput): number => {
-  const older = positionCode === 0 ? age - PRICE_TUNING.goalkeeperAgeShiftYears : age;
-  const [oldest, old] = bands;
-  if (oldest !== undefined && older >= oldest[0]) return oldest[1];
-  if (old !== undefined && older >= old[0]) return old[1];
-  return band(bands.slice(2), age);
+  const shifted = positionCode === 0 ? age - PRICE_TUNING.goalkeeperAgeShiftYears : age;
+  const oldest = bands.slice(0, 2).find(([lowest]) => shifted >= lowest);
+  return oldest === undefined ? band(bands.slice(2), age) : oldest[1];
 };
 
 /** 0 gold, 1 silver, 2 bronze, 3 none. */

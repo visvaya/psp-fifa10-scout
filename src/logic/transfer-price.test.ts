@@ -24,6 +24,7 @@ const priceWith = (extra: number, multiplier = 0.85): number =>
 describe("roundPrice", () => {
   it.each([
     [0, 0],
+    [10, 10],
     [95, 90],
     [95.6, 100],
     [994, 990],
@@ -100,6 +101,7 @@ describe("transferPrice", () => {
     [5, 75, 0.05],
     [5, 74, -0.05],
     [13, 98, -0.05],
+    [-1, 98, -0.05],
   ])("adjusts for playing style %d at OVR %d", (playingStyle, overall, k) => {
     const input = { ...NEUTRAL, playingStyle, overall, overallIn5Years: 195 - overall };
     expect(transferPrice(input)).toBe(priceWith(k + 0.05));
@@ -128,6 +130,12 @@ describe("transferPrice", () => {
     for (const positionCode of codes) {
       expect(transferPrice({ ...NEUTRAL, positionCode })).toBe(priceWith(0, multiplier));
     }
+  });
+
+  it("skips an adjustment that would take the total to exactly zero", () => {
+    // 1 - 0.1 (1 year) - 0.6 (age) - 0.05 (style) - 0.25 (prestige 9) = 0.
+    const input = { ...NEUTRAL, contractYearsLeft: 1, age: 36, prestige: 9 };
+    expect(transferPrice(input)).toBe(roundPrice(BASE * 0.25 * 0.85));
   });
 
   it("skips an adjustment that would take the total to zero or below", () => {

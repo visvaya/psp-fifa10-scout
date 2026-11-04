@@ -15,8 +15,8 @@ import type { PriceInput } from "./transfer-price.ts";
 const daysSince1582 = (year: number, month: number, day: number): number =>
   (Date.UTC(year, month - 1, day) - Date.UTC(1582, 9, 14)) / 86_400_000;
 
-/** Every attribute 50 but tackling and marking 80: centre-backs rate far above strikers. */
-const DEFENDER = attributes(50, { tackling: 80, marking: 80 });
+const ATTRIBUTES = attributes(80);
+const PHYSICAL = { acceleration: 80, sprintspeed: 80, reflexes: 80, stamina: 80, strength: 80 };
 const FREE_AGENT_TEAM = 111_259;
 
 /** A `curves` row: the value at each age 15..45. */
@@ -26,19 +26,8 @@ const curveRow = (id: number, value: (age: number) => number) => ({
 });
 
 /** OVR as a striker now, and in five years with skills 40 % higher (at most the potential 90). */
-const OVERALL = baseOverall(DEFENDER, 29);
-const OVERALL_IN_5_YEARS = baseOverall(
-  attributes(70, {
-    tackling: 90,
-    marking: 90,
-    sprintspeed: 50,
-    stamina: 50,
-    acceleration: 50,
-    strength: 50,
-    reflexes: 50,
-  }),
-  29,
-);
+const OVERALL = baseOverall(ATTRIBUTES, 29);
+const OVERALL_IN_5_YEARS = baseOverall(attributes(90, PHYSICAL), 29);
 const USER_TEAM = 1873;
 
 const DB = parseEaDb(
@@ -61,9 +50,9 @@ const DB = parseEaDb(
           birthdate: daysSince1582(1985, 1, 15),
           preferredposition1: 29,
           potential: 90,
-          playingstyle: 3,
-          internationalreputation: 2,
-          ...DEFENDER,
+          playingstyle: 13,
+          internationalreputation: 4,
+          ...ATTRIBUTES,
         }),
       ),
     ),
@@ -112,11 +101,15 @@ const SAVE: CareerSave = new Map([
       link(3, 241, 2009),
       link(4, USER_TEAM, 2011),
       link(5, FREE_AGENT_TEAM, 2009),
+      link(6, 5000, 2012), // a team in no league: no club
     ],
   ],
   [
     "career_extra_user_team_info",
-    [row({ playerid: 4, wage: floatBits(1234), bonus: 0, bonus_type: 0, contract_status: 0 })],
+    // Player 1 has left the user's squad: his stored wage no longer counts.
+    [4, 1].map((playerid) =>
+      row({ playerid, wage: floatBits(1234), bonus: 0, bonus_type: 0, contract_status: 0 }),
+    ),
   ],
 ]);
 
@@ -130,8 +123,8 @@ const input = (overrides: Partial<PriceInput> = {}): PriceInput => ({
   overallIn5Years: OVERALL_IN_5_YEARS,
   age: 24,
   contractYearsLeft: 3,
-  internationalReputation: 2,
-  playingStyle: 3,
+  internationalReputation: 4,
+  playingStyle: 13,
   prestige: 21,
   ...overrides,
 });
