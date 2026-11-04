@@ -7,8 +7,6 @@
   --color-ink: #1b2420;
   --color-muted: #4f5a54;
   --color-line: #d6d0c0;
-  /* The edge of a list that scrolls on beyond it. */
-  --color-shadow: rgb(27 36 32 / 0.2);
   --color-accent: #1d6b3c;
   --color-accent-ink: #ffffff;
   --color-error: #a3261b;
@@ -54,8 +52,6 @@
     --color-ink: #e6ebe4;
     --color-muted: #a9b3ac;
     --color-line: #34403a;
-    /* A dark shadow would not show on the dark background: a faint light edge instead. */
-    --color-shadow: rgb(230 235 228 / 0.16);
     --color-accent: #6ccf93;
     --color-accent-ink: #0c1a11;
     --color-error: #ff8f84;
@@ -491,8 +487,8 @@ input[inputmode="numeric"] {
   min-height: 0;
 }
 
-/* Columns beyond the right edge: a shadow there, over the start of the next column, so no cut-off
-   letter shows and the list reads as going on. */
+/* Columns beyond the right edge: the list fades into the background there, solid over the start of the
+   next column so no cut-off letter shows, and a mark at the labels says more columns follow. */
 .phone-list[data-more]::after {
   content: "";
   position: absolute;
@@ -500,16 +496,29 @@ input[inputmode="numeric"] {
   right: var(--phone-scrollbar, 0px);
   bottom: 0;
   z-index: 2;
-  width: var(--space-4);
-  background:
-    linear-gradient(to left, var(--color-shadow), transparent),
-    linear-gradient(to right, transparent, var(--color-bg) 50%);
+  width: var(--space-6);
+  background: linear-gradient(to right, transparent, var(--color-bg) 60%);
   pointer-events: none;
 }
 
-/* Scrolled sideways: a shadow where the columns go under the kept name. */
+.phone-list[data-more]::before {
+  content: "›";
+  content: "›" / "";
+  position: absolute;
+  top: 0;
+  right: var(--phone-scrollbar, 0px);
+  z-index: 3;
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-bg);
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  pointer-events: none;
+}
+
+/* Scrolled sideways: a line where the columns go under the kept name, as at a frozen column. */
 [data-scrolled] :is(.player-row-text, .player-rows-grid > :first-child) {
-  box-shadow: var(--space-2) 0 var(--space-2) calc(-1 * var(--space-2)) var(--color-shadow);
+  box-shadow: inset -1px 0 0 var(--color-line);
 }
 
 .player-rows {
@@ -601,13 +610,17 @@ input[inputmode="numeric"] {
 /* Labels over the phone rows' numbers, outside the scroller so they stay put vertically; they follow the
    list sideways (player-rows.tsx), and the gutter keeps them aligned where scrollbars take space. */
 .player-rows-header {
-  padding: var(--space-1) 0;
   overflow: hidden;
   scrollbar-gutter: stable;
   color: var(--color-muted);
   font-size: var(--font-size-sm);
   font-weight: 600;
   white-space: nowrap;
+}
+
+/* The padding on the cells, so the name's line runs the labels' full height. */
+.player-rows-grid > * {
+  padding-block: var(--space-1);
 }
 
 .player-rows-grid {
