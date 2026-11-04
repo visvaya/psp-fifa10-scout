@@ -82,19 +82,19 @@ const LIST_VALUE_TEXT: Readonly<Record<ListKey, (value: unknown, names: ChipName
 const listText = (key: ListKey, values: readonly unknown[], names: ChipNames): string => {
   const shown = values.slice(0, CHIP_VALUES_MAX).map((value) => LIST_VALUE_TEXT[key](value, names));
   const more = values.length - shown.length;
-  return more > 0 ? `${shown.join(", ")} +${String(more)}` : shown.join(", ");
+  return TEXT.chipValues(shown, more);
 };
 
 /** "BR, od 70, różnica od +1": the position, its bounds and the gain's. */
 const ratingText = (rating: PositionRating, names: ChipNames): string => {
   const gain = rangeText(rating.gain, TEXT.signed);
-  return [
-    ratingAbbreviation(rating.code, names.positionName),
-    rangeText(rating, formatNumber),
-    gain === "" ? "" : `${TEXT.ratingGainShort} ${gain}`,
-  ]
-    .filter((part) => part !== "")
-    .join(", ");
+  return TEXT.chipParts(
+    [
+      ratingAbbreviation(rating.code, names.positionName),
+      rangeText(rating, formatNumber),
+      gain === "" ? "" : `${TEXT.ratingGainShort} ${gain}`,
+    ].filter((part) => part !== ""),
+  );
 };
 
 /** The value a filter takes, or "" when the name says it all. */

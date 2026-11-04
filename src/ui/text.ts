@@ -311,6 +311,11 @@ export const TEXT = {
   searchIn: (label: string): string => `Szukaj: ${label}`,
   flagValues: { any: "obojętne", yes: "tak", no: "nie" },
   chip: (label: string, value: string): string => `${label}: ${value}`,
+  /** A chip's values: the first ones by name, then how many more ("Argentina, Brazil +2"). */
+  chipValues: (shown: readonly string[], more: number): string =>
+    more > 0 ? `${shown.join(", ")} +${String(more)}` : shown.join(", "),
+  /** The parts of one chip value, as the position rating's position, bounds and gain. */
+  chipParts: (parts: readonly string[]): string => parts.join(", "),
   /** The text from a capital letter, as a chip starts. */
   capitalized: (text: string): string => text.charAt(0).toLocaleUpperCase("pl") + text.slice(1),
   code: (prefix: string, value: number): string => `${prefix} ${String(value)}`,

@@ -333,7 +333,7 @@ test.describe("filter panel", () => {
     await expectCount(page, "1 zawodnik");
     // Each chip says what its filter takes.
     const chips = page.getByRole("list", { name: "Aktywne filtry" }).getByRole("button");
-    await expect(chips).toHaveText([/^Szybkość: od 90/u, /^Narodowość: Argentina, Poland/u]);
+    await expect(chips).toHaveText(["Szybkość: od 90×", "Narodowość: Argentina, Poland×"]);
     await page.getByRole("button", { name: "Usuń atrybut: Szybkość" }).click();
     await page.getByText("Cechy", { exact: true }).click();
     await page.getByLabel("Drybler techniczny").selectOption("yes");
