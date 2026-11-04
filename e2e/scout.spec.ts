@@ -38,6 +38,9 @@ test.describe("wide table", () => {
     page,
   }) => {
     await loadDatabase(page);
+    // The feet are basics: shown in the open first section, not under the closed "Sylwetka".
+    await expect(page.getByRole("group", { name: "Lepsza noga" })).toBeVisible();
+    await expect(page.getByRole("group", { name: "Słabsza noga (1–5)" })).toBeVisible();
     const scroll = page.locator(".table-scroll");
     const rightOf = async (name: RegExp) => {
       const box = await page.getByRole("columnheader", { name }).boundingBox();
@@ -107,6 +110,10 @@ test.describe("wide screen", () => {
     await expect(card.getByText("Wisła Kraków")).toBeVisible();
     // A forward, in the game's colour for attackers.
     await expect(card.locator(".position")).toHaveCSS("color", "rgb(153, 0, 0)");
+    // Both feet with the basics: the better one and the weaker one's stars.
+    await expect(card.locator(".facts > div").filter({ hasText: /^Słabsza noga/u })).toHaveText(
+      "Słabsza noga3 z 5",
+    );
     // One row per way the game rates a position, with the gain over his OVR (49 as a striker).
     const row = (label: RegExp) => card.locator(".facts > div").filter({ hasText: label });
     await expect(row(/^Boczny obrońca/u).getByRole("definition")).toHaveText("(+9) 58");
