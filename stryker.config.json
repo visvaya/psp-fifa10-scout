@@ -17,6 +17,8 @@
     "src/logic/positions.ts",
     "src/logic/overall-rating.ts",
     "src/logic/players.ts",
+    "src/logic/player-finance.ts",
+    "src/logic/transfer-price.ts",
     "src/logic/filter-players.ts",
     "src/logic/sort-players.ts",
     "src/logic/game-names.ts"
