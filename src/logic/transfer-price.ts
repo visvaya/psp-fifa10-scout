@@ -9,7 +9,7 @@
 /** Bands as [lowest value, adjustment], highest first; a value takes the first band it reaches. */
 type Bands = readonly (readonly [number, number])[];
 
-export const PRICE_TUNING = {
+const PRICE_TUNING = {
   valueLowestBase: 100_000,
   valueMagic: 39_000_000,
   valueDivider: 195,

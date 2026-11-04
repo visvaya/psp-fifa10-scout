@@ -118,24 +118,16 @@ describe("transferPrice", () => {
   });
 
   it.each([
-    [0, 0.6],
-    [1, 0.6],
-    [2, 0.7],
-    [3, 0.7],
-    [4, 0.75],
-    [6, 0.75],
-    [7, 0.7],
-    [8, 0.7],
-    [9, 0.75],
-    [13, 0.75],
-    [20, 0.85],
-    [21, 1.2],
-    [25, 1.2],
-    [26, 1.15],
-    [31, 1.15],
-  ])("multiplies position %d by %s", (positionCode, multiplier) => {
-    const input = { ...NEUTRAL, positionCode, age: 23 };
-    expect(transferPrice(input)).toBe(priceWith(0, multiplier));
+    [0.6, [0, 1]],
+    [0.7, [2, 3, 7, 8]],
+    [0.75, [4, 6, 9, 13]],
+    [0.85, [14, 20]],
+    [1.2, [21, 25]],
+    [1.15, [26, 31]],
+  ])("multiplies by %s at positions %j", (multiplier, codes) => {
+    for (const positionCode of codes) {
+      expect(transferPrice({ ...NEUTRAL, positionCode })).toBe(priceWith(0, multiplier));
+    }
   });
 
   it("skips an adjustment that would take the total to zero or below", () => {

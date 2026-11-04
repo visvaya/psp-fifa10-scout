@@ -341,7 +341,7 @@ export const TEXT = {
     appearances: "Występy",
     price: "Cena",
     wage: "Zarobki rynkowe",
-    wageNote: `Zarobki rynkowe na mecz liczone wzorem gry. Gdy kontrakt wygasł, gra może doliczyć 30${NBSP}% (wolny transfer).`,
+    wageNote: `Na mecz, wzorem gry. Po wygaśnięciu kontraktu gra może doliczyć 30${NBSP}% (wolny transfer).`,
     wageEstimate: (low: number, high: number): string =>
       `${low === high ? formatNumber(low) : `${formatNumber(low)}–${formatNumber(high)}`}${NBSP}(szacunek)`,
     none: "brak",
