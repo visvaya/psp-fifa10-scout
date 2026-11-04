@@ -158,6 +158,13 @@ const serverReachable = (): Promise<boolean> =>
     () => false,
   );
 
+/** How long "up to date" stays before it goes by itself. */
+const CURRENT_SHOWN_MS = 5000;
+
+/** A result with no action of its own, which the user can close: up to date, unreachable, failed. */
+export const isDismissible = (status: UpdateStatus): boolean =>
+  status === "current" || status === "unreachable" || status === "failed";
+
 /**
  * Whether a check may start: not while one runs, and not while a release waits to be installed (its
  * prompt with the reload button would give way to the check's result).
@@ -225,5 +232,18 @@ export const useAppUpdate = () => {
     checkForUpdate(found, serverReachable).then(setStatus, () => setStatus("failed"));
   }, []);
 
-  return { status, install, check, registered };
+  const dismiss = useCallback(() => {
+    setStatus("idle");
+  }, []);
+
+  // "Up to date" needs no answer: it goes by itself; errors stay until closed.
+  useEffect(() => {
+    if (status !== "current") return undefined;
+    const timer = setTimeout(dismiss, CURRENT_SHOWN_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [status, dismiss]);
+
+  return { status, install, check, dismiss, registered };
 };

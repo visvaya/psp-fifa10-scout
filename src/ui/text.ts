@@ -272,6 +272,8 @@ export const TEXT = {
     unreachable: "Brak połączenia z internetem, nie można sprawdzić aktualizacji.",
     check: "Sprawdź aktualizacje",
     checkMark: "↻",
+    dismiss: "Zamknij komunikat",
+    dismissMark: "×",
     reload: "Odśwież",
   },
   noData: "Nie wczytano jeszcze bazy gry.",

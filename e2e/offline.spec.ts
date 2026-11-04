@@ -126,10 +126,14 @@ test("a new release is offered and installs on request, under a sub-path", async
     const check = page.getByRole("button", { name: "Sprawdź aktualizacje" });
     const status = page.locator(".update-prompt");
     await check.click();
-    await expect(status).toHaveText("Masz najnowszą wersję.");
+    await expect(status).toContainText("Masz najnowszą wersję.");
+    // It goes by itself after a moment; an error stays until closed.
+    await expect(status).toBeEmpty({ timeout: 10_000 });
     await context.setOffline(true);
     await check.click();
-    await expect(status).toHaveText(/^Brak połączenia/u);
+    await expect(status).toContainText("Brak połączenia");
+    await status.getByRole("button", { name: "Zamknij komunikat" }).click();
+    await expect(status).toBeEmpty();
     await context.setOffline(false);
 
     await host.release();
