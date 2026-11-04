@@ -133,6 +133,15 @@ describe("localizePlayers", () => {
     expect(unknown).toEqual(players[1]);
   });
 
+  it("names a misleading position with its English name in the list and on the card too", () => {
+    const polish = { ...names, positions: { 1: "ST", 30: "N" } };
+    const [sweeper] = localizePlayers(
+      [testPlayer({ positionCode: 1, positionName: "SW" })],
+      polish,
+    );
+    expect(sweeper?.positionName).toBe("ST (ang. SW)");
+  });
+
   it("keeps clubless players clubless and returns the players unchanged without names", () => {
     const players = [
       testPlayer({ clubId: null, clubName: null, leagueId: null, leagueName: null }),

@@ -97,7 +97,11 @@ const renamed = (players: readonly Player[], names: GameNames | null): readonly 
         leagueName: nameOr(names.leagues, player.leagueId, player.leagueName),
         nationalTeamName: nameOr(names.teams, player.nationalTeamId, player.nationalTeamName),
         nationalityName: nameOr(names.countries, player.nationalityId, player.nationalityName),
-        positionName: names.positions[player.positionCode] ?? player.positionName,
+        // As everywhere a position is named: a misleading abbreviation gets its English name.
+        positionName:
+          names.positions[player.positionCode] === undefined
+            ? player.positionName
+            : positionNameIn(names, player.positionCode),
       }));
 
 /**
