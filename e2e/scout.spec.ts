@@ -19,8 +19,20 @@ import {
 
 guardSecurityPolicy();
 
+/** The right edge of a box. */
+const rightOfBox = (box: { x: number; width: number } | null) =>
+  (box?.x ?? Number.NaN) + (box?.width ?? 0);
+
 test.describe("wide table", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
+
+  test("ends a number column's heading where its values end", async ({ page }) => {
+    await loadDatabase(page);
+    const label = page.getByRole("columnheader", { name: /^OVR/u }).locator(".sort-label");
+    const value = page.getByRole("row").nth(1).locator("td.num .rating").first();
+    const [labelBox, valueBox] = [await label.boundingBox(), await value.boundingBox()];
+    expect(Math.abs(rightOfBox(labelBox) - rightOfBox(valueBox))).toBeLessThan(1);
+  });
 
   test("shows the ratings without scrolling sideways and marks the filter sections", async ({
     page,
@@ -169,7 +181,8 @@ test.describe("table and dialogs", () => {
     await page.getByLabel("Dodaj atrybut").selectOption({ label: "Przyspieszenie" });
     await page.getByRole("group", { name: "Przyspieszenie" }).getByLabel("od").fill("10");
     const headers = page.getByRole("columnheader");
-    await expect(headers.nth(3)).toHaveText(/^OVR/u);
+    // The sort mark comes before a number column's heading.
+    await expect(headers.nth(3)).toHaveText(/OVR$/u);
     await expect(headers.nth(4)).toHaveText("Przyspieszenie");
     await page.getByRole("button", { name: "Usuń atrybut: Przyspieszenie" }).click();
     await expect(page.getByRole("columnheader", { name: "Przyspieszenie" })).toHaveCount(0);
