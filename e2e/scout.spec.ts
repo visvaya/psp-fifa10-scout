@@ -19,13 +19,28 @@ import {
 
 guardSecurityPolicy();
 
+/** The right edge of a box. */
+const rightOfBox = (box: { x: number; width: number } | null) =>
+  (box?.x ?? Number.NaN) + (box?.width ?? 0);
+
 test.describe("wide table", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
+
+  test("ends a number column's heading where its values end", async ({ page }) => {
+    await loadDatabase(page);
+    const label = page.getByRole("columnheader", { name: /^OVR/u }).locator(".sort-label");
+    const value = page.getByRole("row").nth(1).locator("td.num .rating").first();
+    const [labelBox, valueBox] = [await label.boundingBox(), await value.boundingBox()];
+    expect(Math.abs(rightOfBox(labelBox) - rightOfBox(valueBox))).toBeLessThan(1);
+  });
 
   test("shows the ratings without scrolling sideways and marks the filter sections", async ({
     page,
   }) => {
     await loadDatabase(page);
+    // The feet are basics: shown in the open first section, not under the closed "Sylwetka".
+    await expect(page.getByRole("group", { name: "Lepsza noga" })).toBeVisible();
+    await expect(page.getByRole("group", { name: "Słabsza noga (1–5)" })).toBeVisible();
     const scroll = page.locator(".table-scroll");
     const rightOf = async (name: RegExp) => {
       const box = await page.getByRole("columnheader", { name }).boundingBox();
@@ -95,6 +110,10 @@ test.describe("wide screen", () => {
     await expect(card.getByText("Wisła Kraków")).toBeVisible();
     // A forward, in the game's colour for attackers.
     await expect(card.locator(".position")).toHaveCSS("color", "rgb(153, 0, 0)");
+    // Both feet with the basics: the better one and the weaker one's stars.
+    await expect(card.locator(".facts > div").filter({ hasText: /^Słabsza noga/u })).toHaveText(
+      "Słabsza noga3 z 5",
+    );
     // One row per way the game rates a position, with the gain over his OVR (49 as a striker).
     const row = (label: RegExp) => card.locator(".facts > div").filter({ hasText: label });
     await expect(row(/^Boczny obrońca/u).getByRole("definition")).toHaveText("(+9) 58");
@@ -169,7 +188,8 @@ test.describe("table and dialogs", () => {
     await page.getByLabel("Dodaj atrybut").selectOption({ label: "Przyspieszenie" });
     await page.getByRole("group", { name: "Przyspieszenie" }).getByLabel("od").fill("10");
     const headers = page.getByRole("columnheader");
-    await expect(headers.nth(3)).toHaveText(/^OVR/u);
+    // The sort mark comes before a number column's heading.
+    await expect(headers.nth(3)).toHaveText(/OVR$/u);
     await expect(headers.nth(4)).toHaveText("Przyspieszenie");
     await page.getByRole("button", { name: "Usuń atrybut: Przyspieszenie" }).click();
     await expect(page.getByRole("columnheader", { name: "Przyspieszenie" })).toHaveCount(0);
