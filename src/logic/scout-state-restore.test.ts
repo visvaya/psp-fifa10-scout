@@ -21,6 +21,11 @@ const succeeded = (state: ScoutState, requestId = 1): ScoutState =>
   });
 
 describe("loading a picked or a stored game", () => {
+  it("drops the game shortlist filter when the game comes without a career", () => {
+    const filters = { flags: { shortlisted: true, leadership: true } };
+    expect(succeeded({ ...started(), filters }).filters).toEqual({ flags: { leadership: true } });
+  });
+
   it("stays on the start view after a picked file and opens the list after the stored game", () => {
     expect(succeeded(started()).view).toBe("start");
     expect(succeeded(started({ restored: true })).view).toBe("list");

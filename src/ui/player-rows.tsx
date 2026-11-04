@@ -6,7 +6,15 @@ import { phoneColumns } from "../logic/phone-columns.ts";
 import type { Player } from "../logic/players.ts";
 import type { ScoutAction } from "../logic/scout-state.ts";
 import type { SortKey } from "../logic/sort-players.ts";
-import { clubText, ColumnValue, columnLabel, ROW_HEIGHT_REM, useRows } from "./player-list.tsx";
+import {
+  clubText,
+  ColumnValue,
+  columnLabel,
+  ROW_HEIGHT_REM,
+  ShortlistStar,
+  ShortlistWords,
+  useRows,
+} from "./player-list.tsx";
 import type { ListProps } from "./player-list.tsx";
 import { PositionName } from "./position-name.tsx";
 import { TEXT } from "./text.ts";
@@ -85,13 +93,19 @@ const RowsHeader = ({
 const PhoneName = ({ player }: { player: Player }) =>
   player.initialName !== null && player.name.length > PHONE.initialAboveChars ? (
     <span className="player-row-name has-initial">
+      <ShortlistStar player={player} />
       <span className="player-row-name-full">{player.name}</span>
       <span className="player-row-name-short" aria-hidden="true">
         {player.initialName}
       </span>
+      <ShortlistWords player={player} />
     </span>
   ) : (
-    <span className="player-row-name">{player.name}</span>
+    <span className="player-row-name">
+      <ShortlistStar player={player} />
+      {player.name}
+      <ShortlistWords player={player} />
+    </span>
   );
 
 /** Tells styles.css how far the list has scrolled sideways, on the list and its labels alike. */

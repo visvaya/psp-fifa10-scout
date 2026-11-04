@@ -534,6 +534,15 @@ input[inputmode="numeric"] {
   font-weight: 600;
 }
 
+.shortlist-mark,
+.shortlisted {
+  color: var(--color-accent);
+}
+
+.shortlist-mark {
+  margin-right: var(--space-1);
+}
+
 /* The list and its labels measure widths in cqw, as their own width without a scrollbar. */
 .phone-scroll,
 .player-rows-header {
