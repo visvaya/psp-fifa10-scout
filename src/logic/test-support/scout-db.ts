@@ -126,7 +126,8 @@ export const buildScoutDb = (): Uint8Array =>
       { playerid: 158_023, form: 69, morale: 4, goals: 3, appearances: 5, injurydaysout: 0 },
     ]),
     empty("career_youth_accademy"),
-    empty("career_transfer_list"),
+    // Gracz Numer 18 is listed for a loan.
+    table("career_transfer_list", [{ playerid: 1017, is_loan: 1, sold: 0 }]),
     // Messi is on the user's shortlist in the game.
     table("career_shortlist", [{ playerid: 158_023, shortlist_dummy: 0 }]),
     empty("career_players_grown_attributes"),

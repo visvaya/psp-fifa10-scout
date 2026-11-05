@@ -29,7 +29,7 @@ describe("clubWillSell", () => {
     expect(clubWillSell(club(20, 5) ?? { size: 0, groups: [] }, 0, 12)).toBe(true);
   });
 
-  it("leaves loaned-out players out of the group but not out of the squad size", () => {
+  it("leaves players on loan at the club out of the group but not out of the squad size", () => {
     const squad = squadsOf([
       ...Array.from({ length: 18 }, () => ({ teamId: 2, positionCode: 0, loaned: false })),
       { teamId: 2, positionCode: 5, loaned: false },
@@ -51,9 +51,9 @@ describe("clubWillSellOf (through buildPlayers)", () => {
   const of = (career: typeof save, id: number) =>
     buildPlayers(db, career).find((player) => player.id === id)?.clubWillSell;
 
-  // Barcelona keeps 21 players; Messi's group of right midfielders is deep enough. Lending out its
-  // other right midfielders leaves him alone in the group, below its minimum of 2.
-  it("leaves loaned-out players out of the group and skips a run-out contract", () => {
+  // Barcelona keeps 21 players; Messi's group of right midfielders is deep enough. With its other right
+  // midfielders on loan at it, he is alone in the group, below its minimum of 2.
+  it("leaves players on loan at the club out of the group and skips a run-out contract", () => {
     expect(of(save, 158_023)).toBe(true);
     const wide = buildPlayers(db, save)
       .filter((player) => player.clubId === 241 && player.positionCode === 15)

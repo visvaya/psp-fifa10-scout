@@ -229,6 +229,10 @@ const CareerFacts = ({ player }: { player: Player }) => (
         [TEXT.card.appearances, optional(player.appearances)],
         [RANGE_LABELS.injuryDays, optional(player.injuryDays)],
         [FLAG_LABELS.transferListed, yesNo(player.transferListed)],
+        [FLAG_LABELS.loanListed, yesNo(player.loanListed)],
+        ...(player.loanedFromId === null
+          ? []
+          : [[TEXT.card.loanedFrom, player.loanedFromName ?? TEXT.card.none] as const]),
         ...(player.clubWillSell === null
           ? []
           : [[FLAG_LABELS.clubWillSell, yesNo(player.clubWillSell)] as const]),

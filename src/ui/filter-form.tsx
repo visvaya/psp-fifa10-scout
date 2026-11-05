@@ -4,10 +4,11 @@ import type { FlagKey, ListKey, Range, RangeKey } from "../logic/filter-players.
 import { ATTRIBUTE_NAMES, TRAIT_NAMES } from "../logic/players.ts";
 import type { AttributeName, Player, TraitName } from "../logic/players.ts";
 import { POSITION_GROUPS } from "../logic/positions.ts";
-import { activeFilters, facetOptions } from "../logic/scout-state.ts";
+import { facetOptions } from "../logic/facets.ts";
+import type { FacetOption } from "../logic/facets.ts";
+import { activeFilters } from "../logic/scout-state.ts";
 import type {
   ClubStatus,
-  FacetOption,
   FilterChange,
   MyClub,
   ScoutAction,
@@ -346,6 +347,8 @@ const careerSection = ({ range, flag }: Kit) => (
     {range("price")}
     {range("wage")}
     {flag("transferListed")}
+    {flag("loanListed")}
+    {flag("loaned")}
     {flag("shortlisted")}
     {flag("clubWillSell")}
   </Section>

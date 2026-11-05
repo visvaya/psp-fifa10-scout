@@ -1,7 +1,8 @@
 // The helpers the screens read from the scout state: the filters the list shows as chips, the colour
 // bands and the facet options.
 import { describe, expect, it } from "vitest";
-import { activeFilters, attributeBand, facetOptions } from "./scout-state.ts";
+import { facetOptions } from "./facets.ts";
+import { activeFilters, attributeBand } from "./scout-state.ts";
 import { testPlayer } from "./test-support/player-fixtures.ts";
 
 describe("activeFilters", () => {
