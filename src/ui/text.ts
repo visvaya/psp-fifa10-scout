@@ -342,6 +342,8 @@ export const TEXT = {
   filtersWithCount: (value: number): string =>
     value === 0 ? "Filtry" : `Filtry (${String(value)})`,
   resetFilters: "Wyczyść filtry",
+  /** Takes back the last change of the filters, the sort or the saved sets. */
+  undo: "Cofnij",
   /** Clears one field's filter; the label names the field for screen readers. */
   /** A mark right after a field's name (owner, 2026-11-05: an icon, not a word); the label names it. */
   clearField: "×",

@@ -16,6 +16,8 @@ import type { Player } from "./players.ts";
 import { POTENTIAL_KEYS } from "./sort-players.ts";
 import type { SortDirection, SortKey } from "./sort-players.ts";
 import { filterSetsAfter } from "./saved-filters.ts";
+import { withUndo } from "./undo.ts";
+import type { UndoAction, UndoStep } from "./undo.ts";
 import type { FilterSet, FilterSetAction } from "./saved-filters.ts";
 
 /** Which players by club: unset means "available", everyone one can sign; free agents need a career. */
@@ -66,6 +68,8 @@ export type ScoutError =
   | { readonly stage: "save" | "locale"; readonly kind: "missing-file" };
 
 export interface ScoutState extends Preferences {
+  /** The states before the user's last changes, newest first (undo.ts). */
+  readonly undo: readonly UndoStep[];
   readonly players: readonly Player[] | null;
   readonly myTeamId: number | null;
   readonly career: CareerSummary | null;
@@ -108,6 +112,7 @@ type LoadAction =
 
 export type ScoutAction =
   | LoadAction
+  | UndoAction
   | { readonly type: "files-incomplete"; readonly stage: "save" | "locale" }
   | { readonly type: "languages-restored"; readonly languages: GameLanguages }
   | { readonly type: "language-chosen"; readonly language: string | null }
@@ -125,6 +130,7 @@ export type ScoutAction =
 export const DEFAULT_SORT: ScoutSort = { key: "overall", direction: "descending" };
 
 export const initialScoutState: ScoutState = {
+  undo: [],
   players: null,
   myTeamId: null,
   career: null,
@@ -344,7 +350,7 @@ const loadReducer = (state: ScoutState, action: LoadAction): ScoutState => {
   }
 };
 
-export const scoutReducer = (state: ScoutState, action: ScoutAction): ScoutState => {
+const changes = (state: ScoutState, action: Exclude<ScoutAction, UndoAction>): ScoutState => {
   if (isLoadAction(action)) return loadReducer(state, action);
   if (isFilterSetAction(action)) return withFilterSets(state, action);
   switch (action.type) {
@@ -388,6 +394,9 @@ export const scoutReducer = (state: ScoutState, action: ScoutAction): ScoutState
       return { ...state, openPlayerId: null };
   }
 };
+
+/** The state after an action, with undo for the user's changes. */
+export const scoutReducer = withUndo(changes);
 
 /** The stored game is loading and nothing shows yet: the list skeleton stands in for it. */
 export const isRestoring = ({ loading, players }: ScoutState): boolean =>

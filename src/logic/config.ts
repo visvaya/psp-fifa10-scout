@@ -13,4 +13,6 @@ export const SCOUT_CONFIG = {
   attributeBandMin: { high: 80, good: 70, average: 50 },
   /** Seasons ahead the peak OVR projection looks: from 16 years old past the oldest curve age. */
   peakProjectionYears: 20,
+  /** Changes of the filters, sort and sets the user can take back, newest first. */
+  undoSteps: 50,
 } as const;

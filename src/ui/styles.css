@@ -767,6 +767,9 @@ input[inputmode="numeric"] {
 /* The line above runs the panel's full width (the negative margins take up its padding), and the bar
    keeps clear of the phone's home indicator. */
 .reset-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
   position: sticky;
   bottom: calc(-1 * var(--space-4));
   margin-inline: calc(-1 * var(--space-4));
