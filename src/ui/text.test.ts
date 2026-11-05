@@ -29,10 +29,13 @@ describe("formatNumber", () => {
   });
 });
 
+// A match rating with one decimal, as the game's stats screen shows it.
 describe("formatRating", () => {
-  it("shows a match rating with one decimal, as the game's stats screen does", () => {
-    expect(formatRating(6.9)).toBe("6,9");
-    expect(formatRating(7)).toBe("7,0");
+  it.each([
+    [6.9, "6,9"],
+    [7, "7,0"],
+  ])("shows %d as %s", (value, text) => {
+    expect(formatRating(value)).toBe(text);
   });
 });
 
