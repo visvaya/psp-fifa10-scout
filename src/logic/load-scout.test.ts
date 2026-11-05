@@ -96,7 +96,7 @@ describe("loadScout", () => {
       clubName: "Wisła Kraków",
       lastGameDate: new Date(Date.UTC(2009, 7, 8)),
       currency: 0,
-      offer: { prestige: 0, finance: 0, seasonEndYear: 2010 },
+      offer: { prestige: 0, negotiator: 0, seasonEndYear: 2010 },
     });
   });
 
