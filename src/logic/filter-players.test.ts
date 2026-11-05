@@ -79,6 +79,13 @@ const ratedAtCode1 = (overall = 50) =>
     }),
   );
 
+/** A player rated `rating` at position code 5 and 60 everywhere else. */
+const ratedAt5 = (id: number, rating: number) =>
+  testPlayer({
+    id,
+    overallByCode: Array.from({ length: 32 }, (_, code) => (code === 5 ? rating : 60)),
+  });
+
 describe("filterPlayers", () => {
   it("returns everything for empty filters", () => {
     expect(ids({})).toEqual([1, 2, 3, 4]);
@@ -257,6 +264,13 @@ describe("filterPlayers", () => {
     expect(loanIds({ excludeTeamId: 10 })).toEqual([]);
     // Club 20 lent player 11 to club 10.
     expect(loanIds({ onlyTeamId: 20 })).toEqual([9, 11]);
+  });
+
+  it("keeps only players whose highest OVR is at the chosen position, a tie included", () => {
+    const best = filterPlayers([ratedAt5(1, 70), ratedAt5(2, 60), ratedAt5(3, 59)], {
+      positionRating: { code: 5, bestOnly: true },
+    });
+    expect(best.map((player) => player.id)).toEqual([1, 2]);
   });
 
   it("counts only the game's free agents as free agents, not juniors or legends", () => {
