@@ -121,7 +121,10 @@ export const buildScoutDb = (): Uint8Array =>
         last_game_number: 155_892 * 1024 + 7,
       },
     ]),
-    empty("playerstats"),
+    // Messi's season so far: the save keeps his average match rating 6,9 times ten.
+    table("playerstats", [
+      { playerid: 158_023, form: 69, morale: 4, goals: 3, appearances: 5, injurydaysout: 0 },
+    ]),
     empty("career_youth_accademy"),
     empty("career_transfer_list"),
     // Messi is on the user's shortlist in the game.

@@ -238,6 +238,18 @@ describe("scout store", () => {
     });
   });
 
+  // Version 4 kept the average match rating range in the save's tenths (65 for 6,5).
+  it("migrates the rating range of version 4 to the rating itself", async () => {
+    const value = {
+      filters: { ranges: { form: { min: 65, max: 72 }, age: { max: 23 } } },
+      sort: { key: "form", direction: "descending" },
+    };
+    expect(await loadPreferences({ schemaVersion: 4, value })).toMatchObject({
+      filters: { ranges: { form: { min: 6.5, max: 7.2 }, age: { max: 23 } } },
+      sort: { key: "form", direction: "descending" },
+    });
+  });
+
   it("splits the position groups of version 3 as they are now", async () => {
     expect(await loadV3Groups(["full-backs", "goalkeeper"])).toEqual([
       "full-backs",
@@ -296,7 +308,7 @@ describe("scout store", () => {
       value: { filters: { freeAgentsOnly: false }, sort: DEFAULT_SORT },
     });
     await backend.set("gameDb", { schemaVersion: 1, value: Uint8Array.of(7) });
-    expect(SCHEMA_VERSION.preferences).toBe(4);
+    expect(SCHEMA_VERSION.preferences).toBe(5);
     expect(await createScoutStore(backend).load()).toEqual({
       gameDb: Uint8Array.of(7),
       gameName: null,

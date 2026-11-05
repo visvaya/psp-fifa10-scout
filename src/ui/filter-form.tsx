@@ -218,6 +218,7 @@ const controls = (filters: ScoutFilters, change: Change) => ({
       label={rangeLabel(key)}
       range={filters.ranges?.[key]}
       grouped={GROUPED_RANGES.has(key)}
+      decimal={key === "form"}
       onChange={(range) => {
         change({ ranges: { ...filters.ranges, [key]: range } });
       }}

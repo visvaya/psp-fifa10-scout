@@ -165,6 +165,10 @@ export interface Player extends Finance {
   readonly nationalTeamName: string | null;
   readonly nationalityId: number;
   readonly nationalityName: string | null;
+  /**
+   * The average match rating (KR) with one decimal, as the game's stats screen shows it: the save keeps
+   * it times ten (playerstats.form; 5 of 5 league ratings on that screen agree).
+   */
   readonly form: number | null;
   readonly morale: number | null;
   readonly goals: number | null;
@@ -223,6 +227,12 @@ const shortlistOf = (db: EaDb, save: CareerSave | undefined): readonly EaDbRow[]
 const statOf = (stats: EaDbRow | undefined, key: string): number | null =>
   stats === undefined ? null : num(stats, key);
 
+/** The average match rating, stored times ten. */
+const ratingOf = (stats: EaDbRow | undefined): number | null => {
+  const tenths = statOf(stats, "form");
+  return tenths === null ? null : tenths / 10;
+};
+
 const profileFields = (row: EaDbRow) => ({
   bodyType: num(row, "bodysizecode"),
   weakFoot: num(row, "weakfootability") + 1,
@@ -272,7 +282,7 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
     ...teamFields(context.placements.get(id) ?? {}),
     nationalityId,
     nationalityName: context.countries.get(nationalityId) ?? null,
-    form: statOf(stats, "form"),
+    form: ratingOf(stats),
     morale: statOf(stats, "morale"),
     goals: statOf(stats, "goals"),
     appearances: statOf(stats, "appearances"),

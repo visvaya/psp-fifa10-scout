@@ -8,7 +8,13 @@ import { ModalDialog } from "./modal-dialog.tsx";
 import { PositionName, ratingChoiceName } from "./position-name.tsx";
 import type { PositionNames } from "./position-name.tsx";
 import { clubText } from "./player-list.tsx";
-import { ATTRIBUTE_GROUP_LABELS, ATTRIBUTE_LABELS, formatNumber, TEXT } from "./text.ts";
+import {
+  ATTRIBUTE_GROUP_LABELS,
+  ATTRIBUTE_LABELS,
+  formatNumber,
+  formatRating,
+  TEXT,
+} from "./text.ts";
 
 const ATTRIBUTE_GROUPS: readonly (readonly [
   keyof typeof ATTRIBUTE_GROUP_LABELS,
@@ -181,7 +187,7 @@ export const PlayerCard = (props: {
           <p className="help">{TEXT.card.careerNote}</p>
           <Facts
             facts={[
-              [TEXT.card.form, optional(player.form)],
+              [TEXT.card.form, player.form === null ? TEXT.card.none : formatRating(player.form)],
               [TEXT.card.morale, optional(player.morale)],
               [TEXT.card.goals, optional(player.goals)],
               [TEXT.card.appearances, optional(player.appearances)],

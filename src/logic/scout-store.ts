@@ -1,6 +1,6 @@
 // The one load/save adapter: the extracted fifa.db, the career save and the filter and sort preferences, each stored
 // as { schemaVersion, value } in a key-value backend (IndexedDB in the browser, memory otherwise).
-// Nothing leaves the device. Preferences 2 and 3 migrate to 4, a fifa.db 1 (bare bytes) to 2 (bytes and
+// Nothing leaves the device. Preferences 2, 3 and 4 migrate to 5, a fifa.db 1 (bare bytes) to 2 (bytes and
 // the game file's name) and languages 1 and 2 to 3 (empty for the position names they lack); any other
 // version or shape is ignored, and
 // unknown or malformed filter values are dropped one by one.
@@ -20,7 +20,7 @@ import type { SortKey } from "./sort-players.ts";
  * 3: ranges, lists and flags, showPotential; 4: sweeper, side midfield and wingers as groups. Game
  * database 2: the game file's name. Languages 2: position abbreviations; 3: full position names.
  */
-export const SCHEMA_VERSION = { gameDb: 2, preferences: 4, languages: 3, careerSave: 1 } as const;
+export const SCHEMA_VERSION = { gameDb: 2, preferences: 5, languages: 3, careerSave: 1 } as const;
 
 export interface StorageBackend {
   readonly get: (key: string) => Promise<unknown>;
@@ -226,11 +226,27 @@ const migrateFromV3 = (value: unknown): unknown => {
   return { ...value, filters: { ...filters, lists: { ...lists, positionGroup } } };
 };
 
+/** A bound in tenths as the value itself; anything else is left for the parser to drop. */
+const tenths = (bound: unknown): unknown =>
+  isFiniteNumber(bound) ? Math.round(bound) / 10 : bound;
+
+/** Version 4 kept the average match rating range in the save's tenths (65 for 6,5). */
+const migrateFromV4 = (value: unknown): unknown => {
+  const filters = recordOf(recordOf(value)["filters"]);
+  const ranges = recordOf(filters["ranges"]);
+  if (!isRecord(value) || !isRecord(ranges["form"])) return value;
+  const { min, max } = ranges["form"];
+  const form = { min: tenths(min), max: tenths(max) };
+  return { ...value, filters: { ...filters, ranges: { ...ranges, form } } };
+};
+
 const preferencesOf = (record: unknown): Preferences | null => {
   if (!isRecord(record)) return null;
   const { schemaVersion, value } = record;
-  if (schemaVersion === 2) return parsePreferences(migrateFromV3(migrateFromV2(value)));
-  if (schemaVersion === 3) return parsePreferences(migrateFromV3(value));
+  if (schemaVersion === 2)
+    return parsePreferences(migrateFromV4(migrateFromV3(migrateFromV2(value))));
+  if (schemaVersion === 3) return parsePreferences(migrateFromV4(migrateFromV3(value)));
+  if (schemaVersion === 4) return parsePreferences(migrateFromV4(value));
   return parsePreferences(versioned(record, SCHEMA_VERSION.preferences));
 };
 
