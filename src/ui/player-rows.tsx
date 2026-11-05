@@ -43,6 +43,8 @@ const PHONE = {
   ratingRem: 2.25,
   labelRemPerChar: 0.5,
   paddingRem: 0.5,
+  /** The fade at the right edge while columns follow (--space-6 in styles.css). */
+  fadeRem: 1.5,
 } as const;
 /**
  * The width of a phone number column in rem: a rating's, its label's (with a character for the sort mark)
@@ -169,14 +171,18 @@ const PhoneName = ({ player }: { player: Player }) =>
   );
 
 /**
- * Where the list scrolls so a focused label shows whole between the kept name and the right edge, with
- * a label's padding to spare. Measured within the header's content, whatever the header's own scroll.
+ * Where the list scrolls so a focused label shows whole between the kept name and the right edge: a
+ * label's padding to spare on the left, the edge's fade on the right, which stays while columns follow.
+ * Measured within the header's content, whatever the header's own scroll.
  */
 const scrollShowing = (label: HTMLElement, header: HTMLElement, from: number): number => {
   const box = label.getBoundingClientRect();
   const origin = header.getBoundingClientRect().left - header.scrollLeft;
-  const spare = PHONE.paddingRem * rootFontPx();
-  const [left, right] = [box.left - origin - spare, box.right - origin + spare];
+  const rem = rootFontPx();
+  const [left, right] = [
+    box.left - origin - PHONE.paddingRem * rem,
+    box.right - origin + PHONE.fadeRem * rem,
+  ];
   const name = header.querySelector(".player-rows-grid > :first-child")?.getBoundingClientRect();
   const nameWidth = name?.width ?? 0;
   if (right > from + header.clientWidth) return right - header.clientWidth;

@@ -5,6 +5,18 @@ import { centre, guardSecurityPolicy, loadDatabase, PHONE, pickGame } from "./su
 
 guardSecurityPolicy();
 
+/** Filters by acceleration and sprint speed, which adds their two columns. */
+const filterBySpeed = async (page: Page) => {
+  await page.getByRole("button", { name: "Filtry" }).click();
+  const dialog = page.getByRole("dialog", { name: "Filtry" });
+  await dialog.getByText("Atrybuty", { exact: true }).click();
+  await dialog.getByLabel("Dodaj atrybut").selectOption({ label: "Przyspieszenie" });
+  await dialog.getByRole("group", { name: "Przyspieszenie" }).getByLabel("od").fill("10");
+  await dialog.getByLabel("Dodaj atrybut").selectOption({ label: "Szybkość" });
+  await dialog.getByRole("group", { name: "Szybkość" }).getByLabel("od").fill("10");
+  await dialog.getByRole("button", { name: "Zamknij" }).click();
+};
+
 /** Shows the potential through the filter dialog, as a phone user does. */
 const showPotential = async (page: Page) => {
   await page.getByRole("button", { name: "Filtry" }).click();
@@ -184,18 +196,29 @@ test.describe("phone column labels", () => {
     await expect(page.getByRole("button", { name: /^OVR/u })).toHaveAccessibleName("OVR");
   });
 
+  // A label partly off screen, with more columns after it, shows clear of the right edge's fade.
+  test("keeps a focused label clear of the fade at the right edge", async ({ page }) => {
+    await loadDatabase(page);
+    await filterBySpeed(page);
+    await page.getByLabel("Sortuj według").selectOption("height");
+    const labels = page.locator(".player-rows-header .column-label");
+    await expect(labels).toHaveCount(4);
+    await labels.nth(2).focus();
+    await expect(page.locator(".phone-list")).toHaveAttribute("data-more");
+    const fadePx = 24;
+    await expect
+      .poll(async () => {
+        const box = await labels.nth(2).boundingBox();
+        return (box?.x ?? Infinity) + (box?.width ?? 0);
+      })
+      .toBeLessThanOrEqual((page.viewportSize()?.width ?? 0) - fadePx);
+  });
+
   // A label off screen that gets the focus scrolls into view, and the rows with it, or the label would
   // stay hidden or stand over another column's values.
   test("moves the rows along when a label off screen gets the focus", async ({ page }) => {
     await loadDatabase(page);
-    await page.getByRole("button", { name: "Filtry" }).click();
-    const dialog = page.getByRole("dialog", { name: "Filtry" });
-    await dialog.getByText("Atrybuty", { exact: true }).click();
-    await dialog.getByLabel("Dodaj atrybut").selectOption({ label: "Przyspieszenie" });
-    await dialog.getByRole("group", { name: "Przyspieszenie" }).getByLabel("od").fill("10");
-    await dialog.getByLabel("Dodaj atrybut").selectOption({ label: "Szybkość" });
-    await dialog.getByRole("group", { name: "Szybkość" }).getByLabel("od").fill("10");
-    await dialog.getByRole("button", { name: "Zamknij" }).click();
+    await filterBySpeed(page);
     await page.locator(".player-rows-header .column-label").last().focus();
     const [header, list] = [page.locator(".player-rows-header"), page.locator(".scroll")];
     // Whole on screen, measured: WebKit's viewport check misjudges a label in the scrolled header.
