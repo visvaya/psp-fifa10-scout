@@ -1,7 +1,6 @@
 import { useCallback, useState } from "react";
 import type { JSX, ReactNode } from "react";
 import type { CurrencyCode } from "../data/career-save.ts";
-import { playerStars } from "../logic/player-stars.ts";
 import { offerTerms } from "../logic/offer.ts";
 import type { OfferContext } from "../logic/offer.ts";
 import type { AttributeName, Player } from "../logic/players.ts";
@@ -132,7 +131,6 @@ const basics = (
   [TEXT.card.contract, player.contractEndYear ?? TEXT.card.none],
   ...money(player, currency),
   [TEXT.columns.overall, <AttributeValue key="overall" value={player.overall} />],
-  [TEXT.card.playerStars, <Stars key="stars" value={playerStars(player.overall)} />],
   ...(showPotential
     ? [[TEXT.card.potential, <AttributeValue key="potential" value={player.potential} />] as const]
     : []),
