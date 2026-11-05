@@ -3,6 +3,7 @@ import { languageLabel } from "../logic/game-names.ts";
 import type { LoadStage } from "../logic/load-scout.ts";
 import { isRestoring, listedCount } from "../logic/scout-state.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
+import { About } from "./about.tsx";
 import { TEXT } from "./text.ts";
 
 interface StartScreenProps {
@@ -263,6 +264,7 @@ export const StartScreen = (props: StartScreenProps): JSX.Element => {
         <h3 id="install-title">{TEXT.installHeading}</h3>
         <p className="help">{TEXT.installHelp}</p>
       </section>
+      <About />
     </section>
   );
 };

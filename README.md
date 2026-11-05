@@ -53,6 +53,7 @@ pnpm dev       # development server
 pnpm build && pnpm preview   # production build, including the offline service worker
 pnpm verify    # the full gate CI runs: format, text rules, typecheck, lint, tests, duplicates, dead code, build, size
 pnpm test:e2e  # browser tests (Chromium and WebKit, with axe), on a synthetic database
+pnpm make:screenshots  # after pnpm build: retakes the sample screenshots of the start page (public/screenshots)
 ```
 
 Deployment: the `deploy` job in `.github/workflows/ci.yml` publishes the tested build to Cloudflare
