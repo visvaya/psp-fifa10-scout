@@ -4,6 +4,7 @@ import {
   expectCount,
   expectNoAxeViolations,
   expectStoredPositionGroup,
+  expectStoredSearchCleared,
   expectStoredWatchNote,
   guardSecurityPolicy,
   loadDatabase,
@@ -43,6 +44,7 @@ test.describe("own watchlist", () => {
     await expectStoredWatchNote(page, NOTE);
     await page.keyboard.press("Escape");
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("");
+    await expectStoredSearchCleared(page);
     await page.reload();
     await expectCount(page, "62 zawodników");
 

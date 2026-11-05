@@ -47,6 +47,16 @@ export const expectStoredPositionGroup = async (page: Page, group: string) => {
     .toMatchObject({ value: { filters: { lists: { positionGroup: [group] } } } });
 };
 
+/** Waits until the stored preferences have no search text: a reload before that restores the old search. */
+export const expectStoredSearchCleared = async (page: Page) => {
+  await expect
+    .poll(async () => {
+      const stored = await page.evaluate(readStored, "preferences");
+      return JSON.stringify(stored).includes('"text"');
+    })
+    .toBe(false);
+};
+
 /** Writes a record into the app's IndexedDB store, run in the page like `readStored`. */
 export const writeStored = async ([key, value]: readonly [string, unknown]): Promise<void> =>
   new Promise((resolve) => {
