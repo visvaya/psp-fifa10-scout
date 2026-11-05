@@ -1,6 +1,8 @@
 // Player ordering by any scalar summary field or attribute; missing values go last either way,
 // and ties fall back to the name, then the id (nameOrder), so the order is total. Every key is
 // turned into a number first: text by its rank in the given collation (Polish by default), the name by nameOrder.
+import { groupStat, isGroupAverage, isGroupStatKey } from "./attribute-groups.ts";
+import type { GroupStatKey } from "./attribute-groups.ts";
 import { peakAt, ratingGain } from "./filter-players.ts";
 import { isAttributeName, nameCollator } from "./players.ts";
 import type { AttributeName, Player } from "./players.ts";
@@ -14,7 +16,13 @@ type ScalarKey = {
  * positionRating: the OVR at a chosen position code; ratingGain: that OVR minus the OVR; positionPeak:
  * the peak OVR there.
  */
-export type SortKey = ScalarKey | AttributeName | "positionRating" | "ratingGain" | "positionPeak";
+export type SortKey =
+  | ScalarKey
+  | AttributeName
+  | GroupStatKey
+  | "positionRating"
+  | "ratingGain"
+  | "positionPeak";
 export type SortDirection = "ascending" | "descending";
 
 /** Values that reveal potential: they show only when the user asks for potential. */
@@ -32,8 +40,12 @@ const valueOf = (player: Player, key: SortKey, ratingCode: number | undefined): 
     return player.overallByCode[ratingCode ?? player.positionCode] ?? null;
   if (key === "ratingGain") return ratingCode === undefined ? null : ratingGain(player, ratingCode);
   if (key === "positionPeak") return ratingCode === undefined ? null : peakAt(player, ratingCode);
-  // The packed sort key needs whole numbers: the rating with one decimal goes in tenths.
+  // The packed sort key needs whole numbers: a rating or an average with one decimal goes in tenths.
   if (key === "form") return player.form === null ? null : Math.round(player.form * 10);
+  if (isGroupStatKey(key)) {
+    const value = groupStat(player.attributes, key);
+    return isGroupAverage(key) ? Math.round(value * 10) : value;
+  }
   return isAttributeName(key) ? player.attributes[key] : player[key];
 };
 

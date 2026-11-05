@@ -199,6 +199,20 @@ describe("scout store", () => {
     expect(loaded).toEqual(stored);
   });
 
+  it("restores the group average and spread ranges and sorting by them", async () => {
+    const stored = (["physicalAverage", "goalkeepingSpread"] as const).map((key): Preferences => ({
+      filters: { ranges: { [key]: { min: 60.5, max: 80 } } },
+      sort: { key, direction: "descending" },
+      showPotential: false,
+    }));
+    const loaded = await Promise.all(
+      stored.map(async (value) =>
+        loadPreferences({ schemaVersion: SCHEMA_VERSION.preferences, value }),
+      ),
+    );
+    expect(loaded).toEqual(stored);
+  });
+
   it("drops unknown and malformed filter values", async () => {
     const value = {
       filters: {

@@ -4,6 +4,7 @@
 // the game file's name) and languages 1 and 2 to 3 (empty for the position names they lack); any other
 // version or shape is ignored, and
 // unknown or malformed filter values are dropped one by one.
+import { GROUP_STAT_KEYS } from "./attribute-groups.ts";
 import type { GameLanguages, GameNames } from "./game-names.ts";
 import { FLAG_KEYS, LIST_FIELDS, RANGE_KEYS } from "./filter-players.ts";
 import type { ListKey, PositionRating, Range } from "./filter-players.ts";
@@ -69,6 +70,7 @@ export const SORTABLE_KEYS: readonly SortKey[] = [
   "ratingGain",
   "positionPeak",
   ...ATTRIBUTE_NAMES,
+  ...GROUP_STAT_KEYS,
 ];
 
 export const memoryBackend = (): StorageBackend => {

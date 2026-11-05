@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { formatNumber, formatRating, plural, TEXT } from "./text.ts";
+import { groupStatLabel, rangeLabel } from "./text-range-labels.ts";
 
 const LAT = { one: "rok", few: "lata", many: "lat" } as const;
 
@@ -36,6 +37,20 @@ describe("formatRating", () => {
     [7, "7,0"],
   ])("shows %d as %s", (value, text) => {
     expect(formatRating(value)).toBe(text);
+  });
+});
+
+describe("TEXT.card.groupSummary", () => {
+  it("shows the average with one decimal, the range with an en dash and the spread", () => {
+    expect(TEXT.card.groupSummary(70, 46, 92, 46)).toBe("Średnia 70,0, zakres 46–92 (rozrzut 46)");
+  });
+});
+
+describe("groupStatLabel", () => {
+  it("puts the group's name in lower case after the prefix", () => {
+    expect(groupStatLabel("physicalAverage")).toBe("Średnia: fizyczne");
+    expect(groupStatLabel("goalkeepingSpread")).toBe("Rozrzut: bramkarz");
+    expect(rangeLabel("shootingSpread")).toBe("Rozrzut: strzały");
   });
 });
 
