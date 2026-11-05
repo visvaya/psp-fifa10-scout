@@ -43,10 +43,8 @@ const PHONE = {
   initialAboveChars: 14,
   ratingRem: 2.25,
   paddingRem: 0.5,
-  /** The fade at the right edge while columns follow (--space-6 in styles.css), at its widest. */
+  /** The fade at the right edge while columns follow (--space-6 in styles.css). */
   fadeRem: 1.5,
-  /** The "more" mark at the right edge (--space-4 in styles.css, the list's right padding too). */
-  markRem: 1,
 } as const;
 /**
  * The width of a phone number column in rem: a rating's, its label's whole (owner, 2026-11-05: labels are
@@ -107,8 +105,10 @@ const phoneLayout = (labelRems: readonly number[], valueRems: readonly number[])
   const full = widths.slice(0, PHONE.fullColumns);
   const fullRem = full.reduce((total, width) => total + width, 0);
   const least = `min(${String(PHONE.nameMinRem)}rem, ${String(PHONE.nameMaxCqw)}cqw)`;
-  // The list's width (cqw: its container) less the first columns, their gaps and the right padding.
-  const name = `max(${least}, calc(100cqw - ${String(fullRem)}rem - ${String(full.length)} * var(--space-2) - var(--space-4)))`;
+  // The list's width (cqw: its container) less the first columns, their gaps and the right padding, or
+  // the fade at the right edge when more columns follow, so the first columns show clear of it.
+  const edge = widths.length > full.length ? "var(--space-6)" : "var(--space-4)";
+  const name = `max(${least}, calc(100cqw - ${String(fullRem)}rem - ${String(full.length)} * var(--space-2) - ${edge}))`;
   return {
     "--phone-name-least": least,
     "--phone-name": name,
@@ -307,18 +307,6 @@ const followScroll = (list: HTMLElement, frame: HTMLElement): void => {
   const cut = [...frame.querySelectorAll(".player-rows-grid > .column-label")]
     .map((label) => label.getBoundingClientRect())
     .find((box) => box.right > edge + 1);
-  const grid = frame.querySelector(".player-rows-grid");
-  const gap = grid === null ? 0 : Number.parseFloat(getComputedStyle(grid).columnGap) || 0;
-  // The usual fade, narrowed so it starts no earlier than the gap before the first column that does not
-  // show whole: a column that shows whole stays clear of it (owner, 2026-11-05). Never narrower than the
-  // "more" mark, which the list's right padding holds, so it does not vanish while the next column is
-  // still wholly beyond the edge (owner, 2026-11-05).
-  const rem = rootFontPx();
-  const fade =
-    cut === undefined
-      ? 0
-      : Math.max(PHONE.markRem * rem, Math.min(PHONE.fadeRem * rem, edge - cut.left + gap));
-  frame.style.setProperty("--phone-fade", `${String(fade)}px`);
   frame.style.setProperty("--phone-scroll", `${String(scrollLeft)}px`);
   frame.style.setProperty("--phone-scrollbar", `${String(offsetWidth - clientWidth)}px`);
   frame.toggleAttribute("data-scrolled", scrollLeft > 0);

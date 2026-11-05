@@ -98,6 +98,23 @@ test.describe("phone list with filters", () => {
     await expect(chip).toBeHidden();
     await page.getByText("Aktywne filtry (1)").click();
     await expect(chip).toBeVisible();
+    // With more chips the actions wrap below them, and "Cofnij" keeps the margin of the line above it
+    // (owner, 2026-11-05).
+    await page.getByRole("button", { name: /^Filtry/u }).click();
+    const dialog = page.getByRole("dialog", { name: "Filtry" });
+    await dialog.getByRole("searchbox", { name: "Nazwisko" }).fill("a");
+    await dialog.getByRole("checkbox", { name: "Bramkarz" }).check();
+    await page.getByRole("button", { name: "Zamknij" }).click();
+    // The fold stays open.
+    await expect(chip).toHaveCount(2);
+    await expect(chip.first()).toBeVisible();
+    const [undo, summary] = await Promise.all([
+      page.locator(".chips-bar").getByRole("button", { name: "Cofnij" }).boundingBox(),
+      page.getByText("Aktywne filtry (2)").boundingBox(),
+    ]);
+    expect(undo?.y ?? 0).toBeGreaterThan((summary?.y ?? 0) + (summary?.height ?? 0));
+    expect(undo?.x).toBe(summary?.x);
+    expect(undo?.x ?? 0).toBeGreaterThanOrEqual(16);
   });
 
   test("keeps an attribute's field while its value is retyped after the dialog reopens", async ({
@@ -390,18 +407,40 @@ const fadeWidth = (frame: Element): number =>
 test.describe("phone edge fade", () => {
   test.use(PHONE);
 
-  // Scrolled so a column ends just inside the edge and the next lies wholly beyond it, the fade stays
-  // (owner, 2026-11-05): at least the "more" mark's 16 px.
-  test("keeps the fade while the next column is wholly beyond the edge", async ({ page }) => {
+  // The fade keeps one width and strength wherever the list stands (owner, 2026-11-05), also with a
+  // column ending just inside the edge and the next wholly beyond it, until the list reaches its end.
+  test("keeps the fade the same width until the list reaches its end", async ({ page }) => {
     await loadDatabase(page);
     await filterByAttributes(page, "Przyspieszenie", "Szybkość", "Drybling", "Wytrzymałość");
+    const frame = page.locator(".phone-list");
+    await expect(frame).toHaveAttribute("data-more");
+    await expect.poll(async () => frame.evaluate(fadeWidth)).toBe(24);
     await page.locator(".scroll").evaluate((list) => {
       const edge = list.getBoundingClientRect().left + list.clientWidth;
       const label = list.closest(".phone-list")?.querySelectorAll(".column-label")[3];
       if (label !== undefined) list.scrollBy(label.getBoundingClientRect().right - (edge - 4), 0);
     });
-    const frame = page.locator(".phone-list");
     await expect(frame).toHaveAttribute("data-more");
-    await expect.poll(async () => frame.evaluate(fadeWidth)).toBeGreaterThanOrEqual(16);
+    await expect.poll(async () => frame.evaluate(fadeWidth)).toBe(24);
+    await page.locator(".scroll").evaluate(scrollToEnd);
+    await expect(frame).not.toHaveAttribute("data-more");
+  });
+
+  // With every column in view there is no fade: the name keeps its room up to the first column.
+  test("keeps the name its room up to the first column when every column fits", async ({
+    page,
+  }) => {
+    await loadDatabase(page);
+    await showPotential(page);
+    const frame = page.locator(".phone-list");
+    await expect(page.locator(".player-rows-header .column-label")).toHaveCount(2);
+    await expect(frame).not.toHaveAttribute("data-more");
+    const [name, first] = await Promise.all([
+      page.locator(".player-row-text").first().boundingBox(),
+      page.locator(".player-row-cell").first().boundingBox(),
+    ]);
+    // The name reaches the gap before the first number column.
+    const gap = (first?.x ?? 0) - (name?.x ?? 0) - (name?.width ?? 0);
+    expect(gap).toBeCloseTo(8, 0);
   });
 });
