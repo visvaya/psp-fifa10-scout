@@ -23,6 +23,7 @@ const PLAYERS = [
     contractEndYear: 2014,
     nationalTeamId: 1369,
     nationalityId: 52,
+    loanedFromId: 1873,
   }),
   testPlayer({
     id: 3,
@@ -51,7 +52,6 @@ const PLAYERS = [
     shortlisted: true,
     clubWillSell: true,
     loanListed: true,
-    loanedFromId: 241,
   }),
 ];
 
@@ -168,8 +168,8 @@ describe("filterPlayers", () => {
   });
 
   it("finds the players on loan and those listed for one", () => {
-    expect(ids({ flags: { loaned: true } })).toEqual([4]);
-    expect(ids({ flags: { loaned: false } })).toEqual([1, 2, 3]);
+    expect(ids({ flags: { loaned: true } })).toEqual([2]);
+    expect(ids({ flags: { loaned: false } })).toEqual([1, 3, 4]);
     expect(ids({ flags: { loanListed: true } })).toEqual([4]);
     expect(ids({ flags: { loanListed: false } })).toEqual([1, 2, 3]);
   });
