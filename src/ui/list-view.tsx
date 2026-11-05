@@ -8,6 +8,7 @@ import { SORTABLE_KEYS } from "../logic/scout-store.ts";
 import { POTENTIAL_KEYS, sortPlayers } from "../logic/sort-players.ts";
 import { FilterChips } from "./filter-chips.tsx";
 import { FilterForm } from "./filter-form.tsx";
+import { FilterSets } from "./filter-sets.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
 import { columnLabel, PlayerTable } from "./player-list.tsx";
 import { PlayerCards } from "./player-rows.tsx";
@@ -220,15 +221,18 @@ const ListResults = ({
 export const ListView = (props: ListViewProps): JSX.Element => {
   const { state, players, collator, positionName, wide, dispatch } = props;
   const form = (
-    <FilterForm
-      players={players}
-      collator={collator}
-      positionName={positionName}
-      filters={state.filters}
-      myTeamId={state.myTeamId}
-      showPotential={state.showPotential}
-      dispatch={dispatch}
-    />
+    <>
+      <FilterSets sets={state.filterSets ?? []} dispatch={dispatch} />
+      <FilterForm
+        players={players}
+        collator={collator}
+        positionName={positionName}
+        filters={state.filters}
+        myTeamId={state.myTeamId}
+        showPotential={state.showPotential}
+        dispatch={dispatch}
+      />
+    </>
   );
   return (
     <div className={wide ? "list-layout wide" : "list-layout"}>

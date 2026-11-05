@@ -289,6 +289,38 @@ describe("scoutReducer filters, sort and card", () => {
     expect(restored.sort).toEqual(DEFAULT_SORT);
   });
 
+  it("restores the stored filter sets with the preferences", () => {
+    const filterSets = [{ name: "A", filters: {}, sort: DEFAULT_SORT }];
+    const preferences = { filters: {}, sort: DEFAULT_SORT, showPotential: false, filterSets };
+    expect(
+      scoutReducer(initialScoutState, { type: "preferences-restored", preferences }).filterSets,
+    ).toEqual(filterSets);
+  });
+
+  it("saves, loads, renames and deletes named filter sets", () => {
+    const shown = scoutReducer(initialScoutState, { type: "potential-shown", shown: true });
+    const byAge = scoutReducer(
+      scoutReducer(shown, {
+        type: "filters-changed",
+        filters: { ranges: { growth: { min: 10 } } },
+      }),
+      { type: "sort-changed", key: "age" },
+    );
+    const saved = scoutReducer(byAge, { type: "filter-set-saved", name: "Perełki" });
+    expect(saved.filterSets).toEqual([
+      { name: "Perełki", filters: byAge.filters, sort: byAge.sort },
+    ]);
+    // Loading brings back the filters and sort, and shows the potential a growth filter needs.
+    const reset = scoutReducer(saved, { type: "potential-shown", shown: false });
+    const back = scoutReducer(reset, { type: "filter-set-loaded", name: "Perełki" });
+    expect(back).toMatchObject({ filters: byAge.filters, sort: byAge.sort, showPotential: true });
+    const renamed = scoutReducer(back, { type: "filter-set-renamed", from: "Perełki", to: "LO" });
+    expect(renamed.filterSets?.map((set) => set.name)).toEqual(["LO"]);
+    expect(scoutReducer(renamed, { type: "filter-set-deleted", name: "LO" }).filterSets).toEqual(
+      [],
+    );
+  });
+
   it("keeps the potential setting when filters are reset", () => {
     const shown = scoutReducer(initialScoutState, { type: "potential-shown", shown: true });
     expect(scoutReducer(shown, { type: "filters-reset" }).showPotential).toBe(true);
