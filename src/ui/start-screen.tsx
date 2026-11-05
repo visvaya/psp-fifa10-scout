@@ -68,15 +68,16 @@ const FileStep = (props: FileStepProps): JSX.Element => {
       <label className="button file-label" htmlFor={`${stage}-file`}>
         {props.label}
       </label>
-      {props.after}
-      <div id={`${stage}-help`} className="help">
-        {props.help}
-      </div>
+      {/* Right under the button that picked the file (owner, 2026-11-05). */}
       {failed === null ? null : (
         <p id={`${stage}-error`} className="error" role="alert">
           {TEXT.error(failed)}
         </p>
       )}
+      {props.after}
+      <div id={`${stage}-help`} className="help">
+        {props.help}
+      </div>
     </div>
   );
 };
