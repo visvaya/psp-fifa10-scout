@@ -12,7 +12,7 @@ import type { ScoutAction, ScoutSort } from "../logic/scout-state.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 import { AttributeValue, GainValue } from "./attribute-value.tsx";
 import { PositionName } from "./position-name.tsx";
-import { ATTRIBUTE_LABELS, formatNumber, RANGE_LABELS, TEXT } from "./text.ts";
+import { ATTRIBUTE_LABELS, formatNumber, formatRating, RANGE_LABELS, TEXT } from "./text.ts";
 import { useColumnWidths } from "./use-column-widths.ts";
 
 /** Row heights as styles.css sets them (td 2.5rem, .player-row 4rem). */
@@ -165,7 +165,8 @@ export const columnText = (
   if (numberIn(player, column, ratingCode) !== null) return null;
   if (isTextColumn(column)) return String(cellText(player, column));
   const field = isRangeKey(column) ? rangeValue(player, column) : null;
-  return field === null ? null : formatNumber(field);
+  if (field === null) return null;
+  return column === "form" ? formatRating(field) : formatNumber(field);
 };
 
 /** A column's value: a rating with its colour band, the gain with its sign, a number, or the text. */

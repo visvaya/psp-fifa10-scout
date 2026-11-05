@@ -62,6 +62,20 @@ test.describe("career", () => {
         .getByText("Na twojej liście obserwowanych w grze"),
     ).toBeVisible();
   });
+});
+
+test.describe("career ratings", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  test("shows the average match rating with one decimal and filters by it", async ({ page }) => {
+    await loadCareer(page);
+    await page.getByText("Kariera", { exact: true }).click();
+    await page.getByRole("group", { name: "Średnia ocena (KR)" }).getByLabel("od").fill("6.5");
+    await expectCount(page, "1\u00a0zawodnik");
+    await page.getByRole("button", { name: /^Lionel Messi/u }).click();
+    const card = page.getByRole("dialog", { name: "Lionel Messi" });
+    await expect(card.getByRole("definition").filter({ hasText: /^6,9$/u })).toBeVisible();
+  });
 
   // The synthetic curves are flat, so the peak stays at today's OVR, below Messi's potential of 95.
   test("projects the peak OVR beside the potential and says when the potential is out of reach", async ({

@@ -29,6 +29,14 @@ export const plural = (count: number, forms: PluralForms): string => {
 
 export const formatNumber = (value: number): string => numberFormat.format(value);
 
+const ratingFormat = new Intl.NumberFormat("pl-PL", {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
+
+/** A match rating with one decimal, as the game's stats screen shows it: 6,9 and 7,0. */
+export const formatRating = (value: number): string => ratingFormat.format(value);
+
 const MINUS = "−";
 
 /** A difference with its sign: +3, −2 (minus sign), 0. */
@@ -118,7 +126,7 @@ export const RANGE_LABELS: Readonly<Record<RangeFields, string>> = {
   retirementAge: "Wiek zakończenia kariery",
   clubRating: "Siła klubu",
   contractEndYear: "Kontrakt",
-  form: "Forma",
+  form: "Średnia ocena (KR)",
   morale: "Morale",
   injuryDays: "Kontuzja (dni)",
   price: "Cena",
@@ -388,7 +396,7 @@ export const TEXT = {
     career: "W tym sezonie kariery",
     careerNote:
       "Gra prowadzi te statystyki tylko w lidze twojego klubu. U zawodnika, który z niej odszedł, to archiwalne liczby z czasu gry w tej lidze.",
-    form: "Forma",
+    form: "Średnia ocena (KR)",
     morale: "Morale",
     goals: "Gole",
     appearances: "Występy",

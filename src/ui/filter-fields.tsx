@@ -86,6 +86,8 @@ export const RangeField = (props: {
   allowNegative?: boolean;
   /** Large amounts (price, wage): digits grouped while typed, in wider fields. */
   grouped?: boolean;
+  /** One decimal (a match rating): steps of 0.1 and a keyboard with the decimal separator. */
+  decimal?: boolean;
   onChange: (range: Range) => void;
 }): JSX.Element => {
   const range = props.range ?? {};
@@ -107,7 +109,8 @@ export const RangeField = (props: {
             ) : (
               <input
                 type="number"
-                inputMode="numeric"
+                inputMode={props.decimal === true ? "decimal" : "numeric"}
+                step={props.decimal === true ? 0.1 : undefined}
                 min={props.allowNegative === true ? undefined : 0}
                 value={range[bound] ?? ""}
                 onChange={(event) => {

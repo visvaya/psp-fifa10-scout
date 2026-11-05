@@ -133,7 +133,7 @@ const SAVE: CareerSave = new Map([
     [
       row({
         playerid: 158_023,
-        form: 3,
+        form: 69,
         morale: 4,
         goals: 12,
         appearances: 20,
@@ -336,9 +336,10 @@ describe("buildPlayers with a career save", () => {
     expect(byId(buildPlayers(DB), 158_023)?.peak).toBeNull();
   });
 
+  // The save keeps the average match rating times ten: 69 is the 6,9 of the game's stats screen.
   it("adds career stats where the save has them", () => {
     expect(byId(players, 158_023)).toMatchObject({
-      form: 3,
+      form: 6.9,
       morale: 4,
       goals: 12,
       appearances: 20,

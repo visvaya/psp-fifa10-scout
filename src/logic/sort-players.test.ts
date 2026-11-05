@@ -82,6 +82,18 @@ describe("sortPlayers", () => {
     expect(order("descending")).toEqual([5, 3, 1, 2]);
   });
 
+  // The sort packs each value into one integer key: a rating with a decimal must not lose a player.
+  it("sorts by the average match rating, one decimal, keeping every player", () => {
+    const rated = PLAYERS.map((player, index) => ({
+      ...player,
+      form: [6.9, 7.2, 6.3, 7.2][index] ?? null,
+    }));
+    const order = (direction: SortDirection) =>
+      sortPlayers(rated, "form", direction).map((player) => player.id);
+    expect(order("descending")).toEqual([2, 3, 5, 1]);
+    expect(order("ascending")).toEqual([1, 5, 2, 3]);
+  });
+
   it("sorts by the OVR at a chosen position, or at the preferred one without a choice", () => {
     const rated = PLAYERS.map((player) => ({
       ...player,

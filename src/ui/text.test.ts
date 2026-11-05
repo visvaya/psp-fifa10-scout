@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatNumber, plural, TEXT } from "./text.ts";
+import { formatNumber, formatRating, plural, TEXT } from "./text.ts";
 
 const LAT = { one: "rok", few: "lata", many: "lat" } as const;
 
@@ -26,6 +26,16 @@ describe("formatNumber", () => {
   it("groups from five digits with a non-breaking space, as Polish style wants", () => {
     expect(formatNumber(1500)).toBe("1500");
     expect(formatNumber(26_090)).toBe("26 090");
+  });
+});
+
+// A match rating with one decimal, as the game's stats screen shows it.
+describe("formatRating", () => {
+  it.each([
+    [6.9, "6,9"],
+    [7, "7,0"],
+  ])("shows %d as %s", (value, text) => {
+    expect(formatRating(value)).toBe(text);
   });
 });
 
