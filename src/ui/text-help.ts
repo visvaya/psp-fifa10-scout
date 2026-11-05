@@ -7,6 +7,9 @@ export const FIELD_HELP: Partial<Readonly<Record<RangeKey | ListKey, string>>> =
   growth: pl`Potencjał minus OVR: ile brakuje do limitu potencjału (w karierze z poprawką z zapisu). Zawodnicy rzadko go osiągają; realniejszy jest szczyt OVR.`,
   peak: pl`OVR na szczycie rozwoju według krzywych gry, ten sam co na jej wykresie rozwoju. Bez przyszłych przyrostów z meczów i treningu.`,
   peakGain: pl`Szczyt OVR minus OVR: ile zawodnik jeszcze urośnie według krzywych rozwoju gry.`,
+  bodyType: pl`Gra nie nazywa kodów. Przy podobnym wzroście typ 1 to średnio zawodnicy najlżejsi, typ 3 najciężsi.`,
+  developmentType: pl`Kiedy zawodnik osiąga szczyt według krzywych rozwoju gry: wcześnie, w typowym wieku albo późno.`,
+  developmentStyle: pl`Kształt krzywej rozwoju umiejętności: jak wysoko i jak długo rośnie. Krótka kariera szybko spada po szczycie, nagły skok rośnie gwałtownie w kilka sezonów.`,
   form: pl`Średnia ocena meczowa z zapisu, jak w kolumnie KR na ekranie statystyk zawodnika w grze. Bez meczów zwykle 5,0.`,
 };
 

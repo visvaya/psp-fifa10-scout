@@ -339,8 +339,6 @@ export const TEXT = {
   chipParts: (parts: readonly string[]): string => parts.join(", "),
   /** The text from a capital letter, as a chip starts. */
   capitalized: (text: string): string => text.charAt(0).toLocaleUpperCase("pl") + text.slice(1),
-  code: (prefix: string, value: number): string => `${prefix} ${String(value)}`,
-  codePrefix: { bodyType: "typ", developmentType: "typ", developmentStyle: "styl" },
   filtersWithCount: (value: number): string =>
     value === 0 ? "Filtry" : `Filtry (${String(value)})`,
   resetFilters: "Wyczyść filtry",

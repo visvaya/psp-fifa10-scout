@@ -22,6 +22,8 @@ import {
   RangeField,
   Section,
 } from "./filter-fields.tsx";
+import { codeName } from "./text-code-names.ts";
+import type { CodedKey } from "./text-code-names.ts";
 import type { Choice } from "./filter-fields.tsx";
 import { PotentialSwitch } from "./filter-panel-controls.tsx";
 import { SettingsActions } from "./settings-actions.tsx";
@@ -213,8 +215,8 @@ const AttributeRanges = (props: {
 const facetChoices = (options: readonly FacetOption[]): readonly Choice<number>[] =>
   options.map((option) => ({ value: option.id, label: option.name }));
 
-const codeChoices = (codes: readonly number[], prefix: string): readonly Choice<number>[] =>
-  codes.map((code) => ({ value: code, label: TEXT.code(prefix, code) }));
+const codeChoices = (codes: readonly number[], key: CodedKey): readonly Choice<number>[] =>
+  codes.map((code) => ({ value: code, label: codeName(key, code) }));
 
 /** Ranges of large amounts, typed with grouped digits. */
 const GROUPED_RANGES: ReadonlySet<RangeKey> = new Set(["price", "wage"]);
@@ -319,7 +321,7 @@ const physiqueSection = ({ facets, range, list }: Kit) => (
   <Section title={FILTER_SECTION_LABELS.physique}>
     {range("height")}
     {range("weight")}
-    {list("bodyType", codeChoices(facets.codes.bodyType, TEXT.codePrefix.bodyType))}
+    {list("bodyType", codeChoices(facets.codes.bodyType, "bodyType"))}
   </Section>
 );
 
@@ -329,14 +331,8 @@ const characterSection = ({ facets, range, list, flag }: Kit) => (
     {range("internationalReputation")}
     {range("learningSpeed")}
     {range("retirementAge")}
-    {list(
-      "developmentType",
-      codeChoices(facets.codes.developmentType, TEXT.codePrefix.developmentType),
-    )}
-    {list(
-      "developmentStyle",
-      codeChoices(facets.codes.developmentStyle, TEXT.codePrefix.developmentStyle),
-    )}
+    {list("developmentType", codeChoices(facets.codes.developmentType, "developmentType"))}
+    {list("developmentStyle", codeChoices(facets.codes.developmentStyle, "developmentStyle"))}
   </Section>
 );
 

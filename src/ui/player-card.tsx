@@ -5,6 +5,7 @@ import { offerTerms } from "../logic/offer.ts";
 import type { OfferContext } from "../logic/offer.ts";
 import type { AttributeName, Player } from "../logic/players.ts";
 import { nameTextIdOf, POSITION_CODES, RATING_CHOICES, ratingCodeOf } from "../logic/positions.ts";
+import { codeName } from "./text-code-names.ts";
 import { AttributeValue, GainValue } from "./attribute-value.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
 import { PositionName, ratingChoiceName } from "./position-name.tsx";
@@ -74,12 +75,9 @@ const profile = (
   [TEXT.card.internationalReputation, TEXT.card.outOfFive(player.internationalReputation)],
   [TEXT.card.learningSpeed, TEXT.card.outOfFive(player.learningSpeed)],
   [RANGE_LABELS.retirementAge, TEXT.years(player.retirementAge)],
-  [LIST_LABELS.bodyType, TEXT.code(TEXT.codePrefix.bodyType, player.bodyType)],
-  [LIST_LABELS.developmentType, TEXT.code(TEXT.codePrefix.developmentType, player.developmentType)],
-  [
-    LIST_LABELS.developmentStyle,
-    TEXT.code(TEXT.codePrefix.developmentStyle, player.developmentStyle),
-  ],
+  [LIST_LABELS.bodyType, codeName("bodyType", player.bodyType)],
+  [LIST_LABELS.developmentType, codeName("developmentType", player.developmentType)],
+  [LIST_LABELS.developmentStyle, codeName("developmentStyle", player.developmentStyle)],
   [RANGE_LABELS.clubRating, optional(player.clubRating)],
   [FLAG_LABELS.nationalTeam, player.nationalTeamName ?? TEXT.card.no],
   [

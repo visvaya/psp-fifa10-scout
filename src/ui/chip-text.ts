@@ -4,6 +4,7 @@ import type { ListKey, PositionRating, Range } from "../logic/filter-players.ts"
 import type { Player } from "../logic/players.ts";
 import { POSITION_GROUPS } from "../logic/positions.ts";
 import type { FilterId, ScoutFilters } from "../logic/scout-state.ts";
+import { codeName } from "./text-code-names.ts";
 import { ratingAbbreviation } from "./position-name.tsx";
 import {
   CLUB_STATUS_LABELS,
@@ -55,7 +56,7 @@ const rangeText = (range: Range | undefined, format: (value: number) => string):
 const codeText =
   (key: "bodyType" | "developmentType" | "developmentStyle") =>
   (value: unknown): string =>
-    TEXT.code(TEXT.codePrefix[key], Number(value));
+    codeName(key, Number(value));
 
 const nameText =
   (key: "leagueId" | "clubId" | "nationalityId") =>
