@@ -23,7 +23,7 @@ import { AttributeValue, GainValue } from "./attribute-value.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
 import { PositionName, ratingChoiceName } from "./position-name.tsx";
 import type { PositionNames } from "./position-name.tsx";
-import { clubText } from "./player-list.tsx";
+import { clubText, RESULTS_TITLE_ID } from "./player-list.tsx";
 import {
   ATTRIBUTE_GROUP_LABELS,
   ATTRIBUTE_LABELS,
@@ -303,7 +303,9 @@ export const PlayerCard = (props: {
   const { player, career, currency, offer, showPotential, names, watched, dispatch, onClose } =
     props;
   const returnFocus = useCallback(
-    () => document.querySelector<HTMLElement>(`[data-player-id="${String(player.id)}"]`),
+    () =>
+      document.querySelector<HTMLElement>(`[data-player-id="${String(player.id)}"]`) ??
+      document.getElementById(RESULTS_TITLE_ID),
     [player.id],
   );
   return (

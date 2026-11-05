@@ -1,11 +1,73 @@
 // The own watchlist on the player card: a button to add or remove the player and, while he is on the
-// list, his note. The note saves with every change, so it has no save button.
-import { useId } from "react";
+// list, his note. The note saves with every change, so it has no save button. Removing a player who has
+// a note asks first, as "Resetuj" does (settings-actions.tsx).
+import { useEffect, useId, useRef, useState } from "react";
 import type { Dispatch, JSX } from "react";
 import { SCOUT_CONFIG } from "../logic/config.ts";
 import type { ScoutAction } from "../logic/scout-state.ts";
 import type { WatchEntry } from "../logic/watchlist.ts";
+import { TEXT } from "./text.ts";
 import { WATCHLIST_TEXT } from "./text-watchlist.ts";
+
+/** The question before a removal; the confirm button takes the focus and carries the question. */
+const RemoveQuestion = (props: { onAnswer: (remove: boolean) => void }) => {
+  const confirm = useRef<HTMLButtonElement>(null);
+  const questionId = useId();
+  useEffect(() => {
+    confirm.current?.focus();
+  }, []);
+  return (
+    <>
+      <p id={questionId}>{WATCHLIST_TEXT.removeQuestion}</p>
+      <div className="watchlist-answer">
+        <button
+          type="button"
+          className="button"
+          onClick={() => {
+            props.onAnswer(false);
+          }}
+        >
+          {TEXT.cancel}
+        </button>
+        <button
+          ref={confirm}
+          type="button"
+          className="button primary"
+          aria-describedby={questionId}
+          onClick={() => {
+            props.onAnswer(true);
+          }}
+        >
+          {WATCHLIST_TEXT.remove}
+        </button>
+      </div>
+    </>
+  );
+};
+
+/** The note field, named by its label alone; the limit is its description. */
+const NoteField = (props: { note: string; onChange: (note: string) => void }): JSX.Element => {
+  const helpId = useId();
+  return (
+    <>
+      <label className="field">
+        <span>{WATCHLIST_TEXT.note}</span>
+        <textarea
+          rows={3}
+          maxLength={SCOUT_CONFIG.watchlistNoteMaxChars}
+          value={props.note}
+          aria-describedby={helpId}
+          onChange={(event) => {
+            props.onChange(event.currentTarget.value);
+          }}
+        />
+      </label>
+      <p id={helpId} className="help">
+        {WATCHLIST_TEXT.noteHelp(SCOUT_CONFIG.watchlistNoteMaxChars)}
+      </p>
+    </>
+  );
+};
 
 export const WatchlistSection = (props: {
   playerId: number;
@@ -14,43 +76,50 @@ export const WatchlistSection = (props: {
   dispatch: Dispatch<ScoutAction>;
 }): JSX.Element => {
   const { playerId, entry, dispatch } = props;
-  const helpId = useId();
+  const [asking, setAsking] = useState(false);
+  const toggle = useRef<HTMLButtonElement>(null);
+  // After an answer the focus goes back to the toggle button, which comes back with the answer.
+  const answered = useRef(false);
+  useEffect(() => {
+    if (!asking && answered.current) toggle.current?.focus();
+    answered.current = false;
+  }, [asking]);
   return (
     <section className="watchlist" aria-labelledby="watchlist-title">
       <h3 id="watchlist-title">{WATCHLIST_TEXT.title}</h3>
-      <button
-        type="button"
-        className="button"
-        onClick={() => {
-          dispatch(
-            entry === undefined
-              ? { type: "watch-added", id: playerId, addedAt: new Date().toISOString() }
-              : { type: "watch-removed", id: playerId },
-          );
-        }}
-      >
-        {entry === undefined ? WATCHLIST_TEXT.add : WATCHLIST_TEXT.remove}
-      </button>
+      {asking ? (
+        <RemoveQuestion
+          onAnswer={(remove) => {
+            if (remove) dispatch({ type: "watch-removed", id: playerId });
+            answered.current = true;
+            setAsking(false);
+          }}
+        />
+      ) : (
+        <button
+          ref={toggle}
+          type="button"
+          className="button"
+          onClick={() => {
+            if (entry === undefined) {
+              dispatch({ type: "watch-added", id: playerId, addedAt: new Date().toISOString() });
+            } else if (entry.note.trim() === "") {
+              dispatch({ type: "watch-removed", id: playerId });
+            } else {
+              setAsking(true);
+            }
+          }}
+        >
+          {entry === undefined ? WATCHLIST_TEXT.add : WATCHLIST_TEXT.remove}
+        </button>
+      )}
       {entry === undefined ? null : (
-        <label className="field">
-          <span>{WATCHLIST_TEXT.note}</span>
-          <textarea
-            rows={3}
-            maxLength={SCOUT_CONFIG.watchlistNoteMaxChars}
-            value={entry.note}
-            aria-describedby={helpId}
-            onChange={(event) => {
-              dispatch({
-                type: "watch-note-changed",
-                id: playerId,
-                note: event.currentTarget.value,
-              });
-            }}
-          />
-          <small id={helpId} className="help">
-            {WATCHLIST_TEXT.noteHelp(SCOUT_CONFIG.watchlistNoteMaxChars)}
-          </small>
-        </label>
+        <NoteField
+          note={entry.note}
+          onChange={(note) => {
+            dispatch({ type: "watch-note-changed", id: playerId, note });
+          }}
+        />
       )}
     </section>
   );

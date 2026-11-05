@@ -19,7 +19,7 @@ import type { SortDirection, SortKey } from "./sort-players.ts";
 import { filterSetsAfter } from "./saved-filters.ts";
 import { withUndo } from "./undo.ts";
 import { effectiveFilters } from "./effective-filters.ts";
-import { watchlistAfter } from "./watchlist.ts";
+import { isWatchlistAction, watchedIds, watchlistReducer } from "./watchlist.ts";
 import type { WatchEntry, WatchlistAction } from "./watchlist.ts";
 import type { UndoAction, UndoStep } from "./undo.ts";
 import type { FilterSet, FilterSetAction } from "./saved-filters.ts";
@@ -94,6 +94,8 @@ export interface ScoutState extends Preferences {
   readonly languages: GameLanguages;
   /** The user's own watchlist, kept apart from the preferences and from undo. */
   readonly watchlist: readonly WatchEntry[];
+  /** The user changed the list since it was restored; only then is it saved. */
+  readonly watchlistEdited: boolean;
 }
 
 type LoadAction =
@@ -153,6 +155,7 @@ export const initialScoutState: ScoutState = {
   showPotential: false,
   languages: {},
   watchlist: [],
+  watchlistEdited: false,
 };
 
 /** Keys whose first click sorts ascending (text, age, position, contract); numbers start high. */
@@ -335,9 +338,6 @@ const withFilterSets = (state: ScoutState, action: FilterSetAction): ScoutState 
 const isFilterSetAction = (action: ScoutAction): action is FilterSetAction =>
   action.type.startsWith("filter-set-");
 
-const isWatchlistAction = (action: ScoutAction): action is WatchlistAction =>
-  action.type.startsWith("watch");
-
 const nextDirection = (sort: ScoutSort, key: SortKey): SortDirection => {
   if (sort.key === key) return sort.direction === "ascending" ? "descending" : "ascending";
   return ASCENDING_FIRST.has(key) ? "ascending" : "descending";
@@ -437,9 +437,7 @@ const changes = (
 
 /** The state after an action, with undo for the user's changes. */
 export const scoutReducer = withUndo((state, action) =>
-  isWatchlistAction(action)
-    ? { ...state, watchlist: watchlistAfter(state.watchlist, action) }
-    : changes(state, action),
+  isWatchlistAction(action) ? watchlistReducer(state, action) : changes(state, action),
 );
 
 /** The stored game is loading and nothing shows yet: the list skeleton stands in for it. */
@@ -478,5 +476,7 @@ export const attributeBand = (value: number): AttributeBand => {
 export const listedCount = (state: ScoutState): number =>
   state.players === null
     ? 0
-    : filterPlayers(state.players, effectiveFilters(state.filters, state.myTeamId, state.watchlist))
-        .length;
+    : filterPlayers(
+        state.players,
+        effectiveFilters(state.filters, state.myTeamId, watchedIds(state.watchlist)),
+      ).length;

@@ -1,6 +1,7 @@
 // The user's own watchlist: players kept with a note, without the game's limit of 20. One list for the whole
 // tool, keyed by the player id that fifa.db and the career saves share.
 import { SCOUT_CONFIG } from "./config.ts";
+import type { ScoutAction, ScoutState } from "./scout-state.ts";
 
 export interface WatchEntry {
   readonly playerId: number;
@@ -50,7 +51,7 @@ export type WatchlistAction =
   | { readonly type: "watch-note-changed"; readonly id: number; readonly note: string };
 
 /** The list after an action of the own watchlist. */
-export const watchlistAfter = (
+const watchlistAfter = (
   list: readonly WatchEntry[],
   action: WatchlistAction,
 ): readonly WatchEntry[] => {
@@ -66,3 +67,13 @@ export const watchlistAfter = (
       return notedPlayer(list, action.id, action.note);
   }
 };
+
+export const isWatchlistAction = (action: ScoutAction): action is WatchlistAction =>
+  action.type.startsWith("watch");
+
+/** The state after an action of the watchlist; restoring the stored list is no edit of it. */
+export const watchlistReducer = (state: ScoutState, action: WatchlistAction): ScoutState => ({
+  ...state,
+  watchlist: watchlistAfter(state.watchlist, action),
+  watchlistEdited: action.type !== "watchlist-restored",
+});

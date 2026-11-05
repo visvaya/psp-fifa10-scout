@@ -408,7 +408,7 @@ describe("actionOf", () => {
   });
 });
 
-describe("effectiveFilters", () => {
+describe("listedCount", () => {
   it("count the players the list shows, as the start screen's button does", () => {
     const filtered = { ...loaded(), filters: { lists: { clubId: [7] } } };
     expect([initialScoutState, loaded(), filtered].map(listedCount)).toEqual([0, 2, 1]);

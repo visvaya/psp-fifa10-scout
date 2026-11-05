@@ -12,7 +12,7 @@ import { FilterChips } from "./filter-chips.tsx";
 import { FilterForm } from "./filter-form.tsx";
 import { FilterSets } from "./filter-sets.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
-import { columnLabel, PlayerTable } from "./player-list.tsx";
+import { columnLabel, PlayerTable, RESULTS_TITLE_ID } from "./player-list.tsx";
 import { PlayerCards } from "./player-rows.tsx";
 import { ratingAbbreviation } from "./position-name.tsx";
 import { TEXT } from "./text.ts";
@@ -98,7 +98,14 @@ const NoMatches = ({ dispatch }: { dispatch: Dispatch<ScoutAction> }) => (
   </div>
 );
 
-const NO_ENTRIES: readonly WatchEntry[] = [];
+/**
+ * The ids on the watchlist, the same set while only a note changes, so typing a note does not filter and
+ * sort every player again.
+ */
+const useWatchedIds = (watchlist: readonly WatchEntry[]): ReadonlySet<number> => {
+  const key = watchlist.map((entry) => entry.playerId).join(",");
+  return useMemo(() => new Set(key === "" ? [] : key.split(",").map(Number)), [key]);
+};
 
 /** The filtered and sorted players; deferred so typing stays responsive. */
 const useVisiblePlayers = (
@@ -108,8 +115,7 @@ const useVisiblePlayers = (
 ) => {
   const filters = useDeferredValue(state.filters);
   const sort = useDeferredValue(state.sort);
-  // The list matters to the order only while its filter is set, so a note typed on the card sorts nothing.
-  const listed = filters.flags?.onMyList === undefined ? NO_ENTRIES : state.watchlist;
+  const listed = useWatchedIds(state.watchlist);
   const visible = useMemo(
     () =>
       sortPlayers(
@@ -184,8 +190,8 @@ const ListResults = ({
   const ranged = useMemo(() => rangedAttributes(ranges), [ranges]);
   const List = wide ? PlayerTable : PlayerCards;
   return (
-    <section className="results" aria-labelledby="results-title">
-      <h2 id="results-title" className="visually-hidden">
+    <section className="results" aria-labelledby={RESULTS_TITLE_ID}>
+      <h2 id={RESULTS_TITLE_ID} className="visually-hidden" tabIndex={-1}>
         {TEXT.showList}
       </h2>
       <div className="toolbar">

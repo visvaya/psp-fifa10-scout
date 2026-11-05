@@ -81,3 +81,20 @@ describe("watchlist in the app state", () => {
     expect(added.undo).toEqual([]);
   });
 });
+
+describe("watchlistEdited", () => {
+  it("is set by the user's changes and not by restoring the stored list", () => {
+    expect(initialScoutState.watchlistEdited).toBe(false);
+    const restored = scoutReducer(initialScoutState, {
+      type: "watchlist-restored",
+      watchlist: [entry(9)],
+    });
+    expect(restored.watchlistEdited).toBe(false);
+    const added = scoutReducer(restored, { type: "watch-added", id: 4, addedAt: entry(4).addedAt });
+    expect(added.watchlistEdited).toBe(true);
+    expect(scoutReducer(added, { type: "watch-removed", id: 4 }).watchlistEdited).toBe(true);
+    expect(
+      scoutReducer(restored, { type: "watch-note-changed", id: 9, note: "x" }).watchlistEdited,
+    ).toBe(true);
+  });
+});

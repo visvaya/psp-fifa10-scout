@@ -45,7 +45,16 @@ const useGameNames = (state: ScoutState) => {
 /** Stores the preferences, the languages read and the watchlist, once the stored ones were restored. */
 const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFiles>) => {
   const { ready, savePreferences, saveLanguages, saveWatchlist } = files;
-  const { filters, sort, showPotential, gameLanguage, filterSets, languages, watchlist } = state;
+  const {
+    filters,
+    sort,
+    showPotential,
+    gameLanguage,
+    filterSets,
+    languages,
+    watchlist,
+    watchlistEdited,
+  } = state;
   useEffect(() => {
     // Only after the stored preferences were restored, so defaults never overwrite them.
     if (ready) {
@@ -64,8 +73,9 @@ const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFile
   }, [ready, saveLanguages, languages]);
 
   useEffect(() => {
-    if (ready) saveWatchlist(watchlist);
-  }, [ready, saveWatchlist, watchlist]);
+    // Only a list the user changed: one the store holds but the app cannot read stays as it is.
+    if (ready && watchlistEdited) saveWatchlist(watchlist);
+  }, [ready, saveWatchlist, watchlist, watchlistEdited]);
 };
 
 /**

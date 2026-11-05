@@ -47,6 +47,20 @@ export const expectStoredPositionGroup = async (page: Page, group: string) => {
     .toMatchObject({ value: { filters: { lists: { positionGroup: [group] } } } });
 };
 
+/** Writes a record into the app's IndexedDB store, run in the page like `readStored`. */
+export const writeStored = async ([key, value]: readonly [string, unknown]): Promise<void> =>
+  new Promise((resolve) => {
+    const open = indexedDB.open("psp-fifa10-scout");
+    open.addEventListener("success", () => {
+      const write = open.result.transaction("kv", "readwrite");
+      write.objectStore("kv").put(value, key);
+      write.addEventListener("complete", () => {
+        open.result.close();
+        resolve();
+      });
+    });
+  });
+
 /** Waits until the stored watchlist holds a note, for the same reason as above. */
 export const expectStoredWatchNote = async (page: Page, note: string) => {
   await expect
