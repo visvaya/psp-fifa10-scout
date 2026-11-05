@@ -785,8 +785,11 @@ input[inputmode="numeric"] {
   gap: var(--space-2);
 }
 
+/* A full touch target, its extra height taken back by the margins so the name's line keeps its height
+   when the button appears. */
 .field-clear {
-  min-height: var(--space-6);
+  min-height: var(--touch-target);
+  margin-block: calc((var(--space-6) - var(--touch-target)) / 2);
   padding: 0 var(--space-1);
   border: 0;
   background: none;
