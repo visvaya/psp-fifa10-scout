@@ -239,18 +239,44 @@ test.describe("phone name column", () => {
     await expect.poll(async () => (await name.boundingBox())?.width).toBeLessThan(wide - 30);
     await expect(frame).not.toHaveAttribute("data-more");
     await expect(frame).toHaveAttribute("data-scrolled");
+  });
+});
+
+test.describe("phone name forms", () => {
+  // Wide enough for the long test name to fit before the list scrolls.
+  test.use({ ...PHONE, viewport: { width: 800, height: 844 } });
+
+  // Row by row (owner, 2026-11-05): a long name keeps its full form while it fits the narrowing column
+  // and gives its first name as an initial only once it does not, then back as the column widens.
+  test("gives a long name its initial only once it no longer fits", async ({ page }) => {
+    await loadDatabase(page);
+    await filterByAttributes(page, "Przyspieszenie", "Szybkość", "Drybling", "Wytrzymałość");
+    await page.getByRole("button", { name: /^Filtry/u }).click();
+    const dialog = page.getByRole("dialog", { name: "Filtry" });
+    await dialog.getByRole("searchbox", { name: "Nazwisko" }).fill("bardzo");
+    await dialog.getByRole("button", { name: "Zamknij" }).click();
+    const name = page.locator(".player-row", { hasText: "Bardzo-Długie" });
+    const [full, short] = [
+      name.locator(".player-row-name-full"),
+      name.locator(".player-row-name-short"),
+    ];
+    await expect(full).toBeVisible();
+    await expect(short).toBeHidden();
+    // A little scrolled, the full name still fits: it stays (before, every long name switched at once).
     await page.locator(".scroll").evaluate((element) => {
-      element.scrollTo(element.scrollLeft, element.scrollHeight);
+      element.scrollTo(10, element.scrollTop);
     });
-    const short = page
-      .locator(".player-row", { hasText: "Bardzo-Długie" })
-      .locator(".player-row-name-short");
+    await expect(page.locator(".phone-list")).toHaveAttribute("data-scrolled");
+    await expect(full).toBeVisible();
+    await expect(short).toBeHidden();
+    await page.locator(".scroll").evaluate(scrollToEnd);
     await expect(short).toBeVisible();
     await expect(short).toHaveText(/^G\. Numer 9 Bardzo/u);
     await page.locator(".scroll").evaluate((element) => {
       element.scrollTo(0, element.scrollTop);
     });
     await expect(short).toBeHidden();
+    await expect(full).toBeVisible();
   });
 });
 
@@ -354,5 +380,28 @@ test.describe("career prices on a phone", () => {
     await expect(from).toHaveValue("10\u00a0700");
     await from.fill("");
     await expect(from).toHaveValue("");
+  });
+});
+
+/** The rendered width of the fade at the phone list's right edge. */
+const fadeWidth = (frame: Element): number =>
+  Number.parseFloat(getComputedStyle(frame, "::after").width);
+
+test.describe("phone edge fade", () => {
+  test.use(PHONE);
+
+  // Scrolled so a column ends just inside the edge and the next lies wholly beyond it, the fade stays
+  // (owner, 2026-11-05): at least the "more" mark's 16 px.
+  test("keeps the fade while the next column is wholly beyond the edge", async ({ page }) => {
+    await loadDatabase(page);
+    await filterByAttributes(page, "Przyspieszenie", "Szybkość", "Drybling", "Wytrzymałość");
+    await page.locator(".scroll").evaluate((list) => {
+      const edge = list.getBoundingClientRect().left + list.clientWidth;
+      const label = list.closest(".phone-list")?.querySelectorAll(".column-label")[3];
+      if (label !== undefined) list.scrollBy(label.getBoundingClientRect().right - (edge - 4), 0);
+    });
+    const frame = page.locator(".phone-list");
+    await expect(frame).toHaveAttribute("data-more");
+    await expect.poll(async () => frame.evaluate(fadeWidth)).toBeGreaterThanOrEqual(16);
   });
 });
