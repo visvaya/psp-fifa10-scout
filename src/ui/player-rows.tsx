@@ -42,35 +42,44 @@ const PHONE = {
   fullColumns: 2,
   initialAboveChars: 14,
   ratingRem: 2.25,
-  labelRemPerChar: 0.5,
   paddingRem: 0.5,
-  /** The labels' fade at the right edge while columns follow (--space-6 + --space-4 in styles.css). */
-  fadeRem: 2.5,
+  /** The fade at the right edge while columns follow (--space-6 in styles.css), at its widest. */
+  fadeRem: 1.5,
+  /** The "more" mark at the right edge (--space-4 in styles.css), the fade's least width. */
+  markRem: 1,
 } as const;
 /**
- * The width of a phone number column in rem: a rating's, its label's (with a character for the sort mark)
- * or its widest value's.
+ * The width of a phone number column in rem: a rating's, its label's whole (owner, 2026-11-05: labels are
+ * not cut) or its widest value's.
  */
-const phoneColumnRem = (label: string, valueRem: number): number =>
-  Math.max(
-    PHONE.ratingRem,
-    (label.length + 1) * PHONE.labelRemPerChar + PHONE.paddingRem,
-    valueRem + PHONE.paddingRem,
-  );
+const phoneColumnRem = (labelRem: number, valueRem: number): number =>
+  Math.max(PHONE.ratingRem, labelRem + PHONE.paddingRem, valueRem + PHONE.paddingRem);
+
+/** The sort mark after a sorted label (styles.css), counted in every label so none is cut once sorted. */
+const SORT_MARK = " ▼";
 
 /**
- * The widest of these texts in rem, in the rows' font; every digit as wide as a 0, as the page's tabular
- * digits are (a canvas does not apply them).
+ * The widest of these texts in rem, in the rows' font or the given one; every digit as wide as a 0, as
+ * the page's tabular digits are (a canvas does not apply them).
  */
-const widestTextRem = (texts: readonly string[]): number => {
+const widestTextRem = (texts: readonly string[], font?: string): number => {
   const context = document.createElement("canvas").getContext("2d");
   if (context === null || texts.length === 0) return 0;
   const style = getComputedStyle(document.body);
-  context.font = `${style.fontSize} ${style.fontFamily}`;
+  context.font = font ?? `${style.fontSize} ${style.fontFamily}`;
   const shapes = new Set(texts.map((text) => text.replaceAll(/\d/gu, "0")));
   const widest = Math.max(...[...shapes].map((text) => context.measureText(text).width));
   return widest / rootFontPx();
 };
+
+/** Each label's width in rem with the sort mark, in the labels' font (bold, --font-size-sm). */
+const useLabelRems = (labels: readonly string[]): readonly number[] =>
+  useMemo(() => {
+    const root = getComputedStyle(document.documentElement);
+    const sizeRem = Number.parseFloat(root.getPropertyValue("--font-size-sm")) || 1;
+    const font = `600 ${String(sizeRem * rootFontPx())}px ${getComputedStyle(document.body).fontFamily}`;
+    return labels.map((label) => widestTextRem([`${label}${SORT_MARK}`], font));
+  }, [labels]);
 
 /** Each column's widest text in rem over every player, so the widths stay put whatever the filters. */
 const useValueRems = (
@@ -90,8 +99,10 @@ const useValueRems = (
  * The phone rows' grid, shared by the header so each label stands over its column: the values for the
  * rules in styles.css.
  */
-const phoneLayout = (labels: readonly string[], valueRems: readonly number[]): CSSProperties => {
-  const widths = labels.map((label, index) => phoneColumnRem(label, valueRems[index] ?? 0));
+const phoneLayout = (labelRems: readonly number[], valueRems: readonly number[]): CSSProperties => {
+  const widths = labelRems.map((labelRem, index) =>
+    phoneColumnRem(labelRem, valueRems[index] ?? 0),
+  );
   const sum = widths.reduce((total, width) => total + width, 0);
   const full = widths.slice(0, PHONE.fullColumns);
   const fullRem = full.reduce((total, width) => total + width, 0);
@@ -125,28 +136,25 @@ const RowsHeader = (props: {
   return (
     <div ref={ref} className="player-rows-header">
       <div className="player-rows-grid" style={layout}>
-        <span />
-        {columns.map((column, index) => {
-          const label = labels[index] ?? "";
-          const sorted = sort.key === column;
-          return (
-            <button
-              key={column}
-              type="button"
-              className="column-label"
-              data-sort={sorted ? sort.direction : undefined}
-              aria-label={sorted ? TEXT.sortedBy(label, sort.direction) : label}
-              onClick={() => {
-                dispatch({ type: "sort-changed", key: column });
-              }}
-              onFocus={(event) => {
-                onLabelFocus(event.currentTarget);
-              }}
-            >
-              {label}
-            </button>
-          );
-        })}
+        {/* Every column named, the players' too (owner, 2026-11-05); it sorts by name. */}
+        <LabelButton
+          className="name-label"
+          column="name"
+          label={TEXT.columns.name}
+          sort={sort}
+          dispatch={dispatch}
+        />
+        {columns.map((column, index) => (
+          <LabelButton
+            key={column}
+            className="column-label"
+            column={column}
+            label={labels[index] ?? ""}
+            sort={sort}
+            dispatch={dispatch}
+            onFocus={onLabelFocus}
+          />
+        ))}
       </div>
     </div>
   );
@@ -173,6 +181,35 @@ const WholeWords = ({ text }: { text: string }) => {
         </span>
       ))}
     </>
+  );
+};
+
+/** A column's label: it sorts by the column, another tap turns the order round. */
+const LabelButton = (props: {
+  className: string;
+  column: SortKey;
+  label: string;
+  sort: ScoutSort;
+  dispatch: Dispatch<ScoutAction>;
+  onFocus?: (label: HTMLElement) => void;
+}) => {
+  const { column, label, sort } = props;
+  const sorted = sort.key === column;
+  return (
+    <button
+      type="button"
+      className={props.className}
+      data-sort={sorted ? sort.direction : undefined}
+      aria-label={sorted ? TEXT.sortedBy(label, sort.direction) : label}
+      onClick={() => {
+        props.dispatch({ type: "sort-changed", key: column });
+      }}
+      onFocus={(event) => {
+        props.onFocus?.(event.currentTarget);
+      }}
+    >
+      {label}
+    </button>
   );
 };
 
@@ -227,16 +264,27 @@ const scrollShowing = (label: HTMLElement, header: HTMLElement, from: number): n
  */
 const followScroll = (list: HTMLElement, frame: HTMLElement): void => {
   const { scrollLeft, clientWidth, offsetWidth } = list;
-  // From where the last label ends rather than from the scroll width: Chromium can stop short of the
-  // scroll width by the scrollbar's width. A pixel's leeway for rounding.
-  const lastLabel = frame.querySelector(".player-rows-grid > :last-child");
-  const more =
-    (lastLabel?.getBoundingClientRect().right ?? 0) >
-    list.getBoundingClientRect().left + clientWidth + 1;
+  // From where the labels end rather than from the scroll width: Chromium can stop short of the scroll
+  // width by the scrollbar's width. A pixel's leeway for rounding.
+  const edge = list.getBoundingClientRect().left + clientWidth;
+  const cut = [...frame.querySelectorAll(".player-rows-grid > .column-label")]
+    .map((label) => label.getBoundingClientRect())
+    .find((box) => box.right > edge + 1);
+  const grid = frame.querySelector(".player-rows-grid");
+  const gap = grid === null ? 0 : Number.parseFloat(getComputedStyle(grid).columnGap) || 0;
+  // The usual fade, narrowed so it starts no earlier than the gap before the first column that does not
+  // show whole: a column that shows whole stays clear of it (owner, 2026-11-05). At least as wide as the
+  // "more" mark.
+  const rem = rootFontPx();
+  const fade =
+    cut === undefined
+      ? 0
+      : Math.max(PHONE.markRem * rem, Math.min(PHONE.fadeRem * rem, edge - cut.left + gap));
+  frame.style.setProperty("--phone-fade", `${String(fade)}px`);
   frame.style.setProperty("--phone-scroll", `${String(scrollLeft)}px`);
   frame.style.setProperty("--phone-scrollbar", `${String(offsetWidth - clientWidth)}px`);
   frame.toggleAttribute("data-scrolled", scrollLeft > 0);
-  frame.toggleAttribute("data-more", more);
+  frame.toggleAttribute("data-more", cut !== undefined);
 };
 
 /** One phone row: the name with club, position and age, then the number columns. */
@@ -316,7 +364,7 @@ const usePhoneColumns = (props: ListProps) => {
   return {
     columns,
     labels,
-    layout: phoneLayout(labels, useValueRems(allPlayers, columns, ratingCode)),
+    layout: phoneLayout(useLabelRems(labels), useValueRems(allPlayers, columns, ratingCode)),
   };
 };
 

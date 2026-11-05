@@ -2,6 +2,7 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import {
+  fadeStart,
   filterByAttributes,
   guardSecurityPolicy,
   loadDatabase,
@@ -15,18 +16,6 @@ guardSecurityPolicy();
 const filterBySpeed = async (page: Page) => filterByAttributes(page, "Przyspieszenie", "Szybkość");
 
 const scrollLeftOf = (element: Element) => element.scrollLeft;
-
-/**
- * Where the labels' fade at the right edge starts on screen: the header's visible right edge (a
- * scrollbar gutter left out) less the rendered width of the "more columns" mark.
- */
-const fadeStart = async (page: Page): Promise<number> =>
-  page.locator(".player-rows-header").evaluate((header) => {
-    const list = header.closest(".phone-list");
-    if (!(header instanceof HTMLElement) || list === null) return Number.NEGATIVE_INFINITY;
-    const fade = Number.parseFloat(getComputedStyle(list, "::before").width);
-    return header.getBoundingClientRect().left + header.clientWidth - fade;
-  });
 
 test.describe("phone column labels", () => {
   test.use(PHONE);
@@ -44,6 +33,9 @@ test.describe("phone column labels", () => {
     await expect(potential).toHaveAccessibleName("POT, rosnąco");
     await expect(page.getByRole("button", { name: "rosnąco", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: /^OVR/u })).toHaveAccessibleName("OVR");
+    // The players' column has its label too, and it sorts by name.
+    await page.getByRole("button", { name: "Zawodnik" }).tap();
+    await expect(sortBy).toHaveValue("name");
   });
 });
 
@@ -62,7 +54,7 @@ test.describe("phone label focus", () => {
     await expect
       .poll(async () => {
         const box = await labels.nth(2).boundingBox();
-        return (box?.x ?? Infinity) + (box?.width ?? 0) <= (await fadeStart(page));
+        return (box?.x ?? Infinity) + (box?.width ?? 0) <= (await fadeStart(page)) + 1;
       })
       .toBe(true);
   });
@@ -90,7 +82,7 @@ test.describe("phone label focus on narrow screens", () => {
   // The kept name narrows as the list scrolls: a label that fits beside the narrowed name shows whole,
   // clear of both the name and the fade.
   test("shows a focused label whole once the name has narrowed", async ({ page }) => {
-    await page.setViewportSize({ width: 385, height: 844 });
+    await page.setViewportSize({ width: 365, height: 844 });
     await loadDatabase(page);
     // OVR and POT first, so the name keeps a wide column until the list scrolls.
     await showPotential(page);
@@ -108,7 +100,7 @@ test.describe("phone label focus on narrow screens", () => {
       ]);
       return {
         clearOfName: (box?.x ?? 0) >= (name?.x ?? 0) + (name?.width ?? 0),
-        clearOfFade: (box?.x ?? 0) + (box?.width ?? 0) <= fade,
+        clearOfFade: (box?.x ?? 0) + (box?.width ?? 0) <= fade + 1,
       };
     };
     await expect.poll(edges).toEqual({ clearOfName: true, clearOfFade: true });
