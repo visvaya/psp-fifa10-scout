@@ -5,6 +5,7 @@ import { offerTerms } from "../logic/offer.ts";
 import type { OfferContext } from "../logic/offer.ts";
 import type { AttributeName, Player } from "../logic/players.ts";
 import { nameTextIdOf, POSITION_CODES, RATING_CHOICES, ratingCodeOf } from "../logic/positions.ts";
+import { Stars } from "./stars.tsx";
 import { codeName } from "./text-code-names.ts";
 import { AttributeValue, GainValue } from "./attribute-value.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
@@ -79,6 +80,9 @@ const profile = (
   [LIST_LABELS.developmentType, codeName("developmentType", player.developmentType)],
   [LIST_LABELS.developmentStyle, codeName("developmentStyle", player.developmentStyle)],
   [RANGE_LABELS.clubRating, optional(player.clubRating)],
+  ...(player.clubStars === null
+    ? []
+    : [[TEXT.card.clubStars, <Stars key="stars" value={player.clubStars} />] as const]),
   [FLAG_LABELS.nationalTeam, player.nationalTeamName ?? TEXT.card.no],
   [
     FILTER_SECTION_LABELS.traits,

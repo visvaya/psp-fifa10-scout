@@ -22,6 +22,7 @@ import { financeOf, NO_FINANCE } from "./player-finance.ts";
 import { clubWillSellOf } from "./sale-rule.ts";
 import type { Finance, FinanceInput } from "./player-finance.ts";
 import { positionOf } from "./positions.ts";
+import { clubStarsOf } from "./team-stars.ts";
 import type { PositionGroup } from "./positions.ts";
 import { marketFields, transferMarketOf } from "./transfer-market.ts";
 import type { TransferMarket } from "./transfer-market.ts";
@@ -183,6 +184,8 @@ export interface Player extends Finance, SeasonStats {
   readonly clubName: string | null;
   /** The club's teams.overallrating. */
   readonly clubRating: number | null;
+  /** The club's stars as the game shows them, 0.5..5 from its players' OVR (team-stars.ts). */
+  readonly clubStars: number | null;
   readonly leagueId: number | null;
   readonly leagueName: string | null;
   readonly contractEndYear: number | null;
@@ -296,7 +299,7 @@ const profileFields = (row: EaDbRow) => ({
   traits: TRAIT_NAMES.filter((trait) => num(row, trait) === 1),
 });
 
-const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
+const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder" | "clubStars"> => {
   const id = num(row, "playerid");
   const position = positionOf(num(row, "preferredposition1"));
   const stats = context.stats.get(id);
@@ -349,18 +352,28 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
   };
 };
 
-/** Each summary frozen with its nameOrder; the order is computed once so sorts stay numeric. */
-export const withNameOrder = (
-  players: readonly Omit<Player, "nameOrder">[],
+/**
+ * Each summary frozen with what needs the whole list: its nameOrder, computed once so sorts stay
+ * numeric, and its club's stars.
+ */
+export const withListFields = (
+  players: readonly Omit<Player, "nameOrder" | "clubStars">[],
   collator: Intl.Collator = nameCollator,
 ): readonly Player[] => {
+  const stars = clubStarsOf(players);
   const order = new Map(
     players
       .toSorted((a, b) => collator.compare(a.name, b.name) || a.id - b.id)
       .map((player, index) => [player, index]),
   );
   return Object.freeze(
-    players.map((player) => Object.freeze({ ...player, nameOrder: order.get(player) ?? 0 })),
+    players.map((player) =>
+      Object.freeze({
+        ...player,
+        nameOrder: order.get(player) ?? 0,
+        clubStars: player.clubId === null ? null : (stars.get(player.clubId) ?? null),
+      }),
+    ),
   );
 };
 
@@ -466,7 +479,7 @@ export const buildPlayers = (db: EaDb, save?: CareerSave): readonly Player[] => 
         : [...effectiveRows(db, save, "career_youth_accademy"), ...transferList]),
     ].map((row) => num(row, "playerid")),
   );
-  return withNameOrder(
+  return withListFields(
     readTable(db, "players")
       .filter(
         (row) =>

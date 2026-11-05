@@ -1,7 +1,7 @@
 // Club, league, country and position names in a language of the game (from its locale files), applied
 // over the English fifa.db names; any name the game does not have keeps the fifa.db one.
 import { countryKey, labelKey, leagueKey, teamKey, textKey } from "../data/game-locale.ts";
-import { nameCollator, withNameOrder } from "./players.ts";
+import { nameCollator, withListFields } from "./players.ts";
 import type { Player } from "./players.ts";
 import { nameTextIdOf, POSITION_CODES, positionOf } from "./positions.ts";
 
@@ -113,7 +113,7 @@ export const localizePlayers = (
   collator: Intl.Collator = nameCollator,
 ): readonly Player[] => {
   const result = renamed(players, names);
-  return collator === nameCollator ? result : withNameOrder(result, collator);
+  return collator === nameCollator ? result : withListFields(result, collator);
 };
 
 export const languageLabel = (code: string): string => LANGUAGES[code]?.label ?? code;

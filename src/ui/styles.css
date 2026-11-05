@@ -639,6 +639,21 @@ input[inputmode="numeric"] {
   margin-right: var(--space-1);
 }
 
+/* Five stars as the game shows a club's: full, half (the left half filled) or empty. */
+.stars {
+  color: var(--color-line);
+}
+
+.star-full {
+  color: var(--color-accent);
+}
+
+.star-half {
+  background: linear-gradient(to right, var(--color-accent) 50%, var(--color-line) 50%);
+  background-clip: text;
+  color: transparent;
+}
+
 /* The list and its labels measure widths in cqw, as their own width without a scrollbar. */
 .phone-scroll,
 .player-rows-header {

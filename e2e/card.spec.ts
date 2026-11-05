@@ -21,6 +21,12 @@ test.describe("player card", () => {
     await expect(cardValue(card, "Typ rozwoju")).toHaveText("wczesny");
     await expect(cardValue(card, "Styl rozwoju")).toHaveText("dobry");
     await expect(cardValue(card, "Siła klubu")).toHaveText("66");
+    // The game's stars from the OVR of the club's best 16 players, read out with their value.
+    await expect(cardValue(card, "Gwiazdki klubu")).toHaveText("★★★★★0,5 z 5 gwiazdek");
+    await expect(card.locator(".stars > *")).toHaveClass([
+      "star-half",
+      ...Array.from({ length: 4 }, () => "star-empty"),
+    ]);
     await expect(cardValue(card, "Reprezentant kraju")).toHaveText("nie");
     await expect(cardValue(card, "Cechy")).toHaveText("brak");
     await page.keyboard.press("Escape");

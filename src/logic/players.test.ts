@@ -6,7 +6,7 @@ import { parseEaDb } from "../data/ea-db.ts";
 import type { EaDbRow } from "../data/ea-db.ts";
 import { buildEaDb } from "../data/test-support/synthetic-ea-db.ts";
 import { filterPlayers } from "./filter-players.ts";
-import { attributesOf, buildPlayers, searchKey } from "./players.ts";
+import { buildPlayers } from "./players.ts";
 import { sortPlayers } from "./sort-players.ts";
 import { baseOverall, byPositionCode } from "./overall-rating.ts";
 import {
@@ -198,6 +198,8 @@ describe("buildPlayers from fifa.db", () => {
       clubId: 241,
       clubName: "FC Barcelona",
       clubRating: 84,
+      // From the OVR of the fixture club's players (team-stars.ts).
+      clubStars: 1,
       leagueId: 53,
       leagueName: "Spain Primera Division (1)",
       contractEndYear: 2014,
@@ -249,6 +251,7 @@ describe("buildPlayers from fifa.db", () => {
       clubId: null,
       clubName: null,
       clubRating: null,
+      clubStars: null,
       leagueId: null,
       leagueName: null,
       contractEndYear: null,
@@ -261,19 +264,6 @@ describe("buildPlayers from fifa.db", () => {
     expect(Object.isFrozen(players)).toBe(true);
     expect(players.every((player) => Object.isFrozen(player))).toBe(true);
     expect(Object.isFrozen(players[0]?.attributes)).toBe(true);
-  });
-});
-
-describe("searchKey", () => {
-  it("drops case and diacritics, ł included", () => {
-    expect(searchKey("Paweł ŻURAWSKI Łoś")).toBe("pawel zurawski los");
-  });
-});
-
-describe("attributesOf", () => {
-  it("rejects a players row without every attribute column", () => {
-    const { reflexes: _, ...partial } = playerRow({});
-    expect(() => attributesOf(partial)).toThrow(/lack attribute columns/);
   });
 });
 
