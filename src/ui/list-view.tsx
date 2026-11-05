@@ -2,10 +2,12 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } f
 import type { Dispatch, JSX, ReactNode } from "react";
 import { filterPlayers, rangedAttributes } from "../logic/filter-players.ts";
 import type { Player } from "../logic/players.ts";
-import { activeFilters, effectiveFilters, RATING_SORT_KEYS } from "../logic/scout-state.ts";
+import { effectiveFilters } from "../logic/effective-filters.ts";
+import { activeFilters, RATING_SORT_KEYS } from "../logic/scout-state.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
 import { SORTABLE_KEYS } from "../logic/scout-store.ts";
 import { POTENTIAL_KEYS, sortPlayers } from "../logic/sort-players.ts";
+import type { WatchEntry } from "../logic/watchlist.ts";
 import { FilterChips } from "./filter-chips.tsx";
 import { FilterForm } from "./filter-form.tsx";
 import { FilterSets } from "./filter-sets.tsx";
@@ -96,6 +98,8 @@ const NoMatches = ({ dispatch }: { dispatch: Dispatch<ScoutAction> }) => (
   </div>
 );
 
+const NO_ENTRIES: readonly WatchEntry[] = [];
+
 /** The filtered and sorted players; deferred so typing stays responsive. */
 const useVisiblePlayers = (
   players: readonly Player[],
@@ -104,15 +108,17 @@ const useVisiblePlayers = (
 ) => {
   const filters = useDeferredValue(state.filters);
   const sort = useDeferredValue(state.sort);
+  // The list matters to the order only while its filter is set, so a note typed on the card sorts nothing.
+  const listed = filters.flags?.onMyList === undefined ? NO_ENTRIES : state.watchlist;
   const visible = useMemo(
     () =>
       sortPlayers(
-        filterPlayers(players, effectiveFilters(filters, state.myTeamId)),
+        filterPlayers(players, effectiveFilters(filters, state.myTeamId, listed)),
         sort.key,
         sort.direction,
         { ratingCode: filters.positionRating?.code, collator },
       ),
-    [players, filters, sort, state.myTeamId, collator],
+    [players, filters, sort, state.myTeamId, listed, collator],
   );
   return { visible, sort };
 };

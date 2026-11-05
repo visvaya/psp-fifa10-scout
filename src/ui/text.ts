@@ -192,6 +192,7 @@ export const FLAG_LABELS: Readonly<Record<FlagKey, string>> = {
   loanListed: "Na liście do wypożyczenia",
   loaned: "Wypożyczony",
   shortlisted: pl`Na liście życzeń w grze`,
+  onMyList: pl`Na mojej liście`,
   clubWillSell: "Klub może go sprzedać",
 };
 

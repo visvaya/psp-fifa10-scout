@@ -279,7 +279,7 @@ type Kit = ReturnType<typeof controls> & {
 
 /** career: the peak OVR exists only with a career save. */
 const basicSection = (kit: Kit, showPotential: boolean, career: boolean) => {
-  const { filters, change, facets, range, list, positionName } = kit;
+  const { filters, change, facets, range, list, flag, positionName } = kit;
   return (
     <Section title={FILTER_SECTION_LABELS.basic} initiallyOpen>
       <label className="field">
@@ -320,6 +320,7 @@ const basicSection = (kit: Kit, showPotential: boolean, career: boolean) => {
             ...(career ? [range("peak"), range("peakGain")] : []),
           ]
         : null}
+      {flag("onMyList")}
     </Section>
   );
 };

@@ -4,7 +4,6 @@ import {
   activeFilters,
   activeLanguage,
   DEFAULT_SORT,
-  effectiveFilters,
   listedCount,
   initialScoutState,
   scoutReducer,
@@ -413,23 +412,5 @@ describe("effectiveFilters", () => {
   it("count the players the list shows, as the start screen's button does", () => {
     const filtered = { ...loaded(), filters: { lists: { clubId: [7] } } };
     expect([initialScoutState, loaded(), filtered].map(listedCount)).toEqual([0, 2, 1]);
-  });
-
-  it("keeps the players one can sign, or only free agents in a career", () => {
-    expect(effectiveFilters({}, null)).toEqual({ availableOnly: true });
-    expect(effectiveFilters({}, 7)).toEqual({ availableOnly: true });
-    expect(effectiveFilters({ clubStatus: "free-agents" }, 7)).toEqual({ freeAgentsOnly: true });
-    // Without a career fifa.db has no free agents, so the option does not apply.
-    expect(effectiveFilters({ clubStatus: "free-agents" }, null)).toEqual({ availableOnly: true });
-  });
-
-  it("turns 'my club' into the club id to hide or keep, only with a career", () => {
-    expect(effectiveFilters({ myClub: "hide", text: "a" }, 7)).toEqual({
-      text: "a",
-      availableOnly: true,
-      excludeTeamId: 7,
-    });
-    expect(effectiveFilters({ myClub: "only" }, 7)).toEqual({ availableOnly: true, onlyTeamId: 7 });
-    expect(effectiveFilters({ myClub: "hide" }, null)).toEqual({ availableOnly: true });
   });
 });

@@ -47,6 +47,13 @@ export const expectStoredPositionGroup = async (page: Page, group: string) => {
     .toMatchObject({ value: { filters: { lists: { positionGroup: [group] } } } });
 };
 
+/** Waits until the stored watchlist holds a note, for the same reason as above. */
+export const expectStoredWatchNote = async (page: Page, note: string) => {
+  await expect
+    .poll(async () => page.evaluate(readStored, "watchlist"))
+    .toMatchObject({ value: [{ note }] });
+};
+
 /** The horizontal centre of an element, NaN when it is not shown. */
 export const centre = async (locator: Locator): Promise<number> => {
   const box = await locator.boundingBox();
