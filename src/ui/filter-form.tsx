@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { Dispatch, JSX } from "react";
 import type { FlagKey, ListKey, Range, RangeKey } from "../logic/filter-players.ts";
-import { ATTRIBUTE_NAMES, TRAIT_NAMES } from "../logic/players.ts";
+import { ATTRIBUTE_NAMES, SEASON_STAT_KEYS, TRAIT_NAMES } from "../logic/players.ts";
 import type { AttributeName, Player, TraitName } from "../logic/players.ts";
 import { POSITION_GROUPS } from "../logic/positions.ts";
 import { facetOptions } from "../logic/facets.ts";
@@ -347,10 +347,7 @@ const careerSection = ({ range, flag }: Kit) => (
   <Section title={FILTER_SECTION_LABELS.career}>
     {range("form")}
     {range("morale")}
-    {range("appearances")}
-    {range("goals")}
-    {range("cupAppearances")}
-    {range("cupGoals")}
+    {SEASON_STAT_KEYS.map((key) => range(key))}
     {range("injuryDays")}
     {range("price")}
     {range("wage")}

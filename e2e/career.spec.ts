@@ -90,6 +90,20 @@ test.describe("career ratings", () => {
     await expect(cardValue(card, "Występy w lidze")).toHaveText("5");
     await expect(cardValue(card, "Występy w pucharach")).toHaveText("3");
     await expect(cardValue(card, "Gole w pucharach")).toHaveText("1");
+    await expect(cardValue(card, "Asysty w pucharach")).toHaveText("1");
+    // Clean sheets only for goalkeepers, as the game counts them.
+    await expect(card.getByText(/^Czyste konta/u)).toHaveCount(0);
+  });
+
+  test("shows a goalkeeper's clean sheets and filters by them", async ({ page }) => {
+    await loadCareer(page);
+    await page.getByText("Kariera", { exact: true }).click();
+    await page.getByRole("group", { name: "Czyste konta w lidze" }).getByLabel("od").fill("1");
+    await expectCount(page, "1 zawodnik");
+    await page.getByRole("button", { name: "Gracz Numer 1", exact: true }).click();
+    const card = page.getByRole("dialog", { name: "Gracz Numer 1" });
+    await expect(cardValue(card, "Czyste konta w lidze")).toHaveText("2");
+    await expect(cardValue(card, "Czyste konta w pucharach")).toHaveText("1");
   });
 
   // The synthetic curves are flat, so the peak stays at today's OVR, below Messi's potential of 95.

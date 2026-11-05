@@ -9,7 +9,13 @@ import { filterPlayers } from "./filter-players.ts";
 import { attributesOf, buildPlayers, searchKey } from "./players.ts";
 import { sortPlayers } from "./sort-players.ts";
 import { baseOverall, byPositionCode } from "./overall-rating.ts";
-import { attributes, flatCurves, playerRow, table } from "./test-support/player-fixtures.ts";
+import {
+  attributes,
+  flatCurves,
+  NO_STATS,
+  playerRow,
+  table,
+} from "./test-support/player-fixtures.ts";
 
 const daysSince1582 = (year: number, month: number, day: number): number =>
   (Date.UTC(year, month - 1, day) - Date.UTC(1582, 9, 14)) / 86_400_000;
@@ -198,13 +204,7 @@ describe("buildPlayers from fifa.db", () => {
       nationalTeamName: "Argentina",
       nationalityId: 52,
       nationalityName: "Argentina",
-      form: null,
-      morale: null,
-      goals: null,
-      appearances: null,
-      injuryDays: null,
-      cupAppearances: null,
-      cupGoals: null,
+      ...NO_STATS,
       transferListed: false,
       loanListed: false,
       loanedFromId: null,

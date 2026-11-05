@@ -229,6 +229,14 @@ const CareerFacts = ({ player }: { player: Player }) => (
         [RANGE_LABELS.goals, optional(player.goals)],
         [RANGE_LABELS.cupAppearances, optional(player.cupAppearances)],
         [RANGE_LABELS.cupGoals, optional(player.cupGoals)],
+        [RANGE_LABELS.assists, optional(player.assists)],
+        [RANGE_LABELS.cupAssists, optional(player.cupAssists)],
+        ...(player.positionGroup === "goalkeeper"
+          ? ([
+              [RANGE_LABELS.cleanSheets, optional(player.cleanSheets)],
+              [RANGE_LABELS.cupCleanSheets, optional(player.cupCleanSheets)],
+            ] as const)
+          : []),
         [RANGE_LABELS.injuryDays, optional(player.injuryDays)],
         [FLAG_LABELS.transferListed, yesNo(player.transferListed)],
         [FLAG_LABELS.loanListed, yesNo(player.loanListed)],

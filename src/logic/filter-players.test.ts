@@ -181,14 +181,16 @@ describe("filterPlayers", () => {
   // Without a stats row (null) a player never passes a range.
   it("keeps players by their league and cup games", () => {
     const games = [
-      testPlayer({ id: 1, appearances: 3, cupAppearances: 2 }),
-      testPlayer({ id: 2, appearances: 0, cupAppearances: 0 }),
+      testPlayer({ id: 1, appearances: 3, cupAppearances: 2, assists: 1 }),
+      testPlayer({ id: 2, appearances: 0, cupAppearances: 0, cleanSheets: 2 }),
       testPlayer({ id: 3 }),
     ];
     const kept = (filters: PlayerFilters) =>
       filterPlayers(games, filters).map((player) => player.id);
     expect(kept({ ranges: { cupAppearances: { min: 1 } } })).toEqual([1]);
     expect(kept({ ranges: { appearances: { max: 0 } } })).toEqual([2]);
+    expect(kept({ ranges: { assists: { min: 1 } } })).toEqual([1]);
+    expect(kept({ ranges: { cleanSheets: { min: 1 } } })).toEqual([2]);
   });
 
   it("finds the players on loan and those listed for one", () => {

@@ -9,7 +9,7 @@ import { FLAG_KEYS, LIST_FIELDS, RANGE_KEYS } from "./filter-players.ts";
 import type { ListKey, PositionRating, Range } from "./filter-players.ts";
 import type { SaveFiles } from "./load-scout.ts";
 import { OVR_WEIGHTS } from "./overall-rating.ts";
-import { ATTRIBUTE_NAMES } from "./players.ts";
+import { ATTRIBUTE_NAMES, SEASON_STAT_KEYS } from "./players.ts";
 import { POSITION_GROUPS, ratingCodeOf } from "./positions.ts";
 import { compactFilters, inRecordOrder } from "./scout-state.ts";
 import type { ClubStatus, MyClub, Preferences, ScoutFilters, ScoutSort } from "./scout-state.ts";
@@ -60,10 +60,7 @@ export const SORTABLE_KEYS: readonly SortKey[] = [
   "clubRating",
   "form",
   "morale",
-  "appearances",
-  "goals",
-  "cupAppearances",
-  "cupGoals",
+  ...SEASON_STAT_KEYS,
   "injuryDays",
   "price",
   "wage",

@@ -74,7 +74,8 @@ const PLAYERS = table("players", [
 
 /**
  * Messi's season so far: the save keeps his average match rating 6,9 times ten; a domestic cup game
- * and two Champions League games with a goal (cup0, cup1).
+ * and two Champions League games with a goal and an assist (cup0, cup1). Gracz Numer 1 keeps goal: the
+ * game counts clean sheets for goalkeepers only.
  */
 const STATS = table("playerstats", [
   {
@@ -87,7 +88,10 @@ const STATS = table("playerstats", [
     appearancescup0: 1,
     appearancescup1: 2,
     goalscup1: 1,
+    assists: 2,
+    assistscup1: 1,
   },
+  { playerid: 1000, form: 60, appearances: 4, cleansheets: 2, cleansheetscup1: 1 },
 ]);
 
 export const SCOUT_USER_TEAM_ID = 1873;
