@@ -52,7 +52,7 @@ test.describe("wide table", () => {
     };
     await page
       .getByRole("group", { name: "Ocena na pozycji" })
-      .getByRole("combobox")
+      .getByRole("combobox", { name: "Ocena na pozycji" })
       .selectOption({ label: "Środkowy obrońca (CB)" });
     expect(await rightOf(/^OVR$/u)).toBeLessThanOrEqual(await edge());
     expect(await rightOf(/^Różnica CB/u)).toBeLessThanOrEqual(await edge());
@@ -269,7 +269,9 @@ test.describe("filter panel", () => {
     await expect(
       rating.getByRole("option", { name: "Skrzydłowy / boczny pomocnik (RWM/LWM; RM/LM)" }),
     ).toHaveCount(1);
-    await rating.getByRole("combobox").selectOption({ label: "Boczny obrońca (RB/LB)" });
+    await rating
+      .getByRole("combobox", { name: "Ocena na pozycji" })
+      .selectOption({ label: "Boczny obrońca (RB/LB)" });
     const header = page.getByRole("columnheader", { name: /^OVR RB\/LB/u });
     await header.getByRole("button").click();
     await expect(header).toHaveAttribute("aria-sort", "descending");
