@@ -299,7 +299,6 @@ export const TEXT = {
   filters: "Filtry",
   showPotential: "Pokaż potencjał",
   positionRating: "Ocena na pozycji",
-  position: "Pozycja",
   ratingAt: (position: string): string => `OVR ${position}`,
   ratingChoice: (group: string, abbreviation: string): string => `${group} (${abbreviation})`,
   /** Group labels joined, the later ones in lower case: "Boczny pomocnik / skrzydłowy". */
