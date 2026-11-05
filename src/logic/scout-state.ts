@@ -2,6 +2,7 @@
 import { SCOUT_CONFIG } from "./config.ts";
 import {
   CAREER_FLAG_KEYS,
+  CAREER_RANGE_KEYS,
   filterPlayers,
   FLAG_KEYS,
   LIST_FIELDS,
@@ -277,13 +278,16 @@ const withoutCareer = ({ filters, sort }: Pick<Preferences, "filters" | "sort">)
     ...filters,
     clubStatus: undefined,
     myClub: undefined,
-    ranges: { ...filters.ranges, peak: undefined },
+    ranges: {
+      ...filters.ranges,
+      ...Object.fromEntries(CAREER_RANGE_KEYS.map((key) => [key, undefined])),
+    },
     flags: {
       ...filters.flags,
       ...Object.fromEntries(CAREER_FLAG_KEYS.map((key) => [key, undefined])),
     },
   }),
-  sort: sort.key === "peak" ? DEFAULT_SORT : sort,
+  sort: CAREER_RANGE_KEYS.some((key) => key === sort.key) ? DEFAULT_SORT : sort,
 });
 
 /** A filter set's action; a set loaded without a career leaves out what needs one, the set itself kept. */

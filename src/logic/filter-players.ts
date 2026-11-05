@@ -70,6 +70,20 @@ export const FLAG_KEYS: readonly FlagKey[] = [
   "clubWillSell",
 ];
 
+/** The ranges only a career save fills: without one every player has null and none passes. */
+export const CAREER_RANGE_KEYS = [
+  "peak",
+  "form",
+  "morale",
+  "appearances",
+  "goals",
+  "cupAppearances",
+  "cupGoals",
+  "injuryDays",
+  "price",
+  "wage",
+] as const satisfies readonly RangeKey[];
+
 /** The flags only a career save sets: without one every player lacks them. */
 export const CAREER_FLAG_KEYS = [
   "transferListed",
