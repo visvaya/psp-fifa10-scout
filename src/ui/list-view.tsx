@@ -59,6 +59,7 @@ const SortControls = ({
         {SORTABLE_KEYS.filter(
           (key) =>
             (state.showPotential || !POTENTIAL_KEYS.has(key)) &&
+            (key !== "peak" || state.myTeamId !== null) &&
             (!RATING_SORT_KEYS.has(key) || state.filters.positionRating !== undefined),
         ).map((key) => (
           <option key={key} value={key}>

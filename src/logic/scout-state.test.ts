@@ -53,6 +53,9 @@ describe("scoutReducer loading", () => {
       ranges: { age: { max: 21 } },
     });
     expect(loaded(5, { ...loading, filters }).filters).toEqual(filters);
+    const byPeak = { ...loading, sort: { key: "peak", direction: "descending" } } as const;
+    expect(loaded(null, byPeak).sort).toEqual(DEFAULT_SORT);
+    expect(loaded(5, byPeak).sort).toEqual(byPeak.sort);
   });
 
   it("tracks the phase of the current load and stays on the start view after a picked file", () => {
