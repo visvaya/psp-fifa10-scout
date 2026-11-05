@@ -361,6 +361,8 @@ export const TEXT = {
   /** The same at the start of a part of the phone row's line, where an ordinary space would collapse. */
   rowMetaPartSeparator: `${NBSP}·${NBSP}`,
   shortlistedMark: "★",
+  /** One of five stars. */
+  starMark: "★",
   shortlisted: pl`na liście życzeń w grze`,
   anyOption: "Dowolna",
   min: "od",
@@ -410,7 +412,8 @@ export const TEXT = {
     gain: (value: number): string => `(${signed(value)}) `,
     foot: "Lepsza noga",
     weakFoot: "Słabsza noga",
-    outOfFive: (stars: number): string => `${formatNumber(stars)} z 5`,
+    starsOutOfFive: (stars: number): string => `${formatNumber(stars)} z 5 gwiazdek`,
+    playerStars: "Gwiazdki zawodnika",
     profile: "Profil",
     internationalReputation: "Reputacja międzynarodowa",
     learningSpeed: "Szybkość nauki",

@@ -1,10 +1,12 @@
 import { useCallback, useState } from "react";
 import type { JSX, ReactNode } from "react";
 import type { CurrencyCode } from "../data/career-save.ts";
+import { playerStars } from "../logic/player-stars.ts";
 import { offerTerms } from "../logic/offer.ts";
 import type { OfferContext } from "../logic/offer.ts";
 import type { AttributeName, Player } from "../logic/players.ts";
 import { nameTextIdOf, POSITION_CODES, RATING_CHOICES, ratingCodeOf } from "../logic/positions.ts";
+import { Stars } from "./stars.tsx";
 import { codeName } from "./text-code-names.ts";
 import { AttributeValue, GainValue } from "./attribute-value.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
@@ -72,8 +74,11 @@ const profile = (
   ...(showPotential && player.peakGain !== null
     ? [[RANGE_LABELS.peakGain, formatNumber(player.peakGain)] as const]
     : []),
-  [TEXT.card.internationalReputation, TEXT.card.outOfFive(player.internationalReputation)],
-  [TEXT.card.learningSpeed, TEXT.card.outOfFive(player.learningSpeed)],
+  [
+    TEXT.card.internationalReputation,
+    <Stars key="reputation" value={player.internationalReputation} />,
+  ],
+  [TEXT.card.learningSpeed, <Stars key="learning" value={player.learningSpeed} />],
   [RANGE_LABELS.retirementAge, TEXT.years(player.retirementAge)],
   [LIST_LABELS.bodyType, codeName("bodyType", player.bodyType)],
   [LIST_LABELS.developmentType, codeName("developmentType", player.developmentType)],
@@ -127,6 +132,7 @@ const basics = (
   [TEXT.card.contract, player.contractEndYear ?? TEXT.card.none],
   ...money(player, currency),
   [TEXT.columns.overall, <AttributeValue key="overall" value={player.overall} />],
+  [TEXT.card.playerStars, <Stars key="stars" value={playerStars(player.overall)} />],
   ...(showPotential
     ? [[TEXT.card.potential, <AttributeValue key="potential" value={player.potential} />] as const]
     : []),
@@ -134,7 +140,7 @@ const basics = (
     ? [[TEXT.card.peak, <AttributeValue key="peak" value={player.peak} />] as const]
     : []),
   [TEXT.card.foot, player.preferredFoot === "left" ? TEXT.card.left : TEXT.card.right],
-  [TEXT.card.weakFoot, TEXT.card.outOfFive(player.weakFoot)],
+  [TEXT.card.weakFoot, <Stars key="weak-foot" value={player.weakFoot} />],
   [TEXT.card.height, TEXT.card.heightValue(player.height)],
   [TEXT.card.weight, TEXT.card.weightValue(player.weight)],
 ];
