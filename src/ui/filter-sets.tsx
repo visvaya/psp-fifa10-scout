@@ -61,6 +61,8 @@ const RenameEditor = (props: {
           aria-describedby={problem === null ? undefined : problemId}
           onChange={(event) => {
             setName(event.currentTarget.value);
+            // The reason was for the name refused; a new name has none until it is saved.
+            setProblem(null);
           }}
         />
       </label>

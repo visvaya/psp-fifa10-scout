@@ -40,6 +40,8 @@ test.describe("filter sets", () => {
     await expect(page.getByRole("alert")).toHaveText("Wpisz nazwę zestawu.");
     await expect(newName).toBeFocused();
     await newName.fill("Na bramkę");
+    await expect(page.getByRole("alert")).toBeHidden();
+    await expect(newName).not.toHaveAttribute("aria-invalid", "true");
     await page.getByRole("button", { name: "Zapisz nazwę zestaw „Bramkarze”" }).click();
     await expect(
       page.getByRole("button", { name: "Zmień nazwę zestaw „Na bramkę”" }),
