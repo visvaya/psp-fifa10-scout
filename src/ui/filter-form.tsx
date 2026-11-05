@@ -45,6 +45,8 @@ interface FilterFormProps {
   readonly filters: ScoutFilters;
   readonly myTeamId: number | null;
   readonly showPotential: boolean;
+  /** A change of the filters, sort or sets can be taken back. */
+  readonly canUndo: boolean;
   /** The career's currency, shown with the price and the wage; null without a career. */
   readonly currency: CurrencyCode | null;
   readonly dispatch: Dispatch<ScoutAction>;
@@ -376,6 +378,7 @@ export const FilterForm = ({
   filters,
   myTeamId,
   showPotential,
+  canUndo,
   currency,
   dispatch,
 }: FilterFormProps): JSX.Element => {
@@ -413,7 +416,7 @@ export const FilterForm = ({
       {characterSection(kit)}
       {clubSection(kit, myTeamId !== null)}
       {myTeamId === null ? null : careerSection(kit)}
-      <ResetFilters filters={filters} dispatch={dispatch} />
+      <ResetFilters filters={filters} canUndo={canUndo} dispatch={dispatch} />
     </form>
   );
 };
