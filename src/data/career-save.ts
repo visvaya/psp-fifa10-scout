@@ -128,8 +128,9 @@ const isCurrencyCode = (code: number): code is CurrencyCode =>
   code === 0 || code === 1 || code === 2;
 
 /**
- * The user team, manager name, currency, date of the last played game, prestige and finance upgrade
- * level, from team_manager.
+ * The user team, manager name, currency, date of the last played game, prestige and the level of the
+ * club's negotiator (upgrade_fin: the game's staff list names the negotiator for it, and its offer
+ * message for that part speaks of "your negotiator"), from team_manager.
  */
 export const careerManager = (
   db: EaDb,
@@ -140,7 +141,7 @@ export const careerManager = (
   currency: CurrencyCode;
   lastGameDate: Date;
   prestige: number;
-  finance: number;
+  negotiator: number;
 } => {
   const user = rowsOf(db, save, "team_manager").find((row) => row["team_id"] !== -1);
   if (user === undefined) throw new SaveFormatError("Save has no user team");
@@ -155,7 +156,7 @@ export const careerManager = (
     lastGameDate: gameDate(Number(user["last_game_number"])),
     // Absent from test schemas: no prestige and no upgrades.
     prestige: Number(user["prestige"] ?? 0),
-    finance: Number(user["upgrade_fin"] ?? 0),
+    negotiator: Number(user["upgrade_fin"] ?? 0),
   };
 };
 

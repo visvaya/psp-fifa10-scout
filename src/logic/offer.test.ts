@@ -15,10 +15,10 @@ import {
   testPlayer,
 } from "./test-support/player-fixtures.ts";
 
-/** A manager of prestige 2 and finances 4 at a club in a country outside the five big leagues. */
+/** A manager of prestige 2 and a negotiator of level 4 at a club in a country outside the five big leagues. */
 const CONTEXT: OfferContext = {
   prestige: 2,
-  finance: 4,
+  negotiator: 4,
   squadAverage: 65,
   countryId: 37,
   seasonEndYear: 2010,
@@ -40,7 +40,7 @@ const player = (overrides: Parameters<typeof testPlayer>[0] = {}) =>
   });
 
 describe("offerTerms", () => {
-  it("asks for 135 % of the value from a manager of prestige 2 and finances 4, unlisted", () => {
+  it("asks for 135 % of the value from a manager of prestige 2 and a negotiator of level 4, unlisted", () => {
     expect(offerTerms(player(), CONTEXT)).toMatchObject({ fee: 135_000, feeOverCap: true });
     // Exactly, where a decimal 1.35 would round up past it.
     expect(offerTerms(player({ price: 170_000 }), CONTEXT)?.fee).toBe(229_500);
@@ -55,7 +55,7 @@ describe("offerTerms", () => {
   });
 
   it("finds the least wage that gives the player no fewer than 0 points", () => {
-    // Prestige -3 and finances -1: the wage must bring +4, 4/15 above the market wage.
+    // Prestige -3 and negotiator -1: the wage must bring +4, 4/15 above the market wage.
     expect(offerTerms(player(), CONTEXT)).toMatchObject({
       years: 2,
       wage: 3800,
@@ -97,7 +97,7 @@ describe("offerContextOf", () => {
     const mean = Math.floor(squad.reduce((sum, each) => sum + each.overall, 0) / squad.length);
     expect(offerContextOf(db, save, players)).toEqual({
       prestige: 0,
-      finance: 0,
+      negotiator: 0,
       squadAverage: mean,
       countryId: null,
       seasonEndYear: 2010,
@@ -172,7 +172,7 @@ describe("offerContextOf", () => {
     expect(keeper?.overallByCode[29]).not.toBe(keeper?.overall);
     expect(offerContextOf(db, save, players)).toMatchObject({
       prestige: 3,
-      finance: 2,
+      negotiator: 2,
       squadAverage: keeper?.overallByCode[29],
       countryId: 37,
     });

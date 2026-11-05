@@ -11,9 +11,9 @@ import type { Player } from "./players.ts";
 
 /** The user's side of every offer. */
 export interface OfferContext {
-  /** team_manager.prestige and upgrade_fin. */
+  /** team_manager.prestige and upgrade_fin, the negotiator's level. */
   readonly prestige: number;
-  readonly finance: number;
+  readonly negotiator: number;
   /** The integer mean OVR of the user's squad at its team-sheet positions. */
   readonly squadAverage: number;
   /** The country of the user's club's league; null when unknown. */
@@ -53,14 +53,21 @@ const OFFER_TUNING = {
 } as const;
 
 /** The least fee the club accepts for a player of this value. */
-const feeNeeded = (value: number, listed: boolean, { prestige, finance }: OfferContext): number => {
+const feeNeeded = (
+  value: number,
+  listed: boolean,
+  { prestige, negotiator }: OfferContext,
+): number => {
   const t = OFFER_TUNING;
   // A listed player's fee counts with a prestige bonus: fee (1 + p (1 + f/10) / 39) >= value. An unlisted
   // one costs a premium: value (1 + (10 - (p + f) // 2) / 20). Whole-number ratios keep it exact.
   return listed
-    ? Math.ceil((value * 10 * t.listedDivider) / (10 * t.listedDivider + prestige * (10 + finance)))
+    ? Math.ceil(
+        (value * 10 * t.listedDivider) / (10 * t.listedDivider + prestige * (10 + negotiator)),
+      )
     : Math.ceil(
-        (value * (t.poachedDivider + 10 - Math.floor((prestige + finance) / 2))) / t.poachedDivider,
+        (value * (t.poachedDivider + 10 - Math.floor((prestige + negotiator) / 2))) /
+          t.poachedDivider,
       );
 };
 
@@ -89,7 +96,7 @@ const pointsBeforeWage = (player: Player, context: OfferContext): number => {
     Math.trunc((context.squadAverage - player.overall) * t.strengthWeight) +
     2 * t.prestigeOffset +
     context.prestige +
-    context.finance +
+    context.negotiator +
     nation +
     identification
   );
@@ -131,7 +138,7 @@ export const offerContextOf = (
   save: CareerSave,
   players: readonly Player[],
 ): OfferContext => {
-  const { teamId, prestige, finance } = careerManager(db, save);
+  const { teamId, prestige, negotiator } = careerManager(db, save);
   const byId = new Map(players.map((player) => [player.id, player]));
   const ratings = effectiveRows(db, save, "teamplayerlinks")
     .filter((link) => Number(link["teamid"]) === teamId)
@@ -147,7 +154,7 @@ export const offerContextOf = (
   const league = readTable(db, "leagues").find((row) => Number(row["leagueid"]) === leagueId);
   return {
     prestige,
-    finance,
+    negotiator,
     squadAverage: ratings.length === 0 ? 0 : Math.floor(total / ratings.length),
     countryId: league?.["countryid"] === undefined ? null : Number(league["countryid"]),
     seasonEndYear: seasonStartDate(db, save).getUTCFullYear() + 1,

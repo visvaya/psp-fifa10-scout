@@ -706,9 +706,25 @@ input[inputmode="numeric"] {
   .has-initial[data-swap="full"] > .player-row-name-full {
     animation: name-fade 150ms ease-out;
   }
+
+  /* player-rows.tsx sets data-swap a or b in turn when the line under a name loses or regains a part. */
+  .player-row-meta[data-swap="a"] {
+    animation: name-fade 150ms ease-out;
+  }
+
+  .player-row-meta[data-swap="b"] {
+    animation: name-fade-again 150ms ease-out;
+  }
 }
 
 @keyframes name-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* The same fade under another name, so switching to it replays the animation. */
+@keyframes name-fade-again {
   from {
     opacity: 0;
   }
@@ -1069,6 +1085,8 @@ input[inputmode="numeric"] {
 .dialog-header {
   position: sticky;
   top: 0;
+  /* Above the body's own layers (a half-transparent clear button forms one), which scroll under it. */
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: space-between;
