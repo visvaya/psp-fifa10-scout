@@ -36,7 +36,10 @@ test.describe("career", () => {
       own.getByRole("term").filter({ hasText: /^Zarobki z\skontraktu$/u }),
     ).toBeVisible();
     await page.keyboard.press("Escape");
+    // The card must be gone before the search is cleared, or the clearing can be lost (seen in CI).
+    await expect(own).toBeHidden();
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("");
+    await expectCount(page, "62 zawodników");
     await page.getByText("Kariera", { exact: true }).click();
     await page.getByRole("group", { name: "Cena (€)", exact: true }).getByLabel("od").fill("1");
     await page
