@@ -18,6 +18,10 @@ const blobs = ({ dataBin, paramSfo }: SaveFiles<Uint8Array>): SaveFiles<Blob> =>
   paramSfo: new Blob([paramSfo.slice()]),
 });
 
+/** Opens the browser's backend and the store over it; either failing is reported to onFailed. */
+const openStore = async (onFailed: () => void) =>
+  openScoutStore(await detectBackend(onFailed), onFailed);
+
 type StoreRun = (opened: ScoutStore) => Promise<void>;
 
 const restore = (dispatch: Dispatch<ScoutAction>, stored: StoredScout) => {
@@ -74,7 +78,7 @@ const createSession = (dispatch: Dispatch<ScoutAction>, onStorageFailed: () => v
     open: async (isCancelled: () => boolean): Promise<boolean | null> => {
       worker = new Worker(new URL("scout-worker.ts", import.meta.url), { type: "module" });
       worker.addEventListener("message", onMessage);
-      const opening = detectBackend().then((backend) => openScoutStore(backend, onStorageFailed));
+      const opening = openStore(onStorageFailed);
       store = opening.then(({ store: opened }) => opened);
       const { stored } = await opening;
       if (isCancelled()) return null;

@@ -1,5 +1,6 @@
-// The storage backend for this browser: IndexedDB when it opens, memory otherwise (private modes,
-// blocked storage). Either way nothing leaves the device.
+// The storage backend for this browser: IndexedDB when it opens, memory otherwise. Either way nothing
+// leaves the device. A browser without IndexedDB uses memory silently; one whose IndexedDB fails to open
+// (a damaged profile, blocked storage) says so, since nothing will be remembered.
 import { memoryBackend } from "../logic/scout-store.ts";
 import type { StorageBackend } from "../logic/scout-store.ts";
 
@@ -34,10 +35,12 @@ const indexedDbBackend = (db: IDBDatabase): StorageBackend => ({
   },
 });
 
-export const detectBackend = async (): Promise<StorageBackend> => {
+export const detectBackend = async (onOpenFailed: () => void): Promise<StorageBackend> => {
+  if (typeof indexedDB === "undefined") return memoryBackend();
   try {
     return indexedDbBackend(await openDatabase());
   } catch {
+    onOpenFailed();
     return memoryBackend();
   }
 };
