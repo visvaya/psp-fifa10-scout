@@ -3,7 +3,7 @@ import { pl } from "./typeset.ts";
 
 export const OFFER_TEXT = {
   title: "Oferta",
-  note: pl`Z kodu gry: najniższa kwota, którą klub przyjmie, i najniższe zarobki, za które zawodnik podpisze kontrakt na długość, której chce. Zakłada zwykłą ofertę (nie podwójną) i premię 0 za gola czy czyste konto; podwójna oferta dodaje zawodnikowi punkty, premia też. Znaczenie pola „Liczba ofert” z formularza gry nie jest odczytane.`,
+  note: pl`Z kodu gry: najniższa kwota, którą klub przyjmie, i najniższe zarobki, za które zawodnik podpisze kontrakt na długość, której chce. Uwzględnia twój prestiż menedżera i poziom negocjatora z zapisu: wyższy obniża kwotę i ułatwia rozmowy z zawodnikiem. Zakłada zwykłą ofertę (nie podwójną) i premię 0 za gola czy czyste konto; podwójna oferta dodaje zawodnikowi punkty, premia też. Znaczenie pola „Liczba ofert” z formularza gry nie jest odczytane.`,
   fee: "Klub przyjmie od",
   noFee: "bez kwoty (kontrakt wygasł)",
   wage: "Zawodnik podpisze od",
