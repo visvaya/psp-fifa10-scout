@@ -144,7 +144,7 @@ test.describe("phone columns", () => {
     await dialog.getByRole("group", { name: "Szybkość" }).getByLabel("od").fill("10");
     await dialog
       .getByRole("group", { name: "Ocena na pozycji" })
-      .getByLabel("Pozycja")
+      .getByRole("combobox", { name: "Ocena na pozycji" })
       .selectOption({ label: "Środkowy obrońca (CB)" });
     await dialog.getByRole("button", { name: "Zamknij" }).click();
     await expect(page.locator(".player-rows-header .column-label")).toHaveText([
