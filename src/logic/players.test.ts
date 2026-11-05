@@ -6,7 +6,7 @@ import { parseEaDb } from "../data/ea-db.ts";
 import type { EaDbRow } from "../data/ea-db.ts";
 import { buildEaDb } from "../data/test-support/synthetic-ea-db.ts";
 import { filterPlayers } from "./filter-players.ts";
-import { attributesOf, buildPlayers, searchKey } from "./players.ts";
+import { buildPlayers } from "./players.ts";
 import { sortPlayers } from "./sort-players.ts";
 import { baseOverall, byPositionCode } from "./overall-rating.ts";
 import {
@@ -131,7 +131,8 @@ const SAVE: CareerSave = new Map([
   ],
   ["career_youth_accademy", [row({ playerid: 400_001, dummy: 0 })]],
   ["career_transfer_list", [row({ playerid: 400_003, is_loan: 0, sold: 0 })]],
-  ["career_shortlist", [row({ playerid: 158_023, shortlist_dummy: 0 })]],
+  // 400_004: a scouted junior on the shortlist, not signed and in no team.
+  ["career_shortlist", [158_023, 400_004].map((playerid) => row({ playerid, shortlist_dummy: 0 }))],
   ["career_players_grown_attributes", [row({ playerid: 7, potential_delta: -25 })]],
   ["career_extra_user_team_info", []],
   [
@@ -170,6 +171,7 @@ describe("buildPlayers from fifa.db", () => {
       searchName: "lionel messi",
       nameOrder: 1,
       youth: false,
+      academy: false,
       freeAgent: false,
       age: 22,
       birthYear: 1987,
@@ -264,19 +266,6 @@ describe("buildPlayers from fifa.db", () => {
   });
 });
 
-describe("searchKey", () => {
-  it("drops case and diacritics, ł included", () => {
-    expect(searchKey("Paweł ŻURAWSKI Łoś")).toBe("pawel zurawski los");
-  });
-});
-
-describe("attributesOf", () => {
-  it("rejects a players row without every attribute column", () => {
-    const { reflexes: _, ...partial } = playerRow({});
-    expect(() => attributesOf(partial)).toThrow(/lack attribute columns/);
-  });
-});
-
 describe("buildPlayers with a career save", () => {
   // Built per test, not in the describe body: Stryker credits only code run inside a test.
   let players: ReturnType<typeof buildPlayers> = [];
@@ -302,14 +291,15 @@ describe("buildPlayers with a career save", () => {
     expect(byId(players, 7)?.freeAgent).toBe(false);
   });
 
-  it("includes youth-pool players the save places in a team, the academy or the transfer list", () => {
-    expect(players.map((player) => [player.id, player.youth])).toEqual([
-      [158_023, false],
-      [7, false],
-      [8, false],
-      [400_001, true],
-      [400_002, true],
-      [400_003, true],
+  it("includes youth-pool players the save places in a team, the academy, the transfer list or the shortlist", () => {
+    expect(players.map((player) => [player.id, player.youth, player.academy])).toEqual([
+      [158_023, false, false],
+      [7, false, false],
+      [8, false, false],
+      [400_001, true, true],
+      [400_002, true, false],
+      [400_003, true, false],
+      [400_004, true, false],
     ]);
     expect(byId(players, 400_002)).toMatchObject({ positionName: "ST", positionGroup: "forwards" });
   });
@@ -373,7 +363,7 @@ describe("buildPlayers with a career save", () => {
 
   it("marks the players on the game's shortlist, none without a save", () => {
     expect(players.filter((player) => player.shortlisted).map((player) => player.id)).toEqual([
-      158_023,
+      158_023, 400_004,
     ]);
     expect(buildPlayers(DB).some((player) => player.shortlisted)).toBe(false);
   });

@@ -170,13 +170,16 @@ const inRange =
     return current !== null && current !== undefined && current >= min && current <= max;
   };
 
-/** One a club can sign: with a club, a free agent or academy youth; not a legend or national-team-only. */
+/**
+ * One a club can sign: with a club, a free agent or a junior (of the academy, or scouted and not signed);
+ * not a legend or national-team-only.
+ */
 const isAvailable = (player: Player): boolean =>
   player.clubId !== null || player.youth || player.freeAgent;
 
-/** In the user's club: linked to it, or a youth-pool player without a club, who sits in its academy. */
+/** In the user's club: linked to it, or a junior of its academy. */
 const inClub = (player: Player, teamId: number): boolean =>
-  player.clubId === teamId || (player.clubId === null && player.youth && !player.freeAgent);
+  player.clubId === teamId || player.academy;
 
 const predicates = (filters: PlayerFilters): readonly Predicate[] => {
   const text = searchKey(filters.text?.trim() ?? "");

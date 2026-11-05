@@ -388,6 +388,7 @@ export const TEXT = {
   potentialShort: "POT",
   freeAgent: "wolny zawodnik",
   youth: "junior",
+  noContract: "bez kontraktu",
   years: (value: number): string => count(value, YEARS),
   close: "Zamknij",
   card: {

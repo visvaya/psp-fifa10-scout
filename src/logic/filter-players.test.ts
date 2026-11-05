@@ -58,6 +58,27 @@ const PLAYERS = [
 const ids = (filters: PlayerFilters): readonly number[] =>
   filterPlayers(PLAYERS, filters).map((player) => player.id);
 
+// Players without a club: an academy junior, a legend, a free-agent junior and a scouted junior on the
+// shortlist, not signed.
+const CLUBLESS = [
+  testPlayer({ id: 5, name: "Academy", clubId: null, youth: true, academy: true }),
+  testPlayer({ id: 6, name: "Legend", clubId: null }),
+  testPlayer({ id: 7, name: "Free youth", clubId: null, youth: true, freeAgent: true }),
+  testPlayer({ id: 8, name: "Scouted", clubId: null, youth: true }),
+];
+const idsWithClubless = (filters: PlayerFilters) =>
+  filterPlayers([...PLAYERS, ...CLUBLESS], filters).map((player) => player.id);
+
+/** Players 1..4 rated id x 10 at position code 1 and 50 elsewhere, with this OVR. */
+const ratedAtCode1 = (overall = 50) =>
+  [1, 2, 3, 4].map((id) =>
+    testPlayer({
+      id,
+      overall,
+      overallByCode: Array.from({ length: 32 }, (_, code) => (code === 1 ? id * 10 : 50)),
+    }),
+  );
+
 describe("filterPlayers", () => {
   it("returns everything for empty filters", () => {
     expect(ids({})).toEqual([1, 2, 3, 4]);
@@ -133,12 +154,7 @@ describe("filterPlayers", () => {
   });
 
   it("ranges the OVR at a chosen position, whatever the preferred one", () => {
-    const rated = PLAYERS.map((player) => ({
-      ...player,
-      overallByCode: player.overallByCode.map((value, code) =>
-        code === 1 ? player.id * 10 : value,
-      ),
-    }));
+    const rated = ratedAtCode1();
     const at = (filters: PlayerFilters) => filterPlayers(rated, filters).map((player) => player.id);
     expect(at({ positionRating: { code: 1, min: 20, max: 30 } })).toEqual([2, 3]);
     expect(at({ positionRating: { code: 1 } })).toEqual([1, 2, 3, 4]);
@@ -147,13 +163,7 @@ describe("filterPlayers", () => {
   });
 
   it("ranges the gain of the chosen position over the OVR", () => {
-    const rated = PLAYERS.map((player) => ({
-      ...player,
-      overall: 15,
-      overallByCode: player.overallByCode.map((value, code) =>
-        code === 1 ? player.id * 10 : value,
-      ),
-    }));
+    const rated = ratedAtCode1(15);
     const at = (filters: PlayerFilters) => filterPlayers(rated, filters).map((player) => player.id);
     // Gains: -5, 5, 15, 25.
     expect(at({ positionRating: { code: 1, gain: { min: 0, max: 20 } } })).toEqual([2, 3]);
@@ -161,10 +171,12 @@ describe("filterPlayers", () => {
   });
 
   it("ranges the peak at the chosen position, which needs a career", () => {
-    const rated = PLAYERS.map((player) => ({
-      ...player,
-      peakByCode: player.id === 4 ? [] : Array.from({ length: 32 }, (_, code) => code + player.id),
-    }));
+    const rated = [1, 2, 3, 4].map((id) =>
+      testPlayer({
+        id,
+        peakByCode: id === 4 ? [] : Array.from({ length: 32 }, (_, code) => code + id),
+      }),
+    );
     const at = (filters: PlayerFilters) => filterPlayers(rated, filters).map((player) => player.id);
     // Peaks at code 5: 6, 7, 8 and none for player 4, who has no career.
     expect(at({ positionRating: { code: 5, peak: { min: 7 } } })).toEqual([2, 3]);
@@ -232,39 +244,16 @@ describe("filterPlayers", () => {
   });
 
   it("counts academy youth as the user's club, whether it is hidden or the only one shown", () => {
-    const academy = testPlayer({ id: 5, name: "Academy", clubId: null, youth: true });
-    const signed = testPlayer({
-      id: 6,
-      name: "Free youth",
-      clubId: null,
-      youth: true,
-      freeAgent: true,
-    });
-    const all = [...PLAYERS, academy, signed];
-    const idsOf = (filters: PlayerFilters) =>
-      filterPlayers(all, filters).map((player) => player.id);
-    expect(idsOf({ onlyTeamId: 10 })).toEqual([1, 4, 5]);
-    expect(idsOf({ excludeTeamId: 10 })).toEqual([2, 3, 6]);
+    expect(idsWithClubless({ onlyTeamId: 10 })).toEqual([1, 4, 5]);
+    expect(idsWithClubless({ excludeTeamId: 10 })).toEqual([2, 3, 6, 7, 8]);
   });
 
-  it("counts only the game's free agents as free agents, not academy youth or legends", () => {
-    const academy = testPlayer({ id: 5, name: "Academy", clubId: null, youth: true });
-    const legend = testPlayer({ id: 6, name: "Legend", clubId: null });
-    expect(
-      filterPlayers([...PLAYERS, academy, legend], { freeAgentsOnly: true }).map(
-        (player) => player.id,
-      ),
-    ).toEqual([3]);
+  it("counts only the game's free agents as free agents, not juniors or legends", () => {
+    expect(idsWithClubless({ freeAgentsOnly: true })).toEqual([3, 7]);
   });
 
-  it("keeps the players one can sign: with a club, free agents and academy youth", () => {
-    const academy = testPlayer({ id: 5, name: "Academy", clubId: null, youth: true });
-    const legend = testPlayer({ id: 6, name: "Legend", clubId: null });
-    expect(
-      filterPlayers([...PLAYERS, academy, legend], { availableOnly: true }).map(
-        (player) => player.id,
-      ),
-    ).toEqual([1, 2, 3, 4, 5]);
+  it("keeps the players one can sign: with a club, free agents and juniors, not legends", () => {
+    expect(idsWithClubless({ availableOnly: true })).toEqual([1, 2, 3, 4, 5, 7, 8]);
   });
 
   it("combines filters with AND", () => {
