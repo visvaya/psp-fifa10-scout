@@ -10,6 +10,10 @@ export const FILTER_SETS_TEXT = {
   none: pl`Brak zapisanych zestawów. Zapis obejmuje filtry i sortowanie.`,
   load: "Wczytaj",
   rename: "Zmień nazwę",
+  /** Replaces a saved set's filters and sort with the current ones, after a question. */
+  overwriteSet: "Nadpisz",
+  overwriteQuestion: (name: string): string =>
+    `Zastąpić filtry i sortowanie zestawu „${name}” bieżącymi?`,
   remove: "Usuń",
   saveName: "Zapisz nazwę",
   cancel: "Anuluj",

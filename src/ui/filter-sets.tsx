@@ -96,33 +96,48 @@ const RenameEditor = (props: {
   );
 };
 
-/** One set's row; with `focus`, its rename button takes the focus back after editing. */
-const SetItem = (props: {
+/** Asks before a set takes the current filters and sort; the confirm button takes the focus. */
+const OverwriteConfirm = (props: {
   set: FilterSet;
-  names: readonly string[];
-  focus: boolean;
   dispatch: Dispatch<ScoutAction>;
-  onRenameDone: (name: string) => void;
+  onDone: () => void;
 }) => {
-  const { set, names, focus, dispatch, onRenameDone } = props;
-  const [editing, setEditing] = useState(false);
-  const rename = useRef<HTMLButtonElement>(null);
+  const { set, dispatch, onDone } = props;
+  const confirm = useRef<HTMLButtonElement>(null);
   useEffect(() => {
-    if (focus && !editing) rename.current?.focus();
-  }, [focus, editing]);
-  if (editing) {
-    return (
-      <RenameEditor
-        set={set}
-        names={names}
-        dispatch={dispatch}
-        onDone={(name) => {
-          setEditing(false);
-          onRenameDone(name);
+    confirm.current?.focus();
+  }, []);
+  return (
+    <li className="filter-set">
+      <span className="filter-set-name">{FILTER_SETS_TEXT.overwriteQuestion(set.name)}</span>
+      <SetButton
+        ref={confirm}
+        label={FILTER_SETS_TEXT.overwriteSet}
+        set={set.name}
+        onClick={() => {
+          dispatch({ type: "filter-set-saved", name: set.name });
+          onDone();
         }}
       />
-    );
-  }
+      <SetButton label={FILTER_SETS_TEXT.cancel} set={set.name} onClick={onDone} />
+    </li>
+  );
+};
+
+/** A set's row: its name and its buttons; `focusOn` gives one of them the focus back. */
+const SetRow = (props: {
+  set: FilterSet;
+  dispatch: Dispatch<ScoutAction>;
+  focusOn: "overwrite" | "rename" | null;
+  onOverwrite: () => void;
+  onRename: () => void;
+}) => {
+  const { set, dispatch, focusOn } = props;
+  const overwrite = useRef<HTMLButtonElement>(null);
+  const rename = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (focusOn !== null) (focusOn === "overwrite" ? overwrite : rename).current?.focus();
+  }, [focusOn]);
   return (
     <li className="filter-set">
       <span className="filter-set-name">{set.name}</span>
@@ -134,12 +149,16 @@ const SetItem = (props: {
         }}
       />
       <SetButton
+        ref={overwrite}
+        label={FILTER_SETS_TEXT.overwriteSet}
+        set={set.name}
+        onClick={props.onOverwrite}
+      />
+      <SetButton
         ref={rename}
         label={FILTER_SETS_TEXT.rename}
         set={set.name}
-        onClick={() => {
-          setEditing(true);
-        }}
+        onClick={props.onRename}
       />
       <SetButton
         label={FILTER_SETS_TEXT.remove}
@@ -149,6 +168,58 @@ const SetItem = (props: {
         }}
       />
     </li>
+  );
+};
+
+/**
+ * One set: its row, its name editor or the overwrite question. With `focus`, the rename button takes
+ * the focus back after editing; the overwrite button takes it back after the question.
+ */
+const SetItem = (props: {
+  set: FilterSet;
+  names: readonly string[];
+  focus: boolean;
+  dispatch: Dispatch<ScoutAction>;
+  onRenameDone: (name: string) => void;
+}) => {
+  const { set, names, focus, dispatch, onRenameDone } = props;
+  const [mode, setMode] = useState<"row" | "editing" | "asking" | "asked">("row");
+  if (mode === "editing") {
+    return (
+      <RenameEditor
+        set={set}
+        names={names}
+        dispatch={dispatch}
+        onDone={(name) => {
+          setMode("row");
+          onRenameDone(name);
+        }}
+      />
+    );
+  }
+  if (mode === "asking") {
+    return (
+      <OverwriteConfirm
+        set={set}
+        dispatch={dispatch}
+        onDone={() => {
+          setMode("asked");
+        }}
+      />
+    );
+  }
+  return (
+    <SetRow
+      set={set}
+      dispatch={dispatch}
+      focusOn={mode === "asked" ? "overwrite" : focus ? "rename" : null}
+      onOverwrite={() => {
+        setMode("asking");
+      }}
+      onRename={() => {
+        setMode("editing");
+      }}
+    />
   );
 };
 
