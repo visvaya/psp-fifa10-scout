@@ -1,6 +1,13 @@
 import { expect, test } from "@playwright/test";
 import { SYNTHETIC_DB_PATH, SYNTHETIC_SAVE_PATHS } from "../scripts/write-synthetic-db.ts";
-import { cardValue, expectCount, guardSecurityPolicy, loadDatabase, pickGame } from "./support.ts";
+import {
+  cardValue,
+  expectCount,
+  expectNoAxeViolations,
+  guardSecurityPolicy,
+  loadDatabase,
+  pickGame,
+} from "./support.ts";
 
 guardSecurityPolicy();
 
@@ -34,6 +41,33 @@ test.describe("player card", () => {
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("messi");
     await page.getByRole("button", { name: /^Lionel Messi/u }).click();
     await expect(cardValue(page.getByRole("dialog"), "Cechy")).toHaveText("Drybler techniczny");
+  });
+
+  // The OVR hides weak attributes: each group shows its average and range, and an uneven profile in text.
+  test("shows each attribute group's average, range and uneven profile", async ({ page }) => {
+    await loadDatabase(page);
+    await page.getByRole("searchbox", { name: "Nazwisko" }).fill("brozek");
+    await page.getByRole("button", { name: "Paweł Brożek" }).click();
+    const card = page.getByRole("dialog", { name: "Paweł Brożek" });
+    // Tackling 92 and marking 46; the technique's range is narrower than its threshold.
+    const defending = card.getByRole("region", { name: "Obrona" });
+    await expect(defending).toContainText(/Średnia\s69,0, zakres\s46–92/u);
+    await expect(defending.getByText("Nierówny profil")).toBeVisible();
+    const technique = card.getByRole("region", { name: "Technika" });
+    await expect(technique).toContainText(/Średnia\s46,8, zakres\s38–50/u);
+    await expect(technique.getByText("Nierówny profil")).toHaveCount(0);
+    await expectNoAxeViolations(page);
+  });
+
+  // The groups' averages and spreads filter like the attributes do, and show as a column.
+  test("filters by a group's spread, shown as a column", async ({ page }) => {
+    await loadDatabase(page);
+    await page.getByText("Atrybuty", { exact: true }).click();
+    await page.getByLabel("Dodaj atrybut").selectOption({ label: "Rozrzut: obrona" });
+    await page.getByRole("group", { name: "Rozrzut: obrona" }).getByLabel("od").fill("40");
+    await expectCount(page, "1 zawodnik");
+    await expect(page.getByRole("columnheader", { name: "Rozrzut: obrona" })).toBeVisible();
+    await expect(page.getByRole("row", { name: /Paweł Brożek/u })).toContainText("46");
   });
 
   // Forced colours drop the stars' fill: the value shows as text instead.

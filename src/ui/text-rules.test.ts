@@ -15,6 +15,7 @@ import {
 } from "./text.ts";
 import { FILTER_SETS_TEXT } from "./text-filter-sets.ts";
 import { CODE_NAMES } from "./text-code-names.ts";
+import { GROUP_STAT_LABELS } from "./text-groups.ts";
 import { FIELD_HELP } from "./text-help.ts";
 import { OFFER_TEXT } from "./text-offer.ts";
 import { tie } from "./typeset.ts";
@@ -31,6 +32,7 @@ const STRINGS = stringsIn([
   CLUB_STATUS_LABELS,
   FILTER_SECTION_LABELS,
   FLAG_LABELS,
+  GROUP_STAT_LABELS,
   LIST_LABELS,
   MY_CLUB_LABELS,
   POSITION_GROUP_LABELS,

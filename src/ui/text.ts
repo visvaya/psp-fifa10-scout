@@ -2,10 +2,12 @@
 import type { CurrencyCode } from "../data/career-save.ts";
 import type { CareerSummary, LoadErrorKind, LoadPhase, LoadStage } from "../logic/load-scout.ts";
 import type { FlagKey, ListKey, RangeFields, RangeKey } from "../logic/filter-players.ts";
+import { isGroupStatKey } from "../logic/attribute-groups.ts";
 import { isAttributeName } from "../logic/players.ts";
 import type { AttributeName } from "../logic/players.ts";
 import type { PositionGroup } from "../logic/positions.ts";
 import type { ClubStatus, MyClub, ScoutError } from "../logic/scout-state.ts";
+import { GROUP_STAT_LABELS } from "./text-groups.ts";
 import { NBSP, pl } from "./typeset.ts";
 
 /** By the save's currency code, as the game shows them. */
@@ -145,8 +147,10 @@ export const RANGE_LABELS: Readonly<Record<RangeFields, string>> = {
   wage: "Zarobki rynkowe (szacunek)",
 };
 
-export const rangeLabel = (key: RangeKey): string =>
-  isAttributeName(key) ? ATTRIBUTE_LABELS[key] : RANGE_LABELS[key];
+export const rangeLabel = (key: RangeKey): string => {
+  if (isGroupStatKey(key)) return GROUP_STAT_LABELS[key];
+  return isAttributeName(key) ? ATTRIBUTE_LABELS[key] : RANGE_LABELS[key];
+};
 
 export const LIST_LABELS: Readonly<Record<ListKey, string>> = {
   positionGroup: "Pozycje",
@@ -414,6 +418,10 @@ export const TEXT = {
     weakFoot: "Słabsza noga",
     starsOutOfFive: (stars: number): string => `${formatNumber(stars)} z 5 gwiazdek`,
     profile: "Profil",
+    /** The line under a group's name; the range with an en dash. */
+    groupSummary: (average: number, min: number, max: number): string =>
+      pl`Średnia ${formatRating(average)}, zakres ${formatNumber(min)}–${formatNumber(max)}`,
+    unevenProfile: "Nierówny profil",
     internationalReputation: "Reputacja międzynarodowa",
     learningSpeed: "Szybkość nauki",
     yes: "tak",

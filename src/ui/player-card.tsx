@@ -1,9 +1,16 @@
 import { useCallback, useState } from "react";
 import type { JSX, ReactNode } from "react";
 import type { CurrencyCode } from "../data/career-save.ts";
+import {
+  ATTRIBUTE_GROUPS,
+  groupRange,
+  groupStat,
+  isUnevenProfile,
+} from "../logic/attribute-groups.ts";
+import type { AttributeGroup } from "../logic/attribute-groups.ts";
 import { offerTerms } from "../logic/offer.ts";
 import type { OfferContext } from "../logic/offer.ts";
-import type { AttributeName, Player } from "../logic/players.ts";
+import type { Player } from "../logic/players.ts";
 import { nameTextIdOf, POSITION_CODES, RATING_CHOICES, ratingCodeOf } from "../logic/positions.ts";
 import { Stars } from "./stars.tsx";
 import { codeName } from "./text-code-names.ts";
@@ -25,20 +32,21 @@ import {
 } from "./text.ts";
 import { OFFER_TEXT } from "./text-offer.ts";
 
-const ATTRIBUTE_GROUPS: readonly (readonly [
-  keyof typeof ATTRIBUTE_GROUP_LABELS,
-  readonly AttributeName[],
-])[] = [
-  ["physical", ["acceleration", "sprintspeed", "stamina", "strength", "aggression"]],
-  [
-    "technique",
-    ["ballcontrol", "dribbling", "crossing", "shortpassing", "longpassing", "freekicks"],
-  ],
-  ["shooting", ["finishing", "shotpower", "longshotaccuracy", "heading"]],
-  ["mental", ["reactions", "positioning", "tacticalawareness", "playercomposure"]],
-  ["defending", ["marking", "tackling"]],
-  ["goalkeeping", ["gkdiving", "gkpositioning", "handling", "reflexes"]],
-];
+/** A group's average and range, and a note when its spread reaches the threshold: the OVR hides weak attributes. */
+const GroupSummary = ({ player, group }: { player: Player; group: AttributeGroup }) => {
+  const { min, max } = groupRange(player.attributes, group);
+  return (
+    <p className="help group-summary">
+      {TEXT.card.groupSummary(groupStat(player.attributes, `${group}Average`), min, max)}
+      {isUnevenProfile(player.attributes, group) ? (
+        <>
+          {" "}
+          <strong>{TEXT.card.unevenProfile}</strong>
+        </>
+      ) : null}
+    </p>
+  );
+};
 
 const Facts = ({ facts }: { facts: readonly (readonly [string, ReactNode])[] }) => (
   <dl className="facts">
@@ -308,6 +316,7 @@ export const PlayerCard = (props: {
         {ATTRIBUTE_GROUPS.map(([group, attributes]) => (
           <section key={group} aria-labelledby={`group-${group}`}>
             <h3 id={`group-${group}`}>{ATTRIBUTE_GROUP_LABELS[group]}</h3>
+            <GroupSummary player={player} group={group} />
             <Facts
               facts={attributes.map((name) => [
                 ATTRIBUTE_LABELS[name],

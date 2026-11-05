@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
 import type { Dispatch, JSX } from "react";
 import type { CurrencyCode } from "../data/career-save.ts";
+import { ATTRIBUTE_KEYS, isGroupAverage } from "../logic/attribute-groups.ts";
+import type { AttributeKey } from "../logic/attribute-groups.ts";
 import type { FlagKey, ListKey, Range, RangeKey } from "../logic/filter-players.ts";
-import { ATTRIBUTE_NAMES, SEASON_STAT_KEYS, TRAIT_NAMES } from "../logic/players.ts";
-import type { AttributeName, Player, TraitName } from "../logic/players.ts";
+import { SEASON_STAT_KEYS, TRAIT_NAMES } from "../logic/players.ts";
+import type { Player, TraitName } from "../logic/players.ts";
 import { POSITION_GROUPS } from "../logic/positions.ts";
 import { facetOptions } from "../logic/facets.ts";
 import type { FacetOption } from "../logic/facets.ts";
@@ -30,7 +32,6 @@ import { SettingsActions } from "./settings-actions.tsx";
 import { FIELD_HELP } from "./text-help.ts";
 import { PositionRatingField } from "./position-rating-field.tsx";
 import {
-  ATTRIBUTE_LABELS,
   CLUB_STATUS_LABELS,
   MY_CLUB_LABELS,
   FILTER_SECTION_LABELS,
@@ -158,10 +159,10 @@ const ContractField = (props: {
 /** Ranges for the attributes the user adds from a list, instead of one input pair per attribute. */
 const AttributeRanges = (props: {
   ranges: ScoutFilters["ranges"];
-  onChange: (name: AttributeName, range: Range | undefined) => void;
+  onChange: (key: AttributeKey, range: Range | undefined) => void;
 }) => {
-  const [added, setAdded] = useState<readonly AttributeName[]>([]);
-  const shown = ATTRIBUTE_NAMES.filter(
+  const [added, setAdded] = useState<readonly AttributeKey[]>([]);
+  const shown = ATTRIBUTE_KEYS.filter(
     (name) => added.includes(name) || props.ranges?.[name] !== undefined,
   );
   return (
@@ -169,8 +170,9 @@ const AttributeRanges = (props: {
       {shown.map((name) => (
         <div key={name} className="attribute-range">
           <RangeField
-            label={ATTRIBUTE_LABELS[name]}
+            label={rangeLabel(name)}
             range={props.ranges?.[name]}
+            decimal={isGroupAverage(name)}
             onChange={(range) => {
               // A field being edited stays until removed: clearing its value to type a new one
               // drops the empty range from the filters, which alone would take the field away.
@@ -181,7 +183,7 @@ const AttributeRanges = (props: {
           <button
             type="button"
             className="button"
-            aria-label={TEXT.removeAttribute(ATTRIBUTE_LABELS[name])}
+            aria-label={TEXT.removeAttribute(rangeLabel(name))}
             onClick={() => {
               setAdded(added.filter((item) => item !== name));
               props.onChange(name, undefined);
@@ -196,14 +198,14 @@ const AttributeRanges = (props: {
         <select
           value=""
           onChange={(event) => {
-            const name = ATTRIBUTE_NAMES.find((item) => item === event.currentTarget.value);
+            const name = ATTRIBUTE_KEYS.find((item) => item === event.currentTarget.value);
             if (name !== undefined) setAdded([...added, name]);
           }}
         >
           <option value="">{TEXT.chooseAttribute}</option>
-          {ATTRIBUTE_NAMES.filter((name) => !shown.includes(name)).map((name) => (
+          {ATTRIBUTE_KEYS.filter((name) => !shown.includes(name)).map((name) => (
             <option key={name} value={name}>
-              {ATTRIBUTE_LABELS[name]}
+              {rangeLabel(name)}
             </option>
           ))}
         </select>

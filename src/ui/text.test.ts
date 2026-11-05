@@ -39,6 +39,12 @@ describe("formatRating", () => {
   });
 });
 
+describe("TEXT.card.groupSummary", () => {
+  it("shows the average with one decimal and the range with an en dash", () => {
+    expect(TEXT.card.groupSummary(70, 46, 92)).toBe("Średnia 70,0, zakres 46–92");
+  });
+});
+
 describe("TEXT.resultCount", () => {
   it("joins the formatted count and the plural form", () => {
     expect(TEXT.resultCount(1)).toBe("1 zawodnik");
