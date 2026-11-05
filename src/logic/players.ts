@@ -176,8 +176,12 @@ export interface Player extends Finance {
    */
   readonly form: number | null;
   readonly morale: number | null;
+  /** League goals and games; a player outside the user's league has 0 (docs: game-knowledge.md). */
   readonly goals: number | null;
   readonly appearances: number | null;
+  /** Games and goals in the domestic cup and the European cups together (cup0..cup3). */
+  readonly cupAppearances: number | null;
+  readonly cupGoals: number | null;
   /** Days out injured, from the save. */
   readonly injuryDays: number | null;
   /** Listed for a transfer in the save's window and not sold yet. */
@@ -242,6 +246,12 @@ const shortlistOf = (db: EaDb, save: CareerSave | undefined): readonly EaDbRow[]
 const statOf = (stats: EaDbRow | undefined, key: string): number | null =>
   stats === undefined ? null : num(stats, key);
 
+/** A stat summed over the four cup columns (cup0..cup3); a column the row lacks counts 0. */
+const cupTotal = (stats: EaDbRow | undefined, key: string): number | null =>
+  stats === undefined
+    ? null
+    : [0, 1, 2, 3].reduce((total, cup) => total + Number(stats[`${key}cup${String(cup)}`] ?? 0), 0);
+
 /** The average match rating, stored times ten. */
 const ratingOf = (stats: EaDbRow | undefined): number | null => {
   const tenths = statOf(stats, "form");
@@ -302,6 +312,8 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
     morale: statOf(stats, "morale"),
     goals: statOf(stats, "goals"),
     appearances: statOf(stats, "appearances"),
+    cupAppearances: cupTotal(stats, "appearances"),
+    cupGoals: cupTotal(stats, "goals"),
     injuryDays: statOf(stats, "injurydaysout"),
     ...marketFields(context.market, context.teams, id),
     clubWillSell: context.clubWillSell?.(id) ?? null,

@@ -72,6 +72,24 @@ const PLAYERS = table("players", [
   ...generated,
 ]);
 
+/**
+ * Messi's season so far: the save keeps his average match rating 6,9 times ten; a domestic cup game
+ * and two Champions League games with a goal (cup0, cup1).
+ */
+const STATS = table("playerstats", [
+  {
+    playerid: 158_023,
+    form: 69,
+    morale: 4,
+    goals: 3,
+    appearances: 5,
+    injurydaysout: 0,
+    appearancescup0: 1,
+    appearancescup1: 2,
+    goalscup1: 1,
+  },
+]);
+
 export const SCOUT_USER_TEAM_ID = 1873;
 
 export const buildScoutDb = (): Uint8Array =>
@@ -121,10 +139,7 @@ export const buildScoutDb = (): Uint8Array =>
         last_game_number: 155_892 * 1024 + 7,
       },
     ]),
-    // Messi's season so far: the save keeps his average match rating 6,9 times ten.
-    table("playerstats", [
-      { playerid: 158_023, form: 69, morale: 4, goals: 3, appearances: 5, injurydaysout: 0 },
-    ]),
+    STATS,
     empty("career_youth_accademy"),
     // Gracz Numer 18 is listed for a loan.
     table("career_transfer_list", [{ playerid: 1017, is_loan: 1, sold: 0 }]),

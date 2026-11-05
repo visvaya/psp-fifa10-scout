@@ -1,21 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { SYNTHETIC_DB_PATH, SYNTHETIC_SAVE_PATHS } from "../scripts/write-synthetic-db.ts";
-import { expectCount, guardSecurityPolicy, loadDatabase, pickGame } from "./support.ts";
-import type { Locator } from "@playwright/test";
+import { cardValue, expectCount, guardSecurityPolicy, loadDatabase, pickGame } from "./support.ts";
 
 guardSecurityPolicy();
-
-/** The value the card shows for a label. */
-const value = (card: Locator, label: string) =>
-  card
-    .locator(".facts > div")
-    .filter({
-      has: card
-        .page()
-        .getByRole("term")
-        .filter({ hasText: new RegExp(`^${label}$`, "u") }),
-    })
-    .getByRole("definition");
 
 test.describe("player card", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
@@ -27,19 +14,19 @@ test.describe("player card", () => {
     await expectCount(page, "1 zawodnik");
     await page.getByRole("button", { name: "Paweł Brożek" }).click();
     const card = page.getByRole("dialog", { name: "Paweł Brożek" });
-    await expect(value(card, "Reputacja międzynarodowa")).toHaveText("1 z 5");
-    await expect(value(card, "Szybkość nauki")).toHaveText("3 z 5");
-    await expect(value(card, "Wiek zakończenia kariery")).toHaveText("35 lat");
-    await expect(value(card, "Typ budowy")).toHaveText("typ 2");
-    await expect(value(card, "Typ rozwoju")).toHaveText("typ 1");
-    await expect(value(card, "Styl rozwoju")).toHaveText("styl 2");
-    await expect(value(card, "Siła klubu")).toHaveText("66");
-    await expect(value(card, "Reprezentant kraju")).toHaveText("nie");
-    await expect(value(card, "Cechy")).toHaveText("brak");
+    await expect(cardValue(card, "Reputacja międzynarodowa")).toHaveText("1 z 5");
+    await expect(cardValue(card, "Szybkość nauki")).toHaveText("3 z 5");
+    await expect(cardValue(card, "Wiek zakończenia kariery")).toHaveText("35 lat");
+    await expect(cardValue(card, "Typ budowy")).toHaveText("typ 2");
+    await expect(cardValue(card, "Typ rozwoju")).toHaveText("typ 1");
+    await expect(cardValue(card, "Styl rozwoju")).toHaveText("styl 2");
+    await expect(cardValue(card, "Siła klubu")).toHaveText("66");
+    await expect(cardValue(card, "Reprezentant kraju")).toHaveText("nie");
+    await expect(cardValue(card, "Cechy")).toHaveText("brak");
     await page.keyboard.press("Escape");
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("messi");
     await page.getByRole("button", { name: /^Lionel Messi/u }).click();
-    await expect(value(page.getByRole("dialog"), "Cechy")).toHaveText("Drybler techniczny");
+    await expect(cardValue(page.getByRole("dialog"), "Cechy")).toHaveText("Drybler techniczny");
   });
 });
 
@@ -55,21 +42,21 @@ test.describe("offer on the card", () => {
     await page.getByRole("button", { name: /^Pokaż zawodników/u }).click();
     await page.getByRole("button", { name: /^Lionel Messi/u }).click();
     const card = page.getByRole("dialog", { name: "Lionel Messi" });
-    await expect(value(card, "Klub przyjmie od")).toHaveText("22 500 000 €");
-    await expect(value(card, "Zawodnik podpisze od")).toContainText("kontrakt 4 lata");
+    await expect(cardValue(card, "Klub przyjmie od")).toHaveText("22 500 000 €");
+    await expect(cardValue(card, "Zawodnik podpisze od")).toContainText("kontrakt 4 lata");
     await expect(card.getByText(/^Kwota przekracza limit formularza oferty/u)).toBeVisible();
     // Barcelona has 21 players and enough wide midfielders to sell him.
-    await expect(value(card, "Klub może go sprzedać")).toHaveText("tak");
+    await expect(cardValue(card, "Klub może go sprzedać")).toHaveText("tak");
     await expect(card.getByText(/^Klub odmówi sprzedaży/u)).toBeHidden();
     await page.keyboard.press("Escape");
     // Łódzki KS has two centre-backs, one short of its league's minimum, and his contract runs on.
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("numer 18");
     await page.getByRole("button", { name: /^Gracz Numer 18/u }).click();
     const refused = page.getByRole("dialog", { name: "Gracz Numer 18" });
-    await expect(value(refused, "Klub może go sprzedać")).toHaveText("nie");
+    await expect(cardValue(refused, "Klub może go sprzedać")).toHaveText("nie");
     await expect(refused.getByText(/^Klub odmówi sprzedaży/u)).toBeVisible();
-    await expect(value(refused, "Na liście do wypożyczenia")).toHaveText("tak");
-    await expect(value(refused, "Na liście transferowej")).toHaveText("nie");
+    await expect(cardValue(refused, "Na liście do wypożyczenia")).toHaveText("tak");
+    await expect(cardValue(refused, "Na liście transferowej")).toHaveText("nie");
     await page.keyboard.press("Escape");
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("brozek");
     await page.getByRole("button", { name: "Paweł Brożek" }).click();

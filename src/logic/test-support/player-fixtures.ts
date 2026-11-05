@@ -78,6 +78,17 @@ export const TEST_CAREER: CareerSummary = {
   offer: { prestige: 2, finance: 4, squadAverage: 65, countryId: 37, seasonEndYear: 2010 },
 };
 
+/** A player without a season in the save. */
+const NO_STATS = {
+  form: null,
+  morale: null,
+  goals: null,
+  appearances: null,
+  cupAppearances: null,
+  cupGoals: null,
+  injuryDays: null,
+} as const;
+
 export const testPlayer = (overrides: Partial<Player> = {}): Player => {
   const player: Player = {
     id: 1,
@@ -120,11 +131,7 @@ export const testPlayer = (overrides: Partial<Player> = {}): Player => {
     nationalTeamName: null,
     nationalityId: 1,
     nationalityName: "Country",
-    form: null,
-    morale: null,
-    goals: null,
-    appearances: null,
-    injuryDays: null,
+    ...NO_STATS,
     transferListed: false,
     loanListed: false,
     loanedFromId: null,

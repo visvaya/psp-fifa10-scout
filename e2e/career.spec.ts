@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { SYNTHETIC_DB_PATH, SYNTHETIC_SAVE_PATHS } from "../scripts/write-synthetic-db.ts";
-import { expectCount, guardSecurityPolicy, pickGame } from "./support.ts";
+import { cardValue, expectCount, guardSecurityPolicy, pickGame } from "./support.ts";
 import type { Page } from "@playwright/test";
 
 guardSecurityPolicy();
@@ -77,6 +77,19 @@ test.describe("career ratings", () => {
     await page.getByRole("button", { name: /^Lionel Messi/u }).click();
     const card = page.getByRole("dialog", { name: "Lionel Messi" });
     await expect(card.getByRole("definition").filter({ hasText: /^6,9$/u })).toBeVisible();
+  });
+
+  // The save keeps league and cup games apart; the card and the filters show both.
+  test("shows league and cup games apart and filters by the cup ones", async ({ page }) => {
+    await loadCareer(page);
+    await page.getByText("Kariera", { exact: true }).click();
+    await page.getByRole("group", { name: "Występy w pucharach" }).getByLabel("od").fill("1");
+    await expectCount(page, "1 zawodnik");
+    await page.getByRole("button", { name: /^Lionel Messi/u }).click();
+    const card = page.getByRole("dialog", { name: "Lionel Messi" });
+    await expect(cardValue(card, "Występy w lidze")).toHaveText("5");
+    await expect(cardValue(card, "Występy w pucharach")).toHaveText("3");
+    await expect(cardValue(card, "Gole w pucharach")).toHaveText("1");
   });
 
   // The synthetic curves are flat, so the peak stays at today's OVR, below Messi's potential of 95.

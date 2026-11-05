@@ -225,8 +225,10 @@ const CareerFacts = ({ player }: { player: Player }) => (
       facts={[
         [TEXT.card.form, player.form === null ? TEXT.card.none : formatRating(player.form)],
         [TEXT.card.morale, optional(player.morale)],
-        [TEXT.card.goals, optional(player.goals)],
-        [TEXT.card.appearances, optional(player.appearances)],
+        [RANGE_LABELS.appearances, optional(player.appearances)],
+        [RANGE_LABELS.goals, optional(player.goals)],
+        [RANGE_LABELS.cupAppearances, optional(player.cupAppearances)],
+        [RANGE_LABELS.cupGoals, optional(player.cupGoals)],
         [RANGE_LABELS.injuryDays, optional(player.injuryDays)],
         [FLAG_LABELS.transferListed, yesNo(player.transferListed)],
         [FLAG_LABELS.loanListed, yesNo(player.loanListed)],
