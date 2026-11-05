@@ -756,6 +756,11 @@ input[inputmode="numeric"] {
   background: var(--color-surface);
 }
 
+/* A field that takes the keyboard focus scrolls into view above the reset button, not under it. */
+:is(.filter-panel, .dialog):has(.reset-filters) {
+  scroll-padding-bottom: calc(var(--touch-target) + var(--space-3) + var(--space-4));
+}
+
 .field {
   display: grid;
   gap: var(--space-1);
