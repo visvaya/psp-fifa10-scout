@@ -85,6 +85,21 @@ h3 {
   line-height: 1.2;
 }
 
+/* No lone short word on a heading's or a label's last line (docs: ui-text.md); help reads as prose. */
+h1,
+h2,
+h3,
+legend,
+summary,
+.button {
+  text-wrap: balance;
+}
+
+.help,
+.error {
+  text-wrap: pretty;
+}
+
 h1 {
   font-size: var(--font-size-lg);
 }

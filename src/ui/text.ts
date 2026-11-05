@@ -6,8 +6,7 @@ import { isAttributeName } from "../logic/players.ts";
 import type { AttributeName } from "../logic/players.ts";
 import type { PositionGroup } from "../logic/positions.ts";
 import type { ClubStatus, MyClub, ScoutError } from "../logic/scout-state.ts";
-
-const NBSP = " ";
+import { NBSP, pl } from "./typeset.ts";
 
 /** By the save's currency code, as the game shows them. */
 const CURRENCY_SYMBOLS = ["€", "£", "$"] as const;
@@ -85,7 +84,7 @@ export const ATTRIBUTE_LABELS: Readonly<Record<AttributeName, string>> = {
   freekicks: "Rzuty wolne",
   heading: "Gra głową",
   longpassing: "Długie podania",
-  longshotaccuracy: "Strzały z dystansu",
+  longshotaccuracy: pl`Strzały z dystansu`,
   marking: "Krycie",
   playercomposure: "Opanowanie",
   positioning: "Ustawianie się",
@@ -158,15 +157,15 @@ export const FLAG_LABELS: Readonly<Record<FlagKey, string>> = {
   earlycrosser: "Wczesne dośrodkowania",
   fansfavourite: "Ulubieniec kibiców",
   flexibility: "Elastyczny",
-  highclubidentification: "Silnie związany z klubem",
+  highclubidentification: pl`Silnie związany z klubem`,
   hightrainingworkrate: "Pracowity na treningu",
   holdsup: "Utrzymuje piłkę",
   inflexible: "Mało elastyczny",
   latecrosser: "Późne dośrodkowania",
   leadership: "Lider",
-  longshottaker: "Często strzela z dystansu",
-  longthrows: "Długie wrzuty z autu",
-  lowclubidentification: "Słabo związany z klubem",
+  longshottaker: pl`Często strzela z dystansu`,
+  longthrows: pl`Długie wrzuty z autu`,
+  lowclubidentification: pl`Słabo związany z klubem`,
   lowconcentration: "Słaba koncentracja",
   lowtrainingworkrate: "Mało pracowity na treningu",
   mediadarling: "Ulubieniec mediów",
@@ -174,7 +173,7 @@ export const FLAG_LABELS: Readonly<Record<FlagKey, string>> = {
   playmaker: "Rozgrywający",
   puncher: "Piąstkuje",
   pushesupforcorners: "Idzie pod bramkę przy rożnych",
-  rushesoutofgoal: "Wychodzi z bramki",
+  rushesoutofgoal: pl`Wychodzi z bramki`,
   scandalprone: "Skłonny do skandali",
   selfish: "Samolubny",
   staysongoalline: "Zostaje na linii",
@@ -183,7 +182,7 @@ export const FLAG_LABELS: Readonly<Record<FlagKey, string>> = {
   transferListed: "Na liście transferowej",
   loanListed: "Na liście do wypożyczenia",
   loaned: "Wypożyczony",
-  shortlisted: "Obserwowany w grze",
+  shortlisted: pl`Obserwowany w grze`,
   clubWillSell: "Klub może go sprzedać",
 };
 
@@ -192,8 +191,8 @@ export const FILTER_SECTION_LABELS = {
   physique: "Sylwetka",
   attributes: "Atrybuty",
   traits: "Cechy",
-  character: "Charakter i renoma",
-  club: "Klub i kontrakt",
+  character: pl`Charakter i renoma`,
+  club: pl`Klub i kontrakt`,
   career: "Kariera",
 } as const;
 
@@ -206,7 +205,7 @@ export const MY_CLUB_LABELS: Readonly<Record<"all" | MyClub, string>> = {
 };
 
 export const CLUB_STATUS_LABELS: Readonly<Record<ClubStatus, string>> = {
-  available: "do sprowadzenia (z klubem i wolni)",
+  available: pl`do sprowadzenia (z klubem i wolni)`,
   "free-agents": "tylko wolni zawodnicy",
 };
 
@@ -217,13 +216,12 @@ const PHASES: Readonly<Record<LoadPhase, string>> = {
 };
 
 const ERRORS: Readonly<Record<LoadErrorKind | "missing-file", string>> = {
-  "wrong-game": "To plik innej gry. Narzędzie obsługuje FIFA 10 na PSP (ULES01328).",
+  "wrong-game": pl`To plik innej gry. Narzędzie obsługuje FIFA 10 na PSP (ULES01328).`,
   "wrong-file": "To nie jest właściwy plik. Sprawdź, czy wybrano dobry plik.",
-  "not-career":
-    "To zapis profilu albo składów, nie kariery. Wybierz pliki z folderu kariery, zwykle ULES01328081.",
+  "not-career": pl`To zapis profilu albo składów, nie kariery. Wybierz pliki z folderu kariery, zwykle ULES01328081.`,
   damaged: "Plik jest uszkodzony albo niepełny. Skopiuj go jeszcze raz.",
   unexpected: "Nie udało się odczytać pliku. Spróbuj ponownie.",
-  "missing-file": "Wybierz oba pliki naraz: DATA.BIN i PARAM.SFO.",
+  "missing-file": pl`Wybierz oba pliki naraz: DATA.BIN i PARAM.SFO.`,
 };
 
 const STAGES: Readonly<Record<LoadStage, string>> = {
@@ -232,32 +230,28 @@ const STAGES: Readonly<Record<LoadStage, string>> = {
   locale: "Plik języka",
 };
 
-const LOCALE_MISSING = "Wybierz oba pliki naraz: plik .loc i string.idx z tego samego folderu.";
+const LOCALE_MISSING = pl`Wybierz oba pliki naraz: plik .loc i string.idx z tego samego folderu.`;
 
 export const TEXT = {
-  traitsNote:
-    "Cechy pochodzą z bazy gry. Czy wpływają na rozgrywkę w wersji PSP, nie jest potwierdzone.",
-  appTitle: "PSP FIFA 10 Scout",
+  traitsNote: pl`Cechy pochodzą z bazy gry. Czy wpływają na rozgrywkę w wersji PSP, nie jest potwierdzone.`,
+  appTitle: pl`PSP FIFA 10 Scout`,
   showFiles: "Pliki",
   showList: "Lista zawodników",
   startHeading: "Wczytaj pliki",
   startIntro: "Pliki zostają na tym urządzeniu. Nic nie jest wysyłane.",
-  gameStep: "1. Plik gry",
+  gameStep: pl`1. Plik gry`,
   gameInput: "Wybierz obraz ISO lub fifa.db",
-  gameHelpPhone:
-    "iPhone: w aplikacji Pliki otwórz folder PPSSPP, potem PSP/GAME, i wybierz obraz ISO gry.",
+  gameHelpPhone: pl`iPhone: w aplikacji Pliki otwórz folder PPSSPP, potem PSP/GAME, i wybierz obraz ISO gry.`,
   gameHelpPc: "PC: obraz ISO leży tam, gdzie trzymasz gry dla PPSSPP.",
   gameStored: "Wybierz plik ponownie tylko po zmianie gry.",
   gameLoaded: (name: string | null): string =>
     name === null ? "Zapamiętana baza gry" : `Wczytano: ${name}`,
   showPlayers: (value: number): string => `Pokaż zawodników (${formatNumber(value)})`,
   preparing: "Przygotowuję aplikację…",
-  saveStep: "2. Zapis kariery (opcjonalnie)",
-  saveInput: "Wybierz DATA.BIN i PARAM.SFO",
-  saveHelp:
-    "Zapis kariery jest zwykle w folderze PSP/SAVEDATA/ULES01328081 (iPhone: Pliki, folder PPSSPP). Zaznacz razem DATA.BIN i PARAM.SFO. Zapis zostaje na tym urządzeniu do usunięcia albo wyboru innego.",
-  saveFolders:
-    "DATA.BIN kariery ma około 540 KB. Foldery kończące się na 001 (profil, około 36 KB) i 021 (składy, około 270 KB) to inne zapisy.",
+  saveStep: pl`2. Zapis kariery (opcjonalnie)`,
+  saveInput: pl`Wybierz DATA.BIN i PARAM.SFO`,
+  saveHelp: pl`Zapis kariery jest zwykle w folderze PSP/SAVEDATA/ULES01328081 (iPhone: Pliki, folder PPSSPP). Zaznacz razem DATA.BIN i PARAM.SFO. Zapis zostaje na tym urządzeniu do usunięcia albo wyboru innego.`,
+  saveFolders: pl`DATA.BIN kariery ma około 540 KB. Foldery kończące się na 001 (profil, około 36 KB) i 021 (składy, około 270 KB) to inne zapisy.`,
   careerLoaded: ({ managerName, clubName, lastGameDate }: CareerSummary): string =>
     `Kariera: ${managerName}, ${clubName ?? "bez klubu"}, ostatni mecz ${formatDate(lastGameDate)}`,
   forgetSave: "Usuń zapis kariery",
@@ -268,29 +262,24 @@ export const TEXT = {
         ? LOCALE_MISSING
         : ERRORS[error.kind]
     }`,
-  languageStep: "3. Język nazw",
-  languageSelect: "Nazwy klubów, lig i krajów",
-  languageFromDb: "Angielskie z bazy fifa.db",
-  languageHelp:
-    "Obraz ISO zawiera nazwy we wszystkich językach gry; po jego wczytaniu wybierz język z listy.",
-  localeInput: "Albo dołącz plik języka i string.idx",
-  localeHelp:
-    "Pliki leżą w obrazie ISO w PSP_GAME/USRDIR/data/gui/locale, np. pol_pl.loc. Zaznacz plik języka razem ze string.idx z tego samego folderu.",
+  languageStep: pl`3. Język nazw`,
+  languageSelect: pl`Nazwy klubów, lig i krajów`,
+  languageFromDb: pl`Angielskie z bazy fifa.db`,
+  languageHelp: pl`Obraz ISO zawiera nazwy we wszystkich językach gry; po jego wczytaniu wybierz język z listy.`,
+  localeInput: pl`Albo dołącz plik języka i string.idx`,
+  localeHelp: pl`Pliki leżą w obrazie ISO w PSP_GAME/USRDIR/data/gui/locale, np. pol_pl.loc. Zaznacz plik języka razem ze string.idx z tego samego folderu.`,
   resultCount: (value: number): string => count(value, PLAYERS),
   installHeading: "Aplikacja na ekranie początkowym",
-  installHelp:
-    "Po pierwszym otwarciu narzędzie działa też bez internetu. iPhone: w Safari wybierz Udostępnij, potem Do ekranu początkowego. Chrome i Edge: menu przeglądarki, potem Zainstaluj aplikację.",
+  installHelp: pl`Po pierwszym otwarciu narzędzie działa też bez internetu. iPhone: w Safari wybierz Udostępnij, potem Do ekranu początkowego. Chrome i Edge: menu przeglądarki, potem Zainstaluj aplikację.`,
   update: {
-    waiting:
-      "Dostępna jest nowa wersja. Wczytane dane gry, zapis kariery i filtry zostaną zachowane.",
+    waiting: pl`Dostępna jest nowa wersja. Wczytane dane gry, zapis kariery i filtry zostaną zachowane.`,
     installing: "Instalowanie nowej wersji…",
-    outdated:
-      "Nowa wersja została zainstalowana w innym oknie. Wczytane dane gry, zapis kariery i filtry zostaną zachowane.",
+    outdated: pl`Nowa wersja została zainstalowana w innym oknie. Wczytane dane gry, zapis kariery i filtry zostaną zachowane.`,
     failed: "Nie udało się pobrać nowej wersji. Spróbuj później.",
     checking: "Sprawdzanie aktualizacji…",
     downloading: "Pobieranie nowej wersji…",
     current: "Masz najnowszą wersję.",
-    unreachable: "Brak połączenia z internetem, nie można sprawdzić aktualizacji.",
+    unreachable: pl`Brak połączenia z internetem, nie można sprawdzić aktualizacji.`,
     check: "Sprawdź aktualizacje",
     checkMark: "↻",
     dismiss: "Zamknij komunikat",
@@ -348,7 +337,7 @@ export const TEXT = {
   /** The same at the start of a part of the phone row's line, where an ordinary space would collapse. */
   rowMetaPartSeparator: `${NBSP}·${NBSP}`,
   shortlistedMark: "★",
-  shortlisted: "obserwowany w grze",
+  shortlisted: pl`obserwowany w grze`,
   anyOption: "Dowolna",
   min: "od",
   max: "do",
@@ -387,7 +376,7 @@ export const TEXT = {
     potential: "Potencjał",
     peak: "Szczyt OVR",
     peakNote: (potential: number, peak: number): string =>
-      `Szczyt OVR to prognoza z krzywych rozwoju gry, ta sama co na jej wykresie rozwoju; nie obejmuje przyszłych przyrostów z meczów i treningu.${peak < potential ? ` Potencjału ${formatNumber(potential)} zawodnik według niej nie osiągnie.` : ""}`,
+      pl`Szczyt OVR to prognoza z krzywych rozwoju gry, ta sama co na jej wykresie rozwoju; nie obejmuje przyszłych przyrostów z meczów i treningu.${peak < potential ? pl` Potencjału ${formatNumber(potential)} zawodnik według niej nie osiągnie.` : ""}`,
     overallByGroup: "OVR na pozycjach",
     openMark: "▾",
     closedMark: "▸",
@@ -408,9 +397,8 @@ export const TEXT = {
     weight: "Waga",
     heightValue: (cm: number): string => `${formatNumber(cm)}${NBSP}cm`,
     weightValue: (kg: number): string => `${formatNumber(kg)}${NBSP}kg`,
-    career: "W tym sezonie kariery",
-    careerNote:
-      "Gra prowadzi te statystyki tylko w lidze twojego klubu. U zawodnika, który z niej odszedł, to archiwalne liczby z czasu gry w tej lidze.",
+    career: pl`W tym sezonie kariery`,
+    careerNote: pl`Gra prowadzi te statystyki tylko w lidze twojego klubu. U zawodnika, który z niej odszedł, to archiwalne liczby z czasu gry w tej lidze.`,
     form: "Średnia ocena (KR)",
     loanedFrom: "Wypożyczony z",
     morale: "Morale",
@@ -418,8 +406,8 @@ export const TEXT = {
     appearances: "Występy",
     price: "Cena",
     wage: "Zarobki rynkowe",
-    contractWage: "Zarobki z kontraktu",
-    shortlisted: "Na twojej liście obserwowanych w grze",
+    contractWage: pl`Zarobki z kontraktu`,
+    shortlisted: pl`Na twojej liście obserwowanych w grze`,
     wageNote: `Na mecz, wzorem gry. Po wygaśnięciu kontraktu gra może doliczyć 30${NBSP}% (wolny transfer).`,
     money: (amount: number, currency: CurrencyCode): string =>
       `${formatNumber(amount)}${NBSP}${CURRENCY_SYMBOLS[currency]}`,

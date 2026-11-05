@@ -30,7 +30,9 @@ test.describe("career", () => {
     // The user's own player shows the wage stored in his contract, not the market's.
     await page.getByRole("button", { name: "Paweł Brożek" }).click();
     const own = page.getByRole("dialog", { name: "Paweł Brożek" });
-    await expect(own.getByRole("term").filter({ hasText: /^Zarobki z kontraktu$/u })).toBeVisible();
+    await expect(
+      own.getByRole("term").filter({ hasText: /^Zarobki z\skontraktu$/u }),
+    ).toBeVisible();
     await page.keyboard.press("Escape");
     await page.getByText("Kariera", { exact: true }).click();
     await page.getByRole("group", { name: "Cena", exact: true }).getByLabel("od").fill("1");
@@ -90,7 +92,7 @@ test.describe("career ratings", () => {
     const card = page.getByRole("dialog", { name: "Lionel Messi" });
     await expect(card.getByRole("term").filter({ hasText: /^Szczyt OVR$/u })).toBeVisible();
     await expect(
-      card.getByText(/Potencjału 95 zawodnik według niej nie osiągnie\.$/u),
+      card.getByText(/Potencjału 95\szawodnik według niej nie osiągnie\.$/u),
     ).toBeVisible();
   });
 });
