@@ -1,7 +1,10 @@
 // FIFA 10 (PSP) career and squads saves (decrypted DATA.BIN): a 16-byte header, then fifa.db table
 // data blocks in fixed slots with zero padding. Each chunk: u32 4, u32 table index in fifa.db order,
 // u32 block length, the block (u32 rows, u32 fifa.db directory offset, records), u32 + string pool,
-// u32 + bitmap with one bit per fifa.db row (set = row replaced). The save is untrusted input.
+// u32 + bitmap with one bit per fifa.db row (set = row replaced). The table the game then uses is the
+// fifa.db rows left unmarked plus the chunk's rows: a full bitmap replaces the table, a partial one
+// replaces or drops single rows, an empty one with rows adds them (a new season's rtsg). The save is
+// untrusted input.
 import { birthdateToDate, readRecords, readString, readTable } from "./ea-db.ts";
 import type { EaDb, EaDbRow, EaDbTable } from "./ea-db.ts";
 import { SaveFormatError } from "./save-format-error.ts";
@@ -26,12 +29,12 @@ type CareerTable =
   | "career_youth_accademy"
   | "career_players_grown_attributes";
 
-/** How many of the first `count` bits from `offset` are set, LSB first. */
-const setBits = (view: DataView, offset: number, count: number): number =>
+/** Whether the bit of each of the first `count` rows from `offset` is set, LSB first. */
+const rowBits = (view: DataView, offset: number, count: number): readonly boolean[] =>
   Array.from(
     { length: count },
-    (_, row) => (view.getUint8(offset + (row >>> 3)) >> (row & 7)) & 1,
-  ).reduce((total: number, bit) => total + bit, 0);
+    (_, row) => ((view.getUint8(offset + (row >>> 3)) >> (row & 7)) & 1) === 1,
+  );
 
 /** The chunk at `offset` of `table`: its rows when it replaces the table, else null, and its end. */
 const parseChunk = (
@@ -58,11 +61,8 @@ const parseChunk = (
   if (bitmapLength !== Math.ceil(table.rowCount / 8)) {
     throw new SaveFormatError(`Save row bitmap of ${table.name} does not match fifa.db`);
   }
-  const replaced = setBits(view, bitmapOffset, table.rowCount);
-  if (replaced !== table.rowCount) {
-    if (replaced === 0 && rowCount === 0) return { rows: null, end };
-    throw new SaveFormatError(`Save has a partial row bitmap for ${table.name}, not supported`);
-  }
+  const marked = rowBits(view, bitmapOffset, table.rowCount);
+  if (rowCount === 0 && !marked.includes(true)) return { rows: null, end };
   const pool = new DataView(view.buffer, view.byteOffset + poolOffset, poolLength);
   const stringAt = (ref: number): string => {
     if (ref < SAVE_STRING_BASE) return readString(db.view, ref);
@@ -72,7 +72,10 @@ const parseChunk = (
     return readString(pool, ref - SAVE_STRING_BASE);
   };
   const records = { ...table, rowCount, recordsOffset: offset + CHUNK_HEAD_BYTES };
-  return { rows: readRecords(view, records, stringAt), end };
+  const kept = marked.includes(false)
+    ? readTable(db, table.name).filter((_, row) => marked[row] === false)
+    : [];
+  return { rows: [...kept, ...readRecords(view, records, stringAt)], end };
 };
 
 /**

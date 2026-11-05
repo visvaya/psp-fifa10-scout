@@ -89,6 +89,14 @@ const STATS_CLEAR: ChunkSpec = {
 
 const parse = (chunks: readonly ChunkSpec[]) => parseCareerSave(DB, buildCareerSave(chunks));
 
+/** The links table after a save chunk with this bitmap and these records. */
+const linksWith = (bitmap: readonly number[], records = LINKS.records) =>
+  effectiveRows(
+    DB,
+    parse([{ ...LINKS, rows: records.length / 8, records, bitmap }]),
+    "teamplayerlinks",
+  );
+
 describe("parseCareerSave", () => {
   it("reads a hand-written chunk: tag, table index, block length, rows, directory offset", () => {
     // Header (size 44), chunk: tag 4, table 1, length 16, 1 row, directory 84, record (1873, 12),
@@ -166,7 +174,11 @@ describe("parseCareerSave", () => {
     expect(effectiveRows(DB, parse([{ ...stats, bitmap: [0xff, 0x01] }]), "playerstats")).toEqual([
       { playerid: 7 },
     ]);
-    expect(() => parse([{ ...stats, bitmap: [0xff, 0] }])).toThrow(/partial row bitmap/);
+    // Rows 0..7 replaced: the ninth fifa.db row stays, before the save's row.
+    expect(effectiveRows(DB, parse([{ ...stats, bitmap: [0xff, 0] }]), "playerstats")).toEqual([
+      { playerid: 18 },
+      { playerid: 7 },
+    ]);
     const transfers = { index: 3, directoryOffset: DIR.career_transfer_list, rows: 1, bitmap: [] };
     const save = parse([{ ...transfers, records: le32(5) }]);
     expect(effectiveRows(DB, save, "career_transfer_list")).toEqual([{ playerid: 5 }]);
@@ -202,12 +214,19 @@ describe("parseCareerSave", () => {
     expect(() => parse([{ ...MANAGERS, records }])).toThrow(/string reference is out of range/);
   });
 
-  it("rejects partial bitmaps, added rows and a bitmap of the wrong size", () => {
-    expect(() => parse([{ ...LINKS, bitmap: [0x01] }])).toThrow(/partial row bitmap/);
-    expect(() => parse([{ ...LINKS, bitmap: [0] }])).toThrow(/partial row bitmap/);
-    expect(() => parse([{ ...LINKS, rows: 0, records: [], bitmap: [0x01] }])).toThrow(
-      /partial row bitmap/,
-    );
+  // A start-of-season save adds rows to rtsg with an empty bitmap (2011-07, the owner's career).
+  it("keeps the fifa.db rows left unmarked and adds the save's rows after them", () => {
+    const added = { teamid: 1873, playerid: 99 };
+    expect(linksWith([0x01])).toEqual([{ teamid: 2, playerid: 20 }, added]);
+    expect(linksWith([0])).toEqual([
+      { teamid: 1, playerid: 10 },
+      { teamid: 2, playerid: 20 },
+      added,
+    ]);
+    expect(linksWith([0x01], [])).toEqual([{ teamid: 2, playerid: 20 }]);
+  });
+
+  it("rejects a bitmap of the wrong size", () => {
     expect(() => parse([{ ...LINKS, bitmap: [0x03, 0] }])).toThrow(/bitmap of teamplayerlinks/);
   });
 });
