@@ -64,9 +64,9 @@ test.describe("wide table", () => {
     expect(await marker(false)).not.toBe("none");
     expect(await marker(true)).not.toBe(await marker(false));
     // The marker stays out of what a screen reader reads.
-    await expect(page.locator("details.filter-section > summary").first()).toHaveAccessibleName(
-      "Podstawowe",
-    );
+    await expect(
+      page.locator("details.filter-section > summary").filter({ hasText: "Podstawowe" }),
+    ).toHaveAccessibleName("Podstawowe");
   });
 });
 

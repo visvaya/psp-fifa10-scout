@@ -12,7 +12,8 @@ import { OVR_WEIGHTS } from "./overall-rating.ts";
 import { ATTRIBUTE_NAMES } from "./players.ts";
 import { POSITION_GROUPS, ratingCodeOf } from "./positions.ts";
 import { compactFilters, inRecordOrder } from "./scout-state.ts";
-import type { ClubStatus, MyClub, Preferences, ScoutFilters } from "./scout-state.ts";
+import type { ClubStatus, MyClub, Preferences, ScoutFilters, ScoutSort } from "./scout-state.ts";
+import type { FilterSet } from "./saved-filters.ts";
 import type { SortKey } from "./sort-players.ts";
 
 /**
@@ -162,16 +163,37 @@ const parseFilters = (value: unknown): ScoutFilters => {
   };
 };
 
-const parsePreferences = (value: unknown): Preferences | null => {
-  if (!isRecord(value) || !isRecord(value["filters"]) || !isRecord(value["sort"])) return null;
-  const { key, direction } = value["sort"];
+const parseSort = (value: unknown): ScoutSort | null => {
+  const { key, direction } = recordOf(value);
   const sortKey = SORTABLE_KEYS.find((sortable) => sortable === key);
-  if (sortKey === undefined || (direction !== "ascending" && direction !== "descending")) {
-    return null;
-  }
+  return sortKey === undefined || (direction !== "ascending" && direction !== "descending")
+    ? null
+    : { key: sortKey, direction };
+};
+
+/** The stored named filter sets with a name and a valid sort; others are dropped. */
+const parseFilterSets = (value: unknown): readonly FilterSet[] => {
+  const seen = new Set<string>();
+  return (Array.isArray(value) ? value : []).flatMap((item: unknown): readonly FilterSet[] => {
+    const { name, filters } = recordOf(item);
+    const sort = parseSort(recordOf(item)["sort"]);
+    const trimmed = typeof name === "string" ? name.trim() : "";
+    // Names are unique, as saving keeps them: of two sets with one name the first stays.
+    if (trimmed === "" || sort === null || seen.has(trimmed)) return [];
+    seen.add(trimmed);
+    return [{ name: trimmed, filters: compactFilters(parseFilters(filters)), sort }];
+  });
+};
+
+const parsePreferences = (value: unknown): Preferences | null => {
+  if (!isRecord(value) || !isRecord(value["filters"])) return null;
+  const sort = parseSort(value["sort"]);
+  if (sort === null) return null;
+  const filterSets = parseFilterSets(value["filterSets"]);
   return {
     filters: compactFilters(parseFilters(value["filters"])),
-    sort: { key: sortKey, direction },
+    sort,
+    ...(filterSets.length === 0 ? {} : { filterSets }),
     showPotential: value["showPotential"] === true,
     ...(typeof value["gameLanguage"] === "string" || value["gameLanguage"] === null
       ? { gameLanguage: value["gameLanguage"] }

@@ -44,7 +44,7 @@ const useGameNames = (state: ScoutState) => {
 /** Stores the preferences and the languages read, once the stored ones were restored. */
 const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFiles>) => {
   const { ready, savePreferences, saveLanguages } = files;
-  const { filters, sort, showPotential, gameLanguage, languages } = state;
+  const { filters, sort, showPotential, gameLanguage, filterSets, languages } = state;
   useEffect(() => {
     // Only after the stored preferences were restored, so defaults never overwrite them.
     if (ready) {
@@ -53,9 +53,10 @@ const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFile
         sort,
         showPotential,
         ...(gameLanguage === undefined ? {} : { gameLanguage }),
+        ...(filterSets === undefined ? {} : { filterSets }),
       });
     }
-  }, [ready, savePreferences, filters, sort, showPotential, gameLanguage]);
+  }, [ready, savePreferences, filters, sort, showPotential, gameLanguage, filterSets]);
 
   useEffect(() => {
     if (ready) saveLanguages(languages);

@@ -9,6 +9,8 @@ import { nameCollator } from "./players.ts";
 import type { Player } from "./players.ts";
 import { POTENTIAL_KEYS } from "./sort-players.ts";
 import type { SortDirection, SortKey } from "./sort-players.ts";
+import { filterSetsAfter } from "./saved-filters.ts";
+import type { FilterSet, FilterSetAction } from "./saved-filters.ts";
 
 /** Which players by club: unset means "available", everyone one can sign; free agents need a career. */
 export type ClubStatus = "available" | "free-agents";
@@ -49,6 +51,8 @@ export interface Preferences {
   readonly showPotential: boolean;
   /** The game language of club, league and country names; null the fifa.db names, unset the browser's. */
   readonly gameLanguage?: string | null;
+  /** Filters and sort saved under a name; unset as none. */
+  readonly filterSets?: readonly FilterSet[];
 }
 
 export type ScoutError =
@@ -108,6 +112,7 @@ export type ScoutAction =
   | { readonly type: "filters-reset" }
   | { readonly type: "sort-changed"; readonly key: SortKey }
   | { readonly type: "preferences-restored"; readonly preferences: Preferences }
+  | FilterSetAction
   | { readonly type: "player-opened"; readonly id: number }
   | { readonly type: "player-closed" };
 
@@ -240,6 +245,45 @@ const consistent = (preferences: Preferences): Preferences => {
 
 const isLoadAction = (action: ScoutAction): action is LoadAction => action.type.startsWith("load-");
 
+/** The stored preferences over the state, made consistent. */
+const withPreferences = (state: ScoutState, preferences: Preferences): ScoutState => {
+  const { filters, sort, showPotential, gameLanguage, filterSets } = preferences;
+  return {
+    ...state,
+    ...consistent({ filters: compactFilters(filters), sort, showPotential }),
+    ...(gameLanguage === undefined ? {} : { gameLanguage }),
+    ...(filterSets === undefined ? {} : { filterSets }),
+  };
+};
+
+/**
+ * The filters and sort without what needs a career: without one they do nothing, so they would leave a
+ * chip that does not apply or a sort the list cannot show.
+ */
+const withoutCareer = ({ filters, sort }: Pick<Preferences, "filters" | "sort">) => ({
+  filters: compactFilters({
+    ...filters,
+    clubStatus: undefined,
+    myClub: undefined,
+    ranges: { ...filters.ranges, peak: undefined },
+    flags: { ...filters.flags, shortlisted: undefined },
+  }),
+  sort: sort.key === "peak" ? DEFAULT_SORT : sort,
+});
+
+/** A filter set's action; a set loaded without a career leaves out what needs one, the set itself kept. */
+const withFilterSets = (state: ScoutState, action: FilterSetAction): ScoutState => {
+  const next = filterSetsAfter(state, action);
+  const fitted =
+    action.type === "filter-set-loaded" && state.myTeamId === null
+      ? { ...next, ...withoutCareer(next) }
+      : next;
+  return { ...state, ...consistent(fitted) };
+};
+
+const isFilterSetAction = (action: ScoutAction): action is FilterSetAction =>
+  action.type.startsWith("filter-set-");
+
 const nextDirection = (sort: ScoutSort, key: SortKey): SortDirection => {
   if (sort.key === key) return sort.direction === "ascending" ? "descending" : "ascending";
   return ASCENDING_FIRST.has(key) ? "ascending" : "descending";
@@ -266,19 +310,7 @@ const loadReducer = (state: ScoutState, action: LoadAction): ScoutState => {
         players: action.players,
         myTeamId: action.myTeamId,
         career: action.career,
-        // Without a career these filters do nothing, so they would leave a chip that does not apply.
-        ...(action.myTeamId === null
-          ? {
-              filters: compactFilters({
-                ...state.filters,
-                clubStatus: undefined,
-                myClub: undefined,
-                ranges: { ...state.filters.ranges, peak: undefined },
-                flags: { ...state.filters.flags, shortlisted: undefined },
-              }),
-              sort: state.sort.key === "peak" ? DEFAULT_SORT : state.sort,
-            }
-          : {}),
+        ...(action.myTeamId === null ? withoutCareer(state) : {}),
         gameName: loading.gameName === undefined ? state.gameName : loading.gameName,
         languages: { ...state.languages, ...action.languages },
         ...(action.attachedLanguage === null ? {} : { gameLanguage: action.attachedLanguage }),
@@ -294,6 +326,7 @@ const loadReducer = (state: ScoutState, action: LoadAction): ScoutState => {
 
 export const scoutReducer = (state: ScoutState, action: ScoutAction): ScoutState => {
   if (isLoadAction(action)) return loadReducer(state, action);
+  if (isFilterSetAction(action)) return withFilterSets(state, action);
   switch (action.type) {
     case "files-incomplete":
       return { ...state, error: { stage: action.stage, kind: "missing-file" } };
@@ -325,14 +358,9 @@ export const scoutReducer = (state: ScoutState, action: ScoutAction): ScoutState
         ...state,
         sort: { key: action.key, direction: nextDirection(state.sort, action.key) },
       };
-    case "preferences-restored": {
-      const { filters, sort, showPotential, gameLanguage } = action.preferences;
-      return {
-        ...state,
-        ...consistent({ filters: compactFilters(filters), sort, showPotential }),
-        ...(gameLanguage === undefined ? {} : { gameLanguage }),
-      };
-    }
+    case "preferences-restored":
+      return withPreferences(state, action.preferences);
+
     case "player-opened":
       return { ...state, openPlayerId: action.id };
     case "player-closed":
