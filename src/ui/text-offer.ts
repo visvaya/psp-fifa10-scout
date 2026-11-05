@@ -13,7 +13,7 @@ export const OFFER_TEXT = {
   wageOverCap: pl`Zarobki przekraczają limit formularza oferty (około 120% zarobków rynkowych).`,
   /** Why the game refuses any offer, whatever the fee (sale-rule.ts), with the game's own wording. */
   refusals: {
-    position: pl`Klub odmówi sprzedaży bez względu na kwotę: ma za mało zawodników na tej pozycji. W grze: „ma zbyt mało zawodników w swojej kadrze”.`,
+    position: pl`Klub odmówi sprzedaży bez względu na kwotę: ma za mało zawodników w grupie pozycji, do której gra go zalicza (na przykład wszyscy środkowi obrońcy), nie licząc wypożyczonych do klubu. W grze: „ma zbyt mało zawodników w swojej kadrze”.`,
     squad: pl`Klub odmówi sprzedaży bez względu na kwotę: ma 19 lub mniej zawodników w kadrze. W grze: „ma zbyt mało zawodników w swojej kadrze”.`,
     rivals: pl`Klub odmówi sprzedaży bez względu na kwotę: to odwieczny rywal twojego klubu. W grze: „z góry odrzuca oferty odwiecznych rywali”.`,
   },
