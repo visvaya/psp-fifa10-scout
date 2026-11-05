@@ -254,8 +254,9 @@ const shortlistOf = (db: EaDb, save: CareerSave | undefined): readonly EaDbRow[]
   );
 };
 
+/** A column of the save's stats row; null without the row or the column. */
 const statOf = (stats: EaDbRow | undefined, key: string): number | null =>
-  stats === undefined ? null : num(stats, key);
+  stats?.[key] === undefined ? null : num(stats, key);
 
 /** A stat summed over the four cup columns (cup0..cup3); a column the row lacks counts 0. */
 const cupTotal = (stats: EaDbRow | undefined, key: string): number | null =>

@@ -27,6 +27,18 @@ describe("cup stats", () => {
       cupAppearances: null,
       cupGoals: null,
       assists: null,
+      cupAssists: null,
+      cleanSheets: null,
+      cupCleanSheets: null,
+    });
+  });
+
+  it("leaves a column the stats row lacks empty", () => {
+    const save = parseCareerSave(db, buildPlainSave().dataBin);
+    const short = new Map([...save, ["playerstats", [{ playerid: 158_023, form: 69 }]]]);
+    expect(buildPlayers(db, short).find((player) => player.id === 158_023)).toMatchObject({
+      form: 6.9,
+      assists: null,
       cleanSheets: null,
     });
   });

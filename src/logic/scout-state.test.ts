@@ -46,7 +46,7 @@ describe("scoutReducer loading", () => {
       text: "a",
       clubStatus: "free-agents",
       myClub: "only",
-      ranges: { peak: { min: 70 }, age: { max: 21 }, cupGoals: { min: 1 }, price: { max: 9 } },
+      ranges: { peak: { min: 70 }, age: { max: 21 }, cleanSheets: { min: 1 } },
       flags: { clubWillSell: true, transferListed: true, loanListed: true, loaned: false },
     } as const;
     expect(loaded(null, { ...loading, filters }).filters).toEqual({
