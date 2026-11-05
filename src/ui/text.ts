@@ -339,6 +339,8 @@ export const TEXT = {
   removeMark: "×",
   sortMark: { ascending: "▲", descending: "▼" },
   rowMetaSeparator: " · ",
+  /** The same at the start of a part of the phone row's line, where an ordinary space would collapse. */
+  rowMetaPartSeparator: `${NBSP}·${NBSP}`,
   shortlistedMark: "★",
   shortlisted: "obserwowany w grze",
   anyOption: "Dowolna",
