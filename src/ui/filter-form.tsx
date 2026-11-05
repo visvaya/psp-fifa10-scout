@@ -13,6 +13,7 @@ import type {
   MyClub,
   ScoutAction,
   ScoutFilters,
+  ScoutState,
 } from "../logic/scout-state.ts";
 import {
   ChoiceField,
@@ -22,7 +23,8 @@ import {
   Section,
 } from "./filter-fields.tsx";
 import type { Choice } from "./filter-fields.tsx";
-import { PotentialSwitch, ResetFilters } from "./filter-panel-controls.tsx";
+import { PotentialSwitch } from "./filter-panel-controls.tsx";
+import { SettingsActions } from "./settings-actions.tsx";
 import { FIELD_HELP } from "./text-help.ts";
 import { PositionRatingField } from "./position-rating-field.tsx";
 import {
@@ -45,8 +47,8 @@ interface FilterFormProps {
   readonly filters: ScoutFilters;
   readonly myTeamId: number | null;
   readonly showPotential: boolean;
-  /** A change of the filters, sort or sets can be taken back. */
-  readonly canUndo: boolean;
+  /** The settings "Cofnij" and "Resetuj" act on. */
+  readonly settings: Pick<ScoutState, "filters" | "sort" | "showPotential" | "undo">;
   /** The career's currency, shown with the price and the wage; null without a career. */
   readonly currency: CurrencyCode | null;
   readonly dispatch: Dispatch<ScoutAction>;
@@ -378,7 +380,7 @@ export const FilterForm = ({
   filters,
   myTeamId,
   showPotential,
-  canUndo,
+  settings,
   currency,
   dispatch,
 }: FilterFormProps): JSX.Element => {
@@ -416,7 +418,7 @@ export const FilterForm = ({
       {characterSection(kit)}
       {clubSection(kit, myTeamId !== null)}
       {myTeamId === null ? null : careerSection(kit)}
-      <ResetFilters filters={filters} canUndo={canUndo} dispatch={dispatch} />
+      <SettingsActions settings={settings} className="reset-filters" dispatch={dispatch} />
     </form>
   );
 };

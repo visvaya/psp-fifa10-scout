@@ -121,6 +121,8 @@ export type ScoutAction =
   | { readonly type: "filter-removed"; readonly id: FilterId }
   | { readonly type: "potential-shown"; readonly shown: boolean }
   | { readonly type: "filters-reset" }
+  /** Filters, sort and the potential switch back to their defaults; files, language and sets kept. */
+  | { readonly type: "settings-reset" }
   | { readonly type: "sort-changed"; readonly key: SortKey }
   | { readonly type: "preferences-restored"; readonly preferences: Preferences }
   | FilterSetAction
@@ -350,9 +352,20 @@ const loadReducer = (state: ScoutState, action: LoadAction): ScoutState => {
   }
 };
 
+/** What each reset sets: the filters and sort, or with the potential switch too ("Resetuj"). */
+const RESETS = {
+  "filters-reset": { filters: {}, sort: DEFAULT_SORT },
+  "settings-reset": { filters: {}, sort: DEFAULT_SORT, showPotential: false },
+} as const;
+
+type ResetAction = Extract<ScoutAction, { readonly type: keyof typeof RESETS }>;
+
+const isResetAction = (action: ScoutAction): action is ResetAction => action.type in RESETS;
+
 const changes = (state: ScoutState, action: Exclude<ScoutAction, UndoAction>): ScoutState => {
   if (isLoadAction(action)) return loadReducer(state, action);
   if (isFilterSetAction(action)) return withFilterSets(state, action);
+  if (isResetAction(action)) return { ...state, ...RESETS[action.type] };
   switch (action.type) {
     case "files-incomplete":
       return { ...state, error: { stage: action.stage, kind: "missing-file" } };
@@ -377,8 +390,6 @@ const changes = (state: ScoutState, action: Exclude<ScoutAction, UndoAction>): S
       };
     case "potential-shown":
       return { ...state, ...consistent({ ...state, showPotential: action.shown }) };
-    case "filters-reset":
-      return { ...state, filters: {}, sort: DEFAULT_SORT };
     case "sort-changed":
       return {
         ...state,

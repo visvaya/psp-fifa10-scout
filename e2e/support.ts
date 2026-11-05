@@ -138,3 +138,10 @@ export const cardValue = (card: Locator, label: string) => {
     })
     .getByRole("definition");
 };
+
+/** "Resetuj" in the filter panel's bottom bar, then the same button again to confirm the question. */
+export const resetSettings = async (page: Page) => {
+  const bar = page.locator(".reset-filters");
+  await bar.getByRole("button", { name: "Resetuj" }).click();
+  await bar.getByRole("button", { name: "Resetuj" }).click();
+};

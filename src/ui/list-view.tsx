@@ -193,6 +193,7 @@ const ListResults = ({
       </div>
       <FilterChips
         filters={state.filters}
+        settings={state}
         players={players}
         positionName={positionName}
         folded={!wide}
@@ -230,7 +231,7 @@ export const ListView = (props: ListViewProps): JSX.Element => {
         filters={state.filters}
         myTeamId={state.myTeamId}
         showPotential={state.showPotential}
-        canUndo={state.undo.length > 0}
+        settings={state}
         currency={state.career?.currency ?? null}
         dispatch={dispatch}
       />

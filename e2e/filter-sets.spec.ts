@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { expectCount, guardSecurityPolicy, loadDatabase } from "./support.ts";
+import { expectCount, guardSecurityPolicy, loadDatabase, resetSettings } from "./support.ts";
 
 guardSecurityPolicy();
 
@@ -17,7 +17,7 @@ test.describe("filter sets", () => {
     await page.getByText("Zapisane zestawy", { exact: true }).click();
     await page.getByLabel("Nazwa zestawu").fill("Bramkarze");
     await page.getByRole("button", { name: "Zapisz bieżące filtry" }).click();
-    await page.getByRole("button", { name: "Wyczyść filtry" }).click();
+    await resetSettings(page);
     await expectCount(page, "62 zawodników");
     await page.reload();
     await page.getByText("Zapisane zestawy", { exact: true }).click();
@@ -80,7 +80,7 @@ test.describe("filter set overwrite", () => {
     );
     await confirm.click();
     await expect(overwrite).toBeFocused();
-    await page.getByRole("button", { name: "Wyczyść filtry" }).click();
+    await resetSettings(page);
     await page.getByRole("button", { name: "Wczytaj zestaw „Moi”" }).click();
     await expect(page.getByRole("checkbox", { name: "Napastnik" })).toBeChecked();
     await expect(page.getByRole("checkbox", { name: "Bramkarz" })).not.toBeChecked();

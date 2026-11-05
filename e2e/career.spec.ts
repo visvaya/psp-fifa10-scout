@@ -27,13 +27,16 @@ test.describe("career", () => {
     await expect(card.getByRole("term").filter({ hasText: /^Cena$/u })).toBeVisible();
     await expect(card.getByText(/ \(szacunek\)$/u)).toBeVisible();
     await page.keyboard.press("Escape");
-    // The user's own player shows the wage stored in his contract, not the market's.
+    // The user's own player shows the wage stored in his contract, not the market's. Found by name: the
+    // list renders only the rows near the screen.
+    await page.getByRole("searchbox", { name: "Nazwisko" }).fill("brozek");
     await page.getByRole("button", { name: "Paweł Brożek" }).click();
     const own = page.getByRole("dialog", { name: "Paweł Brożek" });
     await expect(
       own.getByRole("term").filter({ hasText: /^Zarobki z\skontraktu$/u }),
     ).toBeVisible();
     await page.keyboard.press("Escape");
+    await page.getByRole("searchbox", { name: "Nazwisko" }).fill("");
     await page.getByText("Kariera", { exact: true }).click();
     await page.getByRole("group", { name: "Cena (€)", exact: true }).getByLabel("od").fill("1");
     await page
