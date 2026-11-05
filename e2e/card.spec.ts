@@ -58,9 +58,16 @@ test.describe("offer on the card", () => {
     await expect(value(card, "Klub przyjmie od")).toHaveText("22 500 000 €");
     await expect(value(card, "Zawodnik podpisze od")).toContainText("kontrakt 4 lata");
     await expect(card.getByText(/^Kwota przekracza limit formularza oferty/u)).toBeVisible();
-    // Barcelona has 21 players and enough wide midfielders to sell him (the refusals: unit tests).
+    // Barcelona has 21 players and enough wide midfielders to sell him.
     await expect(value(card, "Klub może go sprzedać")).toHaveText("tak");
     await expect(card.getByText(/^Klub odmówi sprzedaży/u)).toBeHidden();
+    await page.keyboard.press("Escape");
+    // Łódzki KS has two centre-backs, one short of its league's minimum, and his contract runs on.
+    await page.getByRole("searchbox", { name: "Nazwisko" }).fill("numer 18");
+    await page.getByRole("button", { name: /^Gracz Numer 18/u }).click();
+    const refused = page.getByRole("dialog", { name: "Gracz Numer 18" });
+    await expect(value(refused, "Klub może go sprzedać")).toHaveText("nie");
+    await expect(refused.getByText(/^Klub odmówi sprzedaży/u)).toBeVisible();
     await page.keyboard.press("Escape");
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("brozek");
     await page.getByRole("button", { name: "Paweł Brożek" }).click();
