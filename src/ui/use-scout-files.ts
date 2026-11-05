@@ -7,7 +7,7 @@ import { pickLocaleFiles, pickSaveFiles } from "../logic/load-scout.ts";
 import type { LoadRequest, SaveFiles, WorkerMessage, WorkerRequest } from "../logic/load-scout.ts";
 import { actionOf } from "../logic/scout-state.ts";
 import type { Preferences, ScoutAction } from "../logic/scout-state.ts";
-import { createScoutStore } from "../logic/scout-store.ts";
+import { openScoutStore } from "../logic/scout-store.ts";
 import type { ScoutStore, StoredScout } from "../logic/scout-store.ts";
 import { detectBackend } from "./browser-store.ts";
 import { createGameMemory, createSaveMemory } from "./load-memory.ts";
@@ -18,10 +18,7 @@ const blobs = ({ dataBin, paramSfo }: SaveFiles<Uint8Array>): SaveFiles<Blob> =>
   paramSfo: new Blob([paramSfo.slice()]),
 });
 
-const openStore = async () => {
-  const store = createScoutStore(await detectBackend());
-  return { store, stored: await store.load() };
-};
+type StoreRun = (opened: ScoutStore) => Promise<void>;
 
 const restore = (dispatch: Dispatch<ScoutAction>, stored: StoredScout) => {
   dispatch({ type: "languages-restored", languages: stored.languages });
@@ -30,13 +27,13 @@ const restore = (dispatch: Dispatch<ScoutAction>, stored: StoredScout) => {
   }
 };
 
-const createSession = (dispatch: Dispatch<ScoutAction>) => {
+const createSession = (dispatch: Dispatch<ScoutAction>, onStorageFailed: () => void) => {
   /** The store once open; saves wait for it, so a game picked before it opens is still kept. */
   let [worker, store]: [Worker | null, Promise<ScoutStore> | null] = [null, null];
   let lastRequestId = 0;
   /** The save for every load; an attached language file for the next load only. */
   let pending: Pick<LoadRequest, "save" | "locale"> = {};
-  const withStore = (run: (opened: ScoutStore) => Promise<void>) => void store?.then(run);
+  const withStore = (run: StoreRun) => void store?.then(run).catch(onStorageFailed);
   const [gameMemory, saveMemory] = [createGameMemory(withStore), createSaveMemory(withStore)];
 
   /** Loads the game; a picked file carries its name, the stored one is restored, a reload has neither. */
@@ -77,7 +74,7 @@ const createSession = (dispatch: Dispatch<ScoutAction>) => {
     open: async (isCancelled: () => boolean): Promise<boolean | null> => {
       worker = new Worker(new URL("scout-worker.ts", import.meta.url), { type: "module" });
       worker.addEventListener("message", onMessage);
-      const opening = openStore();
+      const opening = detectBackend().then((backend) => openScoutStore(backend, onStorageFailed));
       store = opening.then(({ store: opened }) => opened);
       const { stored } = await opening;
       if (isCancelled()) return null;
@@ -105,9 +102,17 @@ const createSession = (dispatch: Dispatch<ScoutAction>) => {
   };
 };
 
-/** Opens the store and the worker, restores preferences and the stored game, and loads picked files. */
+/**
+ * Opens the store and the worker, restores preferences and the stored game, and loads picked files.
+ * storageFailed: the local store failed to open or save, so some of it may not be remembered.
+ */
 export const useScoutFiles = (dispatch: Dispatch<ScoutAction>) => {
-  const [session] = useState(() => createSession(dispatch));
+  const [storageFailed, setStorageFailed] = useState(false);
+  const [session] = useState(() =>
+    createSession(dispatch, () => {
+      setStorageFailed(true);
+    }),
+  );
   const [hasStoredGame, setHasStoredGame] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -125,6 +130,7 @@ export const useScoutFiles = (dispatch: Dispatch<ScoutAction>) => {
 
   return {
     ready: hasStoredGame !== null,
+    storageFailed,
     pickGame: session.pickGame,
     pickSave: session.pickSave,
     pickLocale: session.pickLocale,

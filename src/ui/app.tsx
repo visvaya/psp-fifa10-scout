@@ -119,6 +119,9 @@ export const App = (): JSX.Element => {
     <div className="app">
       <TopBar view={players === null ? null : view} update={update} dispatch={dispatch} />
       <UpdatePrompt status={update.status} install={update.install} dismiss={update.dismiss} />
+      <output className="update-prompt">
+        {files.storageFailed ? <p>{TEXT.storageFailed}</p> : null}
+      </output>
       <main className="main">
         {view === "list" && players !== null ? (
           <ListView
