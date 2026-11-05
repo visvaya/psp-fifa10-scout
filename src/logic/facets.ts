@@ -23,15 +23,20 @@ const options = (
 const distinct = (values: readonly number[]): readonly number[] =>
   [...new Set(values)].toSorted((a, b) => a - b);
 
-/** The choices for the league, club, nationality and contract filters; clubs within the chosen leagues. */
+/**
+ * The choices for the league, club, nationality and contract filters; clubs within the chosen leagues,
+ * or outside them when the leagues are excluded.
+ */
 export const facetOptions = (
   players: readonly Player[],
   filters: ScoutFilters,
   collator: Intl.Collator = nameCollator,
 ) => {
   const leagues = new Set(filters.lists?.leagueId ?? []);
+  const excluded = filters.excludedLists?.leagueId === true;
   const inLeagues = players.filter(
-    (player) => leagues.size === 0 || (player.leagueId !== null && leagues.has(player.leagueId)),
+    (player) =>
+      leagues.size === 0 || (player.leagueId !== null && leagues.has(player.leagueId)) !== excluded,
   );
   return {
     leagues: options(

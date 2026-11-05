@@ -37,6 +37,7 @@ describe("scout store", () => {
         text: "mes",
         ranges: { age: { min: 18, max: 23 }, dribbling: { min: 80 } },
         lists: { positionGroup: ["wingers"], preferredFoot: ["left"], leagueId: [53] },
+        excludedLists: { leagueId: true },
         flags: { leadership: true, diver: false },
         positionRating: { code: 3, min: 70 },
         clubStatus: "free-agents",

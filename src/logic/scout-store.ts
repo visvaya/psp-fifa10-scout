@@ -143,9 +143,9 @@ const entriesOf = <K extends string, V>(
 };
 
 const parseFilters = (value: unknown): ScoutFilters => {
-  const { text, ranges, lists, flags, clubStatus, myClub, excludeMyClub, positionRating } =
-    recordOf(value);
-  const rating = parsePositionRating(positionRating);
+  const record = recordOf(value);
+  const { text, ranges, lists, excludedLists, flags, clubStatus, myClub, excludeMyClub } = record;
+  const rating = parsePositionRating(record["positionRating"]);
   return {
     ...(typeof text === "string" ? { text } : {}),
     ranges: entriesOf(ranges, RANGE_KEYS, parseRange),
@@ -155,6 +155,9 @@ const parseFilters = (value: unknown): ScoutFilters => {
         ? item.filter((code) => allowed?.includes(code) ?? Number.isInteger(code))
         : undefined;
     }),
+    excludedLists: entriesOf(excludedLists, LIST_FIELDS, (item) =>
+      item === true ? item : undefined,
+    ),
     flags: entriesOf(flags, FLAG_KEYS, (item) => (typeof item === "boolean" ? item : undefined)),
     ...(rating === undefined ? {} : { positionRating: rating }),
     ...(isClubStatus(clubStatus) ? { clubStatus } : {}),

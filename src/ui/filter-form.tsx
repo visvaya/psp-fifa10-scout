@@ -233,6 +233,10 @@ const controls = (filters: ScoutFilters, change: Change) => ({
       onChange={(chosen) => {
         change({ lists: { ...filters.lists, [key]: chosen } });
       }}
+      excluded={filters.excludedLists?.[key] === true}
+      onExcludedChange={(excluded) => {
+        change({ excludedLists: { ...filters.excludedLists, [key]: excluded } });
+      }}
     />
   ),
   flag: (key: FlagKey) => (
