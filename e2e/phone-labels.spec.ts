@@ -16,6 +16,18 @@ const filterBySpeed = async (page: Page) => filterByAttributes(page, "Przyspiesz
 
 const scrollLeftOf = (element: Element) => element.scrollLeft;
 
+/**
+ * Where the labels' fade at the right edge starts on screen: the header's visible right edge (a
+ * scrollbar gutter left out) less the rendered width of the "more columns" mark.
+ */
+const fadeStart = async (page: Page): Promise<number> =>
+  page.locator(".player-rows-header").evaluate((header) => {
+    const list = header.closest(".phone-list");
+    if (!(header instanceof HTMLElement) || list === null) return Number.NEGATIVE_INFINITY;
+    const fade = Number.parseFloat(getComputedStyle(list, "::before").width);
+    return header.getBoundingClientRect().left + header.clientWidth - fade;
+  });
+
 test.describe("phone column labels", () => {
   test.use(PHONE);
 
@@ -47,14 +59,12 @@ test.describe("phone label focus", () => {
     await expect(labels).toHaveCount(4);
     await labels.nth(2).focus();
     await expect(page.locator(".phone-list")).toHaveAttribute("data-more");
-    // The labels' fade at the right edge: 2.5rem.
-    const fadePx = 40;
     await expect
       .poll(async () => {
         const box = await labels.nth(2).boundingBox();
-        return (box?.x ?? Infinity) + (box?.width ?? 0);
+        return (box?.x ?? Infinity) + (box?.width ?? 0) <= (await fadeStart(page));
       })
-      .toBeLessThanOrEqual((page.viewportSize()?.width ?? 0) - fadePx);
+      .toBe(true);
   });
 });
 
@@ -91,13 +101,14 @@ test.describe("phone label focus on narrow screens", () => {
     const label = page.getByRole("button", { name: /^Świadomość taktyczna/u });
     await label.focus();
     const edges = async () => {
-      const [box, name] = await Promise.all([
+      const [box, name, fade] = await Promise.all([
         label.boundingBox(),
         page.locator(".player-rows-grid > :first-child").boundingBox(),
+        fadeStart(page),
       ]);
       return {
         clearOfName: (box?.x ?? 0) >= (name?.x ?? 0) + (name?.width ?? 0),
-        clearOfFade: (box?.x ?? 0) + (box?.width ?? 0) <= 385 - 40,
+        clearOfFade: (box?.x ?? 0) + (box?.width ?? 0) <= fade,
       };
     };
     await expect.poll(edges).toEqual({ clearOfName: true, clearOfFade: true });
