@@ -30,7 +30,8 @@ test.describe("filter sets", () => {
     );
     // A taken name overwrites; renaming and deleting act on the named set.
     await page.getByLabel("Nazwa zestawu").fill("Bramkarze");
-    await expect(page.getByRole("button", { name: "Nadpisz zestaw" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Nadpisz zestaw", exact: true })).toBeVisible();
+    await page.getByLabel("Nazwa zestawu").fill("");
     await page.getByRole("button", { name: "Zmień nazwę zestaw „Bramkarze”" }).click();
     // The editor takes the focus; an empty name is refused with the reason, the editor stays open.
     const newName = page.getByLabel("Nowa nazwa zestawu „Bramkarze”");
@@ -48,5 +49,40 @@ test.describe("filter sets", () => {
     ).toBeFocused();
     await page.getByRole("button", { name: "Usuń zestaw „Na bramkę”" }).click();
     await expect(page.getByText("Brak zapisanych zestawów", { exact: false })).toBeVisible();
+  });
+});
+
+test.describe("filter set overwrite", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  // A set takes the current filters only after the question; either answer gives the focus back.
+  test("overwrites a saved set with the current filters after asking", async ({ page }) => {
+    await loadDatabase(page);
+    await page.getByRole("checkbox", { name: "Bramkarz" }).check();
+    await page.getByText("Zapisane zestawy", { exact: true }).click();
+    await page.getByLabel("Nazwa zestawu").fill("Moi");
+    await page.getByRole("button", { name: "Zapisz bieżące filtry" }).click();
+    await page.getByRole("checkbox", { name: "Bramkarz" }).uncheck();
+    await page.getByRole("checkbox", { name: "Napastnik" }).check();
+    const overwrite = page.getByRole("button", { name: "Nadpisz zestaw „Moi”" });
+    await overwrite.click();
+    await expect(
+      page.getByText("Zastąpić filtry i sortowanie zestawu „Moi” bieżącymi?"),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Anuluj zestaw „Moi”" }).click();
+    await expect(overwrite).toBeFocused();
+    await overwrite.click();
+    const confirm = page.getByRole("button", { name: "Nadpisz zestaw „Moi”" });
+    await expect(confirm).toBeFocused();
+    // The focused button carries the question for screen readers.
+    await expect(confirm).toHaveAccessibleDescription(
+      "Zastąpić filtry i sortowanie zestawu „Moi” bieżącymi?",
+    );
+    await confirm.click();
+    await expect(overwrite).toBeFocused();
+    await page.getByRole("button", { name: "Wyczyść filtry" }).click();
+    await page.getByRole("button", { name: "Wczytaj zestaw „Moi”" }).click();
+    await expect(page.getByRole("checkbox", { name: "Napastnik" })).toBeChecked();
+    await expect(page.getByRole("checkbox", { name: "Bramkarz" })).not.toBeChecked();
   });
 });
