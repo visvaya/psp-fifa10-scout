@@ -265,6 +265,16 @@ const textWidth = (element: Element): number => {
   return range.getBoundingClientRect().width;
 };
 
+/** An element's width with its side margins, as it takes room in its line. */
+const outerWidth = (element: HTMLElement): number => {
+  const style = getComputedStyle(element);
+  return (
+    element.offsetWidth +
+    (Number.parseFloat(style.marginLeft) || 0) +
+    (Number.parseFloat(style.marginRight) || 0)
+  );
+};
+
 /**
  * Each long name gives its first name as an initial only once the full name no longer fits its column,
  * row by row as the column narrows (owner, 2026-11-05: smoother than all at once on scrolling).
@@ -274,7 +284,7 @@ const fitNames = (frame: HTMLElement): void => {
     const full = name.querySelector(".player-row-name-full");
     const star = name.querySelector<HTMLElement>(".shortlist-mark");
     if (full === null) continue;
-    const room = name.clientWidth - (star?.offsetWidth ?? 0);
+    const room = name.clientWidth - (star === null ? 0 : outerWidth(star));
     // Half a pixel of leeway for subpixel rounding.
     const fit = textWidth(full) > room + 0.5 ? "short" : "full";
     const was = name.dataset["fit"];
