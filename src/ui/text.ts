@@ -2,12 +2,12 @@
 import type { CurrencyCode } from "../data/career-save.ts";
 import type { CareerSummary, LoadErrorKind, LoadPhase, LoadStage } from "../logic/load-scout.ts";
 import type { FlagKey, ListKey, RangeFields, RangeKey } from "../logic/filter-players.ts";
-import { isGroupStatKey } from "../logic/attribute-groups.ts";
+import { GROUP_STATS, isGroupStatKey } from "../logic/attribute-groups.ts";
+import type { GroupStatKey } from "../logic/attribute-groups.ts";
 import { isAttributeName } from "../logic/players.ts";
 import type { AttributeName } from "../logic/players.ts";
 import type { PositionGroup } from "../logic/positions.ts";
 import type { ClubStatus, MyClub, ScoutError } from "../logic/scout-state.ts";
-import { GROUP_STAT_LABELS } from "./text-groups.ts";
 import { NBSP, pl } from "./typeset.ts";
 
 /** By the save's currency code, as the game shows them. */
@@ -147,8 +147,14 @@ export const RANGE_LABELS: Readonly<Record<RangeFields, string>> = {
   wage: "Zarobki rynkowe (szacunek)",
 };
 
+export const GROUP_STAT_PREFIXES = { average: "Średnia: ", spread: "Rozrzut: " } as const;
+
+/** "Średnia: fizyczne", "Rozrzut: bramkarz": the group's name in lower case after the prefix. */
+export const groupStatLabel = (key: GroupStatKey): string =>
+  `${GROUP_STAT_PREFIXES[GROUP_STATS[key].average ? "average" : "spread"]}${ATTRIBUTE_GROUP_LABELS[GROUP_STATS[key].group].toLowerCase()}`;
+
 export const rangeLabel = (key: RangeKey): string => {
-  if (isGroupStatKey(key)) return GROUP_STAT_LABELS[key];
+  if (isGroupStatKey(key)) return groupStatLabel(key);
   return isAttributeName(key) ? ATTRIBUTE_LABELS[key] : RANGE_LABELS[key];
 };
 
@@ -330,6 +336,7 @@ export const TEXT = {
   clubStatus: "Zawodnicy",
   myClub: "Mój klub",
   addAttribute: "Dodaj atrybut",
+  attributeGroups: "Grupy atrybutów",
   chooseAttribute: "Wybierz atrybut",
   removeAttribute: (label: string): string => `Usuń atrybut: ${label}`,
   searchIn: (label: string): string => `Szukaj: ${label}`,
@@ -420,7 +427,7 @@ export const TEXT = {
     profile: "Profil",
     /** The line under a group's name; the range with an en dash. */
     groupSummary: (average: number, min: number, max: number): string =>
-      pl`Średnia ${formatRating(average)}, zakres ${formatNumber(min)}–${formatNumber(max)}`,
+      pl`Średnia ${formatRating(average)}, zakres ${formatNumber(min)}–${formatNumber(max)} (rozrzut ${formatNumber(max - min)})`,
     unevenProfile: "Nierówny profil",
     internationalReputation: "Reputacja międzynarodowa",
     learningSpeed: "Szybkość nauki",

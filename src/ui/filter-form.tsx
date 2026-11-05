@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
 import type { Dispatch, JSX } from "react";
 import type { CurrencyCode } from "../data/career-save.ts";
-import { ATTRIBUTE_KEYS, isGroupAverage } from "../logic/attribute-groups.ts";
+import { ATTRIBUTE_KEYS, GROUP_STAT_KEYS, isGroupAverage } from "../logic/attribute-groups.ts";
 import type { AttributeKey } from "../logic/attribute-groups.ts";
 import type { FlagKey, ListKey, Range, RangeKey } from "../logic/filter-players.ts";
-import { SEASON_STAT_KEYS, TRAIT_NAMES } from "../logic/players.ts";
+import { ATTRIBUTE_NAMES, SEASON_STAT_KEYS, TRAIT_NAMES } from "../logic/players.ts";
 import type { Player, TraitName } from "../logic/players.ts";
 import { POSITION_GROUPS } from "../logic/positions.ts";
 import { facetOptions } from "../logic/facets.ts";
@@ -165,6 +165,14 @@ const AttributeRanges = (props: {
   const shown = ATTRIBUTE_KEYS.filter(
     (name) => added.includes(name) || props.ranges?.[name] !== undefined,
   );
+  const unused = (keys: readonly AttributeKey[]) =>
+    keys
+      .filter((name) => !shown.includes(name))
+      .map((name) => (
+        <option key={name} value={name}>
+          {rangeLabel(name)}
+        </option>
+      ));
   return (
     <>
       {shown.map((name) => (
@@ -203,11 +211,8 @@ const AttributeRanges = (props: {
           }}
         >
           <option value="">{TEXT.chooseAttribute}</option>
-          {ATTRIBUTE_KEYS.filter((name) => !shown.includes(name)).map((name) => (
-            <option key={name} value={name}>
-              {rangeLabel(name)}
-            </option>
-          ))}
+          <optgroup label={FILTER_SECTION_LABELS.attributes}>{unused(ATTRIBUTE_NAMES)}</optgroup>
+          <optgroup label={TEXT.attributeGroups}>{unused(GROUP_STAT_KEYS)}</optgroup>
         </select>
       </label>
     </>

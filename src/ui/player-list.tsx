@@ -14,8 +14,14 @@ import type { ScoutAction, ScoutSort } from "../logic/scout-state.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 import { AttributeValue, GainValue } from "./attribute-value.tsx";
 import { PositionName } from "./position-name.tsx";
-import { ATTRIBUTE_LABELS, formatNumber, formatRating, RANGE_LABELS, TEXT } from "./text.ts";
-import { GROUP_STAT_LABELS } from "./text-groups.ts";
+import {
+  ATTRIBUTE_LABELS,
+  formatNumber,
+  formatRating,
+  groupStatLabel,
+  RANGE_LABELS,
+  TEXT,
+} from "./text.ts";
 import { useColumnWidths } from "./use-column-widths.ts";
 
 /** Row heights as styles.css sets them (td 2.5rem, .player-row 4rem). */
@@ -63,7 +69,7 @@ export const columnLabel = (
   if (key === "positionPeak")
     return ratingName === null ? RANGE_LABELS.peak : TEXT.peakAt(ratingName);
   if (isAttributeName(key)) return ATTRIBUTE_LABELS[key];
-  if (isGroupStatKey(key)) return GROUP_STAT_LABELS[key];
+  if (isGroupStatKey(key)) return groupStatLabel(key);
   if (isTextColumn(key)) return TEXT.columns[key];
   return isRangeField(key) ? RANGE_LABELS[key] : key;
 };

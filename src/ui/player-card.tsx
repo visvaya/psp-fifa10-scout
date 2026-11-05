@@ -2,9 +2,10 @@ import { useCallback, useState } from "react";
 import type { JSX, ReactNode } from "react";
 import type { CurrencyCode } from "../data/career-save.ts";
 import {
-  ATTRIBUTE_GROUPS,
+  ATTRIBUTE_GROUP_NAMES,
+  groupAverage,
   groupRange,
-  groupStat,
+  GROUP_ATTRIBUTES,
   isUnevenProfile,
 } from "../logic/attribute-groups.ts";
 import type { AttributeGroup } from "../logic/attribute-groups.ts";
@@ -32,13 +33,13 @@ import {
 } from "./text.ts";
 import { OFFER_TEXT } from "./text-offer.ts";
 
-/** A group's average and range, and a note when its spread reaches the threshold: the OVR hides weak attributes. */
+/** A group's average, range and spread, and a note when the spread of a group of the player's role reaches its threshold: the OVR hides weak attributes. */
 const GroupSummary = ({ player, group }: { player: Player; group: AttributeGroup }) => {
   const { min, max } = groupRange(player.attributes, group);
   return (
     <p className="help group-summary">
-      {TEXT.card.groupSummary(groupStat(player.attributes, `${group}Average`), min, max)}
-      {isUnevenProfile(player.attributes, group) ? (
+      {TEXT.card.groupSummary(groupAverage(player.attributes, group), min, max)}
+      {isUnevenProfile(player, group) ? (
         <>
           {" "}
           <strong>{TEXT.card.unevenProfile}</strong>
@@ -313,12 +314,12 @@ export const PlayerCard = (props: {
       </section>
       <ChoiceRatings player={player} names={names} />
       <div className="attribute-groups">
-        {ATTRIBUTE_GROUPS.map(([group, attributes]) => (
+        {ATTRIBUTE_GROUP_NAMES.map((group) => (
           <section key={group} aria-labelledby={`group-${group}`}>
             <h3 id={`group-${group}`}>{ATTRIBUTE_GROUP_LABELS[group]}</h3>
             <GroupSummary player={player} group={group} />
             <Facts
-              facts={attributes.map((name) => [
+              facts={GROUP_ATTRIBUTES[group].map((name) => [
                 ATTRIBUTE_LABELS[name],
                 <AttributeValue key={name} value={player.attributes[name]} />,
               ])}

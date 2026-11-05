@@ -51,23 +51,12 @@ test.describe("player card", () => {
     const card = page.getByRole("dialog", { name: "Paweł Brożek" });
     // Tackling 92 and marking 46; the technique's range is narrower than its threshold.
     const defending = card.getByRole("region", { name: "Obrona" });
-    await expect(defending).toContainText(/Średnia\s69,0, zakres\s46–92/u);
+    await expect(defending).toContainText(/Średnia\s69,0, zakres\s46–92\s\(rozrzut\s46\)/u);
     await expect(defending.getByText("Nierówny profil")).toBeVisible();
     const technique = card.getByRole("region", { name: "Technika" });
-    await expect(technique).toContainText(/Średnia\s46,8, zakres\s38–50/u);
+    await expect(technique).toContainText(/Średnia\s46,8, zakres\s38–50\s\(rozrzut\s12\)/u);
     await expect(technique.getByText("Nierówny profil")).toHaveCount(0);
     await expectNoAxeViolations(page);
-  });
-
-  // The groups' averages and spreads filter like the attributes do, and show as a column.
-  test("filters by a group's spread, shown as a column", async ({ page }) => {
-    await loadDatabase(page);
-    await page.getByText("Atrybuty", { exact: true }).click();
-    await page.getByLabel("Dodaj atrybut").selectOption({ label: "Rozrzut: obrona" });
-    await page.getByRole("group", { name: "Rozrzut: obrona" }).getByLabel("od").fill("40");
-    await expectCount(page, "1 zawodnik");
-    await expect(page.getByRole("columnheader", { name: "Rozrzut: obrona" })).toBeVisible();
-    await expect(page.getByRole("row", { name: /Paweł Brożek/u })).toContainText("46");
   });
 
   // Forced colours drop the stars' fill: the value shows as text instead.
@@ -79,6 +68,29 @@ test.describe("player card", () => {
     const card = page.getByRole("dialog", { name: "Paweł Brożek" });
     await expect(card.locator(".stars").first()).toBeHidden();
     await expect(card.getByText("3 z 5 gwiazdek").first()).toBeVisible();
+  });
+});
+
+test.describe("group stats in the list", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  // The groups' averages and spreads filter like the attributes do, and show as a column.
+  test("filters by a group's spread, shown as a column", async ({ page }) => {
+    await loadDatabase(page);
+    await page.getByText("Atrybuty", { exact: true }).click();
+    await page.getByLabel("Dodaj atrybut").selectOption({ label: "Rozrzut: obrona" });
+    await page.getByRole("group", { name: "Rozrzut: obrona" }).getByLabel("od").fill("40");
+    await expectCount(page, "1 zawodnik");
+    const headers = await page.getByRole("columnheader").allTextContents();
+    const column = headers.findIndex((header) => header.includes("Rozrzut: obrona"));
+    expect(column).toBeGreaterThan(-1);
+    // Tackling 92 and marking 46.
+    await expect(
+      page
+        .getByRole("row", { name: /Paweł Brożek/u })
+        .locator(":scope > *")
+        .nth(column),
+    ).toHaveText("46");
   });
 });
 
