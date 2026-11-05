@@ -345,7 +345,8 @@ export const TEXT = {
   /** Takes back the last change of the filters, the sort or the saved sets. */
   undo: "Cofnij",
   /** Clears one field's filter; the label names the field for screen readers. */
-  clearField: "Wyczyść",
+  /** A mark right after a field's name (owner, 2026-11-05: an icon, not a word); the label names it. */
+  clearField: "×",
   clearFieldLabel: (label: string): string => `Wyczyść: ${label}`,
   removeFilter: (label: string): string => `Usuń filtr: ${label}`,
   activeFilters: "Aktywne filtry",
