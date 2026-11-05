@@ -5,7 +5,15 @@ import { offerContextOf, offerTerms } from "./offer.ts";
 import { buildPlayers } from "./players.ts";
 import { buildPlainSave, buildScoutDb, SCOUT_USER_TEAM_ID } from "./test-support/scout-db.ts";
 import type { OfferContext } from "./offer.ts";
-import { testPlayer } from "./test-support/player-fixtures.ts";
+import type { CareerSave } from "../data/career-save.ts";
+import { buildEaDb } from "../data/test-support/synthetic-ea-db.ts";
+import {
+  attributes,
+  flatCurves,
+  playerRow,
+  table,
+  testPlayer,
+} from "./test-support/player-fixtures.ts";
 
 /** A manager of prestige 2 and finances 4 at a club in a country outside the five big leagues. */
 const CONTEXT: OfferContext = {
@@ -104,5 +112,69 @@ describe("offerContextOf", () => {
       ["teamplayerlinks", [{ teamid: SCOUT_USER_TEAM_ID, playerid: 999_999, position: 3 }]],
     ]);
     expect(offerContextOf(db, unknown, buildPlayers(db, save)).squadAverage).toBe(0);
+  });
+
+  // A goalkeeper's hands and a striker's finishing: his OVR in goal and up front differ.
+  it("rates a starter at his team-sheet position and reads the league's country", () => {
+    // Data rows, alike by nature. jscpd:ignore-start
+    const db = parseEaDb(
+      buildEaDb([
+        table("leagues", [
+          { leagueid: 1, leaguename: "L", level: 1, leagueprestige: 10, countryid: 37 },
+        ]),
+        table("teams", [
+          { teamid: 9, teamname: "Mine", overallrating: 60, internationalprestige: 5 },
+        ]),
+        table("leagueteamlinks", [{ leagueid: 1, teamid: 9 }]),
+        table("country", [{ countryid: 37, countryname: "Poland" }]),
+        table("players", [
+          playerRow({
+            playerid: 1,
+            preferredposition1: 0,
+            ...attributes(40, { gkdiving: 90, handling: 90, gkpositioning: 90, reflexes: 90 }),
+          }),
+        ]),
+        table("teamplayerlinks", [
+          { teamid: 9, playerid: 1, position: 29, jerseynumber: 1, yearcontractvalidtil: 2012 },
+        ]),
+        ...[
+          "playerstats",
+          "career_youth_accademy",
+          "career_transfer_list",
+          "career_extra_user_team_info",
+        ].map((name) => ({
+          name,
+          u32: ["playerid"],
+          rows: [],
+        })),
+        table("career_players_grown_attributes", [{ playerid: 0, potential_delta: 0 }]),
+        flatCurves(),
+      ]),
+    );
+    // jscpd:ignore-end
+    const save: CareerSave = new Map([
+      [
+        "team_manager",
+        [
+          {
+            team_id: 9,
+            firstname: "A",
+            surname: "B",
+            last_game_number: 0,
+            prestige: 3,
+            upgrade_fin: 2,
+          },
+        ],
+      ],
+    ]);
+    const players = buildPlayers(db, save);
+    const [keeper] = players;
+    expect(keeper?.overallByCode[29]).not.toBe(keeper?.overall);
+    expect(offerContextOf(db, save, players)).toMatchObject({
+      prestige: 3,
+      finance: 2,
+      squadAverage: keeper?.overallByCode[29],
+      countryId: 37,
+    });
   });
 });

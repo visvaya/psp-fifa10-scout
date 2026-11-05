@@ -27,5 +27,6 @@ reviews:
         needs a unit test.
     - path: "src/ui/**"
       instructions: >-
-        User-facing text only in src/ui/text.ts (Polish); styling only from CSS tokens in styles.css, no
+        User-facing text only in the text modules src/ui/text.ts and src/ui/text-*.ts (Polish; one part
+        per screen once text.ts nears its size limit); styling only from CSS tokens in styles.css, no
         inline styles (the Content Security Policy in public/_headers blocks them); accessible markup.

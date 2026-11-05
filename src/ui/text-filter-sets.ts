@@ -1,4 +1,4 @@
-// The texts of the named filter sets (filter-sets.tsx).
+// The texts of the named filter sets (filter-sets.tsx), a part of the UI texts beside text.ts.
 export const FILTER_SETS_TEXT = {
   title: "Zapisane zestawy",
   name: "Nazwa zestawu",

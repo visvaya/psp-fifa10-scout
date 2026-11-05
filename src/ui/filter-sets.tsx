@@ -4,7 +4,7 @@ import type { Dispatch, JSX, Ref } from "react";
 import type { FilterSet } from "../logic/saved-filters.ts";
 import type { ScoutAction } from "../logic/scout-state.ts";
 import { Section } from "./filter-fields.tsx";
-import { FILTER_SETS_TEXT } from "./filter-sets-text.ts";
+import { FILTER_SETS_TEXT } from "./text-filter-sets.ts";
 
 /** A button named for its set as well, so the list's buttons tell apart for screen readers. */
 const SetButton = ({
