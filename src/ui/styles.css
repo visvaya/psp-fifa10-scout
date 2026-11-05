@@ -117,9 +117,9 @@ h3 {
   outline-offset: 2px;
 }
 
-/* The full name of a scrolled phone row stays for screen readers, as its short form is hidden from them. */
+/* The full name of a shortened phone row stays for screen readers, as its short form is hidden from them. */
 .visually-hidden,
-[data-scrolled] .has-initial > .player-row-name-full {
+.has-initial[data-fit="short"] > .player-row-name-full {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -649,8 +649,26 @@ input[inputmode="numeric"] {
   display: none;
 }
 
-[data-scrolled] .has-initial > .player-row-name-short {
+/* player-rows.tsx sets data-fit on a long name (short once its full form no longer fits) and data-swap
+   when a shown row changes form, which fades the new form in. */
+.has-initial[data-fit="short"] > .player-row-name-short {
   display: inline;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .has-initial[data-swap="short"] > .player-row-name-short {
+    animation: name-fade 150ms ease-out;
+  }
+
+  .has-initial[data-swap="full"] > .player-row-name-full {
+    animation: name-fade 150ms ease-out;
+  }
+}
+
+@keyframes name-fade {
+  from {
+    opacity: 0;
+  }
 }
 
 /* Atomic, so the line's ellipsis replaces a part whole (text-overflow hides atomic inlines). */
@@ -1024,6 +1042,12 @@ input[inputmode="numeric"] {
 
 .dialog.sheet .dialog-body {
   padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+}
+
+/* The filter panel's bottom bar keeps clear of the home indicator itself; the body adds no second gap,
+   or the panel would scroll on past the bar. */
+.dialog.sheet .dialog-body:has(.reset-filters) {
+  padding-bottom: var(--space-4);
 }
 
 .dialog-header h2 {

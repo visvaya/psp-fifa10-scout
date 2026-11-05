@@ -45,6 +45,8 @@ const PHONE = {
   paddingRem: 0.5,
   /** The fade at the right edge while columns follow (--space-6 in styles.css), at its widest. */
   fadeRem: 1.5,
+  /** The "more" mark at the right edge (--space-4 in styles.css, the list's right padding too). */
+  markRem: 1,
 } as const;
 /**
  * The width of a phone number column in rem: a rating's, its label's whole (owner, 2026-11-05: labels are
@@ -256,6 +258,33 @@ const scrollShowing = (label: HTMLElement, header: HTMLElement, from: number): n
   return left - least;
 };
 
+/** The width of an element's text as laid out, also while it is visually hidden (clipped, not removed). */
+const textWidth = (element: Element): number => {
+  const range = document.createRange();
+  range.selectNodeContents(element);
+  return range.getBoundingClientRect().width;
+};
+
+/**
+ * Each long name gives its first name as an initial only once the full name no longer fits its column,
+ * row by row as the column narrows (owner, 2026-11-05: smoother than all at once on scrolling).
+ */
+const fitNames = (frame: HTMLElement): void => {
+  for (const name of frame.querySelectorAll<HTMLElement>(".player-row-name.has-initial")) {
+    const full = name.querySelector(".player-row-name-full");
+    const star = name.querySelector<HTMLElement>(".shortlist-mark");
+    if (full === null) continue;
+    const room = name.clientWidth - (star?.offsetWidth ?? 0);
+    // Half a pixel of leeway for subpixel rounding.
+    const fit = textWidth(full) > room + 0.5 ? "short" : "full";
+    const was = name.dataset["fit"];
+    if (was === fit) continue;
+    name.dataset["fit"] = fit;
+    // Only a change of a row already shown fades; a row just come into the list does not.
+    if (was !== undefined) name.dataset["swap"] = fit;
+  }
+};
+
 /**
  * Tells styles.css, on the frame of the list and its labels, how far the list has scrolled sideways,
  * whether columns lie beyond its right edge and how wide its scrollbar is.
@@ -271,14 +300,20 @@ const followScroll = (list: HTMLElement, frame: HTMLElement): void => {
   const grid = frame.querySelector(".player-rows-grid");
   const gap = grid === null ? 0 : Number.parseFloat(getComputedStyle(grid).columnGap) || 0;
   // The usual fade, narrowed so it starts no earlier than the gap before the first column that does not
-  // show whole: a column that shows whole stays clear of it (owner, 2026-11-05).
+  // show whole: a column that shows whole stays clear of it (owner, 2026-11-05). Never narrower than the
+  // "more" mark, which the list's right padding holds, so it does not vanish while the next column is
+  // still wholly beyond the edge (owner, 2026-11-05).
+  const rem = rootFontPx();
   const fade =
-    cut === undefined ? 0 : Math.min(PHONE.fadeRem * rootFontPx(), edge - cut.left + gap);
+    cut === undefined
+      ? 0
+      : Math.max(PHONE.markRem * rem, Math.min(PHONE.fadeRem * rem, edge - cut.left + gap));
   frame.style.setProperty("--phone-fade", `${String(fade)}px`);
   frame.style.setProperty("--phone-scroll", `${String(scrollLeft)}px`);
   frame.style.setProperty("--phone-scrollbar", `${String(offsetWidth - clientWidth)}px`);
   frame.toggleAttribute("data-scrolled", scrollLeft > 0);
   frame.toggleAttribute("data-more", cut !== undefined);
+  fitNames(frame);
 };
 
 /** One phone row: the name with club, position and age, then the number columns. */
@@ -368,6 +403,10 @@ export const PlayerCards = (props: ListProps): JSX.Element => {
   const headerRef = useRef<HTMLDivElement>(null);
   const { scrollRef, items, before, after } = useRows(players.length, ROW_HEIGHT_REM.list);
   const { frameRef, rowsRef } = useFollowedEdges(scrollRef);
+  // Rows come and go as the list scrolls down: each new one fits its name too.
+  useLayoutEffect(() => {
+    if (frameRef.current !== null) fitNames(frameRef.current);
+  });
   return (
     <div ref={frameRef} className="phone-list">
       <RowsHeader
