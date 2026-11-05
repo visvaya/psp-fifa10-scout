@@ -120,6 +120,8 @@ export interface Player extends Finance {
   /** Linked to the game's free-agent team, so any club can sign him (careers only). */
   readonly freeAgent: boolean;
   readonly age: number;
+  /** The calendar year of birth; contract ages count from it to the season's end. */
+  readonly birthYear: number;
   readonly positionCode: number;
   readonly positionName: string;
   readonly positionGroup: PositionGroup;
@@ -266,6 +268,7 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
     youth: id >= SCOUT_CONFIG.youthPlayerIdStart,
     freeAgent: context.freeAgents.has(id),
     age,
+    birthYear: birthdateToDate(num(row, "birthdate")).getUTCFullYear(),
     positionCode: num(row, "preferredposition1"),
     positionName: position.name,
     positionGroup: position.group,

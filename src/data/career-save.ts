@@ -124,11 +124,21 @@ export type CurrencyCode = 0 | 1 | 2;
 const isCurrencyCode = (code: number): code is CurrencyCode =>
   code === 0 || code === 1 || code === 2;
 
-/** The user team, manager name, currency and date of the last played game, from team_manager. */
+/**
+ * The user team, manager name, currency, date of the last played game, prestige and finance upgrade
+ * level, from team_manager.
+ */
 export const careerManager = (
   db: EaDb,
   save: CareerSave,
-): { teamId: number; managerName: string; currency: CurrencyCode; lastGameDate: Date } => {
+): {
+  teamId: number;
+  managerName: string;
+  currency: CurrencyCode;
+  lastGameDate: Date;
+  prestige: number;
+  finance: number;
+} => {
   const user = rowsOf(db, save, "team_manager").find((row) => row["team_id"] !== -1);
   if (user === undefined) throw new SaveFormatError("Save has no user team");
   // A table without the column (test schemas) counts as euro.
@@ -140,6 +150,9 @@ export const careerManager = (
     teamId: Number(user["team_id"]),
     managerName: `${String(user["firstname"])} ${String(user["surname"])}`.trim(),
     lastGameDate: gameDate(Number(user["last_game_number"])),
+    // Absent from test schemas: no prestige and no upgrades.
+    prestige: Number(user["prestige"] ?? 0),
+    finance: Number(user["upgrade_fin"] ?? 0),
   };
 };
 

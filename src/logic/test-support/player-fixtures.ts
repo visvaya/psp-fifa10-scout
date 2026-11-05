@@ -75,6 +75,7 @@ export const TEST_CAREER: CareerSummary = {
   clubName: "B",
   lastGameDate: new Date(0),
   currency: 0,
+  offer: { prestige: 2, finance: 4, squadAverage: 65, countryId: 37, seasonEndYear: 2010 },
 };
 
 export const testPlayer = (overrides: Partial<Player> = {}): Player => {
@@ -87,6 +88,7 @@ export const testPlayer = (overrides: Partial<Player> = {}): Player => {
     youth: false,
     freeAgent: false,
     age: 25,
+    birthYear: 1984,
     positionCode: 17,
     positionName: "CM",
     positionGroup: "central-midfield",
