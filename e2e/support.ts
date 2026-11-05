@@ -139,6 +139,13 @@ export const cardValue = (card: Locator, label: string) => {
     .getByRole("definition");
 };
 
+/** "Resetuj" in the filter panel's bottom bar, then the same button again to confirm the question. */
+export const resetSettings = async (page: Page) => {
+  const bar = page.locator(".reset-filters");
+  await bar.getByRole("button", { name: "Resetuj" }).click();
+  await bar.getByRole("button", { name: "Resetuj" }).click();
+};
+
 /**
  * Where the fade at the right edge of the phone list starts on screen: the header's visible right edge (a
  * scrollbar gutter left out) less the fade's rendered width.

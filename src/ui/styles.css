@@ -391,6 +391,33 @@ input[inputmode="numeric"] {
   list-style: none;
 }
 
+/* The active filters with "Cofnij" and "Resetuj" at the end of their line. */
+.chips-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-2);
+  padding-inline-end: var(--space-4);
+}
+
+.chips-bar > :is(.chips, .chips-fold) {
+  flex: 1 1 auto;
+}
+
+.chips-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding-bottom: var(--space-2);
+}
+
+/* The reset question takes its own line above its two answers. */
+.settings-question {
+  flex-basis: 100%;
+  margin: 0;
+}
+
 .chips-fold > summary {
   padding: 0 var(--space-4) var(--space-2);
   color: var(--color-muted);

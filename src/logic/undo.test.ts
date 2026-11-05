@@ -97,3 +97,23 @@ describe("undo across loads", () => {
     expect(loaded.undo).toEqual([]);
   });
 });
+
+// "Resetuj": everything the user set but the files, the names' language and the saved sets.
+describe("settings reset", () => {
+  it("restores the defaults, keeps the sets and the language, and can be taken back", () => {
+    const set = run([
+      goalkeepers,
+      { type: "sort-changed", key: "age" },
+      { type: "potential-shown", shown: true },
+      { type: "language-chosen", language: "pol_pl" },
+      { type: "filter-set-saved", name: "A" },
+    ]);
+    const reset = run([{ type: "settings-reset" }], set);
+    expect(reset).toMatchObject({ filters: {}, sort: DEFAULT_SORT, showPotential: false });
+    expect(reset.gameLanguage).toBe("pol_pl");
+    expect(reset.filterSets?.map((each) => each.name)).toEqual(["A"]);
+    const back = run([{ type: "undo" }], reset);
+    expect(back).toMatchObject({ filters: goalkeepers.filters, showPotential: true });
+    expect(back.sort.key).toBe("age");
+  });
+});

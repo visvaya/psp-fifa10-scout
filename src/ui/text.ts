@@ -344,6 +344,10 @@ export const TEXT = {
   resetFilters: "Wyczyść filtry",
   /** Takes back the last change of the filters, the sort or the saved sets. */
   undo: "Cofnij",
+  /** Filters, sort and the potential switch back to their defaults, after a question. */
+  resetSettings: "Resetuj",
+  resetQuestion: pl`Przywrócić domyślne filtry, sortowanie i widok bez potencjału? Wgrane pliki, język nazw i zapisane zestawy zostaną.`,
+  cancel: "Anuluj",
   /** Clears one field's filter; the label names the field for screen readers. */
   /** A mark right after a field's name (owner, 2026-11-05: an icon, not a word); the label names it. */
   clearField: "×",

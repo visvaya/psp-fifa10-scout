@@ -36,7 +36,7 @@ test.describe("phone", () => {
     const dialog = page.getByRole("dialog", { name: "Filtry" });
     await dialog.getByRole("checkbox", { name: "Napastnik" }).check();
     // The reset button stays at the bottom of the long panel, in reach without scrolling.
-    await expect(dialog.getByRole("button", { name: "Wyczyść filtry" })).toBeInViewport();
+    await expect(dialog.getByRole("button", { name: "Resetuj" })).toBeInViewport();
     await dialog.getByRole("button", { name: "Zamknij" }).click();
     await expect(page.getByRole("button", { name: "Filtry (1)" })).toBeFocused();
     await page.getByRole("button", { name: /^Paweł Brożek/u }).click();

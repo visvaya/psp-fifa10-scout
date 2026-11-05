@@ -17,6 +17,7 @@ const UNDOABLE: ReadonlySet<ScoutAction["type"]> = new Set([
   "filters-changed",
   "filter-removed",
   "filters-reset",
+  "settings-reset",
   "sort-changed",
   "potential-shown",
   "filter-set-saved",
