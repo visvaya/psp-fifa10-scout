@@ -387,7 +387,7 @@ input[inputmode="numeric"] {
   flex-wrap: wrap;
   gap: var(--space-2);
   margin: 0;
-  padding: 0 var(--space-4) var(--space-2);
+  padding: 0 0 var(--space-2);
   list-style: none;
 }
 
@@ -397,7 +397,8 @@ input[inputmode="numeric"] {
   flex-wrap: wrap;
   align-items: center;
   gap: 0 var(--space-2);
-  padding-inline-end: var(--space-4);
+  /* On the bar, not the chips: "Cofnij" keeps the margin when it wraps to a line of its own. */
+  padding-inline: var(--space-4);
 }
 
 .chips-bar > :is(.chips, .chips-fold) {
@@ -419,7 +420,7 @@ input[inputmode="numeric"] {
 }
 
 .chips-fold > summary {
-  padding: 0 var(--space-4) var(--space-2);
+  padding: 0 0 var(--space-2);
   color: var(--color-muted);
   font-size: var(--font-size-sm);
   cursor: pointer;
@@ -543,8 +544,9 @@ input[inputmode="numeric"] {
   right: var(--phone-scrollbar, 0px);
   bottom: 0;
   z-index: 2;
-  /* Set by player-rows.tsx: from the gap before the first column cut by the edge, solid over that column. */
-  width: var(--phone-fade, var(--space-6));
+  /* Always this wide and strong until the list reaches its end (owner, 2026-11-05); at rest the name
+     column leaves this room, so the columns beside the name show clear of it. */
+  width: var(--space-6);
   background: linear-gradient(to right, transparent, var(--color-bg) var(--space-2));
   pointer-events: none;
 }
