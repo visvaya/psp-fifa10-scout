@@ -172,14 +172,18 @@ const parseSort = (value: unknown): ScoutSort | null => {
 };
 
 /** The stored named filter sets with a name and a valid sort; others are dropped. */
-const parseFilterSets = (value: unknown): readonly FilterSet[] =>
-  (Array.isArray(value) ? value : []).flatMap((item: unknown): readonly FilterSet[] => {
+const parseFilterSets = (value: unknown): readonly FilterSet[] => {
+  const seen = new Set<string>();
+  return (Array.isArray(value) ? value : []).flatMap((item: unknown): readonly FilterSet[] => {
     const { name, filters } = recordOf(item);
     const sort = parseSort(recordOf(item)["sort"]);
-    return typeof name !== "string" || name.trim() === "" || sort === null
-      ? []
-      : [{ name, filters: compactFilters(parseFilters(filters)), sort }];
+    const trimmed = typeof name === "string" ? name.trim() : "";
+    // Names are unique, as saving keeps them: of two sets with one name the first stays.
+    if (trimmed === "" || sort === null || seen.has(trimmed)) return [];
+    seen.add(trimmed);
+    return [{ name: trimmed, filters: compactFilters(parseFilters(filters)), sort }];
   });
+};
 
 const parsePreferences = (value: unknown): Preferences | null => {
   if (!isRecord(value) || !isRecord(value["filters"])) return null;

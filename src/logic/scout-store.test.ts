@@ -78,7 +78,12 @@ describe("scout store", () => {
     const value = {
       filters: {},
       sort: DEFAULT_SORT,
-      filterSets: [set, { name: "", filters: {}, sort: DEFAULT_SORT }, { name: "X", sort: 1 }],
+      filterSets: [
+        set,
+        { name: "", filters: {}, sort: DEFAULT_SORT },
+        { name: "X", sort: 1 },
+        { name: " Perełki ", filters: {}, sort: DEFAULT_SORT },
+      ],
     };
     const loaded = await loadPreferences({ schemaVersion: SCHEMA_VERSION.preferences, value });
     expect(loaded?.filterSets).toEqual([set]);

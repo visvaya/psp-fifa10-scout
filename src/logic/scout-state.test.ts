@@ -289,6 +289,24 @@ describe("scoutReducer filters, sort and card", () => {
     expect(restored.sort).toEqual(DEFAULT_SORT);
   });
 
+  it("loads a set without what needs a career when there is none, keeping the set", () => {
+    const filters = { myClub: "only", ranges: { peak: { min: 70 }, age: { max: 21 } } } as const;
+    const set = {
+      name: "Kariera",
+      filters,
+      sort: { key: "peak", direction: "descending" },
+    } as const;
+    const state = { ...initialScoutState, showPotential: true, filterSets: [set] };
+    const back = scoutReducer(state, { type: "filter-set-loaded", name: "Kariera" });
+    expect(back).toMatchObject({ filters: { ranges: { age: { max: 21 } } }, sort: DEFAULT_SORT });
+    expect(back.filterSets).toEqual([set]);
+    const career = scoutReducer(
+      { ...state, myTeamId: 5 },
+      { type: "filter-set-loaded", name: "Kariera" },
+    );
+    expect(career).toMatchObject({ filters, sort: set.sort });
+  });
+
   it("restores the stored filter sets with the preferences", () => {
     const filterSets = [{ name: "A", filters: {}, sort: DEFAULT_SORT }];
     const preferences = { filters: {}, sort: DEFAULT_SORT, showPotential: false, filterSets };

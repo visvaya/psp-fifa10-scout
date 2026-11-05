@@ -360,6 +360,8 @@ export const TEXT = {
     remove: "Usuń",
     saveName: "Zapisz nazwę",
     cancel: "Anuluj",
+    emptyName: "Wpisz nazwę zestawu.",
+    takenName: "Zestaw o tej nazwie już jest. Wybierz inną nazwę.",
     newName: (name: string): string => `Nowa nazwa zestawu „${name}”`,
     /** The set a list button acts on, for screen readers. */
     of: (name: string): string => ` zestaw „${name}”`,

@@ -11,6 +11,8 @@ test.describe("filter sets", () => {
     await loadDatabase(page);
     await page.getByRole("checkbox", { name: "Bramkarz" }).check();
     await page.getByRole("button", { name: /^Wiek/u }).click();
+    // The list counts again after a moment (a deferred value): wait for the filtered count.
+    await expect(page.locator(".count")).not.toHaveText(/^62\u00a0/u);
     const shown = (await page.locator(".count").textContent()) ?? "";
     await page.getByText("Zapisane zestawy", { exact: true }).click();
     await page.getByLabel("Nazwa zestawu").fill("Bramkarze");
@@ -30,8 +32,18 @@ test.describe("filter sets", () => {
     await page.getByLabel("Nazwa zestawu").fill("Bramkarze");
     await expect(page.getByRole("button", { name: "Nadpisz zestaw" })).toBeVisible();
     await page.getByRole("button", { name: "Zmień nazwę zestaw „Bramkarze”" }).click();
-    await page.getByLabel("Nowa nazwa zestawu „Bramkarze”").fill("Na bramkę");
+    // The editor takes the focus; an empty name is refused with the reason, the editor stays open.
+    const newName = page.getByLabel("Nowa nazwa zestawu „Bramkarze”");
+    await expect(newName).toBeFocused();
+    await newName.fill(" ");
     await page.getByRole("button", { name: "Zapisz nazwę zestaw „Bramkarze”" }).click();
+    await expect(page.getByRole("alert")).toHaveText("Wpisz nazwę zestawu.");
+    await expect(newName).toBeFocused();
+    await newName.fill("Na bramkę");
+    await page.getByRole("button", { name: "Zapisz nazwę zestaw „Bramkarze”" }).click();
+    await expect(
+      page.getByRole("button", { name: "Zmień nazwę zestaw „Na bramkę”" }),
+    ).toBeFocused();
     await page.getByRole("button", { name: "Usuń zestaw „Na bramkę”" }).click();
     await expect(page.getByText("Brak zapisanych zestawów", { exact: false })).toBeVisible();
   });
