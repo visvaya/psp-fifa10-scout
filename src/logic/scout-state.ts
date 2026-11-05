@@ -7,6 +7,7 @@ import {
   FLAG_KEYS,
   LIST_FIELDS,
   RANGE_KEYS,
+  compactRating,
 } from "./filter-players.ts";
 import type { FlagKey, ListKey, PlayerFilters, Range, RangeKey } from "./filter-players.ts";
 import { defaultLanguage } from "./game-names.ts";
@@ -216,7 +217,7 @@ export const compactFilters = (filters: FilterChange): ScoutFilters => {
   return {
     ...(text === undefined || text.trim() === "" ? {} : { text }),
     ...(ranges === undefined ? {} : { ranges }),
-    ...(positionRating === undefined ? {} : { positionRating }),
+    ...(positionRating === undefined ? {} : { positionRating: compactRating(positionRating) }),
     ...(lists === undefined ? {} : { lists }),
     ...(excludedLists === undefined ? {} : { excludedLists }),
     ...(flags === undefined ? {} : { flags }),

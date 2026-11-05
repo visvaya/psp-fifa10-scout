@@ -124,6 +124,16 @@ export interface PositionRating extends Range {
   readonly peak?: Range;
 }
 
+const bounded = (range: Range | undefined): range is Range =>
+  range?.min !== undefined || range?.max !== undefined;
+
+/** The position rating without a gain or peak range that sets no bound. */
+export const compactRating = ({ gain, peak, ...rating }: PositionRating): PositionRating => ({
+  ...rating,
+  ...(bounded(gain) ? { gain } : {}),
+  ...(bounded(peak) ? { peak } : {}),
+});
+
 /** The OVR at a position code minus the OVR at the preferred position, or null without that rating. */
 export const ratingGain = (player: Player, code: number): number | null => {
   const rating = player.overallByCode[code];

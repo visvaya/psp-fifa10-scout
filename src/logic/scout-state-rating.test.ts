@@ -43,3 +43,13 @@ describe("the peak at the chosen position", () => {
     });
   });
 });
+
+describe("the position rating's ranges", () => {
+  it("leave the filter when cleared, so nothing counts an empty range as set", () => {
+    const cleared = scoutReducer(ranged(), {
+      type: "filters-changed",
+      filters: { positionRating: { code: 3, min: 60, gain: {}, peak: {} } },
+    });
+    expect(cleared.filters).toEqual({ positionRating: { code: 3, min: 60 } });
+  });
+});
