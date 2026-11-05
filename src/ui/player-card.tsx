@@ -5,6 +5,7 @@ import {
   ATTRIBUTE_GROUP_NAMES,
   groupAverage,
   groupRange,
+  groupSpread,
   GROUP_ATTRIBUTES,
   isUnevenProfile,
 } from "../logic/attribute-groups.ts";
@@ -35,10 +36,16 @@ import { OFFER_TEXT } from "./text-offer.ts";
 
 /** A group's average, range and spread, and a note when the spread of a group of the player's role reaches its threshold: the OVR hides weak attributes. */
 const GroupSummary = ({ player, group }: { player: Player; group: AttributeGroup }) => {
-  const { min, max } = groupRange(player.attributes, group);
+  const { attributes } = player;
+  const { min, max } = groupRange(attributes, group);
   return (
     <p className="help group-summary">
-      {TEXT.card.groupSummary(groupAverage(player.attributes, group), min, max)}
+      {TEXT.card.groupSummary(
+        groupAverage(attributes, group),
+        min,
+        max,
+        groupSpread(attributes, group),
+      )}
       {isUnevenProfile(player, group) ? (
         <>
           {" "}

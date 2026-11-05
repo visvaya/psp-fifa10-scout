@@ -14,14 +14,8 @@ import type { ScoutAction, ScoutSort } from "../logic/scout-state.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 import { AttributeValue, GainValue } from "./attribute-value.tsx";
 import { PositionName } from "./position-name.tsx";
-import {
-  ATTRIBUTE_LABELS,
-  formatNumber,
-  formatRating,
-  groupStatLabel,
-  RANGE_LABELS,
-  TEXT,
-} from "./text.ts";
+import { ATTRIBUTE_LABELS, formatNumber, formatRating, RANGE_LABELS, TEXT } from "./text.ts";
+import { groupStatLabel } from "./text-range-labels.ts";
 import { useColumnWidths } from "./use-column-widths.ts";
 
 /** Row heights as styles.css sets them (td 2.5rem, .player-row 4rem). */

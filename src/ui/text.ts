@@ -1,10 +1,7 @@
 /** Every text the user reads, in one module, with the Polish number and plural helpers. */
 import type { CurrencyCode } from "../data/career-save.ts";
 import type { CareerSummary, LoadErrorKind, LoadPhase, LoadStage } from "../logic/load-scout.ts";
-import type { FlagKey, ListKey, RangeFields, RangeKey } from "../logic/filter-players.ts";
-import { GROUP_STATS, isGroupStatKey } from "../logic/attribute-groups.ts";
-import type { GroupStatKey } from "../logic/attribute-groups.ts";
-import { isAttributeName } from "../logic/players.ts";
+import type { FlagKey, ListKey, RangeFields } from "../logic/filter-players.ts";
 import type { AttributeName } from "../logic/players.ts";
 import type { PositionGroup } from "../logic/positions.ts";
 import type { ClubStatus, MyClub, ScoutError } from "../logic/scout-state.ts";
@@ -145,17 +142,6 @@ export const RANGE_LABELS: Readonly<Record<RangeFields, string>> = {
   injuryDays: "Kontuzja (dni)",
   price: "Cena",
   wage: "Zarobki rynkowe (szacunek)",
-};
-
-export const GROUP_STAT_PREFIXES = { average: "Średnia: ", spread: "Rozrzut: " } as const;
-
-/** "Średnia: fizyczne", "Rozrzut: bramkarz": the group's name in lower case after the prefix. */
-export const groupStatLabel = (key: GroupStatKey): string =>
-  `${GROUP_STAT_PREFIXES[GROUP_STATS[key].average ? "average" : "spread"]}${ATTRIBUTE_GROUP_LABELS[GROUP_STATS[key].group].toLowerCase()}`;
-
-export const rangeLabel = (key: RangeKey): string => {
-  if (isGroupStatKey(key)) return groupStatLabel(key);
-  return isAttributeName(key) ? ATTRIBUTE_LABELS[key] : RANGE_LABELS[key];
 };
 
 export const LIST_LABELS: Readonly<Record<ListKey, string>> = {
@@ -426,8 +412,8 @@ export const TEXT = {
     starsOutOfFive: (stars: number): string => `${formatNumber(stars)} z 5 gwiazdek`,
     profile: "Profil",
     /** The line under a group's name; the range with an en dash. */
-    groupSummary: (average: number, min: number, max: number): string =>
-      pl`Średnia ${formatRating(average)}, zakres ${formatNumber(min)}–${formatNumber(max)} (rozrzut ${formatNumber(max - min)})`,
+    groupSummary: (average: number, min: number, max: number, spread: number): string =>
+      pl`Średnia ${formatRating(average)}, zakres ${formatNumber(min)}–${formatNumber(max)} (rozrzut ${formatNumber(spread)})`,
     unevenProfile: "Nierówny profil",
     internationalReputation: "Reputacja międzynarodowa",
     learningSpeed: "Szybkość nauki",

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { formatNumber, formatRating, groupStatLabel, plural, rangeLabel, TEXT } from "./text.ts";
+import { formatNumber, formatRating, plural, TEXT } from "./text.ts";
+import { groupStatLabel, rangeLabel } from "./text-range-labels.ts";
 
 const LAT = { one: "rok", few: "lata", many: "lat" } as const;
 
@@ -41,7 +42,7 @@ describe("formatRating", () => {
 
 describe("TEXT.card.groupSummary", () => {
   it("shows the average with one decimal, the range with an en dash and the spread", () => {
-    expect(TEXT.card.groupSummary(70, 46, 92)).toBe("Średnia 70,0, zakres 46–92 (rozrzut 46)");
+    expect(TEXT.card.groupSummary(70, 46, 92, 46)).toBe("Średnia 70,0, zakres 46–92 (rozrzut 46)");
   });
 });
 

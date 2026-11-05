@@ -43,6 +43,8 @@ describe("attribute groups", () => {
     expect(isGroupAverage("shootingAverage")).toBe(true);
     expect(isGroupAverage("shootingSpread")).toBe(false);
     expect(isGroupAverage("finishing")).toBe(false);
+    // Not a group, though it ends like an average.
+    expect(isGroupAverage("squadAverage")).toBe(false);
   });
 });
 

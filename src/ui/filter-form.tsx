@@ -38,9 +38,9 @@ import {
   FLAG_LABELS,
   LIST_LABELS,
   POSITION_GROUP_LABELS,
-  rangeLabel,
   TEXT,
 } from "./text.ts";
+import { rangeLabel } from "./text-range-labels.ts";
 
 interface FilterFormProps {
   readonly players: readonly Player[];
