@@ -35,7 +35,7 @@ test.describe("career", () => {
     ).toBeVisible();
     await page.keyboard.press("Escape");
     await page.getByText("Kariera", { exact: true }).click();
-    await page.getByRole("group", { name: "Cena", exact: true }).getByLabel("od").fill("1");
+    await page.getByRole("group", { name: "Cena (€)", exact: true }).getByLabel("od").fill("1");
     await page
       .getByRole("group", { name: "Zarobki rynkowe (szacunek)" })
       .getByLabel("od")
@@ -50,18 +50,18 @@ test.describe("career", () => {
   }) => {
     await loadCareer(page);
     const messi = page.getByRole("button", { name: "Lionel Messi" });
-    await expect(messi).toHaveAccessibleName("Lionel Messi obserwowany w grze");
+    await expect(messi).toHaveAccessibleName("Lionel Messi na liście życzeń w grze");
     // Only he carries the mark, before his name, where a cut-off name cannot hide it.
     await expect(page.locator(".shortlist-mark")).toHaveCount(1);
     await expect(messi.locator(":scope > .shortlist-mark:first-child")).toBeVisible();
     await page.getByText("Kariera", { exact: true }).click();
-    await page.getByLabel("Obserwowany w grze").selectOption("yes");
+    await page.getByLabel("Na liście życzeń w grze").selectOption("yes");
     await expectCount(page, "1\u00a0zawodnik");
     await messi.click();
     await expect(
       page
         .getByRole("dialog", { name: "Lionel Messi" })
-        .getByText("Na twojej liście obserwowanych w grze"),
+        .getByText("Na twojej liście życzeń w grze"),
     ).toBeVisible();
   });
 });

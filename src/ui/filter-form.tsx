@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
 import type { Dispatch, JSX } from "react";
+import type { CurrencyCode } from "../data/career-save.ts";
 import type { FlagKey, ListKey, Range, RangeKey } from "../logic/filter-players.ts";
 import { ATTRIBUTE_NAMES, SEASON_STAT_KEYS, TRAIT_NAMES } from "../logic/players.ts";
 import type { AttributeName, Player, TraitName } from "../logic/players.ts";
 import { POSITION_GROUPS } from "../logic/positions.ts";
 import { facetOptions } from "../logic/facets.ts";
 import type { FacetOption } from "../logic/facets.ts";
-import { activeFilters } from "../logic/scout-state.ts";
 import type {
   ClubStatus,
   FilterChange,
@@ -22,6 +22,8 @@ import {
   Section,
 } from "./filter-fields.tsx";
 import type { Choice } from "./filter-fields.tsx";
+import { PotentialSwitch, ResetFilters } from "./filter-panel-controls.tsx";
+import { FIELD_HELP } from "./text-help.ts";
 import { PositionRatingField } from "./position-rating-field.tsx";
 import {
   ATTRIBUTE_LABELS,
@@ -43,6 +45,8 @@ interface FilterFormProps {
   readonly filters: ScoutFilters;
   readonly myTeamId: number | null;
   readonly showPotential: boolean;
+  /** The career's currency, shown with the price and the wage; null without a career. */
+  readonly currency: CurrencyCode | null;
   readonly dispatch: Dispatch<ScoutAction>;
 }
 
@@ -212,14 +216,15 @@ const codeChoices = (codes: readonly number[], prefix: string): readonly Choice<
 const GROUPED_RANGES: ReadonlySet<RangeKey> = new Set(["price", "wage"]);
 
 /** Builders for one control of each kind, bound to the current filters. */
-const controls = (filters: ScoutFilters, change: Change) => ({
+const controls = (filters: ScoutFilters, change: Change, currency: CurrencyCode | null) => ({
   range: (key: RangeKey) => (
     <RangeField
       key={key}
-      label={rangeLabel(key)}
+      label={TEXT.withCurrency(key, rangeLabel(key), currency)}
       range={filters.ranges?.[key]}
       grouped={GROUPED_RANGES.has(key)}
       decimal={key === "form"}
+      help={FIELD_HELP[key]}
       onChange={(range) => {
         change({ ranges: { ...filters.ranges, [key]: range } });
       }}
@@ -233,6 +238,7 @@ const controls = (filters: ScoutFilters, change: Change) => ({
       onChange={(chosen) => {
         change({ lists: { ...filters.lists, [key]: chosen } });
       }}
+      help={FIELD_HELP[key]}
       excluded={filters.excludedLists?.[key] === true}
       onExcludedChange={(excluded) => {
         change({ excludedLists: { ...filters.excludedLists, [key]: excluded } });
@@ -366,6 +372,7 @@ export const FilterForm = ({
   filters,
   myTeamId,
   showPotential,
+  currency,
   dispatch,
 }: FilterFormProps): JSX.Element => {
   const facets = useMemo(
@@ -375,19 +382,16 @@ export const FilterForm = ({
   const change: Change = (next) => {
     dispatch({ type: "filters-changed", filters: next });
   };
-  const kit: Kit = { ...controls(filters, change), filters, change, facets, positionName };
+  const kit: Kit = {
+    ...controls(filters, change, currency),
+    filters,
+    change,
+    facets,
+    positionName,
+  };
   return (
     <form className="filter-form" onSubmit={(event) => event.preventDefault()}>
-      <label className="check">
-        <input
-          type="checkbox"
-          checked={showPotential}
-          onChange={(event) => {
-            dispatch({ type: "potential-shown", shown: event.currentTarget.checked });
-          }}
-        />
-        {TEXT.showPotential}
-      </label>
+      <PotentialSwitch shown={showPotential} dispatch={dispatch} />
       {basicSection(kit, showPotential, myTeamId !== null)}
       {physiqueSection(kit)}
       <Section title={FILTER_SECTION_LABELS.attributes}>
@@ -405,16 +409,7 @@ export const FilterForm = ({
       {characterSection(kit)}
       {clubSection(kit, myTeamId !== null)}
       {myTeamId === null ? null : careerSection(kit)}
-      <button
-        type="button"
-        className="button"
-        disabled={activeFilters(filters).length === 0}
-        onClick={() => {
-          dispatch({ type: "filters-reset" });
-        }}
-      >
-        {TEXT.resetFilters}
-      </button>
+      <ResetFilters filters={filters} dispatch={dispatch} />
     </form>
   );
 };

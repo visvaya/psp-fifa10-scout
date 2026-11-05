@@ -235,17 +235,16 @@ const PhoneRow = (props: {
     >
       <span className="player-row-text">
         <PhoneName player={player} />
-        {/* The position and the age, each with its dot, are cut off whole, never after a dot. */}
+        {/* Position, age, club (owner, 2026-11-05): the age is cut off whole with its dot, the club last
+            with an ellipsis. */}
         <span className="player-row-meta">
-          {clubText(player)}
-          <span className="meta-part">
-            {TEXT.rowMetaPartSeparator}
-            <PositionName code={player.positionCode} name={player.positionName} />
-          </span>
+          <PositionName code={player.positionCode} name={player.positionName} />
           <span className="meta-part">
             {TEXT.rowMetaPartSeparator}
             {TEXT.years(player.age)}
           </span>
+          {TEXT.rowMetaPartSeparator}
+          {clubText(player)}
         </span>
       </span>
       {columns.map((column, index) => (

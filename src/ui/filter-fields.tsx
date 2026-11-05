@@ -1,11 +1,25 @@
 // The filter controls: a collapsible section, a range, a multiple choice (searchable when long) and a
 // yes / no / any choice. Each takes its value and reports a new one; the form maps them to filters.
-import { useLayoutEffect, useReducer, useRef, useState } from "react";
+import { useId, useLayoutEffect, useReducer, useRef, useState } from "react";
 import type { JSX, ReactNode } from "react";
 import type { Range } from "../logic/filter-players.ts";
 import { searchKey } from "../logic/players.ts";
 import { caretAfterDigits, editGrouped } from "./grouped-number.ts";
 import { formatNumber, TEXT } from "./text.ts";
+
+/** A field's explanation under its name, linked to the field for screen readers. */
+const useFieldHelp = (help: string | undefined) => {
+  const id = useId();
+  return {
+    describedBy: help === undefined ? undefined : id,
+    note:
+      help === undefined ? null : (
+        <p id={id} className="help">
+          {help}
+        </p>
+      ),
+  };
+};
 
 /** Longer choice lists get a search box. */
 const SEARCH_FROM_CHOICES = 12;
@@ -88,13 +102,16 @@ export const RangeField = (props: {
   grouped?: boolean;
   /** One decimal (a match rating): steps of 0.1 and a keyboard with the decimal separator. */
   decimal?: boolean;
+  help?: string | undefined;
   onChange: (range: Range) => void;
 }): JSX.Element => {
   const range = props.range ?? {};
   const grouped = props.grouped === true;
+  const { describedBy, note } = useFieldHelp(props.help);
   return (
-    <fieldset className="field">
+    <fieldset className="field" aria-describedby={describedBy}>
       <legend>{props.label}</legend>
+      {note}
       <div className={grouped ? "range grouped" : "range"}>
         {(["min", "max"] as const).map((bound) => (
           <label key={bound} className="range-input">
@@ -154,10 +171,12 @@ export const ChoiceField = <T extends string | number>(props: {
   onChange: (chosen: readonly T[]) => void;
   excluded: boolean;
   onExcludedChange: (excluded: boolean) => void;
+  help?: string | undefined;
 }): JSX.Element => {
   const { label, choices, onChange } = props;
   const chosen = props.chosen ?? [];
   const [query, setQuery] = useState("");
+  const { describedBy, note } = useFieldHelp(props.help);
   const wanted = searchKey(query.trim());
   const searchable = choices.length > SEARCH_FROM_CHOICES;
   const shown =
@@ -167,8 +186,9 @@ export const ChoiceField = <T extends string | number>(props: {
           (choice) => chosen.includes(choice.value) || searchKey(choice.label).includes(wanted),
         );
   return (
-    <fieldset className="field">
+    <fieldset className="field" aria-describedby={describedBy}>
       <legend>{label}</legend>
+      {note}
       {searchable ? (
         <input
           type="search"

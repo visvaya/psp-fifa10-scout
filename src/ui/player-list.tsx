@@ -52,9 +52,7 @@ export const columnLabel = (
   ratingName: string | null = null,
   currency: CurrencyCode | null = null,
 ): string => {
-  if ((key === "price" || key === "wage") && currency !== null) {
-    return TEXT.withCurrency(columnLabel(key, ratingName), currency);
-  }
+  if (currency !== null) return TEXT.withCurrency(key, columnLabel(key, ratingName), currency);
   if (key === "positionRating") {
     return ratingName === null ? TEXT.columns.overall : TEXT.ratingAt(ratingName);
   }
