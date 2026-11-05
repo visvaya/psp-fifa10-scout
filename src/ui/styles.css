@@ -646,8 +646,27 @@ input[inputmode="numeric"] {
   background: var(--color-bg);
 }
 
+/* The labels sort by their column: buttons that look like the labels, with the sorted one's mark. */
 .column-label {
+  min-width: 0;
+  padding-inline: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
   text-overflow: ellipsis;
+  cursor: pointer;
+  outline-offset: -2px;
+}
+
+.column-label[data-sort="descending"]::after {
+  content: " ▼";
+  content: " ▼" / "";
+}
+
+.column-label[data-sort="ascending"]::after {
+  content: " ▲";
+  content: " ▲" / "";
 }
 
 /* Ratings: the number always shows; the band colour only adds to it. */

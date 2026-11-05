@@ -1,6 +1,14 @@
 import { expect, test } from "@playwright/test";
 import { SYNTHETIC_DB_PATH, SYNTHETIC_SAVE_PATHS } from "../scripts/write-synthetic-db.ts";
-import { centre, guardSecurityPolicy, loadDatabase, PHONE, pickGame } from "./support.ts";
+import {
+  centre,
+  filterByAttributes,
+  guardSecurityPolicy,
+  loadDatabase,
+  PHONE,
+  pickGame,
+  showPotential,
+} from "./support.ts";
 
 guardSecurityPolicy();
 
@@ -41,9 +49,7 @@ test.describe("phone", () => {
 
   test("labels the numbers above the rows, each over its column", async ({ page }) => {
     await loadDatabase(page);
-    await page.getByRole("button", { name: "Filtry" }).click();
-    await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
-    await page.getByRole("button", { name: "Zamknij" }).click();
+    await showPotential(page);
     const labels = page.locator(".player-rows-header .column-label");
     await expect(labels).toHaveText(["OVR", "POT"]);
     // Both fit: no shadow tells of further columns.
@@ -158,18 +164,17 @@ test.describe("phone columns", () => {
     const lastCell = page.locator(".player-row").first().locator(".player-row-cell").last();
     await expect(lastCell).toBeInViewport();
   });
+});
+
+test.describe("phone columns with large text", () => {
+  test.use(PHONE);
 
   // With enlarged text the kept name must not cover the screen, or the numbers scroll under it.
   test("keeps room for the numbers beside the name with large text", async ({ page }) => {
     // Tall enough for rows under the enlarged toolbar.
     await page.setViewportSize({ width: 320, height: 1400 });
     await loadDatabase(page);
-    await page.getByRole("button", { name: "Filtry" }).click();
-    const dialog = page.getByRole("dialog", { name: "Filtry" });
-    await dialog.getByText("Atrybuty", { exact: true }).click();
-    await dialog.getByLabel("Dodaj atrybut").selectOption({ label: "Szybkość" });
-    await dialog.getByRole("group", { name: "Szybkość" }).getByLabel("od").fill("10");
-    await dialog.getByRole("button", { name: "Zamknij" }).click();
+    await filterByAttributes(page, "Szybkość");
     await page.evaluate(() => {
       document.documentElement.style.fontSize = "32px";
     });

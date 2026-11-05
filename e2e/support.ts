@@ -101,3 +101,25 @@ export const guardSecurityPolicy = (): void => {
     expect(await page.evaluate((): unknown => Reflect.get(window, "cspViolations"))).toEqual([]);
   });
 };
+
+/** Phone: filters by these attributes from 10 up through the filter dialog, a column for each. */
+export const filterByAttributes = async (page: Page, ...labels: readonly string[]) => {
+  await page.getByRole("button", { name: "Filtry" }).click();
+  const dialog = page.getByRole("dialog", { name: "Filtry" });
+  await dialog.getByText("Atrybuty", { exact: true }).click();
+  for (const label of labels) {
+    // One after another: each choice adds the field the next line fills.
+    // oxlint-disable-next-line no-await-in-loop -- the steps depend on each other
+    await dialog.getByLabel("Dodaj atrybut").selectOption({ label });
+    // oxlint-disable-next-line no-await-in-loop -- the steps depend on each other
+    await dialog.getByRole("group", { name: label }).getByLabel("od").fill("10");
+  }
+  await dialog.getByRole("button", { name: "Zamknij" }).click();
+};
+
+/** Phone: shows the potential through the filter dialog. */
+export const showPotential = async (page: Page) => {
+  await page.getByRole("button", { name: "Filtry" }).click();
+  await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
+  await page.getByRole("button", { name: "Zamknij" }).click();
+};

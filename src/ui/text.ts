@@ -368,6 +368,9 @@ export const TEXT = {
   },
   sortAscending: "rosnąco",
   sortDescending: "malejąco",
+  /** A column's label with the direction it is sorted in, as its sort button's name. */
+  sortedBy: (label: string, direction: "ascending" | "descending"): string =>
+    `${label}, ${direction === "ascending" ? "rosnąco" : "malejąco"}`,
   columns: {
     name: "Zawodnik",
     age: "Wiek",
