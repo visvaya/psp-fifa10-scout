@@ -1,5 +1,5 @@
 // Stars out of five, filled to the half as the game shows a club's (team-stars.ts); screen readers get
-// the value as text instead.
+// the value as text instead, and so does everyone in forced colours, where the stars lose their fill.
 import type { JSX } from "react";
 import { TEXT } from "./text.ts";
 
@@ -18,6 +18,6 @@ export const Stars = (props: { value: number }): JSX.Element => (
         </span>
       ))}
     </span>
-    <span className="visually-hidden">{TEXT.card.starsOutOfFive(props.value)}</span>
+    <span className="visually-hidden stars-value">{TEXT.card.starsOutOfFive(props.value)}</span>
   </span>
 );

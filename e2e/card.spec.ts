@@ -27,6 +27,11 @@ test.describe("player card", () => {
       "star-half",
       ...Array.from({ length: 4 }, () => "star-empty"),
     ]);
+    // Forced colours drop the stars' fill: the value shows as text instead.
+    await page.emulateMedia({ forcedColors: "active" });
+    await expect(card.locator(".stars")).toBeHidden();
+    await expect(card.getByText("0,5 z 5 gwiazdek")).toBeVisible();
+    await page.emulateMedia({ forcedColors: "none" });
     await expect(cardValue(card, "Reprezentant kraju")).toHaveText("nie");
     await expect(cardValue(card, "Cechy")).toHaveText("brak");
     await page.keyboard.press("Escape");
