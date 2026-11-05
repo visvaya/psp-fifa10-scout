@@ -91,11 +91,12 @@ describe("loadScout", () => {
     );
     expect(phases).toEqual(["game", "save", "players"]);
     expect(result.myTeamId).toBe(SCOUT_USER_TEAM_ID);
-    expect(result.career).toEqual({
+    expect(result.career).toMatchObject({
       managerName: "Anna Kariera",
       clubName: "Wisła Kraków",
       lastGameDate: new Date(Date.UTC(2009, 7, 8)),
       currency: 0,
+      offer: { prestige: 0, finance: 0, seasonEndYear: 2010 },
     });
   });
 

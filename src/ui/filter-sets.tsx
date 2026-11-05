@@ -4,7 +4,7 @@ import type { Dispatch, JSX, Ref } from "react";
 import type { FilterSet } from "../logic/saved-filters.ts";
 import type { ScoutAction } from "../logic/scout-state.ts";
 import { Section } from "./filter-fields.tsx";
-import { TEXT } from "./text.ts";
+import { FILTER_SETS_TEXT } from "./text-filter-sets.ts";
 
 /** A button named for its set as well, so the list's buttons tell apart for screen readers. */
 const SetButton = ({
@@ -20,15 +20,15 @@ const SetButton = ({
 }) => (
   <button ref={ref} type="button" className="button" onClick={onClick}>
     {label}
-    <span className="visually-hidden">{TEXT.filterSets.of(set)}</span>
+    <span className="visually-hidden">{FILTER_SETS_TEXT.of(set)}</span>
   </button>
 );
 
 /** Why a new name cannot be taken, or null when it can. */
 const nameProblem = (name: string, set: FilterSet, names: readonly string[]): string | null => {
   const trimmed = name.trim();
-  if (trimmed === "") return TEXT.filterSets.emptyName;
-  return trimmed !== set.name && names.includes(trimmed) ? TEXT.filterSets.takenName : null;
+  if (trimmed === "") return FILTER_SETS_TEXT.emptyName;
+  return trimmed !== set.name && names.includes(trimmed) ? FILTER_SETS_TEXT.takenName : null;
 };
 
 /**
@@ -52,7 +52,7 @@ const RenameEditor = (props: {
   return (
     <li className="filter-set">
       <label className="field">
-        <span>{TEXT.filterSets.newName(set.name)}</span>
+        <span>{FILTER_SETS_TEXT.newName(set.name)}</span>
         <input
           ref={input}
           type="text"
@@ -72,7 +72,7 @@ const RenameEditor = (props: {
         </p>
       )}
       <SetButton
-        label={TEXT.filterSets.saveName}
+        label={FILTER_SETS_TEXT.saveName}
         set={set.name}
         onClick={() => {
           const refused = nameProblem(name, set, names);
@@ -86,7 +86,7 @@ const RenameEditor = (props: {
         }}
       />
       <SetButton
-        label={TEXT.filterSets.cancel}
+        label={FILTER_SETS_TEXT.cancel}
         set={set.name}
         onClick={() => {
           onDone(set.name);
@@ -127,7 +127,7 @@ const SetItem = (props: {
     <li className="filter-set">
       <span className="filter-set-name">{set.name}</span>
       <SetButton
-        label={TEXT.filterSets.load}
+        label={FILTER_SETS_TEXT.load}
         set={set.name}
         onClick={() => {
           dispatch({ type: "filter-set-loaded", name: set.name });
@@ -135,14 +135,14 @@ const SetItem = (props: {
       />
       <SetButton
         ref={rename}
-        label={TEXT.filterSets.rename}
+        label={FILTER_SETS_TEXT.rename}
         set={set.name}
         onClick={() => {
           setEditing(true);
         }}
       />
       <SetButton
-        label={TEXT.filterSets.remove}
+        label={FILTER_SETS_TEXT.remove}
         set={set.name}
         onClick={() => {
           dispatch({ type: "filter-set-deleted", name: set.name });
@@ -165,7 +165,7 @@ const SaveSet = ({
   return (
     <>
       <label className="field">
-        <span>{TEXT.filterSets.name}</span>
+        <span>{FILTER_SETS_TEXT.name}</span>
         <input
           type="text"
           value={name}
@@ -174,7 +174,7 @@ const SaveSet = ({
           }}
         />
       </label>
-      {taken ? <p className="help">{TEXT.filterSets.overwriteNote}</p> : null}
+      {taken ? <p className="help">{FILTER_SETS_TEXT.overwriteNote}</p> : null}
       <button
         type="button"
         className="button"
@@ -184,7 +184,7 @@ const SaveSet = ({
           setName("");
         }}
       >
-        {taken ? TEXT.filterSets.overwrite : TEXT.filterSets.save}
+        {taken ? FILTER_SETS_TEXT.overwrite : FILTER_SETS_TEXT.save}
       </button>
     </>
   );
@@ -199,10 +199,10 @@ export const FilterSets = (props: {
   const [focusName, setFocusName] = useState<string | null>(null);
   const names = sets.map((set) => set.name);
   return (
-    <Section title={TEXT.filterSets.title}>
+    <Section title={FILTER_SETS_TEXT.title}>
       <SaveSet sets={sets} dispatch={dispatch} />
       {sets.length === 0 ? (
-        <p className="help">{TEXT.filterSets.none}</p>
+        <p className="help">{FILTER_SETS_TEXT.none}</p>
       ) : (
         <ul className="filter-sets">
           {sets.map((set) => (

@@ -147,6 +147,7 @@ export const App = (): JSX.Element => {
           names={positionNames}
           career={state.myTeamId !== null}
           currency={state.career?.currency ?? null}
+          offer={openPlayer.clubId === state.myTeamId ? null : (state.career?.offer ?? null)}
           showPotential={showPotential}
           onClose={() => {
             dispatch({ type: "player-closed" });

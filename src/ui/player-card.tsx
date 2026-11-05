@@ -1,6 +1,8 @@
 import { useCallback, useState } from "react";
 import type { JSX, ReactNode } from "react";
 import type { CurrencyCode } from "../data/career-save.ts";
+import { offerTerms } from "../logic/offer.ts";
+import type { OfferContext } from "../logic/offer.ts";
 import type { AttributeName, Player } from "../logic/players.ts";
 import { nameTextIdOf, POSITION_CODES, RATING_CHOICES, ratingCodeOf } from "../logic/positions.ts";
 import { AttributeValue, GainValue } from "./attribute-value.tsx";
@@ -185,6 +187,36 @@ const ChoiceRatings = (props: { player: Player; names: PositionNames }) => {
   );
 };
 
+/** What an offer needs to succeed (offer.ts), career only, for a player of another club. */
+const OfferFacts = (props: { player: Player; context: OfferContext; currency: CurrencyCode }) => {
+  const { player, context, currency } = props;
+  const terms = offerTerms(player, context);
+  if (terms === null) return null;
+  const { fee, wage, years } = terms;
+  return (
+    <section aria-labelledby="offer-title">
+      <h3 id="offer-title">{TEXT.card.offer}</h3>
+      <p className="help">{TEXT.card.offerNote}</p>
+      <Facts
+        facts={[
+          [
+            TEXT.card.offerFee,
+            fee === null ? TEXT.card.offerNoFee : TEXT.card.money(fee, currency),
+          ],
+          [
+            TEXT.card.offerWage,
+            wage === null
+              ? TEXT.card.offerNever
+              : TEXT.card.offerWageValue(TEXT.card.money(wage, currency), TEXT.years(years)),
+          ],
+        ]}
+      />
+      {terms.feeOverCap ? <p className="help">{TEXT.card.feeOverCap}</p> : null}
+      {terms.wageOverCap ? <p className="help">{TEXT.card.wageOverCap}</p> : null}
+    </section>
+  );
+};
+
 /** The season so far, career only. */
 const CareerFacts = ({ player }: { player: Player }) => (
   <section aria-labelledby="career-title">
@@ -208,12 +240,14 @@ export const PlayerCard = (props: {
   career: boolean;
   /** The career's currency, null without a career. */
   currency: CurrencyCode | null;
+  /** The user's side of an offer; null without a career and for the user's own players. */
+  offer: OfferContext | null;
   showPotential: boolean;
   /** Position names in the chosen language. */
   names: PositionNames;
   onClose: () => void;
 }): JSX.Element => {
-  const { player, career, currency, showPotential, names, onClose } = props;
+  const { player, career, currency, offer, showPotential, names, onClose } = props;
   const returnFocus = useCallback(
     () => document.querySelector<HTMLElement>(`[data-player-id="${String(player.id)}"]`),
     [player.id],
@@ -230,6 +264,9 @@ export const PlayerCard = (props: {
         <p className="help">{TEXT.card.peakNote(player.potential, player.peak)}</p>
       ) : null}
       {player.wageMax === null ? null : <p className="help">{TEXT.card.wageNote}</p>}
+      {offer === null || currency === null ? null : (
+        <OfferFacts player={player} context={offer} currency={currency} />
+      )}
       {career ? <CareerFacts player={player} /> : null}
       <section aria-labelledby="profile-title">
         <h3 id="profile-title">{TEXT.card.profile}</h3>
