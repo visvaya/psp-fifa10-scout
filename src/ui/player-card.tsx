@@ -81,6 +81,9 @@ const basics = (
   ...(showPotential
     ? [[TEXT.card.potential, <AttributeValue key="potential" value={player.potential} />] as const]
     : []),
+  ...(showPotential && player.peak !== null
+    ? [[TEXT.card.peak, <AttributeValue key="peak" value={player.peak} />] as const]
+    : []),
   [TEXT.card.foot, player.preferredFoot === "left" ? TEXT.card.left : TEXT.card.right],
   [TEXT.card.weakFoot, TEXT.card.weakFootValue(player.weakFoot)],
   [TEXT.card.height, TEXT.card.heightValue(player.height)],
@@ -168,6 +171,9 @@ export const PlayerCard = (props: {
         </p>
       ) : null}
       <Facts facts={basics(player, showPotential, currency, names)} />
+      {showPotential && player.peak !== null ? (
+        <p className="help">{TEXT.card.peakNote(player.potential, player.peak)}</p>
+      ) : null}
       {player.wageMax === null ? null : <p className="help">{TEXT.card.wageNote}</p>}
       {career ? (
         <section aria-labelledby="career-title">

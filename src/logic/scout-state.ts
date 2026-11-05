@@ -7,6 +7,7 @@ import type { GameLanguages } from "./game-names.ts";
 import type { CareerSummary, LoadError, LoadPhase, WorkerMessage } from "./load-scout.ts";
 import { nameCollator } from "./players.ts";
 import type { Player } from "./players.ts";
+import { POTENTIAL_KEYS } from "./sort-players.ts";
 import type { SortDirection, SortKey } from "./sort-players.ts";
 
 /** Which players by club: unset means "available", everyone one can sign; free agents need a career. */
@@ -112,9 +113,6 @@ export type ScoutAction =
 
 export const DEFAULT_SORT: ScoutSort = { key: "overall", direction: "descending" };
 
-/** The ranges and sort keys that reveal potential. */
-const POTENTIAL_KEYS: ReadonlySet<SortKey> = new Set(["potential", "growth"]);
-
 export const initialScoutState: ScoutState = {
   players: null,
   myTeamId: null,
@@ -216,7 +214,12 @@ const withoutFilter = (filters: ScoutFilters, id: FilterId): ScoutFilters => {
 /** Preferences without potential filters and sort when potential is hidden. */
 const withPotential = (preferences: Preferences): Preferences => {
   if (preferences.showPotential) return preferences;
-  const ranges = { ...preferences.filters.ranges, potential: undefined, growth: undefined };
+  const ranges = {
+    ...preferences.filters.ranges,
+    potential: undefined,
+    growth: undefined,
+    peak: undefined,
+  };
   return {
     ...preferences,
     filters: compactFilters({ ...preferences.filters, ranges }),
@@ -270,8 +273,10 @@ const loadReducer = (state: ScoutState, action: LoadAction): ScoutState => {
                 ...state.filters,
                 clubStatus: undefined,
                 myClub: undefined,
+                ranges: { ...state.filters.ranges, peak: undefined },
                 flags: { ...state.filters.flags, shortlisted: undefined },
               }),
+              sort: state.sort.key === "peak" ? DEFAULT_SORT : state.sort,
             }
           : {}),
         gameName: loading.gameName === undefined ? state.gameName : loading.gameName,

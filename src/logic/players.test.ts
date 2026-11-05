@@ -173,6 +173,7 @@ describe("buildPlayers from fifa.db", () => {
       height: 169,
       weight: 67,
       potential: 95,
+      peak: null,
       overall: 60,
       growth: 35,
       bodyType: 1,
@@ -323,6 +324,16 @@ describe("buildPlayers with a career save", () => {
     expect(after?.attributes.finishing).toBe((before?.attributes.finishing ?? 0) + 10);
     expect(after?.overallByCode[29]).toBeGreaterThan(before?.overallByCode[29] ?? 0);
     expect(after?.attributes.dribbling).toBe(before?.attributes.dribbling);
+  });
+
+  it("shows the career potential: the database's plus the save's potential delta", () => {
+    expect(byId(players, 7)).toMatchObject({ potential: 45, growth: 0 });
+  });
+
+  it("projects the peak OVR with a save only", () => {
+    // Flat curves: the projection stays at today's OVR.
+    expect(byId(players, 158_023)?.peak).toBe(byId(players, 158_023)?.overall);
+    expect(byId(buildPlayers(DB), 158_023)?.peak).toBeNull();
   });
 
   it("adds career stats where the save has them", () => {

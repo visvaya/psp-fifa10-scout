@@ -14,6 +14,9 @@ type ScalarKey = {
 export type SortKey = ScalarKey | AttributeName | "positionRating" | "ratingGain";
 export type SortDirection = "ascending" | "descending";
 
+/** Values that reveal potential: they show only when the user asks for potential. */
+export const POTENTIAL_KEYS: ReadonlySet<SortKey> = new Set(["potential", "growth", "peak"]);
+
 const valueOf = (player: Player, key: SortKey, ratingCode: number | undefined): Scalar => {
   if (key === "name") return player.nameOrder;
   if (key === "positionRating")

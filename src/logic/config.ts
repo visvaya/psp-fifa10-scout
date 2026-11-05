@@ -11,4 +11,6 @@ export const SCOUT_CONFIG = {
   freeAgentTeamId: 111_259,
   /** Lowest value of each attribute colour band, as the game colours them; below average is low. */
   attributeBandMin: { high: 80, good: 70, average: 50 },
+  /** Seasons ahead the peak OVR projection looks: from 16 years old past the oldest curve age. */
+  peakProjectionYears: 20,
 } as const;

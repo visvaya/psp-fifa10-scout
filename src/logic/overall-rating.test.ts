@@ -8,6 +8,7 @@ import {
   cappedOverall,
   careerAttributes,
   OVR_WEIGHTS,
+  peakOverall,
   potentialDeltas,
   readCurves,
 } from "./overall-rating.ts";
@@ -184,6 +185,17 @@ describe("careerOverall", () => {
       [15, curve(20, { 21: 60 })],
     ]);
     expect(careerOverall(player(), ST, LATER, rising)).toBe(99);
+  });
+});
+
+describe("peakOverall", () => {
+  it("takes the highest OVR the curves project over the coming seasons", () => {
+    const projection = [48, 51, 54, 56, 58, 59, 59, 58, 57];
+    expect(peakOverall((_code, years = 0) => projection[years] ?? 40, 11)).toBe(59);
+  });
+
+  it("keeps today's OVR for a player already past his peak", () => {
+    expect(peakOverall((_code, years = 0) => 80 - years, 25)).toBe(80);
   });
 });
 

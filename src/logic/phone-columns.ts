@@ -2,10 +2,8 @@
 // range filters and the sort add. The rows scroll sideways when they do not fit.
 import { isRangeKey, rangedKeys } from "./filter-players.ts";
 import type { PlayerFilters } from "./filter-players.ts";
+import { POTENTIAL_KEYS } from "./sort-players.ts";
 import type { SortKey } from "./sort-players.ts";
-
-/** Values that exist only while the potential is shown. */
-const POTENTIAL_KEYS: ReadonlySet<SortKey> = new Set(["potential", "growth"]);
 
 export const phoneColumns = (options: {
   readonly showPotential: boolean;
