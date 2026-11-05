@@ -295,6 +295,34 @@ const fitNames = (frame: HTMLElement): void => {
   }
 };
 
+/** How many of the line's parts show whole: the browser's ellipsis hides those past its right edge. */
+const shownParts = (meta: HTMLElement): number => {
+  // Half a pixel of leeway for subpixel rounding.
+  const right = meta.getBoundingClientRect().right + 0.5;
+  return [...meta.children].filter((part) => part.getBoundingClientRect().right <= right).length;
+};
+
+/**
+ * The line under each name (position, age, club) loses or regains a whole part as its column narrows or
+ * widens; a row already shown fades the new line in, as a name does (owner, 2026-11-05: consistent).
+ */
+const fitMetaLines = (frame: HTMLElement): void => {
+  for (const meta of frame.querySelectorAll<HTMLElement>(".player-row-meta")) {
+    const parts = String(shownParts(meta));
+    const was = meta.dataset["parts"];
+    if (was === parts) continue;
+    meta.dataset["parts"] = parts;
+    // Two values in turn, each with its own animation, so every change replays the fade.
+    if (was !== undefined) meta.dataset["swap"] = meta.dataset["swap"] === "a" ? "b" : "a";
+  }
+};
+
+/** Each shown row's name and the line under it, fitted to the name column's room now. */
+const fitRows = (frame: HTMLElement): void => {
+  fitNames(frame);
+  fitMetaLines(frame);
+};
+
 /**
  * Tells styles.css, on the frame of the list and its labels, how far the list has scrolled sideways,
  * whether columns lie beyond its right edge and how wide its scrollbar is.
@@ -311,7 +339,7 @@ const followScroll = (list: HTMLElement, frame: HTMLElement): void => {
   frame.style.setProperty("--phone-scrollbar", `${String(offsetWidth - clientWidth)}px`);
   frame.toggleAttribute("data-scrolled", scrollLeft > 0);
   frame.toggleAttribute("data-more", cut !== undefined);
-  fitNames(frame);
+  fitRows(frame);
 };
 
 /** One phone row: the name with club, position and age, then the number columns. */
@@ -412,7 +440,7 @@ export const PlayerCards = (props: ListProps): JSX.Element => {
   const { frameRef, rowsRef } = useFollowedEdges(scrollRef);
   // Rows come and go as the list scrolls down: each new one fits its name too.
   useLayoutEffect(() => {
-    if (frameRef.current !== null) fitNames(frameRef.current);
+    if (frameRef.current !== null) fitRows(frameRef.current);
   });
   return (
     <div ref={frameRef} className="phone-list">

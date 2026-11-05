@@ -288,7 +288,7 @@ test.describe("phone name forms", () => {
     await expect(short).toBeHidden();
     await page.locator(".scroll").evaluate(scrollToEnd);
     await expect(short).toBeVisible();
-    await expect(short).toHaveText(/^G\. Numer 9 Bardzo/u);
+    await expect(short).toHaveText(/^G. Numer 9 Bardzo/u);
     await page.locator(".scroll").evaluate((element) => {
       element.scrollTo(0, element.scrollTop);
     });
