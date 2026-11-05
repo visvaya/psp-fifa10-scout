@@ -42,7 +42,11 @@ export const PositionRatingField = (props: {
             label={TEXT.ratingAt(ratingAbbreviation(rating.code, positionName))}
             range={rating}
             onChange={(range) => {
-              change({ positionRating: { ...rating, ...range } });
+              // The bounds are replaced whole, so clearing the range clears both.
+              const { code, gain } = rating;
+              change({
+                positionRating: { code, ...(gain === undefined ? {} : { gain }), ...range },
+              });
             }}
           />
           <RangeField

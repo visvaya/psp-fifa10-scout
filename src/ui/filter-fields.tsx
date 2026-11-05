@@ -38,7 +38,14 @@ const FieldLegend = (props: {
         type="button"
         className="field-clear"
         aria-label={TEXT.clearFieldLabel(props.label)}
-        onClick={props.onClear}
+        onClick={(event) => {
+          // The button goes with the filter: keep the keyboard in the field, on its first value.
+          event.currentTarget
+            .closest("fieldset")
+            ?.querySelector<HTMLInputElement>(".choices input, .range input")
+            ?.focus();
+          props.onClear();
+        }}
       >
         {TEXT.clearField}
       </button>

@@ -20,9 +20,25 @@ test.describe("clearing one field", () => {
     await expect(page.locator(".count")).not.toHaveText(/^62\s/u);
     await clearPositions.click();
     await expect(positions.getByRole("checkbox", { checked: true })).toHaveCount(0);
+    // The button leaves with the filter; the keyboard stays in the field, on its first value.
+    await expect(positions.getByRole("checkbox", { name: "Bramkarz" })).toBeFocused();
     await expect(age.getByLabel("do")).toHaveValue("25");
     await page.getByRole("button", { name: "Wyczyść: Wiek" }).click();
     await expect(age.getByLabel("do")).toHaveValue("");
     await expectCount(page, "62 zawodników");
+  });
+
+  // Clearing the rating's bounds keeps its position, so the column stays.
+  test("clears the position rating bounds and keeps the position", async ({ page }) => {
+    await loadDatabase(page);
+    const rating = page.getByRole("group", { name: "Ocena na pozycji" });
+    await rating
+      .getByRole("combobox", { name: "Ocena na pozycji" })
+      .selectOption({ label: "Boczny obrońca (RB/LB)" });
+    await rating.getByRole("group", { name: "OVR RB/LB" }).getByLabel("od").fill("99");
+    await expect(page.getByText("Żaden zawodnik nie spełnia filtrów.")).toBeVisible();
+    await page.getByRole("button", { name: "Wyczyść: OVR RB/LB" }).click();
+    await expectCount(page, "62 zawodników");
+    await expect(page.getByRole("columnheader", { name: /^OVR RB\/LB/u })).toBeVisible();
   });
 });
