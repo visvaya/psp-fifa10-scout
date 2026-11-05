@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { parseCareerSave } from "../data/career-save.ts";
+import { effectiveRows, parseCareerSave } from "../data/career-save.ts";
 import { parseEaDb } from "../data/ea-db.ts";
 import { buildPlayers } from "./players.ts";
-import { clubWillSell, squadsOf } from "./sale-rule.ts";
-import { buildPlainSave, buildScoutDb } from "./test-support/scout-db.ts";
+import { squadRefusal, squadsOf } from "./sale-rule.ts";
+import { table } from "./test-support/player-fixtures.ts";
+import { buildPlainSave, buildScoutDb, SCOUT_USER_TEAM_ID } from "./test-support/scout-db.ts";
 
 /** A club of `size` players: `centreBacks` at CB (code 5), the rest in goal (code 0). */
 const club = (size: number, centreBacks: number) =>
@@ -15,18 +16,20 @@ const club = (size: number, centreBacks: number) =>
     })),
   ).get(1);
 
-describe("clubWillSell", () => {
+const NO_SQUAD = { size: 0, groups: [] };
+
+describe("squadRefusal", () => {
   // Boca Juniors (league prestige 12) would not sell its third centre-back: the group needs 4.
   it("refuses below the group's minimum, which rises with the league's prestige", () => {
-    const squad = club(25, 3);
-    expect(squad && clubWillSell(squad, 5, 12)).toBe(false);
-    expect(squad && clubWillSell(squad, 5, 11)).toBe(true);
-    expect(club(25, 4) && clubWillSell(club(25, 4) ?? { size: 0, groups: [] }, 5, 12)).toBe(true);
+    expect(squadRefusal(club(25, 3) ?? NO_SQUAD, 5, 12)).toBe("position");
+    expect(squadRefusal(club(25, 3) ?? NO_SQUAD, 5, 11)).toBeNull();
+    expect(squadRefusal(club(25, 4) ?? NO_SQUAD, 5, 12)).toBeNull();
   });
 
-  it("refuses a club of 19 players or fewer, whatever the group", () => {
-    expect(clubWillSell(club(19, 5) ?? { size: 0, groups: [] }, 0, 12)).toBe(false);
-    expect(clubWillSell(club(20, 5) ?? { size: 0, groups: [] }, 0, 12)).toBe(true);
+  it("refuses a club of 19 players or fewer, whatever the group, after the group's check", () => {
+    expect(squadRefusal(club(19, 5) ?? NO_SQUAD, 0, 12)).toBe("squad");
+    expect(squadRefusal(club(20, 5) ?? NO_SQUAD, 0, 12)).toBeNull();
+    expect(squadRefusal(club(19, 3) ?? NO_SQUAD, 5, 12)).toBe("position");
   });
 
   it("leaves players on loan at the club out of the group but not out of the squad size", () => {
@@ -41,15 +44,22 @@ describe("clubWillSell", () => {
   });
 
   it("does not check a position code outside the game's 32", () => {
-    expect(clubWillSell({ size: 25, groups: [0, 0, 0, 0, 0, 0, 0, 0] }, 40, 12)).toBe(true);
+    expect(squadRefusal({ size: 25, groups: [0, 0, 0, 0, 0, 0, 0, 0] }, 40, 12)).toBeNull();
   });
 });
 
-describe("clubWillSellOf (through buildPlayers)", () => {
+/** The synthetic database with one historic rivalry. */
+const rivals = (clubid1: number, clubid2: number) =>
+  parseEaDb(buildScoutDb([table("historicrivalries", [{ clubid1, clubid2 }])]));
+
+describe("saleVerdictOf (through buildPlayers)", () => {
   const db = parseEaDb(buildScoutDb());
   const save = parseCareerSave(db, buildPlainSave().dataBin);
-  const of = (career: typeof save, id: number) =>
-    buildPlayers(db, career).find((player) => player.id === id)?.clubWillSell;
+  const playerIn = (career: typeof save, id: number, base = db) =>
+    buildPlayers(base, career).find((item) => item.id === id);
+  const of = (career: typeof save, id: number) => playerIn(career, id)?.clubWillSell;
+  const refusal = (career: typeof save, id: number, base = db) =>
+    playerIn(career, id, base)?.saleRefusal;
 
   // Barcelona keeps 21 players; Messi's group of right midfielders is deep enough. With its other right
   // midfielders on loan at it, he is alone in the group, below its minimum of 2.
@@ -60,12 +70,48 @@ describe("clubWillSellOf (through buildPlayers)", () => {
       .map((player) => ({ playerid: player.id }));
     const lent = new Map([...save, ["career_loaned_list", wide]]);
     expect(of(lent, 158_023)).toBe(false);
+    expect(refusal(lent, 158_023)).toBe("position");
     expect(of(save, 8)).toBeNull();
+    // Brożek plays for the user's club: no offer to make.
+    expect(of(save, 7)).toBeNull();
     // A contract that has run out (2009, the season's first year) skips the refusal.
     const runOut = buildPlayers(db, lent).filter(
-      (player) => player.clubId !== null && (player.contractEndYear ?? 0) <= 2009,
+      (player) =>
+        player.clubId !== null &&
+        player.clubId !== SCOUT_USER_TEAM_ID &&
+        (player.contractEndYear ?? 0) <= 2009,
     );
     expect(runOut.length).toBeGreaterThan(0);
     expect(runOut.every((player) => player.clubWillSell === true)).toBe(true);
+  });
+
+  it("refuses the user's historic rival, in either order of the pair", () => {
+    expect(refusal(save, 158_023)).toBeNull();
+    expect(refusal(save, 158_023, rivals(SCOUT_USER_TEAM_ID, 241))).toBe("rivals");
+    expect(refusal(save, 158_023, rivals(241, SCOUT_USER_TEAM_ID))).toBe("rivals");
+  });
+
+  // The game checks the user's squad last, for every offer: with 30 players any offer fails.
+  it("refuses every offer while the user's squad has 30 players", () => {
+    const links = effectiveRows(db, save, "teamplayerlinks");
+    // The generated players 1000..1059.
+    const moved = (row: (typeof links)[number]) =>
+      Number(row["playerid"]) >= 1000 && Number(row["playerid"]) < 1060;
+    const joined = links
+      .filter(moved)
+      .slice(0, 29)
+      .map((row) => ({
+        teamid: SCOUT_USER_TEAM_ID,
+        playerid: Number(row["playerid"]),
+        jerseynumber: 1,
+        yearcontractvalidtil: 2012,
+        position: 33,
+      }));
+    const rest = links.filter(
+      (row) => !joined.some((item) => item.playerid === Number(row["playerid"])),
+    );
+    const full = new Map([...save, ["teamplayerlinks", [...rest, ...joined]]]);
+    expect(of(full, 158_023)).toBe(false);
+    expect(refusal(full, 158_023)).toBe("your-squad");
   });
 });

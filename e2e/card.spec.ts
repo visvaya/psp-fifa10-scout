@@ -54,7 +54,9 @@ test.describe("offer on the card", () => {
     await page.getByRole("button", { name: /^Gracz Numer 18/u }).click();
     const refused = page.getByRole("dialog", { name: "Gracz Numer 18" });
     await expect(cardValue(refused, "Klub może go sprzedać")).toHaveText("nie");
-    await expect(refused.getByText(/^Klub odmówi sprzedaży/u)).toBeVisible();
+    await expect(
+      refused.getByText(/^Klub odmówi sprzedaży.*ma za mało zawodników na tej pozycji./u),
+    ).toBeVisible();
     await expect(cardValue(refused, "Na liście do wypożyczenia")).toHaveText("tak");
     await expect(cardValue(refused, "Na liście transferowej")).toHaveText("nie");
     await page.keyboard.press("Escape");
