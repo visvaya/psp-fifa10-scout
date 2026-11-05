@@ -45,8 +45,6 @@ const PHONE = {
   paddingRem: 0.5,
   /** The fade at the right edge while columns follow (--space-6 in styles.css), at its widest. */
   fadeRem: 1.5,
-  /** The "more" mark at the right edge (--space-4 in styles.css), the fade's least width. */
-  markRem: 1,
 } as const;
 /**
  * The width of a phone number column in rem: a rating's, its label's whole (owner, 2026-11-05: labels are
@@ -273,13 +271,9 @@ const followScroll = (list: HTMLElement, frame: HTMLElement): void => {
   const grid = frame.querySelector(".player-rows-grid");
   const gap = grid === null ? 0 : Number.parseFloat(getComputedStyle(grid).columnGap) || 0;
   // The usual fade, narrowed so it starts no earlier than the gap before the first column that does not
-  // show whole: a column that shows whole stays clear of it (owner, 2026-11-05). At least as wide as the
-  // "more" mark.
-  const rem = rootFontPx();
+  // show whole: a column that shows whole stays clear of it (owner, 2026-11-05).
   const fade =
-    cut === undefined
-      ? 0
-      : Math.max(PHONE.markRem * rem, Math.min(PHONE.fadeRem * rem, edge - cut.left + gap));
+    cut === undefined ? 0 : Math.min(PHONE.fadeRem * rootFontPx(), edge - cut.left + gap);
   frame.style.setProperty("--phone-fade", `${String(fade)}px`);
   frame.style.setProperty("--phone-scroll", `${String(scrollLeft)}px`);
   frame.style.setProperty("--phone-scrollbar", `${String(offsetWidth - clientWidth)}px`);

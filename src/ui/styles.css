@@ -529,7 +529,7 @@ input[inputmode="numeric"] {
   top: 0;
   right: var(--phone-scrollbar, 0px);
   z-index: 3;
-  /* As wide as PHONE.fadeRem in player-rows.tsx; the fade under it covers the labels as the rows. */
+  /* The mark alone, whatever the fade under it: a small box at the edge, no background of its own. */
   width: var(--space-4);
   padding: var(--space-1) var(--space-1) var(--space-1) 0;
   text-align: right;
