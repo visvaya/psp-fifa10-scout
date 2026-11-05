@@ -24,9 +24,9 @@ const SALE_RULE = {
 } as const;
 
 export interface ClubSquad {
-  /** Every player linked to the club, loaned-out ones included. */
+  /** Every player linked to the club, those on loan at it included. */
   readonly size: number;
-  /** Players per position group, by preferred position, without those loaned out. */
+  /** Players per position group, by preferred position, without those on loan at the club. */
   readonly groups: readonly number[];
 }
 

@@ -50,6 +50,8 @@ const PLAYERS = [
     transferListed: true,
     shortlisted: true,
     clubWillSell: true,
+    loanListed: true,
+    loanedFromId: 241,
   }),
 ];
 
@@ -163,6 +165,13 @@ describe("filterPlayers", () => {
     // Without a career (null) a player does not count as one his club will sell.
     expect(ids({ flags: { clubWillSell: true } })).toEqual([4]);
     expect(ids({ flags: { clubWillSell: false } })).toEqual([1, 2, 3]);
+  });
+
+  it("finds the players on loan and those listed for one", () => {
+    expect(ids({ flags: { loaned: true } })).toEqual([4]);
+    expect(ids({ flags: { loaned: false } })).toEqual([1, 2, 3]);
+    expect(ids({ flags: { loanListed: true } })).toEqual([4]);
+    expect(ids({ flags: { loanListed: false } })).toEqual([1, 2, 3]);
   });
 
   it("finds free agents and excludes a team", () => {

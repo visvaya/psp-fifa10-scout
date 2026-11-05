@@ -52,15 +52,28 @@ export type FlagKey =
   | TraitName
   | "nationalTeam"
   | "transferListed"
+  | "loanListed"
+  | "loaned"
   | "shortlisted"
   | "clubWillSell";
 export const FLAG_KEYS: readonly FlagKey[] = [
   ...TRAIT_NAMES,
   "nationalTeam",
   "transferListed",
+  "loanListed",
+  "loaned",
   "shortlisted",
   "clubWillSell",
 ];
+
+/** The flags only a career save sets: without one every player lacks them. */
+export const CAREER_FLAG_KEYS = [
+  "transferListed",
+  "loanListed",
+  "loaned",
+  "shortlisted",
+  "clubWillSell",
+] as const satisfies readonly FlagKey[];
 
 export interface PlayerFilters {
   /** Part of the name, ignoring case and diacritics. */
@@ -103,6 +116,8 @@ const hasFlag = (player: Player, flag: FlagKey): boolean => {
   if (flag === "nationalTeam") return player.nationalTeamId !== null;
   if (flag === "shortlisted") return player.shortlisted;
   if (flag === "clubWillSell") return player.clubWillSell === true;
+  if (flag === "loaned") return player.loanedFromId !== null;
+  if (flag === "loanListed") return player.loanListed;
   return flag === "transferListed" ? player.transferListed : player.traits.includes(flag);
 };
 

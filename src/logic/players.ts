@@ -23,6 +23,8 @@ import { clubWillSellOf } from "./sale-rule.ts";
 import type { Finance, FinanceInput } from "./player-finance.ts";
 import { positionOf } from "./positions.ts";
 import type { PositionGroup } from "./positions.ts";
+import { marketFields, transferMarketOf } from "./transfer-market.ts";
+import type { TransferMarket } from "./transfer-market.ts";
 
 // Column names, alike by nature. jscpd:ignore-start
 /** The attribute columns of `players`, in table order (potential is a separate field). */
@@ -178,8 +180,13 @@ export interface Player extends Finance {
   readonly appearances: number | null;
   /** Days out injured, from the save. */
   readonly injuryDays: number | null;
-  /** On the save's transfer list. */
+  /** Listed for a transfer in the save's window and not sold yet. */
   readonly transferListed: boolean;
+  /** Listed for a loan and not loaned yet. */
+  readonly loanListed: boolean;
+  /** The club he is on loan from (career only); null when he plays for his own club. */
+  readonly loanedFromId: number | null;
+  readonly loanedFromName: string | null;
   /** In a career, whether his club may sell him at all (sale-rule.ts); null without a club or career. */
   readonly clubWillSell: boolean | null;
   /** On the user's shortlist in the game (the save's career_shortlist). */
@@ -191,7 +198,8 @@ interface Context {
   readonly placements: ReadonlyMap<number, Placement>;
   readonly countries: ReadonlyMap<number, string>;
   readonly stats: ReadonlyMap<number, EaDbRow>;
-  readonly transferList: ReadonlySet<number>;
+  readonly market: TransferMarket;
+  readonly teams: ReadonlyMap<number, { readonly name: string }>;
   readonly shortlist: ReadonlySet<number>;
   /** Career only. */
   readonly clubWillSell: ((playerId: number) => boolean | null) | null;
@@ -295,7 +303,7 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
     goals: statOf(stats, "goals"),
     appearances: statOf(stats, "appearances"),
     injuryDays: statOf(stats, "injurydaysout"),
-    transferListed: context.transferList.has(id),
+    ...marketFields(context.market, context.teams, id),
     clubWillSell: context.clubWillSell?.(id) ?? null,
     shortlisted: context.shortlist.has(id),
     ...(context.finance?.({ row, age, club: money, overallAt }) ?? NO_FINANCE),
@@ -386,10 +394,8 @@ export const buildPlayers = (db: EaDb, save?: CareerSave): readonly Player[] => 
       : effectiveRows(db, save, "teamplayerlinks");
   const stats = save === undefined ? [] : effectiveRows(db, save, "playerstats");
   const transferList = save === undefined ? [] : effectiveRows(db, save, "career_transfer_list");
-  const placements = placementsOf(
-    save === undefined ? links : careerLinks(db, save),
-    teamsById(db, save),
-  );
+  const teams = teamsById(db, save);
+  const placements = placementsOf(save === undefined ? links : careerLinks(db, save), teams);
   const context: Context = {
     referenceDate:
       save === undefined
@@ -400,7 +406,9 @@ export const buildPlayers = (db: EaDb, save?: CareerSave): readonly Player[] => 
       readTable(db, "country").map((row) => [num(row, "countryid"), String(row["countryname"])]),
     ),
     stats: new Map(stats.map((row) => [num(row, "playerid"), row])),
-    transferList: new Set(transferList.map((row) => num(row, "playerid"))),
+    // fifa.db's loan list is empty: only a save holds loans.
+    market: transferMarketOf(transferList, save?.get("career_loaned_list") ?? []),
+    teams,
     shortlist: new Set(shortlistOf(db, save).map((row) => num(row, "playerid"))),
     freeAgents: new Set(
       links

@@ -96,6 +96,7 @@ const renamed = (players: readonly Player[], names: GameNames | null): readonly 
         clubName: nameOr(names.teams, player.clubId, player.clubName),
         leagueName: nameOr(names.leagues, player.leagueId, player.leagueName),
         nationalTeamName: nameOr(names.teams, player.nationalTeamId, player.nationalTeamName),
+        loanedFromName: nameOr(names.teams, player.loanedFromId, player.loanedFromName),
         nationalityName: nameOr(names.countries, player.nationalityId, player.nationalityName),
         // The bare abbreviation, for the list's narrow position column (owner, 2026-11-04); the card and the
         // filters add the English name to a misleading one (positionNameIn).

@@ -68,6 +68,8 @@ test.describe("offer on the card", () => {
     const refused = page.getByRole("dialog", { name: "Gracz Numer 18" });
     await expect(value(refused, "Klub może go sprzedać")).toHaveText("nie");
     await expect(refused.getByText(/^Klub odmówi sprzedaży/u)).toBeVisible();
+    await expect(value(refused, "Na liście do wypożyczenia")).toHaveText("tak");
+    await expect(value(refused, "Na liście transferowej")).toHaveText("nie");
     await page.keyboard.press("Escape");
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("brozek");
     await page.getByRole("button", { name: "Paweł Brożek" }).click();

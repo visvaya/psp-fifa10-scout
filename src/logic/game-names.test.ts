@@ -111,6 +111,8 @@ describe("localizePlayers", () => {
         nationalTeamName: "Poland",
         nationalityId: 37,
         positionCode: 17,
+        loanedFromId: 21,
+        loanedFromName: "FC Bayern",
       }),
       testPlayer({
         id: 2,
@@ -129,6 +131,7 @@ describe("localizePlayers", () => {
       nationalTeamName: "Polska",
       nationalityName: "Polska",
       positionName: "ŚP",
+      loanedFromName: "Bayern Monachium",
     });
     expect(unknown).toEqual(players[1]);
   });
