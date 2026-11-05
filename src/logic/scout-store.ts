@@ -118,7 +118,7 @@ const parseRatingRange = (value: unknown): Range | undefined => {
  * the same way), or undefined.
  */
 const parsePositionRating = (value: unknown): PositionRating | undefined => {
-  const { code, gain, peak } = recordOf(value);
+  const { code, gain, peak, bestOnly } = recordOf(value);
   if (!(Number.isInteger(code) && isFiniteNumber(code) && code >= 0 && code < OVR_WEIGHTS.length))
     return undefined;
   const [gainRange, peakRange] = [parseRatingRange(gain), parseRatingRange(peak)];
@@ -127,6 +127,7 @@ const parsePositionRating = (value: unknown): PositionRating | undefined => {
     ...parseRange(value),
     ...(gainRange === undefined ? {} : { gain: gainRange }),
     ...(peakRange === undefined ? {} : { peak: peakRange }),
+    ...(bestOnly === true ? { bestOnly } : {}),
   };
 };
 

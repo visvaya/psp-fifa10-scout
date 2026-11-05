@@ -100,9 +100,8 @@ export const saleVerdictOf = (
     ]),
   );
   // fifa.db's loan list is empty: only a save holds loans.
-  const loaned = new Set(
-    (save.get("career_loaned_list") ?? []).map((row) => Number(row["playerid"])),
-  );
+  const loans = save.get("career_loaned_list") ?? [];
+  const loaned = new Set(loans.map((row) => Number(row["playerid"])));
   const squads = squadsOf(
     [...placements].flatMap(([playerId, { club }]) =>
       club === undefined
@@ -119,10 +118,17 @@ export const saleVerdictOf = (
   const seasonYear = seasonStartDate(db, save).getUTCFullYear();
   const { teamId } = careerManager(db, save);
   const rivals = rivalsOf(db, teamId);
+  // The user's own players on loan at another club: no offer to make for them either.
+  const lentOut = new Set(
+    loans
+      .filter((row) => Number(row["oldteamid"]) === teamId)
+      .map((row) => Number(row["playerid"])),
+  );
   return (playerId) => {
     const club = placements.get(playerId)?.club;
     const squad = club === undefined ? undefined : squads.get(club.team.id);
     if (club === undefined || squad === undefined || club.team.id === teamId) return null;
+    if (lentOut.has(playerId)) return null;
     if (Number(club.link["yearcontractvalidtil"]) <= seasonYear) return "sells";
     const refusal = squadRefusal(squad, preferred.get(playerId) ?? -1, club.team.leaguePrestige);
     return refusal ?? (rivals.has(club.team.id) ? "rivals" : "sells");

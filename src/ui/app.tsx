@@ -6,6 +6,7 @@ import {
   localizePlayers,
   positionNameIn,
 } from "../logic/game-names.ts";
+import { inClub } from "../logic/filter-players.ts";
 import { activeLanguage, initialScoutState, scoutReducer } from "../logic/scout-state.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
 import { ListView } from "./list-view.tsx";
@@ -147,7 +148,11 @@ export const App = (): JSX.Element => {
           names={positionNames}
           career={state.myTeamId !== null}
           currency={state.career?.currency ?? null}
-          offer={openPlayer.clubId === state.myTeamId ? null : (state.career?.offer ?? null)}
+          offer={
+            state.myTeamId !== null && inClub(openPlayer, state.myTeamId)
+              ? null
+              : (state.career?.offer ?? null)
+          }
           showPotential={showPotential}
           onClose={() => {
             dispatch({ type: "player-closed" });

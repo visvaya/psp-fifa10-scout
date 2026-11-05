@@ -122,17 +122,29 @@ export interface PositionRating extends Range {
   readonly gain?: Range;
   /** The peak OVR at the code; career only, shown with potential. */
   readonly peak?: Range;
+  /** Only players whose highest OVR is at the code (a tie counts). */
+  readonly bestOnly?: boolean;
 }
 
 const bounded = (range: Range | undefined): range is Range =>
   range?.min !== undefined || range?.max !== undefined;
 
-/** The position rating without a gain or peak range that sets no bound. */
-export const compactRating = ({ gain, peak, ...rating }: PositionRating): PositionRating => ({
+/** The position rating without a gain or peak range that sets no bound, nor bestOnly unset. */
+export const compactRating = ({
+  gain,
+  peak,
+  bestOnly,
+  ...rating
+}: PositionRating): PositionRating => ({
   ...rating,
   ...(bounded(gain) ? { gain } : {}),
   ...(bounded(peak) ? { peak } : {}),
+  ...(bestOnly === true ? { bestOnly } : {}),
 });
+
+/** The position code is where the player rates highest (a tie counts). */
+const isBestAt = (player: Player, code: number): boolean =>
+  (player.overallByCode[code] ?? -1) >= Math.max(...player.overallByCode);
 
 /** The OVR at a position code minus the OVR at the preferred position, or null without that rating. */
 export const ratingGain = (player: Player, code: number): number | null => {
@@ -177,9 +189,9 @@ const inRange =
 const isAvailable = (player: Player): boolean =>
   player.clubId !== null || player.youth || player.freeAgent;
 
-/** In the user's club: linked to it, or a junior of its academy. */
-const inClub = (player: Player, teamId: number): boolean =>
-  player.clubId === teamId || player.academy;
+/** The user's player: linked to his club, a junior of its academy, or on loan from it at another club. */
+export const inClub = (player: Player, teamId: number): boolean =>
+  player.clubId === teamId || player.academy || player.loanedFromId === teamId;
 
 const predicates = (filters: PlayerFilters): readonly Predicate[] => {
   const text = searchKey(filters.text?.trim() ?? "");
@@ -203,6 +215,7 @@ const predicates = (filters: PlayerFilters): readonly Predicate[] => {
     ...(rating?.gain === undefined
       ? []
       : [inRange(rating.gain, (player) => ratingGain(player, rating.code))]),
+    ...(rating?.bestOnly === true ? [(player: Player) => isBestAt(player, rating.code)] : []),
     ...(rating?.peak === undefined
       ? []
       : [inRange(rating.peak, (player) => peakAt(player, rating.code))]),

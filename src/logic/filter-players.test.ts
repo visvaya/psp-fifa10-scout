@@ -79,6 +79,13 @@ const ratedAtCode1 = (overall = 50) =>
     }),
   );
 
+/** A player rated `rating` at position code 5 and 60 everywhere else. */
+const ratedAt5 = (id: number, rating: number) =>
+  testPlayer({
+    id,
+    overallByCode: Array.from({ length: 32 }, (_, code) => (code === 5 ? rating : 60)),
+  });
+
 describe("filterPlayers", () => {
   it("returns everything for empty filters", () => {
     expect(ids({})).toEqual([1, 2, 3, 4]);
@@ -246,6 +253,24 @@ describe("filterPlayers", () => {
   it("counts academy youth as the user's club, whether it is hidden or the only one shown", () => {
     expect(idsWithClubless({ onlyTeamId: 10 })).toEqual([1, 4, 5]);
     expect(idsWithClubless({ excludeTeamId: 10 })).toEqual([2, 3, 6, 7, 8]);
+  });
+
+  it("counts the user's players on loan at another club as the user's", () => {
+    const lent = testPlayer({ id: 9, name: "Lent", clubId: 20, loanedFromId: 10 });
+    const borrowed = testPlayer({ id: 11, name: "Borrowed", clubId: 10, loanedFromId: 20 });
+    const loanIds = (filters: PlayerFilters) =>
+      filterPlayers([lent, borrowed], filters).map((player) => player.id);
+    expect(loanIds({ onlyTeamId: 10 })).toEqual([9, 11]);
+    expect(loanIds({ excludeTeamId: 10 })).toEqual([]);
+    // Club 20 lent player 11 to club 10.
+    expect(loanIds({ onlyTeamId: 20 })).toEqual([9, 11]);
+  });
+
+  it("keeps only players whose highest OVR is at the chosen position, a tie included", () => {
+    const best = filterPlayers([ratedAt5(1, 70), ratedAt5(2, 60), ratedAt5(3, 59)], {
+      positionRating: { code: 5, bestOnly: true },
+    });
+    expect(best.map((player) => player.id)).toEqual([1, 2]);
   });
 
   it("counts only the game's free agents as free agents, not juniors or legends", () => {
