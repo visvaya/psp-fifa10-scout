@@ -7,6 +7,7 @@ import { table } from "./test-support/player-fixtures.ts";
 
 const DB = parseEaDb(
   buildEaDb([
+    // Data rows, alike by nature. jscpd:ignore-start
     table("leagues", [
       { leagueid: 1, leaguename: "First", level: 1, leagueprestige: 10 },
       { leagueid: 2, leaguename: "Second", level: 2, leagueprestige: 5 },
@@ -22,6 +23,7 @@ const DB = parseEaDb(
       { leagueid: 1, teamid: 20 },
       { leagueid: 78, teamid: 30 },
     ]),
+    // jscpd:ignore-end
   ]),
 );
 
