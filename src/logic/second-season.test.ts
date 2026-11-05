@@ -15,12 +15,15 @@ const referencePath = process.env["PSP_SECOND_SEASON_REFERENCE"] ?? "";
 const isNumbers = (item: unknown): item is readonly number[] =>
   Array.isArray(item) && item.every((value) => Number.isFinite(value));
 
-const rows = (body: unknown, key: string): readonly (readonly number[])[] => {
+/** The rows under a key, each of the given length; a malformed row fails the test. */
+const rows = (body: unknown, key: string, length: number): readonly (readonly number[])[] => {
   const value: unknown =
     typeof body === "object" && body !== null
       ? Object.entries(body).find(([name]) => name === key)?.[1]
       : undefined;
-  return Array.isArray(value) ? value.filter(isNumbers) : [];
+  const list: readonly unknown[] = Array.isArray(value) ? value : [];
+  expect(list.every((row) => isNumbers(row) && row.length === length)).toBe(true);
+  return list.filter(isNumbers);
 };
 
 const load = () => {
@@ -43,8 +46,8 @@ describe.runIf(existsSync(realDbPath) && existsSync(savePath))("real second-seas
   it.runIf(existsSync(referencePath))("matches the prices and charts on the game's screens", () => {
     const { players } = load();
     const reference: unknown = JSON.parse(readFileSync(referencePath, "utf8"));
-    const prices = rows(reference, "prices");
-    const charts = rows(reference, "projections");
+    const prices = rows(reference, "prices", 2);
+    const charts = rows(reference, "projections", 3);
     expect(prices.length + charts.length).toBeGreaterThan(0);
     for (const [id = 0, price] of prices) expect(players.get(id)?.price).toBe(price);
     for (const [id = 0, now, highest = 0] of charts) {

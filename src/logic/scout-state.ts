@@ -276,6 +276,7 @@ const loadReducer = (state: ScoutState, action: LoadAction): ScoutState => {
                 ranges: { ...state.filters.ranges, peak: undefined },
                 flags: { ...state.filters.flags, shortlisted: undefined },
               }),
+              sort: state.sort.key === "peak" ? DEFAULT_SORT : state.sort,
             }
           : {}),
         gameName: loading.gameName === undefined ? state.gameName : loading.gameName,
