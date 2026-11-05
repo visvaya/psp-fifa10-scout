@@ -11,8 +11,12 @@ import { clubText } from "./player-list.tsx";
 import {
   ATTRIBUTE_GROUP_LABELS,
   ATTRIBUTE_LABELS,
+  FILTER_SECTION_LABELS,
+  FLAG_LABELS,
   formatNumber,
   formatRating,
+  LIST_LABELS,
+  RANGE_LABELS,
   TEXT,
 } from "./text.ts";
 
@@ -44,6 +48,33 @@ const Facts = ({ facts }: { facts: readonly (readonly [string, ReactNode])[] }) 
 
 const optional = (value: number | string | null): ReactNode =>
   value === null ? TEXT.card.none : typeof value === "number" ? formatNumber(value) : value;
+
+const yesNo = (value: boolean): string => (value ? TEXT.card.yes : TEXT.card.no);
+
+/** What the filters offer beyond the basics, labelled as in the filters. */
+const profile = (
+  player: Player,
+  showPotential: boolean,
+): readonly (readonly [string, ReactNode])[] => [
+  ...(showPotential ? [[RANGE_LABELS.growth, formatNumber(player.growth)] as const] : []),
+  [TEXT.card.internationalReputation, TEXT.card.outOfFive(player.internationalReputation)],
+  [TEXT.card.learningSpeed, TEXT.card.outOfFive(player.learningSpeed)],
+  [RANGE_LABELS.retirementAge, TEXT.years(player.retirementAge)],
+  [LIST_LABELS.bodyType, TEXT.code(TEXT.codePrefix.bodyType, player.bodyType)],
+  [LIST_LABELS.developmentType, TEXT.code(TEXT.codePrefix.developmentType, player.developmentType)],
+  [
+    LIST_LABELS.developmentStyle,
+    TEXT.code(TEXT.codePrefix.developmentStyle, player.developmentStyle),
+  ],
+  [RANGE_LABELS.clubRating, optional(player.clubRating)],
+  [FLAG_LABELS.nationalTeam, player.nationalTeamName ?? TEXT.card.no],
+  [
+    FILTER_SECTION_LABELS.traits,
+    player.traits.length === 0
+      ? TEXT.card.none
+      : player.traits.map((trait) => FLAG_LABELS[trait]).join(", "),
+  ],
+];
 
 /** Price and wage, career only: the user's squad shows its stored wage, others an estimate. */
 const money = (
@@ -91,7 +122,7 @@ const basics = (
     ? [[TEXT.card.peak, <AttributeValue key="peak" value={player.peak} />] as const]
     : []),
   [TEXT.card.foot, player.preferredFoot === "left" ? TEXT.card.left : TEXT.card.right],
-  [TEXT.card.weakFoot, TEXT.card.weakFootValue(player.weakFoot)],
+  [TEXT.card.weakFoot, TEXT.card.outOfFive(player.weakFoot)],
   [TEXT.card.height, TEXT.card.heightValue(player.height)],
   [TEXT.card.weight, TEXT.card.weightValue(player.weight)],
 ];
@@ -154,6 +185,24 @@ const ChoiceRatings = (props: { player: Player; names: PositionNames }) => {
   );
 };
 
+/** The season so far, career only. */
+const CareerFacts = ({ player }: { player: Player }) => (
+  <section aria-labelledby="career-title">
+    <h3 id="career-title">{TEXT.card.career}</h3>
+    <p className="help">{TEXT.card.careerNote}</p>
+    <Facts
+      facts={[
+        [TEXT.card.form, player.form === null ? TEXT.card.none : formatRating(player.form)],
+        [TEXT.card.morale, optional(player.morale)],
+        [TEXT.card.goals, optional(player.goals)],
+        [TEXT.card.appearances, optional(player.appearances)],
+        [RANGE_LABELS.injuryDays, optional(player.injuryDays)],
+        [FLAG_LABELS.transferListed, yesNo(player.transferListed)],
+      ]}
+    />
+  </section>
+);
+
 export const PlayerCard = (props: {
   player: Player;
   career: boolean;
@@ -181,20 +230,11 @@ export const PlayerCard = (props: {
         <p className="help">{TEXT.card.peakNote(player.potential, player.peak)}</p>
       ) : null}
       {player.wageMax === null ? null : <p className="help">{TEXT.card.wageNote}</p>}
-      {career ? (
-        <section aria-labelledby="career-title">
-          <h3 id="career-title">{TEXT.card.career}</h3>
-          <p className="help">{TEXT.card.careerNote}</p>
-          <Facts
-            facts={[
-              [TEXT.card.form, player.form === null ? TEXT.card.none : formatRating(player.form)],
-              [TEXT.card.morale, optional(player.morale)],
-              [TEXT.card.goals, optional(player.goals)],
-              [TEXT.card.appearances, optional(player.appearances)],
-            ]}
-          />
-        </section>
-      ) : null}
+      {career ? <CareerFacts player={player} /> : null}
+      <section aria-labelledby="profile-title">
+        <h3 id="profile-title">{TEXT.card.profile}</h3>
+        <Facts facts={profile(player, showPotential)} />
+      </section>
       <ChoiceRatings player={player} names={names} />
       <div className="attribute-groups">
         {ATTRIBUTE_GROUPS.map(([group, attributes]) => (
