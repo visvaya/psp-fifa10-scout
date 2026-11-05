@@ -1,8 +1,16 @@
 import { expect, test } from "@playwright/test";
+import type { Page } from "@playwright/test";
 import { SYNTHETIC_DB_PATH, SYNTHETIC_SAVE_PATHS } from "../scripts/write-synthetic-db.ts";
 import { centre, guardSecurityPolicy, loadDatabase, PHONE, pickGame } from "./support.ts";
 
 guardSecurityPolicy();
+
+/** Shows the potential through the filter dialog, as a phone user does. */
+const showPotential = async (page: Page) => {
+  await page.getByRole("button", { name: "Filtry" }).click();
+  await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
+  await page.getByRole("button", { name: "Zamknij" }).click();
+};
 
 test.describe("phone", () => {
   test.use(PHONE);
@@ -41,9 +49,7 @@ test.describe("phone", () => {
 
   test("labels the numbers above the rows, each over its column", async ({ page }) => {
     await loadDatabase(page);
-    await page.getByRole("button", { name: "Filtry" }).click();
-    await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
-    await page.getByRole("button", { name: "Zamknij" }).click();
+    await showPotential(page);
     const labels = page.locator(".player-rows-header .column-label");
     await expect(labels).toHaveText(["OVR", "POT"]);
     // Both fit: no shadow tells of further columns.
@@ -158,6 +164,29 @@ test.describe("phone columns", () => {
     const lastCell = page.locator(".player-row").first().locator(".player-row-cell").last();
     await expect(lastCell).toBeInViewport();
   });
+});
+
+test.describe("phone column labels", () => {
+  test.use(PHONE);
+
+  // As in the wide table: a tap on a column's label sorts by it, another tap turns the order round.
+  test("sorts by a column when its label is tapped", async ({ page }) => {
+    await loadDatabase(page);
+    await showPotential(page);
+    const sortBy = page.getByLabel("Sortuj według");
+    const potential = page.getByRole("button", { name: /^POT/u });
+    await potential.tap();
+    await expect(sortBy).toHaveValue("potential");
+    await expect(potential).toHaveAccessibleName("POT, malejąco");
+    await potential.tap();
+    await expect(potential).toHaveAccessibleName("POT, rosnąco");
+    await expect(page.getByRole("button", { name: "rosnąco", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^OVR/u })).toHaveAccessibleName("OVR");
+  });
+});
+
+test.describe("phone columns with large text", () => {
+  test.use(PHONE);
 
   // With enlarged text the kept name must not cover the screen, or the numbers scroll under it.
   test("keeps room for the numbers beside the name with large text", async ({ page }) => {

@@ -4,7 +4,7 @@ import { useLayoutEffect, useMemo, useRef } from "react";
 import type { CSSProperties, Dispatch, JSX, RefObject } from "react";
 import { phoneColumns } from "../logic/phone-columns.ts";
 import type { Player } from "../logic/players.ts";
-import type { ScoutAction } from "../logic/scout-state.ts";
+import type { ScoutAction, ScoutSort } from "../logic/scout-state.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 import {
   clubText,
@@ -44,11 +44,14 @@ const PHONE = {
   labelRemPerChar: 0.5,
   paddingRem: 0.5,
 } as const;
-/** The width of a phone number column in rem: a rating's, its label's or its widest value's. */
+/**
+ * The width of a phone number column in rem: a rating's, its label's (with a character for the sort mark)
+ * or its widest value's.
+ */
 const phoneColumnRem = (label: string, valueRem: number): number =>
   Math.max(
     PHONE.ratingRem,
-    label.length * PHONE.labelRemPerChar + PHONE.paddingRem,
+    (label.length + 1) * PHONE.labelRemPerChar + PHONE.paddingRem,
     valueRem + PHONE.paddingRem,
   );
 
@@ -101,27 +104,45 @@ const phoneLayout = (labels: readonly string[], valueRems: readonly number[]): C
   };
 };
 
-/** Labels over the phone rows' numbers; visual only, as each row names its numbers for screen readers. */
-const RowsHeader = ({
-  ref,
-  labels,
-  layout,
-}: {
+/**
+ * Labels over the phone rows' numbers, which sort by their column as the wide table's headings do; the
+ * mark of the sorted one comes from styles.css, its direction is in the button's name.
+ */
+const RowsHeader = (props: {
   ref: RefObject<HTMLDivElement | null>;
+  columns: readonly SortKey[];
   labels: readonly string[];
   layout: CSSProperties;
-}) => (
-  <div ref={ref} className="player-rows-header" aria-hidden="true">
-    <div className="player-rows-grid" style={layout}>
-      <span />
-      {labels.map((label) => (
-        <span key={label} className="column-label">
-          {label}
-        </span>
-      ))}
+  sort: ScoutSort;
+  dispatch: Dispatch<ScoutAction>;
+}) => {
+  const { ref, columns, labels, layout, sort, dispatch } = props;
+  return (
+    <div ref={ref} className="player-rows-header">
+      <div className="player-rows-grid" style={layout}>
+        <span />
+        {columns.map((column, index) => {
+          const label = labels[index] ?? "";
+          const sorted = sort.key === column;
+          return (
+            <button
+              key={column}
+              type="button"
+              className="column-label"
+              data-sort={sorted ? sort.direction : undefined}
+              aria-label={sorted ? TEXT.sortedBy(label, sort.direction) : label}
+              onClick={() => {
+                dispatch({ type: "sort-changed", key: column });
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 /** The name; a long one also as "A. Surname", which styles.css shows instead once the list scrolls. */
 const PhoneName = ({ player }: { player: Player }) =>
@@ -225,18 +246,9 @@ const useFollowedEdges = (scrollRef: RefObject<HTMLDivElement | null>) => {
   return { frameRef, rowsRef };
 };
 
-export const PlayerCards = (props: ListProps): JSX.Element => {
-  const {
-    players,
-    allPlayers,
-    showPotential,
-    ratingCode,
-    ratingName,
-    ranges,
-    currency,
-    sort,
-    dispatch,
-  } = props;
+/** The number columns with their labels and the grid that fits them. */
+const usePhoneColumns = (props: ListProps) => {
+  const { allPlayers, showPotential, ratingCode, ratingName, ranges, currency, sort } = props;
   const columns = useMemo(
     () => phoneColumns({ showPotential, ratingCode, ranges, sortKey: sort.key }),
     [showPotential, ratingCode, ranges, sort.key],
@@ -245,13 +257,29 @@ export const PlayerCards = (props: ListProps): JSX.Element => {
   const labels = columns.map((column) =>
     column === "potential" ? TEXT.potentialShort : columnLabel(column, ratingName, currency),
   );
-  const layout = phoneLayout(labels, useValueRems(allPlayers, columns, ratingCode));
+  return {
+    columns,
+    labels,
+    layout: phoneLayout(labels, useValueRems(allPlayers, columns, ratingCode)),
+  };
+};
+
+export const PlayerCards = (props: ListProps): JSX.Element => {
+  const { players, ratingCode, sort, dispatch } = props;
+  const { columns, labels, layout } = usePhoneColumns(props);
   const headerRef = useRef<HTMLDivElement>(null);
   const { scrollRef, items, before, after } = useRows(players.length, ROW_HEIGHT_REM.list);
   const { frameRef, rowsRef } = useFollowedEdges(scrollRef);
   return (
     <div ref={frameRef} className="phone-list">
-      <RowsHeader ref={headerRef} labels={labels} layout={layout} />
+      <RowsHeader
+        ref={headerRef}
+        columns={columns}
+        labels={labels}
+        layout={layout}
+        sort={sort}
+        dispatch={dispatch}
+      />
       <div
         ref={scrollRef}
         className="scroll phone-scroll"
