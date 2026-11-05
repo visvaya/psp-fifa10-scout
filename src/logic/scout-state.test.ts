@@ -261,6 +261,7 @@ describe("scoutReducer filters, sort and card", () => {
             potential: { min: 80 },
             growth: { min: 10 },
             peak: { min: 70 },
+            peakGain: { min: 1 },
             age: { max: 21 },
           },
         },
@@ -269,11 +270,8 @@ describe("scoutReducer filters, sort and card", () => {
     );
     expect(filtered).toMatchObject({ showPotential: true, sort: { key: "peak" } });
     const hidden = scoutReducer(filtered, { type: "potential-shown", shown: false });
-    expect(hidden).toMatchObject({
-      showPotential: false,
-      filters: { ranges: { age: { max: 21 } } },
-      sort: DEFAULT_SORT,
-    });
+    expect(hidden).toMatchObject({ showPotential: false, sort: DEFAULT_SORT });
+    expect(hidden.filters).toEqual({ ranges: { age: { max: 21 } } });
     const byAge = scoutReducer(filtered, { type: "sort-changed", key: "age" });
     expect(scoutReducer(byAge, { type: "potential-shown", shown: false }).sort.key).toBe("age");
   });
