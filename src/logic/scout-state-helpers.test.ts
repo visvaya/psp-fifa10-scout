@@ -81,6 +81,8 @@ describe("facetOptions", () => {
     expect(facetOptions(players, { lists: { leagueId: [2] } }).clubs).toEqual([
       { id: 5, name: "Śląsk" },
     ]);
+    const outside = { lists: { leagueId: [2] }, excludedLists: { leagueId: true } };
+    expect(facetOptions(players, outside).clubs).toEqual([{ id: 6, name: "Sokół" }]);
   });
 
   it("orders names with the given collation", () => {

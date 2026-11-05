@@ -176,6 +176,21 @@ describe("scoutReducer filters, sort and card", () => {
     });
   });
 
+  it("keeps a list's exclusion only while the list has values, and removes it with the list", () => {
+    const state = scoutReducer(initialScoutState, {
+      type: "filters-changed",
+      filters: {
+        lists: { leagueId: [1], clubId: [] },
+        excludedLists: { leagueId: true, clubId: true, nationalityId: false },
+      },
+    });
+    expect(state.filters).toEqual({
+      lists: { leagueId: [1] },
+      excludedLists: { leagueId: true },
+    });
+    expect(remove(state, "lists.leagueId").filters).toEqual({});
+  });
+
   it("drops a change back to an empty value", () => {
     const state = scoutReducer(initialScoutState, {
       type: "filters-changed",

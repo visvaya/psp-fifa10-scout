@@ -149,13 +149,13 @@ const ASCENDING_FIRST = new Set<SortKey>([
   "contractEndYear",
 ]);
 
-/** The entries of `keys` in `record` whose value passes `keep`, or undefined when none does. */
 /** The known keys in the order the record holds them: the order filters were added orders the columns. */
 export const inRecordOrder = <K extends PropertyKey>(keys: readonly K[], record: object): K[] => {
   const order = Object.keys(record);
   return keys.toSorted((a, b) => order.indexOf(String(a)) - order.indexOf(String(b)));
 };
 
+/** The entries of `keys` in `record` whose value passes `keep`, or undefined when none does. */
 const pick = <T extends object>(
   record: T | undefined,
   keys: readonly (keyof T)[],
@@ -197,12 +197,19 @@ export const compactFilters = (filters: FilterChange): ScoutFilters => {
   const { text, clubStatus, myClub, positionRating } = filters;
   const ranges = pick(filters.ranges, RANGE_KEYS, isRangeSet);
   const lists = pick(filters.lists, LIST_FIELDS, isNonEmpty);
+  // An exclusion means nothing without its list's values.
+  const excludedLists = pick(
+    filters.excludedLists,
+    LIST_FIELDS.filter((key) => lists?.[key] !== undefined),
+    (excluded) => excluded,
+  );
   const flags = pick(filters.flags, FLAG_KEYS, isDefined);
   return {
     ...(text === undefined || text.trim() === "" ? {} : { text }),
     ...(ranges === undefined ? {} : { ranges }),
     ...(positionRating === undefined ? {} : { positionRating }),
     ...(lists === undefined ? {} : { lists }),
+    ...(excludedLists === undefined ? {} : { excludedLists }),
     ...(flags === undefined ? {} : { flags }),
     ...(clubStatus === "free-agents" ? { clubStatus } : {}),
     ...(myClub === undefined ? {} : { myClub }),

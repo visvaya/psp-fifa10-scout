@@ -133,11 +133,27 @@ export interface Choice<T> {
   readonly label: string;
 }
 
+/** Turns a list round to everyone but its chosen values; shown once a value is chosen. */
+const ExcludeToggle = (props: { excluded: boolean; onChange: (excluded: boolean) => void }) => (
+  <label className="check">
+    <input
+      type="checkbox"
+      checked={props.excluded}
+      onChange={(event) => {
+        props.onChange(event.currentTarget.checked);
+      }}
+    />
+    {TEXT.excludeChosen}
+  </label>
+);
+
 export const ChoiceField = <T extends string | number>(props: {
   label: string;
   choices: readonly Choice<T>[];
   chosen: readonly T[] | undefined;
   onChange: (chosen: readonly T[]) => void;
+  excluded: boolean;
+  onExcludedChange: (excluded: boolean) => void;
 }): JSX.Element => {
   const { label, choices, onChange } = props;
   const chosen = props.chosen ?? [];
@@ -163,6 +179,9 @@ export const ChoiceField = <T extends string | number>(props: {
           }}
         />
       ) : null}
+      {chosen.length === 0 ? null : (
+        <ExcludeToggle excluded={props.excluded} onChange={props.onExcludedChange} />
+      )}
       <div className={searchable ? "choices long" : "choices"}>
         {shown.map((choice) => (
           <label key={choice.value} className="check">

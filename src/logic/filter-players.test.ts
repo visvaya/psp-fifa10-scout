@@ -83,6 +83,17 @@ describe("filterPlayers", () => {
     expect(ids({ lists: { nationalityId: [37, 52] } })).toEqual([1, 2]);
   });
 
+  // "All but the chosen": a player without a league is outside every chosen one, so he stays.
+  it("keeps everyone but the chosen values of an excluded list", () => {
+    expect(ids({ lists: { leagueId: [53] }, excludedLists: { leagueId: true } })).toEqual([
+      1, 3, 4,
+    ]);
+    expect(
+      ids({ lists: { positionGroup: ["goalkeeper"] }, excludedLists: { positionGroup: true } }),
+    ).toEqual([1, 2, 4]);
+    expect(ids({ lists: { clubId: [10] }, excludedLists: { leagueId: true } })).toEqual([1, 4]);
+  });
+
   it("applies inclusive ranges, open at either end", () => {
     expect(ids({ ranges: { age: { min: 22, max: 26 } } })).toEqual([1, 2]);
     expect(ids({ ranges: { age: { max: 22 } } })).toEqual([2, 4]);

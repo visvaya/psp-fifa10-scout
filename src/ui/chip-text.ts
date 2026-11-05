@@ -78,11 +78,13 @@ const LIST_VALUE_TEXT: Readonly<Record<ListKey, (value: unknown, names: ChipName
   nationalityId: nameText("nationalityId"),
 };
 
-/** The first chosen values by name, then how many more: "Argentina, Brazil, Chile +2". */
-const listText = (key: ListKey, values: readonly unknown[], names: ChipNames): string => {
+/** The first chosen values by name, then how many more: "Argentina, Brazil, Chile +2"; "oprócz …" for
+ * an excluded list. */
+const listText = (key: ListKey, filters: ScoutFilters, names: ChipNames): string => {
+  const values: readonly unknown[] = filters.lists?.[key] ?? [];
   const shown = values.slice(0, CHIP_VALUES_MAX).map((value) => LIST_VALUE_TEXT[key](value, names));
-  const more = values.length - shown.length;
-  return TEXT.chipValues(shown, more);
+  const text = TEXT.chipValues(shown, values.length - shown.length);
+  return filters.excludedLists?.[key] === true ? TEXT.chipExcluded(text) : text;
 };
 
 /** "BR, od 70, różnica od +1": the position, its bounds and the gain's. */
@@ -106,7 +108,7 @@ const valueText = (id: FilterId, filters: ScoutFilters, names: ChipNames): strin
   const range = RANGE_KEYS.find((key) => `ranges.${key}` === id);
   if (range !== undefined) return rangeText(filters.ranges?.[range], formatNumber);
   const list = LIST_FIELDS.find((key) => `lists.${key}` === id);
-  if (list !== undefined) return listText(list, filters.lists?.[list] ?? [], names);
+  if (list !== undefined) return listText(list, filters, names);
   const flag = FLAG_KEYS.find((key) => `flags.${key}` === id);
   const wanted = flag === undefined ? undefined : filters.flags?.[flag];
   return wanted === undefined ? "" : wanted ? TEXT.flagValues.yes : TEXT.flagValues.no;

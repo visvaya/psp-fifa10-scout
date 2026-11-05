@@ -322,6 +322,9 @@ export const TEXT = {
   chooseAttribute: "Wybierz atrybut",
   removeAttribute: (label: string): string => `Usuń atrybut: ${label}`,
   searchIn: (label: string): string => `Szukaj: ${label}`,
+  /** A list filter turned round: everyone but the chosen values. */
+  excludeChosen: "Wszystkie oprócz zaznaczonych",
+  chipExcluded: (values: string): string => `oprócz ${values}`,
   flagValues: { any: "obojętne", yes: "tak", no: "nie" },
   chip: (label: string, value: string): string => `${label}: ${value}`,
   /** A chip's values: the first ones by name, then how many more ("Argentina, Brazil +2"). */

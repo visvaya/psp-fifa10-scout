@@ -80,6 +80,8 @@ export interface PlayerFilters {
   readonly text?: string;
   readonly ranges?: { readonly [K in RangeKey]?: Range | undefined };
   readonly lists?: { readonly [K in ListKey]?: readonly NonNullable<Player[K]>[] | undefined };
+  /** true: the list keeps everyone but its chosen values. */
+  readonly excludedLists?: { readonly [K in ListKey]?: boolean | undefined };
   /** true: the player has it; false: he does not. */
   readonly flags?: { readonly [K in FlagKey]?: boolean | undefined };
   /** OVR at one position code, whatever the preferred position. */
@@ -153,7 +155,8 @@ const predicates = (filters: PlayerFilters): readonly Predicate[] => {
     ...LIST_FIELDS.flatMap((key) => {
       const values: readonly unknown[] = filters.lists?.[key] ?? [];
       const wanted = new Set(values);
-      return values.length === 0 ? [] : [(player: Player) => wanted.has(player[key])];
+      const excluded = filters.excludedLists?.[key] === true;
+      return values.length === 0 ? [] : [(player: Player) => wanted.has(player[key]) !== excluded];
     }),
     ...(rating === undefined
       ? []
