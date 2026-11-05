@@ -144,7 +144,9 @@ test.describe("wide screen", () => {
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("wolny");
     await expect(page.getByText("Żaden zawodnik nie spełnia filtrów.")).toBeVisible();
   });
+});
 
+test.describe("load errors", () => {
   test("explains a wrong game file and keeps the start screen", async ({ page }) => {
     await page.goto("/");
     await pickGame(page, {
@@ -152,7 +154,16 @@ test.describe("wide screen", () => {
       mimeType: "text/plain",
       buffer: Buffer.from("not a game"),
     });
-    await expect(page.getByRole("alert")).toContainText("To nie jest właściwy plik");
+    const alert = page.getByRole("alert");
+    await expect(alert).toContainText("To nie jest właściwy plik");
+    // Right under the button that picked the file.
+    const [button, message] = await Promise.all([
+      page.locator("label[for='game-file']").boundingBox(),
+      alert.boundingBox(),
+    ]);
+    const gap = (message?.y ?? 0) - (button?.y ?? 0) - (button?.height ?? 0);
+    expect(gap).toBeGreaterThanOrEqual(0);
+    expect(gap).toBeLessThan(32);
   });
 });
 
