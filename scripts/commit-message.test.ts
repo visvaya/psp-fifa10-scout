@@ -14,5 +14,15 @@ describe("commitMessageProblems lines", () => {
   // git commit -v adds the diff below a scissors line; git cuts it off, so the hook ignores it.
   it("ignores everything below the scissors line", () => {
     expect(commitMessageProblems(`fix: x\n${SCISSORS}\n+a ${EM_DASH} b`)).toEqual([]);
+    // core.commentChar may set another character before the scissors.
+    expect(commitMessageProblems(`fix: x\n;${SCISSORS.slice(1)}\n+a ${EM_DASH} b`)).toEqual([]);
+  });
+
+  it("cuts only at a whole scissors line", () => {
+    expect(commitMessageProblems(`fix: x see ${SCISSORS}\n${EM_DASH}`)).toHaveLength(1);
+  });
+
+  it("checks the ends of the message too", () => {
+    expect(commitMessageProblems(`fix: x\n\nbody${String.fromCodePoint(0x0b)}`)).toHaveLength(1);
   });
 });

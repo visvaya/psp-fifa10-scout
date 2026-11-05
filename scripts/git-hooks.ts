@@ -32,15 +32,20 @@ const identityEmail = (ident: string): string => /<([^>]*)>/.exec(ident)?.[1]?.t
 export const isOwnerIdentity = (ident: string): boolean =>
   OWNER_EMAILS.some((email) => email.toLowerCase() === identityEmail(ident));
 
-/** git commit -v puts the diff below this line, and git drops everything from it on. */
-const SCISSORS = "# ------------------------ >8 ------------------------";
+/**
+ * git commit -v puts the diff below this whole line, after its comment character (# unless
+ * core.commentChar says otherwise), and drops everything from it on.
+ */
+const SCISSORS = /^\S -{24} >8 -{24}$/mu;
 
 /**
  * Problems in a commit message. Comment lines count: git keeps them with -m and -F (its default
- * cleanup strips them only from an edited message); the diff below the scissors line does not.
+ * cleanup strips them only from an edited message); the diff below a scissors line does not. The
+ * text is checked untrimmed, so no character at its ends escapes the check.
  */
 export const commitMessageProblems = (raw: string): string[] => {
-  const message = raw.split(SCISSORS)[0]?.trim() ?? "";
+  const scissors = SCISSORS.exec(raw);
+  const message = scissors === null ? raw : raw.slice(0, scissors.index);
   const attribution = FORBIDDEN_MESSAGE_LINES.some((pattern) => pattern.test(message));
   return [
     ...(attribution ? ["co-author or generated-by line; remove it"] : []),
