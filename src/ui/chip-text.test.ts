@@ -38,6 +38,11 @@ describe("chipText", () => {
     expect(chipText("lists.preferredFoot", filters, names)).toBe("Lepsza noga: lewa");
     expect(chipText("lists.positionGroup", filters, names)).toBe("Pozycje: Libero");
     expect(chipText("lists.bodyType", filters, names)).toBe("Typ budowy: typ 3");
+    const development = { lists: { developmentType: [3], developmentStyle: [5, 9] } };
+    expect(chipText("lists.developmentType", development, names)).toBe("Typ rozwoju: późny");
+    expect(chipText("lists.developmentStyle", development, names)).toBe(
+      "Styl rozwoju: nagły skok, styl 9",
+    );
     // An id no player carries shows as the number.
     expect(chipText("lists.leagueId", filters, names)).toBe("Liga: 99");
   });

@@ -18,8 +18,8 @@ test.describe("player card", () => {
     await expect(cardValue(card, "Szybkość nauki")).toHaveText("3 z 5");
     await expect(cardValue(card, "Wiek zakończenia kariery")).toHaveText("35 lat");
     await expect(cardValue(card, "Typ budowy")).toHaveText("typ 2");
-    await expect(cardValue(card, "Typ rozwoju")).toHaveText("typ 1");
-    await expect(cardValue(card, "Styl rozwoju")).toHaveText("styl 2");
+    await expect(cardValue(card, "Typ rozwoju")).toHaveText("wczesny");
+    await expect(cardValue(card, "Styl rozwoju")).toHaveText("dobry");
     await expect(cardValue(card, "Siła klubu")).toHaveText("66");
     await expect(cardValue(card, "Reprezentant kraju")).toHaveText("nie");
     await expect(cardValue(card, "Cechy")).toHaveText("brak");
