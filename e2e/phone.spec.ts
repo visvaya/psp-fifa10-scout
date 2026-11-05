@@ -243,12 +243,12 @@ test.describe("phone name column", () => {
 });
 
 test.describe("phone name forms", () => {
-  test.use(PHONE);
+  // Wide enough for the long test name to fit before the list scrolls.
+  test.use({ ...PHONE, viewport: { width: 800, height: 844 } });
 
   // Row by row (owner, 2026-11-05): a long name keeps its full form while it fits the narrowing column
   // and gives its first name as an initial only once it does not, then back as the column widens.
   test("gives a long name its initial only once it no longer fits", async ({ page }) => {
-    await page.setViewportSize({ width: 800, height: 844 });
     await loadDatabase(page);
     await filterByAttributes(page, "Przyspieszenie", "Szybkość", "Drybling", "Wytrzymałość");
     await page.getByRole("button", { name: /^Filtry/u }).click();
