@@ -27,12 +27,33 @@ const BINARY_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".i
 
 const EM_DASH_MESSAGE = "em dash (U+2014); use an en dash (U+2013) or a middle dot (U+00B7)";
 
+// C0 control characters but the tab and the carriage return (a CRLF line ending), and DEL. They never
+// belong in source or notes; one usually means an escape got lost on the way into the file.
+const ALLOWED_CONTROLS = new Set([0x09, 0x0d]);
+
+const isControl = (code: number): boolean =>
+  (code < 0x20 && !ALLOWED_CONTROLS.has(code)) || code === 0x7f;
+
+const controlMessage = (line: string): string | null => {
+  // Control characters are single UTF-16 units, so the units are enough.
+  const code = Array.from({ length: line.length }, (_, index) => line.charCodeAt(index)).find(
+    isControl,
+  );
+  return code === undefined
+    ? null
+    : `control character U+${code.toString(16).toUpperCase().padStart(4, "0")}`;
+};
+
 /** Problems in one text, each as "label:line: reason". */
 export const findTextProblems = (text: string, label: string): string[] =>
   text
     .split("\n")
     .flatMap((line, index) =>
-      [EM_DASH.test(line) ? EM_DASH_MESSAGE : null, EMOJI.test(line) ? "emoji" : null]
+      [
+        EM_DASH.test(line) ? EM_DASH_MESSAGE : null,
+        EMOJI.test(line) ? "emoji" : null,
+        controlMessage(line),
+      ]
         .filter((reason) => reason !== null)
         .map((reason) => `${label}:${index + 1}: ${reason}`),
     );

@@ -16,6 +16,14 @@ describe("findTextProblems", () => {
     expect(findTextProblems(`hi ${SMILE}`, "a.md")).toEqual(["a.md:1: emoji"]);
   });
 
+  // An escape lost on the way into a file (a regex \b written as a backspace) hides in the text.
+  it("reports a control character, but not a tab or a carriage return", () => {
+    expect(findTextProblems(`/^Name 1${String.fromCodePoint(8)}/u`, "a.ts")).toEqual([
+      "a.ts:1: control character U+0008",
+    ]);
+    expect(findTextProblems("a\tb\r\nc", "a.ts")).toEqual([]);
+  });
+
   it("accepts an en dash, a middle dot and text symbols", () => {
     const text = `a ${EN_DASH} b ${String.fromCodePoint(0xb7)} c ${String.fromCodePoint(0xa9, 0x2192)}`;
     expect(findTextProblems(text, "a.md")).toEqual([]);
