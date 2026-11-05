@@ -109,7 +109,24 @@ export const attributesOf = (row: EaDbRow): Attributes => {
   return Object.freeze(record);
 };
 
-export interface Player extends Finance {
+/**
+ * Season counts from the save: league games, goals, assists and clean sheets (the game counts clean
+ * sheets for goalkeepers only), each also over the domestic and European cups together (cup0..cup3). A
+ * player outside the user's league has 0 in the league (docs: game-knowledge.md).
+ */
+export const SEASON_STAT_KEYS = [
+  "appearances",
+  "goals",
+  "cupAppearances",
+  "cupGoals",
+  "assists",
+  "cupAssists",
+  "cleanSheets",
+  "cupCleanSheets",
+] as const;
+type SeasonStats = { readonly [K in (typeof SEASON_STAT_KEYS)[number]]: number | null };
+
+export interface Player extends Finance, SeasonStats {
   readonly id: number;
   readonly name: string;
   /** The first name as an initial ("L. Messi"), for narrow places; null for a player with one name. */
@@ -176,12 +193,6 @@ export interface Player extends Finance {
    */
   readonly form: number | null;
   readonly morale: number | null;
-  /** League goals and games; a player outside the user's league has 0 (docs: game-knowledge.md). */
-  readonly goals: number | null;
-  readonly appearances: number | null;
-  /** Games and goals in the domestic cup and the European cups together (cup0..cup3). */
-  readonly cupAppearances: number | null;
-  readonly cupGoals: number | null;
   /** Days out injured, from the save. */
   readonly injuryDays: number | null;
   /** Listed for a transfer in the save's window and not sold yet. */
@@ -252,6 +263,17 @@ const cupTotal = (stats: EaDbRow | undefined, key: string): number | null =>
     ? null
     : [0, 1, 2, 3].reduce((total, cup) => total + Number(stats[`${key}cup${String(cup)}`] ?? 0), 0);
 
+const seasonStats = (stats: EaDbRow | undefined): SeasonStats => ({
+  appearances: statOf(stats, "appearances"),
+  goals: statOf(stats, "goals"),
+  cupAppearances: cupTotal(stats, "appearances"),
+  cupGoals: cupTotal(stats, "goals"),
+  assists: statOf(stats, "assists"),
+  cupAssists: cupTotal(stats, "assists"),
+  cleanSheets: statOf(stats, "cleansheets"),
+  cupCleanSheets: cupTotal(stats, "cleansheets"),
+});
+
 /** The average match rating, stored times ten. */
 const ratingOf = (stats: EaDbRow | undefined): number | null => {
   const tenths = statOf(stats, "form");
@@ -310,10 +332,7 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
     nationalityName: context.countries.get(nationalityId) ?? null,
     form: ratingOf(stats),
     morale: statOf(stats, "morale"),
-    goals: statOf(stats, "goals"),
-    appearances: statOf(stats, "appearances"),
-    cupAppearances: cupTotal(stats, "appearances"),
-    cupGoals: cupTotal(stats, "goals"),
+    ...seasonStats(stats),
     injuryDays: statOf(stats, "injurydaysout"),
     ...marketFields(context.market, context.teams, id),
     clubWillSell: context.clubWillSell?.(id) ?? null,

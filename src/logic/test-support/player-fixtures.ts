@@ -79,13 +79,17 @@ export const TEST_CAREER: CareerSummary = {
 };
 
 /** A player without a season in the save. */
-const NO_STATS = {
+export const NO_STATS = {
   form: null,
   morale: null,
   goals: null,
   appearances: null,
   cupAppearances: null,
   cupGoals: null,
+  assists: null,
+  cupAssists: null,
+  cleanSheets: null,
+  cupCleanSheets: null,
   injuryDays: null,
 } as const;
 

@@ -16,10 +16,18 @@ describe("cup stats", () => {
       goals: 3,
       cupAppearances: 3,
       cupGoals: 1,
+      assists: 2,
+      cupAssists: 1,
     });
+    expect(byId(1000)).toMatchObject({ cleanSheets: 2, cupCleanSheets: 1 });
   });
 
   it("has no cup stats without a row in the save", () => {
-    expect(byId(7)).toMatchObject({ cupAppearances: null, cupGoals: null });
+    expect(byId(7)).toMatchObject({
+      cupAppearances: null,
+      cupGoals: null,
+      assists: null,
+      cleanSheets: null,
+    });
   });
 });
