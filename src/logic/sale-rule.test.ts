@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { effectiveRows, parseCareerSave } from "../data/career-save.ts";
+import { parseCareerSave } from "../data/career-save.ts";
 import { parseEaDb } from "../data/ea-db.ts";
 import { buildPlayers } from "./players.ts";
 import { squadRefusal, squadsOf } from "./sale-rule.ts";
@@ -89,29 +89,5 @@ describe("saleVerdictOf (through buildPlayers)", () => {
     expect(refusal(save, 158_023)).toBeNull();
     expect(refusal(save, 158_023, rivals(SCOUT_USER_TEAM_ID, 241))).toBe("rivals");
     expect(refusal(save, 158_023, rivals(241, SCOUT_USER_TEAM_ID))).toBe("rivals");
-  });
-
-  // The game checks the user's squad last, for every offer: with 30 players any offer fails.
-  it("refuses every offer while the user's squad has 30 players", () => {
-    const links = effectiveRows(db, save, "teamplayerlinks");
-    // The generated players 1000..1059.
-    const moved = (row: (typeof links)[number]) =>
-      Number(row["playerid"]) >= 1000 && Number(row["playerid"]) < 1060;
-    const joined = links
-      .filter(moved)
-      .slice(0, 29)
-      .map((row) => ({
-        teamid: SCOUT_USER_TEAM_ID,
-        playerid: Number(row["playerid"]),
-        jerseynumber: 1,
-        yearcontractvalidtil: 2012,
-        position: 33,
-      }));
-    const rest = links.filter(
-      (row) => !joined.some((item) => item.playerid === Number(row["playerid"])),
-    );
-    const full = new Map([...save, ["teamplayerlinks", [...rest, ...joined]]]);
-    expect(of(full, 158_023)).toBe(false);
-    expect(refusal(full, 158_023)).toBe("your-squad");
   });
 });

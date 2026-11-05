@@ -16,6 +16,5 @@ export const OFFER_TEXT = {
     position: pl`Klub odmówi sprzedaży bez względu na kwotę: ma za mało zawodników na tej pozycji. W grze: „ma zbyt mało zawodników w swojej kadrze”.`,
     squad: pl`Klub odmówi sprzedaży bez względu na kwotę: ma 19 lub mniej zawodników w kadrze. W grze: „ma zbyt mało zawodników w swojej kadrze”.`,
     rivals: pl`Klub odmówi sprzedaży bez względu na kwotę: to odwieczny rywal twojego klubu. W grze: „z góry odrzuca oferty odwiecznych rywali”.`,
-    "your-squad": pl`Każdy klub odmówi sprzedaży: twoja kadra ma 30 zawodników albo więcej. W grze: „uważa, że chcesz przejąć wszystkich utalentowanych graczy”.`,
   },
 } as const;
