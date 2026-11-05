@@ -74,6 +74,10 @@ test.describe("filter set overwrite", () => {
     await overwrite.click();
     const confirm = page.getByRole("button", { name: "Nadpisz zestaw „Moi”" });
     await expect(confirm).toBeFocused();
+    // The focused button carries the question for screen readers.
+    await expect(confirm).toHaveAccessibleDescription(
+      "Zastąpić filtry i sortowanie zestawu „Moi” bieżącymi?",
+    );
     await confirm.click();
     await expect(overwrite).toBeFocused();
     await page.getByRole("button", { name: "Wyczyść filtry" }).click();

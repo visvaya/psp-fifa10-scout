@@ -12,13 +12,22 @@ const SetButton = ({
   set,
   onClick,
   ref,
+  describedBy,
 }: {
   label: string;
   set: string;
   onClick: () => void;
   ref?: Ref<HTMLButtonElement>;
+  /** The id of a text the button acts on, read with it (a question it answers). */
+  describedBy?: string;
 }) => (
-  <button ref={ref} type="button" className="button" onClick={onClick}>
+  <button
+    ref={ref}
+    type="button"
+    className="button"
+    aria-describedby={describedBy}
+    onClick={onClick}
+  >
     {label}
     <span className="visually-hidden">{FILTER_SETS_TEXT.of(set)}</span>
   </button>
@@ -104,14 +113,18 @@ const OverwriteConfirm = (props: {
 }) => {
   const { set, dispatch, onDone } = props;
   const confirm = useRef<HTMLButtonElement>(null);
+  const questionId = useId();
   useEffect(() => {
     confirm.current?.focus();
   }, []);
   return (
     <li className="filter-set">
-      <span className="filter-set-name">{FILTER_SETS_TEXT.overwriteQuestion(set.name)}</span>
+      <span id={questionId} className="filter-set-name">
+        {FILTER_SETS_TEXT.overwriteQuestion(set.name)}
+      </span>
       <SetButton
         ref={confirm}
+        describedBy={questionId}
         label={FILTER_SETS_TEXT.overwriteSet}
         set={set.name}
         onClick={() => {
