@@ -54,6 +54,14 @@ const optional = (value: number | string | null): ReactNode =>
 
 const yesNo = (value: boolean): string => (value ? TEXT.card.yes : TEXT.card.no);
 
+const count = (value: number | null): string | null =>
+  value === null ? null : formatNumber(value);
+
+/** A row only when its value is known: a player without a season in the save gets no rows of "brak"
+ * (owner, 2026-11-05). */
+const known = (label: string, value: string | null): readonly (readonly [string, string])[] =>
+  value === null ? [] : [[label, value]];
+
 /** What the filters offer beyond the basics, labelled as in the filters. */
 const profile = (
   player: Player,
@@ -226,21 +234,21 @@ const CareerFacts = ({ player }: { player: Player }) => (
     <p className="help">{TEXT.card.careerNote}</p>
     <Facts
       facts={[
-        [TEXT.card.form, player.form === null ? TEXT.card.none : formatRating(player.form)],
-        [TEXT.card.morale, optional(player.morale)],
-        [RANGE_LABELS.appearances, optional(player.appearances)],
-        [RANGE_LABELS.goals, optional(player.goals)],
-        [RANGE_LABELS.cupAppearances, optional(player.cupAppearances)],
-        [RANGE_LABELS.cupGoals, optional(player.cupGoals)],
-        [RANGE_LABELS.assists, optional(player.assists)],
-        [RANGE_LABELS.cupAssists, optional(player.cupAssists)],
+        ...known(TEXT.card.form, player.form === null ? null : formatRating(player.form)),
+        ...known(TEXT.card.morale, count(player.morale)),
+        ...known(RANGE_LABELS.appearances, count(player.appearances)),
+        ...known(RANGE_LABELS.goals, count(player.goals)),
+        ...known(RANGE_LABELS.cupAppearances, count(player.cupAppearances)),
+        ...known(RANGE_LABELS.cupGoals, count(player.cupGoals)),
+        ...known(RANGE_LABELS.assists, count(player.assists)),
+        ...known(RANGE_LABELS.cupAssists, count(player.cupAssists)),
         ...(player.positionGroup === "goalkeeper"
-          ? ([
-              [RANGE_LABELS.cleanSheets, optional(player.cleanSheets)],
-              [RANGE_LABELS.cupCleanSheets, optional(player.cupCleanSheets)],
-            ] as const)
+          ? [
+              ...known(RANGE_LABELS.cleanSheets, count(player.cleanSheets)),
+              ...known(RANGE_LABELS.cupCleanSheets, count(player.cupCleanSheets)),
+            ]
           : []),
-        [RANGE_LABELS.injuryDays, optional(player.injuryDays)],
+        ...known(RANGE_LABELS.injuryDays, count(player.injuryDays)),
         [FLAG_LABELS.transferListed, yesNo(player.transferListed)],
         [FLAG_LABELS.loanListed, yesNo(player.loanListed)],
         ...(player.loanedFromId === null
