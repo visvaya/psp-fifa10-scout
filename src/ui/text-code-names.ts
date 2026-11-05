@@ -1,4 +1,4 @@
-// Names of the coded player values, a part of the UI texts beside text.ts. Development types and styles
+// Names of the coded player values, a part of the UI texts beside text.ts and text-help.ts. Development types
 // are named after the growth curves they pick in fifa.db; the game names no body type.
 export type CodedKey = "bodyType" | "developmentType" | "developmentStyle";
 
@@ -9,7 +9,7 @@ const CODE_PREFIXES: Readonly<Record<CodedKey, string>> = {
 };
 
 // Curves "Early Bloomer", "Regular", "Late Bloomer" and "Normal", "Good", "Elite", "Short Career", "Sudden Rise".
-const CODE_NAMES: Readonly<Record<CodedKey, Readonly<Partial<Record<number, string>>>>> = {
+export const CODE_NAMES: Readonly<Record<CodedKey, Readonly<Partial<Record<number, string>>>>> = {
   bodyType: {},
   developmentType: { 1: "wczesny", 2: "typowy", 3: "późny" },
   developmentStyle: {

@@ -22,8 +22,8 @@ import {
   RangeField,
   Section,
 } from "./filter-fields.tsx";
-import { codeName } from "./code-names.ts";
-import type { CodedKey } from "./code-names.ts";
+import { codeName } from "./text-code-names.ts";
+import type { CodedKey } from "./text-code-names.ts";
 import type { Choice } from "./filter-fields.tsx";
 import { PotentialSwitch } from "./filter-panel-controls.tsx";
 import { SettingsActions } from "./settings-actions.tsx";

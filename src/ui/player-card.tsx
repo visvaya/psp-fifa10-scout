@@ -5,7 +5,7 @@ import { offerTerms } from "../logic/offer.ts";
 import type { OfferContext } from "../logic/offer.ts";
 import type { AttributeName, Player } from "../logic/players.ts";
 import { nameTextIdOf, POSITION_CODES, RATING_CHOICES, ratingCodeOf } from "../logic/positions.ts";
-import { codeName } from "./code-names.ts";
+import { codeName } from "./text-code-names.ts";
 import { AttributeValue, GainValue } from "./attribute-value.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
 import { PositionName, ratingChoiceName } from "./position-name.tsx";

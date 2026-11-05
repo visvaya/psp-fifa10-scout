@@ -14,6 +14,7 @@ import {
   TEXT,
 } from "./text.ts";
 import { FILTER_SETS_TEXT } from "./text-filter-sets.ts";
+import { CODE_NAMES } from "./text-code-names.ts";
 import { FIELD_HELP } from "./text-help.ts";
 import { OFFER_TEXT } from "./text-offer.ts";
 import { tie } from "./typeset.ts";
@@ -38,6 +39,7 @@ const STRINGS = stringsIn([
   FILTER_SETS_TEXT,
   OFFER_TEXT,
   FIELD_HELP,
+  CODE_NAMES,
 ]);
 
 /** Address pronouns from a capital letter, though not at the start of a sentence. */
