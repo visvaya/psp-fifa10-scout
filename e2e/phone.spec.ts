@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { SYNTHETIC_DB_PATH, SYNTHETIC_SAVE_PATHS } from "../scripts/write-synthetic-db.ts";
 import {
   centre,
+  fadeStart,
   filterByAttributes,
   guardSecurityPolicy,
   loadDatabase,
@@ -215,20 +216,18 @@ test.describe("phone name column", () => {
     const cells = row.locator(".player-row-cell");
     await expect(cells.nth(1)).toBeInViewport({ ratio: 1 });
     await expect(cells.nth(2)).not.toBeInViewport({ ratio: 1 });
-    // The third column starts under the solid end of the fade at the right edge, so none of its
-    // label shows cut off.
+    // The fade at the right edge leaves the second column clear (owner, 2026-11-05) and is solid over
+    // the third, past its 8 px ramp in the gap, so none of the third's label shows cut off.
     const frame = page.locator(".phone-list");
     await expect(frame).toHaveAttribute("data-more");
-    const [third, list] = await Promise.all([
-      page.locator(".player-rows-header .column-label").nth(2).boundingBox(),
-      page.locator(".scroll").evaluate((element) => {
-        const box = element.getBoundingClientRect();
-        return { right: box.left + element.clientWidth };
-      }),
+    const labels = page.locator(".player-rows-header .column-label");
+    const [second, third, fade] = await Promise.all([
+      labels.nth(1).boundingBox(),
+      labels.nth(2).boundingBox(),
+      fadeStart(page),
     ]);
-    // The fade is 24 px wide, solid from 60 %: its last 9.6 px.
-    const solidPx = 9;
-    expect(third?.x ?? Number.NaN).toBeGreaterThanOrEqual(list.right - solidPx);
+    expect((second?.x ?? Number.NaN) + (second?.width ?? 0)).toBeLessThanOrEqual(fade + 1);
+    expect(third?.x ?? Number.NaN).toBeGreaterThanOrEqual(fade + 8 - 1);
     const name = row.locator(".player-row-text");
     const wide = (await name.boundingBox())?.width ?? Number.NaN;
     await page.locator(".scroll").evaluate((element) => {

@@ -349,7 +349,8 @@ export const TEXT = {
   resetQuestion: pl`Przywrócić domyślne filtry, sortowanie i widok bez potencjału? Wgrane pliki, język nazw i zapisane zestawy zostaną.`,
   cancel: "Anuluj",
   /** Clears one field's filter; the label names the field for screen readers. */
-  clearField: "Wyczyść",
+  /** A mark right after a field's name (owner, 2026-11-05: an icon, not a word); the label names it. */
+  clearField: "×",
   clearFieldLabel: (label: string): string => `Wyczyść: ${label}`,
   removeFilter: (label: string): string => `Usuń filtr: ${label}`,
   activeFilters: "Aktywne filtry",

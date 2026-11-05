@@ -145,3 +145,15 @@ export const resetSettings = async (page: Page) => {
   await bar.getByRole("button", { name: "Resetuj" }).click();
   await bar.getByRole("button", { name: "Resetuj" }).click();
 };
+
+/**
+ * Where the fade at the right edge of the phone list starts on screen: the header's visible right edge (a
+ * scrollbar gutter left out) less the fade's rendered width.
+ */
+export const fadeStart = async (page: Page): Promise<number> =>
+  page.locator(".player-rows-header").evaluate((header) => {
+    const list = header.closest(".phone-list");
+    if (!(header instanceof HTMLElement) || list === null) return Number.NEGATIVE_INFINITY;
+    const fade = Number.parseFloat(getComputedStyle(list, "::after").width);
+    return header.getBoundingClientRect().left + header.clientWidth - fade;
+  });
