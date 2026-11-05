@@ -338,6 +338,9 @@ export const TEXT = {
   filtersWithCount: (value: number): string =>
     value === 0 ? "Filtry" : `Filtry (${String(value)})`,
   resetFilters: "Wyczyść filtry",
+  /** Clears one field's filter; the label names the field for screen readers. */
+  clearField: "Wyczyść",
+  clearFieldLabel: (label: string): string => `Wyczyść: ${label}`,
   removeFilter: (label: string): string => `Usuń filtr: ${label}`,
   activeFilters: "Aktywne filtry",
   activeFiltersCount: (value: number): string => `Aktywne filtry (${String(value)})`,

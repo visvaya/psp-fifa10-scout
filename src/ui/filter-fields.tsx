@@ -21,6 +21,39 @@ const useFieldHelp = (help: string | undefined) => {
   };
 };
 
+/**
+ * A field's name, with a button that clears the field while it filters (owner, 2026-11-05). The group
+ * takes its name from the name alone (labelId), so the button does not join it.
+ */
+const FieldLegend = (props: {
+  labelId: string;
+  label: string;
+  filtering: boolean;
+  onClear: () => void;
+}) => (
+  <legend className="field-legend">
+    <span id={props.labelId}>{props.label}</span>
+    {props.filtering ? (
+      <button
+        type="button"
+        className="field-clear"
+        aria-label={TEXT.clearFieldLabel(props.label)}
+        onClick={(event) => {
+          // The button goes with the filter: keep the keyboard in the field, on its search box or its
+          // first value, which stay (a chosen value outside the search would go with the clear).
+          event.currentTarget
+            .closest("fieldset")
+            ?.querySelector<HTMLInputElement>("input[type='search'], .choices input, .range input")
+            ?.focus();
+          props.onClear();
+        }}
+      >
+        {TEXT.clearField}
+      </button>
+    ) : null}
+  </legend>
+);
+
 /** Longer choice lists get a search box. */
 const SEARCH_FROM_CHOICES = 12;
 
@@ -108,9 +141,17 @@ export const RangeField = (props: {
   const range = props.range ?? {};
   const grouped = props.grouped === true;
   const { describedBy, note } = useFieldHelp(props.help);
+  const labelId = useId();
   return (
-    <fieldset className="field" aria-describedby={describedBy}>
-      <legend>{props.label}</legend>
+    <fieldset className="field" aria-labelledby={labelId} aria-describedby={describedBy}>
+      <FieldLegend
+        labelId={labelId}
+        label={props.label}
+        filtering={range.min !== undefined || range.max !== undefined}
+        onClear={() => {
+          props.onChange({});
+        }}
+      />
       {note}
       <div className={grouped ? "range grouped" : "range"}>
         {(["min", "max"] as const).map((bound) => (
@@ -164,6 +205,33 @@ const ExcludeToggle = (props: { excluded: boolean; onChange: (excluded: boolean)
   </label>
 );
 
+/** The checkboxes of a choice field, a scrolling box when the list is long. */
+const ChoiceList = <T extends string | number>(props: {
+  shown: readonly Choice<T>[];
+  chosen: readonly T[];
+  long: boolean;
+  onChange: (chosen: readonly T[]) => void;
+}) => (
+  <div className={props.long ? "choices long" : "choices"}>
+    {props.shown.map((choice) => (
+      <label key={choice.value} className="check">
+        <input
+          type="checkbox"
+          checked={props.chosen.includes(choice.value)}
+          onChange={(event) => {
+            props.onChange(
+              event.currentTarget.checked
+                ? [...props.chosen, choice.value]
+                : props.chosen.filter((value) => value !== choice.value),
+            );
+          }}
+        />
+        {choice.label}
+      </label>
+    ))}
+  </div>
+);
+
 export const ChoiceField = <T extends string | number>(props: {
   label: string;
   choices: readonly Choice<T>[];
@@ -177,6 +245,7 @@ export const ChoiceField = <T extends string | number>(props: {
   const chosen = props.chosen ?? [];
   const [query, setQuery] = useState("");
   const { describedBy, note } = useFieldHelp(props.help);
+  const labelId = useId();
   const wanted = searchKey(query.trim());
   const searchable = choices.length > SEARCH_FROM_CHOICES;
   const shown =
@@ -186,8 +255,15 @@ export const ChoiceField = <T extends string | number>(props: {
           (choice) => chosen.includes(choice.value) || searchKey(choice.label).includes(wanted),
         );
   return (
-    <fieldset className="field" aria-describedby={describedBy}>
-      <legend>{label}</legend>
+    <fieldset className="field" aria-labelledby={labelId} aria-describedby={describedBy}>
+      <FieldLegend
+        labelId={labelId}
+        label={label}
+        filtering={chosen.length > 0}
+        onClear={() => {
+          onChange([]);
+        }}
+      />
       {note}
       {searchable ? (
         <input
@@ -202,24 +278,7 @@ export const ChoiceField = <T extends string | number>(props: {
       {chosen.length === 0 ? null : (
         <ExcludeToggle excluded={props.excluded} onChange={props.onExcludedChange} />
       )}
-      <div className={searchable ? "choices long" : "choices"}>
-        {shown.map((choice) => (
-          <label key={choice.value} className="check">
-            <input
-              type="checkbox"
-              checked={chosen.includes(choice.value)}
-              onChange={(event) => {
-                onChange(
-                  event.currentTarget.checked
-                    ? [...chosen, choice.value]
-                    : chosen.filter((value) => value !== choice.value),
-                );
-              }}
-            />
-            {choice.label}
-          </label>
-        ))}
-      </div>
+      <ChoiceList shown={shown} chosen={chosen} long={searchable} onChange={onChange} />
     </fieldset>
   );
 };
