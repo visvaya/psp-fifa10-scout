@@ -16,7 +16,7 @@ import {
   potentialDeltas,
   readCurves,
 } from "./overall-rating.ts";
-import { placementsOf, teamFields, teamsById } from "./placements.ts";
+import { careerLinks, placementsOf, teamFields, teamsById } from "./placements.ts";
 import type { Placement } from "./placements.ts";
 import { financeOf, NO_FINANCE } from "./player-finance.ts";
 import { clubWillSellOf } from "./sale-rule.ts";
@@ -386,7 +386,10 @@ export const buildPlayers = (db: EaDb, save?: CareerSave): readonly Player[] => 
       : effectiveRows(db, save, "teamplayerlinks");
   const stats = save === undefined ? [] : effectiveRows(db, save, "playerstats");
   const transferList = save === undefined ? [] : effectiveRows(db, save, "career_transfer_list");
-  const placements = placementsOf(links, teamsById(db, save));
+  const placements = placementsOf(
+    save === undefined ? links : careerLinks(db, save),
+    teamsById(db, save),
+  );
   const context: Context = {
     referenceDate:
       save === undefined

@@ -25,6 +25,9 @@ const DB = parseEaDb(
     table("leagues", [{ leagueid: 1, leaguename: "League", level: 1 }]),
     table("teams", [{ teamid: 1, teamname: "Club", overallrating: 60 }]),
     table("leagueteamlinks", [{ leagueid: 1, teamid: 1 }]),
+    table("teamplayerlinks", [
+      { teamid: 1, playerid: 5, jerseynumber: 1, yearcontractvalidtil: 2012 },
+    ]),
     table("country", [{ countryid: 1, countryname: "Country" }]),
     // Turns 21 on 2009-08-01: 20 on the first match day, 21 on the last game below.
     table("players", [

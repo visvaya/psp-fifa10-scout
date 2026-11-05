@@ -1,4 +1,5 @@
 // Where each player plays: his club (with its league and his contract link) and his national team.
+import { effectiveRows } from "../data/career-save.ts";
 import type { CareerSave } from "../data/career-save.ts";
 import { readTable } from "../data/ea-db.ts";
 import type { EaDb, EaDbRow } from "../data/ea-db.ts";
@@ -95,3 +96,25 @@ export const teamFields = ({ club, national }: Placement) => ({
   nationalTeamId: national?.id ?? null,
   nationalTeamName: national?.name ?? null,
 });
+
+/**
+ * The team links a career places players by: the save's, which hold the clubs only, and fifa.db's
+ * national-team links, which no save read so far holds (whether the game changes call-ups in a career
+ * is not known).
+ */
+export const careerLinks = (db: EaDb, save: CareerSave): readonly EaDbRow[] => {
+  const national = new Set(
+    readTable(db, "leagues")
+      .filter((league) => num(league, "level") === SCOUT_CONFIG.nationalLeagueLevel)
+      .map((league) => num(league, "leagueid")),
+  );
+  const nationalTeams = new Set(
+    readTable(db, "leagueteamlinks")
+      .filter((link) => national.has(num(link, "leagueid")))
+      .map((link) => num(link, "teamid")),
+  );
+  return [
+    ...effectiveRows(db, save, "teamplayerlinks"),
+    ...readTable(db, "teamplayerlinks").filter((link) => nationalTeams.has(num(link, "teamid"))),
+  ];
+};
