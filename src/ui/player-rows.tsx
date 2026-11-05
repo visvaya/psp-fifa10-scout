@@ -105,9 +105,10 @@ const phoneLayout = (labelRems: readonly number[], valueRems: readonly number[])
   const full = widths.slice(0, PHONE.fullColumns);
   const fullRem = full.reduce((total, width) => total + width, 0);
   const least = `min(${String(PHONE.nameMinRem)}rem, ${String(PHONE.nameMaxCqw)}cqw)`;
-  // The list's width (cqw: its container) less the first columns, their gaps and the fade at the right
-  // edge, so the first columns show clear of it.
-  const name = `max(${least}, calc(100cqw - ${String(fullRem)}rem - ${String(full.length)} * var(--space-2) - var(--space-6)))`;
+  // The list's width (cqw: its container) less the first columns, their gaps and the right padding, or
+  // the fade at the right edge when more columns follow, so the first columns show clear of it.
+  const edge = widths.length > full.length ? "var(--space-6)" : "var(--space-4)";
+  const name = `max(${least}, calc(100cqw - ${String(fullRem)}rem - ${String(full.length)} * var(--space-2) - ${edge}))`;
   return {
     "--phone-name-least": least,
     "--phone-name": name,

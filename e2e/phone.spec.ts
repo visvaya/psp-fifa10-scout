@@ -425,4 +425,22 @@ test.describe("phone edge fade", () => {
     await page.locator(".scroll").evaluate(scrollToEnd);
     await expect(frame).not.toHaveAttribute("data-more");
   });
+
+  // With every column in view there is no fade: the name keeps its room up to the first column.
+  test("keeps the name its room up to the first column when every column fits", async ({
+    page,
+  }) => {
+    await loadDatabase(page);
+    await showPotential(page);
+    const frame = page.locator(".phone-list");
+    await expect(page.locator(".player-rows-header .column-label")).toHaveCount(2);
+    await expect(frame).not.toHaveAttribute("data-more");
+    const [name, first] = await Promise.all([
+      page.locator(".player-row-text").first().boundingBox(),
+      page.locator(".player-row-cell").first().boundingBox(),
+    ]);
+    // The name reaches the gap before the first number column.
+    const gap = (first?.x ?? 0) - (name?.x ?? 0) - (name?.width ?? 0);
+    expect(gap).toBeCloseTo(8, 0);
+  });
 });
