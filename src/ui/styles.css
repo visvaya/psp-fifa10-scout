@@ -321,7 +321,7 @@ input[inputmode="numeric"] {
   font-weight: 600;
 }
 
-.start > .button {
+.start-files > .button {
   margin-top: var(--space-4);
 }
 

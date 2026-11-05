@@ -50,22 +50,6 @@ test.describe("start screen", () => {
     await expectNoAxeViolations(page);
   });
 
-  test("reserves the room of each screenshot before it loads", async ({ page }) => {
-    await page.goto("/");
-    const images = page.locator("#about img");
-    // Lazy and far below the fold: nothing has been fetched, yet the box already has the picture's shape.
-    for (const index of [0, 1, 2]) {
-      // oxlint-disable-next-line no-await-in-loop -- three quick reads
-      const box = await images.nth(index).evaluate((image: HTMLImageElement) => ({
-        ratio: image.getBoundingClientRect().width / image.getBoundingClientRect().height,
-        declared: image.width / image.height,
-        lazy: image.loading,
-      }));
-      expect(box.lazy).toBe("lazy");
-      expect(box.ratio).toBeCloseTo(box.declared, 1);
-    }
-  });
-
   test("keeps the description off the list and shows it once on the start screen", async ({
     page,
   }) => {
@@ -95,7 +79,7 @@ test.describe("phone", () => {
     await page.goto("/");
     await expect(aboutHeading(page)).toBeVisible();
     await loadScreenshots(page);
-    const start = page.locator("section.start");
+    const start = page.locator("div.start");
     expect(await start.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
   });
 });

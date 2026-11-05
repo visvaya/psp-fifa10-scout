@@ -44,16 +44,15 @@
               <ul>
                 <li>
                   Filtruje po pozycji, lidze, klubie, narodowości, wieku, ocenie (OVR), potencjale,
-                  atrybutach, kontrakcie, formie, morale i cechach, a wyniki sortuje.
+                  atrybutach, kontrakcie i cechach, a wyniki sortuje. Z zapisem kariery dochodzą
+                  filtry po formie, morale, kontuzjach, liście transferowej, cenie i zarobkach.
                 </li>
                 <li>Liczy OVR zawodnika wzorem gry, także na innych pozycjach.</li>
                 <li>
-                  Pokazuje kartę zawodnika z profilem i OVR na pozycjach. Z zapisem kariery dodaje
-                  stan klubów, kontrakty, formę, kontuzje, listę transferową oraz cenę i zarobki.
+                  Pokazuje kartę zawodnika: profil, klub, kontrakt oraz OVR na pozycjach. Zapis
+                  kariery dodaje formę, morale, kontuzje, listę transferową, cenę oraz zarobki.
                 </li>
-                <li>
-                  Domyślnie ukrywa potencjał, bo gra go nie pokazuje; jeden przełącznik go odsłania.
-                </li>
+                <li>Domyślnie ukrywa potencjał; jeden przełącznik go pokazuje.</li>
                 <li>Pokazuje nazwy klubów, lig i krajów w wybranym języku gry.</li>
                 <li>
                   Instaluje się jak aplikacja na telefonie i komputerze, a po pierwszej wizycie
@@ -65,9 +64,8 @@
               <ul>
                 <li>
                   Baza zawodników: obraz ISO gry (z folderu z grami PPSSPP albo własny obraz płyty)
-                  albo plik
-                  <code>fifa.db</code> wyciągnięty z gry. Z obrazu czytany jest tylko plik bazy, nie
-                  cały obraz.
+                  albo plik <code>fifa.db</code> wyciągnięty z gry. Z obrazu narzędzie czyta tylko
+                  bazę, pliki języków i identyfikator gry.
                 </li>
                 <li>
                   Zapis kariery (opcjonalnie): pliki <code>DATA.BIN</code> i <code>PARAM.SFO</code>
@@ -79,8 +77,8 @@
                   <code>.loc</code> razem z <code>string.idx</code>.
                 </li>
                 <li>
-                  Wersja gry: FIFA 10, wydanie europejskie <code>ULES01328</code> (inne wydania mogą
-                  się różnić).
+                  Wersja gry: tylko FIFA 10, wydanie europejskie <code>ULES01328</code> (inne
+                  wydania nie są obsługiwane).
                 </li>
               </ul>
 
@@ -99,7 +97,7 @@
                   width="1280"
                   height="800"
                   loading="lazy"
-                  alt="Tabela zawodników z panelem filtrów po lewej: zaznaczone pozycje środkowy i ofensywny pomocnik, 14 wyników posortowanych według OVR."
+                  alt="Tabela zawodników z panelem filtrów po lewej: zaznaczone pozycje środkowy i ofensywny pomocnik, 12 wyników posortowanych według OVR."
                 />
                 <figcaption>Lista z filtrem pozycji (przykładowe dane)</figcaption>
               </figure>
@@ -129,8 +127,7 @@
                 <summary>Czy potrzebny jest zapis kariery?</summary>
                 <p>
                   Nie. Sama baza wystarcza do wyszukiwania i porównywania zawodników. Zapis dodaje
-                  to, co gra trzyma tylko w karierze: kluby, kontrakty, formę, kontuzje i listę
-                  transferową.
+                  formę, morale, kontuzje, listę transferową, cenę i zarobki oraz filtry po nich.
                 </p>
               </details>
               <details>
@@ -150,8 +147,8 @@
               <details>
                 <summary>Czy to oficjalne narzędzie?</summary>
                 <p>
-                  Nie. To projekt fanowski. Kod źródłowy jest otwarty (GPL-3.0-or-later) i leży w
-                  <a href="https://github.com/visvaya/psp-fifa10-scout" rel="noopener"
+                  Nie. To projekt fanowski. Kod źródłowy jest otwarty (GPL-3.0-or-later) i leży w <a
+                    href="https://github.com/visvaya/psp-fifa10-scout"
                     >repozytorium na GitHubie</a
                   >.
                 </p>

@@ -1,5 +1,6 @@
 // Fails when the production build grows past its budget: JavaScript and CSS (gzip, as served), the service
-// worker, and everything the worker stores for offline use (precache, bytes on the device).
+// worker, everything the worker stores for offline use (precache, bytes on the device), and the sample
+// screenshots of the start page (WebP files, which stay out of the precache).
 //
 // Usage: node scripts/check-size.ts [dist directory]  (after pnpm build; it never builds)
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -12,17 +13,20 @@ export interface BuildSizes {
   readonly cssGzipBytes: number;
   readonly serviceWorkerBytes: number;
   readonly precacheBytes: number;
+  readonly screenshotBytes: number;
 }
 
 // Fixed ceilings for a tool of this kind, set on 2026-11-04 with room to grow, not raised per
 // change: JavaScript under the 170 KB gzip often given for pages fast on a mid-range phone, the rest in
 // proportion. Measured then: JS gzip 115 021, CSS gzip 3 031, worker 10 569, precache 398 276 bytes. A
-// change that crosses one needs a decision on the cause, not a higher number.
+// change that crosses one needs a decision on the cause, not a higher number. The screenshots' ceiling was
+// set on 2026-11-05 about 20 % over the three files then (184 896 bytes in total).
 export const SIZE_BUDGETS: BuildSizes = {
   jsGzipBytes: 160 * 1024,
   cssGzipBytes: 8 * 1024,
   serviceWorkerBytes: 16 * 1024,
   precacheBytes: 600 * 1024,
+  screenshotBytes: 216 * 1024,
 };
 
 const SIZE_KEYS = [
@@ -30,6 +34,7 @@ const SIZE_KEYS = [
   "cssGzipBytes",
   "serviceWorkerBytes",
   "precacheBytes",
+  "screenshotBytes",
 ] as const satisfies readonly (keyof BuildSizes)[];
 
 export const findSizeProblems = (sizes: BuildSizes, budgets: BuildSizes): string[] =>
@@ -39,6 +44,8 @@ export const findSizeProblems = (sizes: BuildSizes, budgets: BuildSizes): string
 
 const gzipBytesOf = (files: readonly string[]): number =>
   files.reduce((sum, file) => sum + gzipSync(readFileSync(file)).length, 0);
+
+const SCREENSHOT_DIR = "screenshots";
 
 const measure = (distDir: string): BuildSizes => {
   const assets = readdirSync(path.join(distDir, "assets")).map((file) =>
@@ -51,6 +58,10 @@ const measure = (distDir: string): BuildSizes => {
     precacheBytes: precacheOfDirectory(distDir)
       .map((entry) => (entry.url === "./" ? "index.html" : entry.url.slice(2)))
       .reduce((sum, file) => sum + statSync(path.join(distDir, file)).size, 0),
+    screenshotBytes: readdirSync(path.join(distDir, SCREENSHOT_DIR)).reduce(
+      (sum, file) => sum + statSync(path.join(distDir, SCREENSHOT_DIR, file)).size,
+      0,
+    ),
   };
 };
 

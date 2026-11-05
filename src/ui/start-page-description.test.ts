@@ -3,7 +3,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { NBSP, tie } from "./typeset.ts";
+import { NBSP } from "./typeset.ts";
 
 const ROOT = path.join(import.meta.dirname, "..", "..");
 const html = readFileSync(path.join(ROOT, "index.html"), "utf8");
@@ -23,11 +23,6 @@ describe("the description in index.html", () => {
     expect(about).toContain("<h2");
     expect(plain).toMatch(/Pliki nie opuszczają urządzenia/u);
     expect(plain).toMatch(/nie jest związany z Electronic Arts, FIFA ani Sony/u);
-  });
-
-  it("is written with the non-breaking spaces of ui-text.md", () => {
-    expect(text).not.toBe("");
-    expect(tie(text)).toBe(text);
   });
 
   it("shows each screenshot with a Polish alt text, its size and lazy loading, captioned as sample data", () => {

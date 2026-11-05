@@ -1,13 +1,13 @@
-// Takes the sample screenshots of the start page (public/screenshots/*.webp) from the synthetic database,
-// so no game data is ever shown. Run by hand when the interface changes; the WebP files are committed.
+// Takes the sample screenshots of the start page (public/screenshots/*.webp) from a sample database of invented
+// players and clubs (scripts/sample-database.ts), so no game data is ever shown. Run by hand when the interface changes; the WebP files are committed.
 //
 // Usage: pnpm build && pnpm make:screenshots  (needs `pnpm exec playwright install chromium` once)
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { chromium } from "@playwright/test";
-import type { Locator, Page } from "@playwright/test";
+import type { Browser, Locator, Page } from "@playwright/test";
 import { preview } from "vite";
-import { buildScoutDb } from "../src/logic/test-support/scout-db.ts";
+import { buildSampleDb } from "./sample-database.ts";
 
 const OUTPUT_DIR = path.join(import.meta.dirname, "..", "public", "screenshots");
 const PORT = 4199;
@@ -18,11 +18,11 @@ interface Shot {
   readonly file: string;
   readonly viewport: { readonly width: number; readonly height: number };
   readonly phone: boolean;
-  /** Brings the page to what the screenshot shows, once the synthetic game is loaded. */
+  /** Brings the page to what the screenshot shows, once the sample game is loaded. */
   readonly arrange: (page: Page) => Promise<void>;
 }
 
-/** Midfielders only: the filter keeps the few real names of the synthetic game out of the pictures. */
+/** The filter the pictures show: two midfield position groups. */
 const MIDFIELD_GROUPS = ["Środkowy pomocnik", "Ofensywny pomocnik"] as const;
 
 const checkGroups = async (scope: Page | Locator): Promise<void> => {
@@ -45,7 +45,7 @@ const SHOTS: readonly Shot[] = [
     phone: false,
     arrange: async (page) => {
       await checkGroups(page);
-      await page.getByRole("button", { name: /^Gracz Numer 6/u }).click();
+      await page.locator("table.players tbody tr").first().getByRole("button").click();
     },
   },
   {
@@ -76,7 +76,9 @@ const toWebp = async (page: Page, png: Buffer): Promise<Buffer> => {
         await (await fetch(`data:image/png;base64,${data}`)).blob(),
       );
       const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
-      canvas.getContext("2d")?.drawImage(bitmap, 0, 0);
+      const context = canvas.getContext("2d");
+      if (context === null) throw new Error("no 2d canvas context to draw the screenshot on");
+      context.drawImage(bitmap, 0, 0);
       const blob = await canvas.convertToBlob({ type: "image/webp", quality });
       const bytes = new Uint8Array(await blob.arrayBuffer());
       return btoa(bytes.reduce((text, byte) => text + String.fromCharCode(byte), ""));
@@ -87,7 +89,7 @@ const toWebp = async (page: Page, png: Buffer): Promise<Buffer> => {
 };
 
 const shoot = async (
-  browser: Awaited<ReturnType<typeof chromium.launch>>,
+  browser: Browser,
   baseUrl: string,
   shot: Shot,
   encoder: Page,
@@ -108,7 +110,7 @@ const shoot = async (
   await input.setInputFiles({
     name: "fifa.db",
     mimeType: "application/octet-stream",
-    buffer: Buffer.from(buildScoutDb()),
+    buffer: Buffer.from(buildSampleDb()),
   });
   await page.getByRole("button", { name: /^Pokaż zawodników/u }).click();
   await page.getByRole("table").or(page.locator(".phone-list")).first().waitFor();
