@@ -44,8 +44,8 @@ const PHONE = {
   ratingRem: 2.25,
   labelRemPerChar: 0.5,
   paddingRem: 0.5,
-  /** The fade at the right edge while columns follow (--space-6 in styles.css). */
-  fadeRem: 1.5,
+  /** The labels' fade at the right edge while columns follow (--space-6 + --space-4 in styles.css). */
+  fadeRem: 2.5,
 } as const;
 /**
  * The width of a phone number column in rem: a rating's, its label's (with a character for the sort mark)

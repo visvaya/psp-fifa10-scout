@@ -47,7 +47,8 @@ test.describe("phone label focus", () => {
     await expect(labels).toHaveCount(4);
     await labels.nth(2).focus();
     await expect(page.locator(".phone-list")).toHaveAttribute("data-more");
-    const fadePx = 24;
+    // The labels' fade at the right edge: 2.5rem.
+    const fadePx = 40;
     await expect
       .poll(async () => {
         const box = await labels.nth(2).boundingBox();
@@ -79,7 +80,7 @@ test.describe("phone label focus on narrow screens", () => {
   // The kept name narrows as the list scrolls: a label that fits beside the narrowed name shows whole,
   // clear of both the name and the fade.
   test("shows a focused label whole once the name has narrowed", async ({ page }) => {
-    await page.setViewportSize({ width: 365, height: 844 });
+    await page.setViewportSize({ width: 385, height: 844 });
     await loadDatabase(page);
     // OVR and POT first, so the name keeps a wide column until the list scrolls.
     await showPotential(page);
@@ -96,7 +97,7 @@ test.describe("phone label focus on narrow screens", () => {
       ]);
       return {
         clearOfName: (box?.x ?? 0) >= (name?.x ?? 0) + (name?.width ?? 0),
-        clearOfFade: (box?.x ?? 0) + (box?.width ?? 0) <= 365 - 24,
+        clearOfFade: (box?.x ?? 0) + (box?.width ?? 0) <= 385 - 40,
       };
     };
     await expect.poll(edges).toEqual({ clearOfName: true, clearOfFade: true });
