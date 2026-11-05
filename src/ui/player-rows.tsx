@@ -115,10 +115,18 @@ const RowsHeader = (props: {
   layout: CSSProperties;
   sort: ScoutSort;
   dispatch: Dispatch<ScoutAction>;
+  /** Focus on a label off screen scrolls the header itself: the list follows it. */
+  onScroll: (scrollLeft: number) => void;
 }) => {
-  const { ref, columns, labels, layout, sort, dispatch } = props;
+  const { ref, columns, labels, layout, sort, dispatch, onScroll } = props;
   return (
-    <div ref={ref} className="player-rows-header">
+    <div
+      ref={ref}
+      className="player-rows-header"
+      onScroll={(event) => {
+        onScroll(event.currentTarget.scrollLeft);
+      }}
+    >
       <div className="player-rows-grid" style={layout}>
         <span />
         {columns.map((column, index) => {
@@ -279,6 +287,10 @@ export const PlayerCards = (props: ListProps): JSX.Element => {
         layout={layout}
         sort={sort}
         dispatch={dispatch}
+        onScroll={(scrollLeft) => {
+          const list = scrollRef.current;
+          if (list !== null && list.scrollLeft !== scrollLeft) list.scrollLeft = scrollLeft;
+        }}
       />
       <div
         ref={scrollRef}

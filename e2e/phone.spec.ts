@@ -183,6 +183,26 @@ test.describe("phone column labels", () => {
     await expect(page.getByRole("button", { name: "rosnąco", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: /^OVR/u })).toHaveAccessibleName("OVR");
   });
+
+  // Focus on a label off screen scrolls the header to it; the rows must follow, or the label would
+  // stand over another column's values.
+  test("moves the rows along when a label off screen gets the focus", async ({ page }) => {
+    await loadDatabase(page);
+    await page.getByRole("button", { name: "Filtry" }).click();
+    const dialog = page.getByRole("dialog", { name: "Filtry" });
+    await dialog.getByText("Atrybuty", { exact: true }).click();
+    await dialog.getByLabel("Dodaj atrybut").selectOption({ label: "Przyspieszenie" });
+    await dialog.getByRole("group", { name: "Przyspieszenie" }).getByLabel("od").fill("10");
+    await dialog.getByLabel("Dodaj atrybut").selectOption({ label: "Szybkość" });
+    await dialog.getByRole("group", { name: "Szybkość" }).getByLabel("od").fill("10");
+    await dialog.getByRole("button", { name: "Zamknij" }).click();
+    await page.locator(".player-rows-header .column-label").last().focus();
+    const [header, list] = [page.locator(".player-rows-header"), page.locator(".scroll")];
+    // WebKit scrolls the hidden overflow of the header to the focused label; Chromium does not.
+    await expect
+      .poll(async () => list.evaluate(scrollLeftOf))
+      .toBe(await header.evaluate(scrollLeftOf));
+  });
 });
 
 test.describe("phone columns with large text", () => {
