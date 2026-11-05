@@ -12,7 +12,8 @@ every change merged into `main` is published there after the checks pass. The in
 What it does today:
 
 - Reads the player database (`fifa.db`) straight from your disc image (ISO), or from a `fifa.db`
-  file you extracted yourself. Only the database is read from the image, not the whole file.
+  file you extracted yourself. From the image it reads only the database, the language files and
+  the game's identifier.
 - Optionally reads a manager-mode career save (`DATA.BIN` and `PARAM.SFO`): decrypts it, verifies
   its checksum and shows the current state of the career, such as clubs, contracts, form, morale,
   injuries, the transfer list and the youth players generated during the career, and the price and
@@ -24,11 +25,11 @@ What it does today:
 - Filters by position, league, club, nationality, preferred foot, body type and development type;
   by ranges of age, OVR, potential, height, weight, attributes, contract end, form, morale and more;
   and by traits. Results can be sorted, and each player has a detail card.
-- Hides potential by default, because the game does not show it; one switch reveals it.
+- Hides potential by default; one switch reveals it.
 - Installs as an app on a phone or a PC and works offline after the first visit. On an iPhone, pick
   the files in the Files app.
 
-Supported game version: FIFA 10, European release `ULES01328`. Other releases may differ.
+Supported game version: FIFA 10, European release `ULES01328`. Other releases are not supported.
 
 ## Your files, not ours
 

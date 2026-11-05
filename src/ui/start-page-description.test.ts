@@ -1,39 +1,66 @@
 // The description of the tool is static HTML in index.html, so search engines read it without running a script.
 // These checks read that file as a crawler would.
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { describeStartPage, startDescription } from "./test-support/start-description.ts";
 import { NBSP } from "./typeset.ts";
 
 const ROOT = path.join(import.meta.dirname, "..", "..");
-const html = readFileSync(path.join(ROOT, "index.html"), "utf8");
-const about = /<section id="about"[\s\S]*?<\/section>/u.exec(html)?.[0] ?? "";
-// What a crawler reads: the text between the tags, with the non-breaking spaces as the plain ones people search for.
-const text = about.replaceAll(/<[^>]*>/gu, "");
-const plain = text.replaceAll(NBSP, " ");
-const images = [...about.matchAll(/<img\b[^>]*>/gu)].map((match) => match[0]);
-const attribute = (tag: string, name: string): string | undefined =>
-  new RegExp(String.raw`\s${name}="([^"]*)"`, "u").exec(tag)?.[1];
+const { blocks, images } = startDescription();
+const textsOf = (tag: string): string[] =>
+  blocks.filter((block) => block.tag === tag).map((block) => block.text.replaceAll(NBSP, " "));
+const plain = blocks.map((block) => block.text.replaceAll(NBSP, " ")).join(" ");
+
+describe("reading the description", () => {
+  it("takes the text of its blocks and the attributes of its images, whatever markup lies between", () => {
+    const html = `<section id="other"><p>outside</p></section>
+      <section id="about"><h2 id="t">Title</h2>
+        <p>One <code>two</code>
+          three <a href="x" title="a > b">four</a>.</p>
+        <section><li>nested</li></section>
+        <img src="a.webp" alt="Alt text" width="10" />
+      </section><p>after</p>`;
+    expect(describeStartPage(html)).toEqual({
+      blocks: [
+        { tag: "h2", text: "Title" },
+        { tag: "p", text: "One two three four." },
+        { tag: "li", text: "nested" },
+      ],
+      images: [{ src: "a.webp", alt: "Alt text", width: "10" }],
+    });
+  });
+
+  it("finds the description in index.html: a heading, many blocks and every image", () => {
+    expect(textsOf("h2")).toEqual(["O narzędziu"]);
+    expect(blocks.length).toBeGreaterThan(15);
+    expect(images).toHaveLength(3);
+  });
+});
 
 describe("the description in index.html", () => {
   it("tells what the tool does, which files it needs, privacy, questions and the disclaimer", () => {
-    for (const heading of ["Co robi", "Jakie pliki i skąd", "Prywatność", "Najczęstsze pytania"]) {
-      expect(about).toMatch(new RegExp(`<h3>${heading.replaceAll(" ", "[ \u00a0]")}</h3>`, "u"));
-    }
-    expect(about).toContain("<h2");
+    expect(textsOf("h3")).toEqual([
+      "Co robi",
+      "Jakie pliki i skąd",
+      "Prywatność",
+      "Jak to wygląda",
+      "Najczęstsze pytania",
+    ]);
     expect(plain).toMatch(/Pliki nie opuszczają urządzenia/u);
     expect(plain).toMatch(/nie jest związany z Electronic Arts, FIFA ani Sony/u);
   });
 
   it("shows each screenshot with a Polish alt text, its size and lazy loading, captioned as sample data", () => {
-    expect(images).toHaveLength(3);
     for (const image of images) {
-      expect(attribute(image, "alt")?.length).toBeGreaterThan(20);
-      expect(Number(attribute(image, "width"))).toBeGreaterThan(0);
-      expect(Number(attribute(image, "height"))).toBeGreaterThan(0);
-      expect(attribute(image, "loading")).toBe("lazy");
-      expect(existsSync(path.join(ROOT, "public", attribute(image, "src") ?? "-"))).toBe(true);
+      expect(image["alt"]?.length).toBeGreaterThan(20);
+      expect(Number(image["width"])).toBeGreaterThan(0);
+      expect(Number(image["height"])).toBeGreaterThan(0);
+      expect(image["loading"]).toBe("lazy");
+      expect(existsSync(path.join(ROOT, "public", image["src"] ?? "-"))).toBe(true);
     }
-    expect(about.match(/\(przykładowe dane\)<\/figcaption>/gu)).toHaveLength(images.length);
+    const captions = textsOf("figcaption");
+    expect(captions).toHaveLength(images.length);
+    expect(captions.every((caption) => caption.endsWith("(przykładowe dane)"))).toBe(true);
   });
 });

@@ -22,9 +22,11 @@ const NOT_PRECACHED_FILES = new Set([
   ".assetsignore",
   SERVICE_WORKER_FILE,
 ]);
-// Sample screenshots of the start page (scripts/make-screenshots.ts): they only illustrate the description and
-// load lazily, so they stay off the device.
-const NOT_PRECACHED_DIRECTORY = "screenshots/";
+/**
+ * Sample screenshots of the start page (scripts/make-screenshots.ts): they only illustrate the description and
+ * load lazily, so they stay off the device.
+ */
+export const SCREENSHOT_DIRECTORY = "screenshots";
 const RELEASE_PLACEHOLDER = "self.APP_RELEASE_PLACEHOLDER";
 /** One prefix per app on the origin: a shared origin (user.github.io) shares its cache storage. */
 export const CACHE_PREFIX = "psp-fifa10-scout-";
@@ -42,7 +44,7 @@ export const sha256Hex = (content: string | Uint8Array): string =>
 // Source maps: only developer tools ask for them, and a host may not serve them at all.
 const isPrecached = (filePath: string): boolean =>
   !NOT_PRECACHED_FILES.has(filePath) &&
-  !filePath.startsWith(NOT_PRECACHED_DIRECTORY) &&
+  !filePath.startsWith(`${SCREENSHOT_DIRECTORY}/`) &&
   !filePath.endsWith(".map");
 
 /**

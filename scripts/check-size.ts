@@ -6,7 +6,7 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { gzipSync } from "node:zlib";
-import { precacheOfDirectory } from "./write-service-worker.ts";
+import { precacheOfDirectory, SCREENSHOT_DIRECTORY } from "./write-service-worker.ts";
 
 export interface BuildSizes {
   readonly jsGzipBytes: number;
@@ -45,8 +45,6 @@ export const findSizeProblems = (sizes: BuildSizes, budgets: BuildSizes): string
 const gzipBytesOf = (files: readonly string[]): number =>
   files.reduce((sum, file) => sum + gzipSync(readFileSync(file)).length, 0);
 
-const SCREENSHOT_DIR = "screenshots";
-
 const measure = (distDir: string): BuildSizes => {
   const assets = readdirSync(path.join(distDir, "assets")).map((file) =>
     path.join(distDir, "assets", file),
@@ -58,8 +56,8 @@ const measure = (distDir: string): BuildSizes => {
     precacheBytes: precacheOfDirectory(distDir)
       .map((entry) => (entry.url === "./" ? "index.html" : entry.url.slice(2)))
       .reduce((sum, file) => sum + statSync(path.join(distDir, file)).size, 0),
-    screenshotBytes: readdirSync(path.join(distDir, SCREENSHOT_DIR)).reduce(
-      (sum, file) => sum + statSync(path.join(distDir, SCREENSHOT_DIR, file)).size,
+    screenshotBytes: readdirSync(path.join(distDir, SCREENSHOT_DIRECTORY)).reduce(
+      (sum, file) => sum + statSync(path.join(distDir, SCREENSHOT_DIRECTORY, file)).size,
       0,
     ),
   };

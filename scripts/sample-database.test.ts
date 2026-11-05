@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseEaDb } from "../src/data/ea-db.ts";
 import { buildPlayers } from "../src/logic/players.ts";
-import { buildSampleDb } from "./sample-database.ts";
+import { buildSampleDb, CLUBS } from "./sample-database.ts";
 
 const KEEPER_CODE = 0;
 const players = buildPlayers(parseEaDb(buildSampleDb()));
@@ -16,8 +16,10 @@ describe("the sample database of the screenshots", () => {
     expect(new Set(players.map((player) => player.name)).size).toBe(players.length);
     expect(new Set(players.map((player) => player.positionGroup)).size).toBeGreaterThanOrEqual(4);
     expect(players.every((player) => player.clubName !== null)).toBe(true);
-    // The invented clubs and countries only: nothing from the real game.
-    expect(new Set(players.map((player) => player.clubName)).size).toBe(8);
+    // Only the invented clubs, every one of them with players.
+    expect(new Set(players.map((player) => player.clubName))).toEqual(
+      new Set(CLUBS.map((club) => club.teamname)),
+    );
   });
 
   it("rates players differently by position: an outfield player is a poor keeper", () => {

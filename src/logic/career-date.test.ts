@@ -6,10 +6,8 @@ import type { EaDbRow } from "../data/ea-db.ts";
 import { buildEaDb } from "../data/test-support/synthetic-ea-db.ts";
 import { CURVE_COLUMNS } from "./overall-rating.ts";
 import { buildPlayers } from "./players.ts";
-import { playerRow, table } from "./test-support/player-fixtures.ts";
+import { daysSince1582, playerRow, table } from "./test-support/player-fixtures.ts";
 
-const daysSince1582 = (year: number, month: number, day: number): number =>
-  (Date.UTC(year, month - 1, day) - Date.UTC(1582, 9, 14)) / 86_400_000;
 /** A fixtures or team_manager game number: the day, then a 10-bit game index. */
 const gameOn = (year: number, month: number, day: number): number =>
   daysSince1582(year, month, day) * 1024;

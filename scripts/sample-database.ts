@@ -4,13 +4,16 @@
 import { buildEaDb } from "../src/data/test-support/synthetic-ea-db.ts";
 import { ATTRIBUTE_NAMES } from "../src/logic/players.ts";
 import type { AttributeName } from "../src/logic/players.ts";
-import { flatCurves, playerRow, table } from "../src/logic/test-support/player-fixtures.ts";
+import {
+  daysSince1582,
+  flatCurves,
+  playerRow,
+  table,
+} from "../src/logic/test-support/player-fixtures.ts";
 
 const SEED = 20_091_010;
 const PLAYER_COUNT = 48;
 const FIRST_PLAYER_ID = 5000;
-/** Days since 1582-10-14, the fifa.db birthdate epoch. */
-const born = (year: number): number => (Date.UTC(year, 0, 15) - Date.UTC(1582, 9, 14)) / 86_400_000;
 
 const FIRST_NAMES = [
   "Marek",
@@ -45,7 +48,7 @@ const LEAGUES = [
   { leagueid: 901, leaguename: "Northland League (1)", level: 1, leagueprestige: 12 },
   { leagueid: 902, leaguename: "Eastern Division (1)", level: 1, leagueprestige: 8 },
 ];
-const CLUBS = [
+export const CLUBS = [
   { teamid: 2001, teamname: "FC Karmin", leagueid: 901, overallrating: 74 },
   { teamid: 2002, teamname: "Rovina United", leagueid: 901, overallrating: 70 },
   { teamid: 2003, teamname: "Atletico Verde", leagueid: 901, overallrating: 66 },
@@ -124,7 +127,7 @@ const playerAt = (index: number, random: () => number) => {
     playerid: FIRST_PLAYER_ID + index,
     firstname: FIRST_NAMES[(index * 5 + Math.floor(index / 8)) % FIRST_NAMES.length] ?? "Marek",
     surname: `${SURNAME_STARTS[index % SURNAME_STARTS.length] ?? "Kor"}${SURNAME_ENDS[(index * 3 + Math.floor(index / 10)) % SURNAME_ENDS.length] ?? "dic"}`,
-    birthdate: born(birthYear),
+    birthdate: daysSince1582(birthYear, 1, 15),
     nationality: COUNTRIES[index % COUNTRIES.length]?.countryid ?? 301,
     preferredposition1: position,
     height: 170 + Math.floor(random() * 25),
