@@ -72,7 +72,10 @@ test.describe("career ratings", () => {
   test("shows the average match rating with one decimal and filters by it", async ({ page }) => {
     await loadCareer(page);
     await page.getByText("Kariera", { exact: true }).click();
-    await page.getByRole("group", { name: "Średnia ocena (KR)" }).getByLabel("od").fill("6.5");
+    const ratingFrom = page.getByRole("group", { name: "Średnia ocena (KR)" }).getByLabel("od");
+    // A typed dot turns into the Polish decimal comma at once.
+    await ratingFrom.pressSequentially("6.5");
+    await expect(ratingFrom).toHaveValue("6,5");
     await expectCount(page, "1\u00a0zawodnik");
     await page.getByRole("button", { name: /^Lionel Messi/u }).click();
     const card = page.getByRole("dialog", { name: "Lionel Messi" });
