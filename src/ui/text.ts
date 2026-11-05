@@ -361,8 +361,6 @@ export const TEXT = {
   /** The same at the start of a part of the phone row's line, where an ordinary space would collapse. */
   rowMetaPartSeparator: `${NBSP}·${NBSP}`,
   shortlistedMark: "★",
-  /** One of five stars. */
-  starMark: "★",
   shortlisted: pl`na liście życzeń w grze`,
   anyOption: "Dowolna",
   min: "od",

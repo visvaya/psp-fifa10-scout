@@ -641,19 +641,30 @@ input[inputmode="numeric"] {
   margin-right: var(--space-1);
 }
 
-/* Five stars as the game shows them: full, half (the left half filled) or empty. */
+/* Five stars as the game shows them: filled, outlined (empty), or outlined with the left half filled.
+   The shapes tell them apart, and the outline keeps the muted text's contrast. */
 .stars {
-  color: var(--color-line);
+  display: inline-flex;
+  gap: var(--space-1);
+  vertical-align: -0.125em;
 }
 
-.star-full {
-  color: var(--color-accent);
+.star {
+  width: 1em;
+  height: 1em;
 }
 
-.star-half {
-  background: linear-gradient(to right, var(--color-accent) 50%, var(--color-line) 50%);
-  background-clip: text;
-  color: transparent;
+.star path {
+  fill: none;
+  stroke: var(--color-muted);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.star-full path,
+.star .star-fill {
+  fill: var(--color-accent);
+  stroke: var(--color-accent);
 }
 
 /* Forced colours drop the fill, so full, half and empty stars look alike: the value shows as text. */

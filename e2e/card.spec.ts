@@ -14,16 +14,16 @@ test.describe("player card", () => {
     await expectCount(page, "1 zawodnik");
     await page.getByRole("button", { name: "Paweł Brożek" }).click();
     const card = page.getByRole("dialog", { name: "Paweł Brożek" });
-    await expect(cardValue(card, "Reputacja międzynarodowa")).toHaveText("★★★★★1 z 5 gwiazdek");
-    await expect(cardValue(card, "Szybkość nauki")).toHaveText("★★★★★3 z 5 gwiazdek");
+    await expect(cardValue(card, "Reputacja międzynarodowa")).toHaveText(/1 z 5 gwiazdek$/u);
+    await expect(cardValue(card, "Szybkość nauki")).toHaveText(/3 z 5 gwiazdek$/u);
     // Full, half and empty stars: 3 of 5 for learning; his own stars from OVR 49, half a star.
     await expect(
       card
         .locator(".facts > div")
         .filter({ hasText: /^Szybkość nauki/u })
         .locator(".stars > *"),
-    ).toHaveClass(["star-full", "star-full", "star-full", "star-empty", "star-empty"]);
-    await expect(cardValue(card, "Gwiazdki zawodnika")).toHaveText("★★★★★0,5 z 5 gwiazdek");
+    ).toHaveClass([/star-full/u, /star-full/u, /star-full/u, /star-empty/u, /star-empty/u]);
+    await expect(cardValue(card, "Gwiazdki zawodnika")).toHaveText(/0,5 z 5 gwiazdek$/u);
     await expect(card.locator(".stars").first().locator(".star-half")).toHaveCount(1);
     await expect(cardValue(card, "Wiek zakończenia kariery")).toHaveText("35 lat");
     await expect(cardValue(card, "Typ budowy")).toHaveText("typ 2");
