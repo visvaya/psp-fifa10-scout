@@ -55,6 +55,8 @@ describe("undo of each change", () => {
     const changed = run([{ type: "filters-reset" }, action], saved);
     const before = run([{ type: "undo" }], changed);
     expect(before.showPotential).toBe(false);
+    // The named change taken back, not the reset before it.
+    expect(before.filters).toEqual({});
     expect(before.filterSets?.map((set) => set.name)).toEqual(["A"]);
   });
 });
