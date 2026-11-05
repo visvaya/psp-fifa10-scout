@@ -5,7 +5,8 @@ import type { JSX, ReactNode } from "react";
 import type { Range } from "../logic/filter-players.ts";
 import { searchKey } from "../logic/players.ts";
 import { caretAfterDigits, editGrouped } from "./grouped-number.ts";
-import { formatNumber, TEXT } from "./text.ts";
+import { decimalText } from "./decimal-text.ts";
+import { DECIMAL_SEPARATOR, formatNumber, TEXT } from "./text.ts";
 
 /** A field's explanation under its name, linked to the field for screen readers. */
 const useFieldHelp = (help: string | undefined) => {
@@ -126,6 +127,77 @@ const GroupedInput = (props: {
   );
 };
 
+const decimalShown = (value: number | undefined): string =>
+  value === undefined ? "" : String(value).replace(".", DECIMAL_SEPARATOR);
+
+/**
+ * A decimal typed with the interface language's separator, which replaces a typed dot or comma at once
+ * (decimal-text.ts). A value set from outside (a clear, a loaded set) replaces what was typed.
+ */
+const DecimalInput = (props: {
+  value: number | undefined;
+  onChange: (value: number | undefined) => void;
+}) => {
+  const [text, setText] = useState(decimalShown(props.value));
+  const [seen, setSeen] = useState(props.value);
+  const input = useRef<HTMLInputElement>(null);
+  // Where the caret goes once the typed text is normalized, null when nothing was typed.
+  const caret = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    if (caret.current === null) return;
+    input.current?.setSelectionRange(caret.current, caret.current);
+    caret.current = null;
+  });
+  if (props.value !== seen) {
+    setSeen(props.value);
+    if (decimalText(text, DECIMAL_SEPARATOR).value !== props.value)
+      setText(decimalShown(props.value));
+  }
+  return (
+    <input
+      ref={input}
+      type="text"
+      inputMode="decimal"
+      value={text}
+      onChange={(event) => {
+        const { value, selectionStart } = event.currentTarget;
+        const typed = decimalText(value, DECIMAL_SEPARATOR);
+        // The text before the caret, normalized alone, ends where the caret belongs.
+        caret.current = decimalText(
+          value.slice(0, selectionStart ?? value.length),
+          DECIMAL_SEPARATOR,
+        ).text.length;
+        setText(typed.text);
+        props.onChange(typed.value);
+      }}
+    />
+  );
+};
+
+/** One bound of a range: grouped digits, a decimal or a whole number. */
+const BoundInput = (props: {
+  kind: "grouped" | "decimal" | "whole";
+  allowNegative: boolean;
+  value: number | undefined;
+  onChange: (value: number | undefined) => void;
+}) => {
+  if (props.kind === "grouped")
+    return <GroupedInput value={props.value} onChange={props.onChange} />;
+  if (props.kind === "decimal")
+    return <DecimalInput value={props.value} onChange={props.onChange} />;
+  return (
+    <input
+      type="number"
+      inputMode="numeric"
+      min={props.allowNegative ? undefined : 0}
+      value={props.value ?? ""}
+      onChange={(event) => {
+        props.onChange(numberOrUndefined(event.currentTarget.value));
+      }}
+    />
+  );
+};
+
 export const RangeField = (props: {
   label: string;
   range: Range | undefined;
@@ -133,7 +205,7 @@ export const RangeField = (props: {
   allowNegative?: boolean;
   /** Large amounts (price, wage): digits grouped while typed, in wider fields. */
   grouped?: boolean;
-  /** One decimal (a match rating): steps of 0.1 and a keyboard with the decimal separator. */
+  /** A decimal (a match rating), typed with the interface language's separator. */
   decimal?: boolean;
   help?: string | undefined;
   onChange: (range: Range) => void;
@@ -157,28 +229,14 @@ export const RangeField = (props: {
         {(["min", "max"] as const).map((bound) => (
           <label key={bound} className="range-input">
             <span>{TEXT[bound]}</span>
-            {grouped ? (
-              <GroupedInput
-                value={range[bound]}
-                onChange={(value) => {
-                  props.onChange({ ...range, [bound]: value });
-                }}
-              />
-            ) : (
-              <input
-                type="number"
-                inputMode={props.decimal === true ? "decimal" : "numeric"}
-                step={props.decimal === true ? 0.1 : undefined}
-                min={props.allowNegative === true ? undefined : 0}
-                value={range[bound] ?? ""}
-                onChange={(event) => {
-                  props.onChange({
-                    ...range,
-                    [bound]: numberOrUndefined(event.currentTarget.value),
-                  });
-                }}
-              />
-            )}
+            <BoundInput
+              kind={grouped ? "grouped" : props.decimal === true ? "decimal" : "whole"}
+              allowNegative={props.allowNegative === true}
+              value={range[bound]}
+              onChange={(value) => {
+                props.onChange({ ...range, [bound]: value });
+              }}
+            />
           </label>
         ))}
       </div>

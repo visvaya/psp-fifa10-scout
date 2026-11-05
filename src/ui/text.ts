@@ -20,6 +20,10 @@ export interface PluralForms {
 const pluralRules = new Intl.PluralRules("pl");
 const numberFormat = new Intl.NumberFormat("pl-PL");
 
+/** The decimal separator of the interface language (a comma in Polish), for typed decimals. */
+export const DECIMAL_SEPARATOR =
+  numberFormat.formatToParts(1.5).find((part) => part.type === "decimal")?.value ?? ",";
+
 /** The Polish noun form for an integer count: 1 rok, 2–4 lata, 5–21 lat, 22–24 lata. */
 export const plural = (count: number, forms: PluralForms): string => {
   const category = pluralRules.select(count);
