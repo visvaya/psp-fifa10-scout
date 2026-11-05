@@ -5,17 +5,23 @@ import { centre, guardSecurityPolicy, loadDatabase, PHONE, pickGame } from "./su
 
 guardSecurityPolicy();
 
-/** Filters by acceleration and sprint speed, which adds their two columns. */
-const filterBySpeed = async (page: Page) => {
+/** Filters by these attributes from 10 up, which adds a column for each. */
+const filterByAttributes = async (page: Page, ...labels: readonly string[]) => {
   await page.getByRole("button", { name: "Filtry" }).click();
   const dialog = page.getByRole("dialog", { name: "Filtry" });
   await dialog.getByText("Atrybuty", { exact: true }).click();
-  await dialog.getByLabel("Dodaj atrybut").selectOption({ label: "Przyspieszenie" });
-  await dialog.getByRole("group", { name: "Przyspieszenie" }).getByLabel("od").fill("10");
-  await dialog.getByLabel("Dodaj atrybut").selectOption({ label: "Szybkość" });
-  await dialog.getByRole("group", { name: "Szybkość" }).getByLabel("od").fill("10");
+  for (const label of labels) {
+    // One after another: each choice adds the field the next line fills.
+    // oxlint-disable-next-line no-await-in-loop -- the steps depend on each other
+    await dialog.getByLabel("Dodaj atrybut").selectOption({ label });
+    // oxlint-disable-next-line no-await-in-loop -- the steps depend on each other
+    await dialog.getByRole("group", { name: label }).getByLabel("od").fill("10");
+  }
   await dialog.getByRole("button", { name: "Zamknij" }).click();
 };
+
+/** Filters by acceleration and sprint speed, which adds their two columns. */
+const filterBySpeed = async (page: Page) => filterByAttributes(page, "Przyspieszenie", "Szybkość");
 
 /** Shows the potential through the filter dialog, as a phone user does. */
 const showPotential = async (page: Page) => {
@@ -195,6 +201,10 @@ test.describe("phone column labels", () => {
     await expect(page.getByRole("button", { name: "rosnąco", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: /^OVR/u })).toHaveAccessibleName("OVR");
   });
+});
+
+test.describe("phone label focus", () => {
+  test.use(PHONE);
 
   // A label partly off screen, with more columns after it, shows clear of the right edge's fade.
   test("keeps a focused label clear of the fade at the right edge", async ({ page }) => {
@@ -212,6 +222,23 @@ test.describe("phone column labels", () => {
         return (box?.x ?? Infinity) + (box?.width ?? 0);
       })
       .toBeLessThanOrEqual((page.viewportSize()?.width ?? 0) - fadePx);
+  });
+
+  // On a narrow screen a long label may not fit beside the name: it shows from its start.
+  test("shows a focused label too wide for the room from its start", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 844 });
+    await loadDatabase(page);
+    await filterByAttributes(page, "Świadomość taktyczna");
+    await page.getByLabel("Sortuj według").selectOption("height");
+    const label = page.getByRole("button", { name: /^Świadomość taktyczna/u });
+    await label.focus();
+    const nameEnd = async () => {
+      const box = await page.locator(".player-rows-grid > :first-child").boundingBox();
+      return (box?.x ?? 0) + (box?.width ?? 0);
+    };
+    await expect
+      .poll(async () => (await label.boundingBox())?.x ?? 0)
+      .toBeGreaterThanOrEqual(await nameEnd());
   });
 
   // A label off screen that gets the focus scrolls into view, and the rows with it, or the label would
@@ -243,12 +270,7 @@ test.describe("phone columns with large text", () => {
     // Tall enough for rows under the enlarged toolbar.
     await page.setViewportSize({ width: 320, height: 1400 });
     await loadDatabase(page);
-    await page.getByRole("button", { name: "Filtry" }).click();
-    const dialog = page.getByRole("dialog", { name: "Filtry" });
-    await dialog.getByText("Atrybuty", { exact: true }).click();
-    await dialog.getByLabel("Dodaj atrybut").selectOption({ label: "Szybkość" });
-    await dialog.getByRole("group", { name: "Szybkość" }).getByLabel("od").fill("10");
-    await dialog.getByRole("button", { name: "Zamknij" }).click();
+    await filterByAttributes(page, "Szybkość");
     await page.evaluate(() => {
       document.documentElement.style.fontSize = "32px";
     });

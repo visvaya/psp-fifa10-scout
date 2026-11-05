@@ -171,7 +171,8 @@ const PhoneName = ({ player }: { player: Player }) =>
   );
 
 /**
- * Where the list scrolls so a focused label shows whole between the kept name and the right edge: a
+ * Where the list scrolls so a focused label shows whole between the kept name and the right edge (from
+ * its start when it does not fit): a
  * label's padding to spare on the left, the edge's fade on the right, which stays while columns follow.
  * Measured within the header's content, whatever the header's own scroll.
  */
@@ -185,8 +186,10 @@ const scrollShowing = (label: HTMLElement, header: HTMLElement, from: number): n
   ];
   const name = header.querySelector(".player-rows-grid > :first-child")?.getBoundingClientRect();
   const nameWidth = name?.width ?? 0;
-  if (right > from + header.clientWidth) return right - header.clientWidth;
-  return left < from + nameWidth ? left - nameWidth : from;
+  // A label wider than the room between the name and the fade shows from its start.
+  const showStart = left - nameWidth;
+  if (right > from + header.clientWidth) return Math.min(right - header.clientWidth, showStart);
+  return left < from + nameWidth ? showStart : from;
 };
 
 /**
