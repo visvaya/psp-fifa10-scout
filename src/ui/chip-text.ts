@@ -98,6 +98,7 @@ const ratingText = (rating: PositionRating, names: ChipNames): string => {
       rangeText(rating, formatNumber),
       gain === "" ? "" : `${TEXT.ratingGainShort} ${gain}`,
       peak === "" ? "" : `${TEXT.ratingPeakShort} ${peak}`,
+      rating.bestOnly === true ? TEXT.bestPositionShort : "",
     ].filter((part) => part !== ""),
   );
 };

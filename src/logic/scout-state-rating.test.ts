@@ -51,5 +51,10 @@ describe("the position rating's ranges", () => {
       filters: { positionRating: { code: 3, min: 60, gain: {}, peak: {} } },
     });
     expect(cleared.filters).toEqual({ positionRating: { code: 3, min: 60 } });
+    const unticked = scoutReducer(ranged(), {
+      type: "filters-changed",
+      filters: { positionRating: { code: 3, bestOnly: false } },
+    });
+    expect(unticked.filters).toEqual({ positionRating: { code: 3 } });
   });
 });
