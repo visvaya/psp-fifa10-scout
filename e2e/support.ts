@@ -123,3 +123,15 @@ export const showPotential = async (page: Page) => {
   await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
   await page.getByRole("button", { name: "Zamknij" }).click();
 };
+
+/** The value a player card shows for a label; a space in the label also matches a non-breaking one. */
+export const cardValue = (card: Locator, label: string) =>
+  card
+    .locator(".facts > div")
+    .filter({
+      has: card
+        .page()
+        .getByRole("term")
+        .filter({ hasText: new RegExp(`^${label.replaceAll(" ", String.raw`\s`)}$`, "u") }),
+    })
+    .getByRole("definition");

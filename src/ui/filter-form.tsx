@@ -347,6 +347,10 @@ const careerSection = ({ range, flag }: Kit) => (
   <Section title={FILTER_SECTION_LABELS.career}>
     {range("form")}
     {range("morale")}
+    {range("appearances")}
+    {range("goals")}
+    {range("cupAppearances")}
+    {range("cupGoals")}
     {range("injuryDays")}
     {range("price")}
     {range("wage")}
