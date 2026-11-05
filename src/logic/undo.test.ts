@@ -42,3 +42,56 @@ describe("undo", () => {
     expect(run(sorts).undo).toHaveLength(SCOUT_CONFIG.undoSteps);
   });
 });
+
+describe("undo of each change", () => {
+  const saved = run([goalkeepers, { type: "filter-set-saved", name: "A" }]);
+
+  it.each([
+    ["shows the potential", { type: "potential-shown", shown: true }],
+    ["loads a set", { type: "filter-set-loaded", name: "A" }],
+    ["renames a set", { type: "filter-set-renamed", from: "A", to: "B" }],
+    ["deletes a set", { type: "filter-set-deleted", name: "A" }],
+  ] as const)("brings back what was before it %s", (_name, action) => {
+    const changed = run([{ type: "filters-reset" }, action], saved);
+    const before = run([{ type: "undo" }], changed);
+    expect(before.showPotential).toBe(false);
+    expect(before.filterSets?.map((set) => set.name)).toEqual(["A"]);
+  });
+});
+
+// A load or restored preferences replace the context the steps were taken in.
+describe("undo across loads", () => {
+  it("starts afresh when stored preferences are restored", () => {
+    const changed = run([goalkeepers]);
+    const restored = run(
+      [
+        {
+          type: "preferences-restored",
+          preferences: { filters: {}, sort: DEFAULT_SORT, showPotential: true },
+        },
+      ],
+      changed,
+    );
+    expect(restored.undo).toEqual([]);
+    expect(run([{ type: "undo" }], restored).showPotential).toBe(true);
+  });
+
+  it("starts afresh when a load succeeds", () => {
+    const loading = run([goalkeepers, { type: "load-started", requestId: 1 }]);
+    const loaded = run(
+      [
+        {
+          type: "load-succeeded",
+          requestId: 1,
+          players: [],
+          myTeamId: null,
+          career: null,
+          languages: {},
+          attachedLanguage: null,
+        },
+      ],
+      loading,
+    );
+    expect(loaded.undo).toEqual([]);
+  });
+});

@@ -1,6 +1,7 @@
 // Undo for what the user sets: the filters, the sort, the potential switch and the saved sets. Each change
 // the user makes keeps the state before it; "undo" brings the last one back. Loading files, restoring
-// stored preferences and opening a card are not steps.
+// stored preferences and opening a card are not steps, and a loaded game or restored preferences start
+// the steps afresh.
 import { SCOUT_CONFIG } from "./config.ts";
 import type { FilterSet } from "./saved-filters.ts";
 import type { Preferences, ScoutAction, ScoutState } from "./scout-state.ts";
@@ -24,6 +25,12 @@ const UNDOABLE: ReadonlySet<ScoutAction["type"]> = new Set([
   "filter-set-deleted",
 ]);
 
+/** Actions after which no earlier step applies. */
+const FRESH_START: ReadonlySet<ScoutAction["type"]> = new Set([
+  "load-succeeded",
+  "preferences-restored",
+]);
+
 const stepOf = ({ filters, sort, showPotential, filterSets }: ScoutState): UndoStep => ({
   filters,
   sort,
@@ -42,6 +49,12 @@ export const withUndo =
       return last === undefined ? state : { ...state, ...last, undo: older };
     }
     const next = reducer(state, action);
+    // A loaded game or restored preferences replace the context the steps were taken in: a step from
+    // before could bring back a filter the new game cannot show, or undo the restored preferences.
+    // A superseded load leaves the state as it was, steps included.
+    if (FRESH_START.has(action.type)) {
+      return next === state || next.undo.length === 0 ? next : { ...next, undo: [] };
+    }
     const before = stepOf(state);
     if (!UNDOABLE.has(action.type) || same(before, stepOf(next))) return next;
     return { ...next, undo: [before, ...state.undo].slice(0, SCOUT_CONFIG.undoSteps) };
