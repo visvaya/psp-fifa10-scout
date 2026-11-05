@@ -62,6 +62,23 @@ test.describe("career", () => {
         .getByText("Na twojej liście obserwowanych w grze"),
     ).toBeVisible();
   });
+
+  // The synthetic curves are flat, so the peak stays at today's OVR, below Messi's potential of 95.
+  test("projects the peak OVR beside the potential and says when the potential is out of reach", async ({
+    page,
+  }) => {
+    await loadCareer(page);
+    await expect(page.getByRole("columnheader", { name: /^Szczyt OVR/u })).toBeHidden();
+    await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
+    await expect(page.getByRole("columnheader", { name: /^Szczyt OVR/u })).toBeVisible();
+    await page.getByRole("group", { name: "Szczyt OVR" }).getByLabel("od").fill("1");
+    await page.getByRole("button", { name: /^Lionel Messi/u }).click();
+    const card = page.getByRole("dialog", { name: "Lionel Messi" });
+    await expect(card.getByRole("term").filter({ hasText: /^Szczyt OVR$/u })).toBeVisible();
+    await expect(
+      card.getByText(/Potencjału 95 zawodnik według niej nie osiągnie\.$/u),
+    ).toBeVisible();
+  });
 });
 
 test.describe("career ratings", () => {

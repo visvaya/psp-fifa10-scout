@@ -208,7 +208,7 @@ test.describe("phone name column", () => {
     const cells = row.locator(".player-row-cell");
     await expect(cells.nth(1)).toBeInViewport({ ratio: 1 });
     await expect(cells.nth(2)).not.toBeInViewport({ ratio: 1 });
-    // The third column starts under the solid half of the shadow at the right edge, so none of its
+    // The third column starts under the solid end of the fade at the right edge, so none of its
     // label shows cut off.
     const frame = page.locator(".phone-list");
     await expect(frame).toHaveAttribute("data-more");
@@ -219,8 +219,9 @@ test.describe("phone name column", () => {
         return { right: box.left + element.clientWidth };
       }),
     ]);
-    const shadowPx = 16;
-    expect(third?.x ?? Number.NaN).toBeGreaterThanOrEqual(list.right - shadowPx / 2);
+    // The fade is 24 px wide, solid from 60 %: its last 9.6 px.
+    const solidPx = 9;
+    expect(third?.x ?? Number.NaN).toBeGreaterThanOrEqual(list.right - solidPx);
     const name = row.locator(".player-row-text");
     const wide = (await name.boundingBox())?.width ?? Number.NaN;
     await page.locator(".scroll").evaluate((element) => {
