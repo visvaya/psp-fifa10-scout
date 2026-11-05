@@ -16,7 +16,7 @@ import {
   potentialDeltas,
   readCurves,
 } from "./overall-rating.ts";
-import { placementsOf, teamFields, teamsById } from "./placements.ts";
+import { careerLinks, placementsOf, teamFields, teamsById } from "./placements.ts";
 import type { Placement } from "./placements.ts";
 import { financeOf, NO_FINANCE } from "./player-finance.ts";
 import type { Finance, FinanceInput } from "./player-finance.ts";
@@ -382,7 +382,10 @@ export const buildPlayers = (db: EaDb, save?: CareerSave): readonly Player[] => 
       save === undefined
         ? new Date(SCOUT_CONFIG.referenceDateIso)
         : careerManager(db, save).lastGameDate,
-    placements: placementsOf(links, teamsById(db, save)),
+    placements: placementsOf(
+      save === undefined ? links : careerLinks(db, save),
+      teamsById(db, save),
+    ),
     countries: new Map(
       readTable(db, "country").map((row) => [num(row, "countryid"), String(row["countryname"])]),
     ),

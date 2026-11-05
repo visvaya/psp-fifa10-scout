@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { CareerSave } from "../data/career-save.ts";
 import { parseEaDb } from "../data/ea-db.ts";
 import { buildEaDb } from "../data/test-support/synthetic-ea-db.ts";
-import { teamsById } from "./placements.ts";
+import { careerLinks, placementsOf, teamsById } from "./placements.ts";
 import { table } from "./test-support/player-fixtures.ts";
 
 const DB = parseEaDb(
@@ -22,6 +22,10 @@ const DB = parseEaDb(
       { leagueid: 2, teamid: 10 },
       { leagueid: 1, teamid: 20 },
       { leagueid: 78, teamid: 30 },
+    ]),
+    table("teamplayerlinks", [
+      { teamid: 10, playerid: 1, yearcontractvalidtil: 2012 },
+      { teamid: 30, playerid: 1, yearcontractvalidtil: 0 },
     ]),
     // jscpd:ignore-end
   ]),
@@ -50,5 +54,17 @@ describe("teamsById", () => {
     expect(league(career, 20)).toEqual(["Second", 9]);
     expect(league(career, 30)).toEqual(["International", 9]);
     expect(league(teamsById(DB), 10)).toEqual(["Second", 8]);
+  });
+});
+
+describe("careerLinks", () => {
+  // A career save keeps the club links only: the national teams come from fifa.db.
+  it("adds fifa.db's national-team links to the save's club links", () => {
+    const save: CareerSave = new Map([
+      ["teamplayerlinks", [{ teamid: 20, playerid: 1, yearcontractvalidtil: 2014 }]],
+    ]);
+    const placement = placementsOf(careerLinks(DB, save), teamsById(DB, save)).get(1);
+    expect(placement?.club?.team.name).toBe("Down");
+    expect(placement?.national?.name).toBe("Country");
   });
 });

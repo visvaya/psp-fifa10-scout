@@ -284,7 +284,8 @@ describe("buildPlayers with a career save", () => {
       jerseyNumber: 9,
       contractEndYear: 2012,
     });
-    expect(byId(players, 158_023)).toMatchObject({ nationalTeamId: null, clubId: 241 });
+    // The save links clubs only; the national team comes from fifa.db.
+    expect(byId(players, 158_023)).toMatchObject({ nationalTeamName: "Argentina", clubId: 241 });
   });
 
   it("marks the players the save links to the game's free-agent team", () => {
