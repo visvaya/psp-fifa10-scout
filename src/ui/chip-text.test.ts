@@ -55,6 +55,9 @@ describe("chipText", () => {
     expect(chipText("positionRating", peak, names)).toBe(
       "Ocena na pozycji: BR, różnica do +3, szczyt od 80 do 85",
     );
+    expect(chipText("positionRating", { positionRating: { code: 0, bestOnly: true } }, names)).toBe(
+      "Ocena na pozycji: BR, najlepsza pozycja",
+    );
     expect(chipText("positionRating", { positionRating: { code: 0 } }, names)).toBe(
       "Ocena na pozycji: BR",
     );

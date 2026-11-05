@@ -319,6 +319,8 @@ export const TEXT = {
   ratingGainShort: "różnica",
   peakAt: (position: string): string => `Szczyt ${position}`,
   ratingPeakShort: "szczyt",
+  bestPositionOnly: "Tylko jego najlepsza pozycja",
+  bestPositionShort: "najlepsza pozycja",
   signed: (value: number): string => signed(value),
   text: "Nazwisko",
   clubStatus: "Zawodnicy",

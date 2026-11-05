@@ -1085,6 +1085,8 @@ input[inputmode="numeric"] {
 .dialog-header {
   position: sticky;
   top: 0;
+  /* Above the body's own layers (a half-transparent clear button forms one), which scroll under it. */
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: space-between;

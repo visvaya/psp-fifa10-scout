@@ -32,11 +32,22 @@ const RatingRanges = (props: {
               code,
               ...(gain === undefined ? {} : { gain }),
               ...(peak === undefined ? {} : { peak }),
+              ...(rating.bestOnly === true ? { bestOnly: true } : {}),
               ...range,
             },
           });
         }}
       />
+      <label className="check">
+        <input
+          type="checkbox"
+          checked={rating.bestOnly === true}
+          onChange={(event) => {
+            change({ positionRating: { ...rating, bestOnly: event.currentTarget.checked } });
+          }}
+        />
+        {TEXT.bestPositionOnly}
+      </label>
       <RangeField
         label={TEXT.ratingGain}
         range={rating.gain}
