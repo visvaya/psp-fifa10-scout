@@ -411,7 +411,6 @@ export const TEXT = {
     foot: "Lepsza noga",
     weakFoot: "Słabsza noga",
     starsOutOfFive: (stars: number): string => `${formatNumber(stars)} z 5 gwiazdek`,
-    playerStars: "Gwiazdki zawodnika",
     profile: "Profil",
     internationalReputation: "Reputacja międzynarodowa",
     learningSpeed: "Szybkość nauki",

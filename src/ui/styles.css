@@ -641,8 +641,8 @@ input[inputmode="numeric"] {
   margin-right: var(--space-1);
 }
 
-/* Five stars as the game shows them: filled, outlined (empty), or outlined with the left half filled.
-   The shapes tell them apart, and the outline keeps the muted text's contrast. */
+/* Five stars as the game shows them: filled, or outlined when empty. The shapes tell them apart, and
+   the outline keeps the muted text's contrast. */
 .stars {
   display: inline-flex;
   gap: var(--space-1);
@@ -661,8 +661,7 @@ input[inputmode="numeric"] {
   stroke-linejoin: round;
 }
 
-.star-full path,
-.star .star-fill {
+.star-full path {
   fill: var(--color-accent);
   stroke: var(--color-accent);
 }
