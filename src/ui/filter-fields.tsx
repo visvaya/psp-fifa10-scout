@@ -140,6 +140,14 @@ const DecimalInput = (props: {
 }) => {
   const [text, setText] = useState(decimalShown(props.value));
   const [seen, setSeen] = useState(props.value);
+  const input = useRef<HTMLInputElement>(null);
+  // Where the caret goes once the typed text is normalized, null when nothing was typed.
+  const caret = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    if (caret.current === null) return;
+    input.current?.setSelectionRange(caret.current, caret.current);
+    caret.current = null;
+  });
   if (props.value !== seen) {
     setSeen(props.value);
     if (decimalText(text, DECIMAL_SEPARATOR).value !== props.value)
@@ -147,11 +155,18 @@ const DecimalInput = (props: {
   }
   return (
     <input
+      ref={input}
       type="text"
       inputMode="decimal"
       value={text}
       onChange={(event) => {
-        const typed = decimalText(event.currentTarget.value, DECIMAL_SEPARATOR);
+        const { value, selectionStart } = event.currentTarget;
+        const typed = decimalText(value, DECIMAL_SEPARATOR);
+        // The text before the caret, normalized alone, ends where the caret belongs.
+        caret.current = decimalText(
+          value.slice(0, selectionStart ?? value.length),
+          DECIMAL_SEPARATOR,
+        ).text.length;
         setText(typed.text);
         props.onChange(typed.value);
       }}

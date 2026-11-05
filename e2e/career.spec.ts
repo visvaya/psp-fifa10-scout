@@ -73,6 +73,12 @@ test.describe("career ratings", () => {
     await loadCareer(page);
     await page.getByText("Kariera", { exact: true }).click();
     const ratingFrom = page.getByRole("group", { name: "Średnia ocena (KR)" }).getByLabel("od");
+    // A dot typed inside the number becomes a comma and the caret stays after it.
+    await ratingFrom.pressSequentially("75");
+    await ratingFrom.press("ArrowLeft");
+    await ratingFrom.pressSequentially(".2");
+    await expect(ratingFrom).toHaveValue("7,25");
+    await ratingFrom.fill("");
     // A typed dot turns into the Polish decimal comma at once.
     await ratingFrom.pressSequentially("6.5");
     await expect(ratingFrom).toHaveValue("6,5");
