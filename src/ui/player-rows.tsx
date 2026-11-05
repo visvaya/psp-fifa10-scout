@@ -172,7 +172,7 @@ const PhoneName = ({ player }: { player: Player }) =>
 
 /**
  * Where the list scrolls so a focused label shows whole between the kept name and the right edge (from
- * its start when it does not fit): a
+ * its start when it does not fit there): a
  * label's padding to spare on the left, the edge's fade on the right, which stays while columns follow.
  * Measured within the header's content, whatever the header's own scroll.
  */
@@ -184,12 +184,17 @@ const scrollShowing = (label: HTMLElement, header: HTMLElement, from: number): n
     box.left - origin - PHONE.paddingRem * rem,
     box.right - origin + PHONE.fadeRem * rem,
   ];
+  // The kept name narrows as the list scrolls, down to its least width (phoneLayout): its right edge
+  // in the header's content at a scroll position.
   const name = header.querySelector(".player-rows-grid > :first-child")?.getBoundingClientRect();
-  const nameWidth = name?.width ?? 0;
-  // A label wider than the room between the name and the fade shows from its start.
-  const showStart = left - nameWidth;
-  if (right > from + header.clientWidth) return Math.min(right - header.clientWidth, showStart);
-  return left < from + nameWidth ? showStart : from;
+  const least = Math.min(PHONE.nameMinRem * rem, (PHONE.nameMaxCqw / 100) * header.clientWidth);
+  const nameEnd = (scroll: number) => Math.max(scroll + least, from + (name?.width ?? 0));
+  const fits = (scroll: number) => left >= nameEnd(scroll) && right <= scroll + header.clientWidth;
+  if (fits(from)) return from;
+  const showEnd = right - header.clientWidth;
+  if (showEnd > from && fits(showEnd)) return showEnd;
+  // A label wider than the room beside the name shows from its start, the name at its least.
+  return left - least;
 };
 
 /**
