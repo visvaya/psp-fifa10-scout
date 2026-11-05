@@ -11,8 +11,8 @@ import {
   baseOverall,
   byPositionCode,
   cappedOverall,
-  careerAttributes,
-  peakOverall,
+  careerAgeing,
+  peaksByPositionCode,
   potentialDeltas,
   readCurves,
 } from "./overall-rating.ts";
@@ -176,6 +176,8 @@ export interface Player extends Finance, SeasonStats {
   readonly traits: readonly TraitName[];
   /** OVR at each position code 0..31, rated the same way. */
   readonly overallByCode: readonly number[];
+  /** The peak OVR at each position code 0..31; empty without a career. */
+  readonly peakByCode: readonly number[];
   readonly attributes: Attributes;
   readonly clubId: number | null;
   readonly clubName: string | null;
@@ -231,8 +233,8 @@ interface Rating {
   readonly attributes: Attributes;
   readonly potential: number;
   readonly overallAt: (positionCode: number, yearsAhead?: number) => number;
-  /** Career only: without a save nothing ages. */
-  readonly peak: number | null;
+  /** The peak OVR at each position code; empty without a save, as nothing ages. */
+  readonly peakByCode: readonly number[];
 }
 
 const num = (row: EaDbRow, key: string): number => Number(row[key]);
@@ -301,13 +303,14 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
   const nationalityId = num(row, "nationality");
   const [firstName, surname] = [String(row["firstname"]).trim(), String(row["surname"]).trim()];
   const name = `${firstName} ${surname}`.trim();
-  const { attributes, potential, overallAt, peak } = context.rate(row);
+  const { attributes, potential, overallAt, peakByCode } = context.rate(row);
   const age = ageOn(birthdateToDate(num(row, "birthdate")), context.referenceDate);
   const { club } = context.placements.get(id) ?? {};
   const money = club && { link: club.link, prestige: club.team.prestige };
   const overallByCode = byPositionCode(overallAt);
   const rate = (code: number): number => overallByCode[code] ?? 0;
   const overall = rate(num(row, "preferredposition1"));
+  const peak = peakByCode[num(row, "preferredposition1")] ?? null;
   return {
     id,
     name,
@@ -330,6 +333,7 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
     peakGain: peak === null ? null : peak - overall,
     ...profileFields(row),
     overallByCode,
+    peakByCode,
     attributes,
     ...teamFields(context.placements.get(id) ?? {}),
     nationalityId,
@@ -372,7 +376,7 @@ const rater = (db: EaDb, save: CareerSave | undefined): Context["rate"] => {
         attributes,
         potential: num(row, "potential"),
         overallAt: (code) => baseOverall(attributes, code),
-        peak: null,
+        peakByCode: [],
       };
     };
   const curves = readCurves(db);
@@ -397,15 +401,14 @@ const rater = (db: EaDb, save: CareerSave | undefined): Context["rate"] => {
       developmentTypeCode: num(row, "developmenttypecode"),
       developmentStyleCode: num(row, "developmentstylecode"),
     };
-    const aged = careerAttributes(input, date, curves);
+    const ageing = careerAgeing(input, date, curves);
+    const aged = ageing.attributesIn(0);
     const attributes = attributesOf(
       Object.fromEntries(ATTRIBUTE_NAMES.map((name) => [name, aged(name)])),
     );
     const overallAt = (code: number, yearsAhead = 0): number =>
       cappedOverall(
-        yearsAhead === 0
-          ? (name) => attributes[name]
-          : careerAttributes(input, date, curves, yearsAhead),
+        yearsAhead === 0 ? (name) => attributes[name] : ageing.attributesIn(yearsAhead),
         code,
         potential,
       );
@@ -413,7 +416,7 @@ const rater = (db: EaDb, save: CareerSave | undefined): Context["rate"] => {
       attributes,
       potential,
       overallAt,
-      peak: peakOverall(overallAt, num(row, "preferredposition1")),
+      peakByCode: peaksByPositionCode(ageing, potential),
     };
   };
 };

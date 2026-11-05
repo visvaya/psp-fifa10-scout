@@ -234,6 +234,9 @@ describe("scout store", () => {
     expect((await rating({ code: 5, gain: { min: "x", max: -2 } }))?.filters).toEqual({
       positionRating: { code: 5, gain: { max: -2 } },
     });
+    expect((await rating({ code: 5, peak: { min: 70, max: "x" }, gain: {} }))?.filters).toEqual({
+      positionRating: { code: 5, peak: { min: 70 } },
+    });
     // Codes rated alike move to their rating choice: right centre-back to centre-back.
     expect((await rating({ code: 4, min: 60 }))?.filters).toEqual({
       positionRating: { code: 5, min: 60 },

@@ -42,10 +42,14 @@ describe("chipText", () => {
     expect(chipText("lists.leagueId", filters, names)).toBe("Liga: 99");
   });
 
-  it("gives the position rating its position, bounds and gain", () => {
+  it("gives the position rating its position, bounds, gain and peak", () => {
     expect(
       chipText("positionRating", { positionRating: { code: 0, min: 70, gain: { min: 1 } } }, names),
     ).toBe("Ocena na pozycji: BR, od 70, różnica od +1");
+    const peak = { positionRating: { code: 0, gain: { max: 3 }, peak: { min: 80, max: 85 } } };
+    expect(chipText("positionRating", peak, names)).toBe(
+      "Ocena na pozycji: BR, różnica do +3, szczyt od 80 do 85",
+    );
     expect(chipText("positionRating", { positionRating: { code: 0 } }, names)).toBe(
       "Ocena na pozycji: BR",
     );

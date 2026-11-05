@@ -391,10 +391,19 @@ const useFollowedEdges = (scrollRef: RefObject<HTMLDivElement | null>) => {
 
 /** The number columns with their labels and the grid that fits them. */
 const usePhoneColumns = (props: ListProps) => {
-  const { allPlayers, showPotential, ratingCode, ratingName, ranges, currency, sort } = props;
+  const {
+    allPlayers,
+    showPotential,
+    ratingCode,
+    ratingPeakSet,
+    ratingName,
+    ranges,
+    currency,
+    sort,
+  } = props;
   const columns = useMemo(
-    () => phoneColumns({ showPotential, ratingCode, ranges, sortKey: sort.key }),
-    [showPotential, ratingCode, ranges, sort.key],
+    () => phoneColumns({ showPotential, ratingCode, ratingPeakSet, ranges, sortKey: sort.key }),
+    [showPotential, ratingCode, ratingPeakSet, ranges, sort.key],
   );
   // The potential's short label, as the narrow rows have always shown it.
   const labels = columns.map((column) =>

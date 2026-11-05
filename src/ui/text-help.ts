@@ -9,3 +9,6 @@ export const FIELD_HELP: Partial<Readonly<Record<RangeKey | ListKey, string>>> =
   peakGain: pl`Szczyt OVR minus OVR: ile zawodnik jeszcze urośnie według krzywych rozwoju gry.`,
   form: pl`Średnia ocena meczowa z zapisu, jak w kolumnie KR na ekranie statystyk zawodnika w grze. Bez meczów zwykle 5,0.`,
 };
+
+/** Under the peak at the position chosen in "Ocena na pozycji". */
+export const RATING_PEAK_HELP = pl`Najwyższy OVR na tej pozycji według krzywych rozwoju gry, liczony jak szczyt OVR.`;

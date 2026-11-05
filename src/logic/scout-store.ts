@@ -67,6 +67,7 @@ export const SORTABLE_KEYS: readonly SortKey[] = [
   "wage",
   "positionRating",
   "ratingGain",
+  "positionPeak",
   ...ATTRIBUTE_NAMES,
 ];
 
@@ -106,10 +107,10 @@ const parseRange = (value: unknown): Range => {
   };
 };
 
-/** The gain range of a position rating, left out when it sets no bound. */
-const parseGain = (value: unknown): { gain?: Range } => {
-  const gain = parseRange(value);
-  return Object.keys(gain).length === 0 ? {} : { gain };
+/** A range of a position rating (its gain or peak), undefined when it sets no bound. */
+const parseRatingRange = (value: unknown): Range | undefined => {
+  const range = parseRange(value);
+  return Object.keys(range).length === 0 ? undefined : range;
 };
 
 /**
@@ -117,10 +118,16 @@ const parseGain = (value: unknown): { gain?: Range } => {
  * the same way), or undefined.
  */
 const parsePositionRating = (value: unknown): PositionRating | undefined => {
-  const { code } = recordOf(value);
-  return Number.isInteger(code) && isFiniteNumber(code) && code >= 0 && code < OVR_WEIGHTS.length
-    ? { code: ratingCodeOf(code), ...parseRange(value), ...parseGain(recordOf(value)["gain"]) }
-    : undefined;
+  const { code, gain, peak } = recordOf(value);
+  if (!(Number.isInteger(code) && isFiniteNumber(code) && code >= 0 && code < OVR_WEIGHTS.length))
+    return undefined;
+  const [gainRange, peakRange] = [parseRatingRange(gain), parseRatingRange(peak)];
+  return {
+    code: ratingCodeOf(code),
+    ...parseRange(value),
+    ...(gainRange === undefined ? {} : { gain: gainRange }),
+    ...(peakRange === undefined ? {} : { peak: peakRange }),
+  };
 };
 
 /** Which stored values each list accepts: a known name or an integer code. */

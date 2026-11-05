@@ -224,48 +224,90 @@ export interface CareerRatingInput {
 const gameAge = (birthdate: Date, on: Date): number =>
   Math.trunc((on.getTime() - birthdate.getTime()) / DAY_MS / DAYS_PER_YEAR);
 
-/** Each attribute on a career date, as the game shows it: aged along its curve, at 10..99 and at most
- * max(potential, value). `yearsAhead` ages the player further, as the game's OVR in five years. */
-export const careerAttributes = (
+/** A player's career ageing: his attributes in a season and how many seasons can still raise them. */
+export interface CareerAgeing {
+  /**
+   * Each attribute `yearsAhead` seasons after the career date, as the game shows it: aged along its
+   * curve, at 10..99 and at most max(potential, value); 5 gives the game's OVR in five years.
+   */
+  readonly attributesIn: (yearsAhead: number) => (name: AttributeName) => number;
+  /**
+   * Seasons after this many years cannot raise an attribute: his curves no longer rise, and an aged
+   * attribute follows its curve's value.
+   */
+  readonly growthSeasons: number;
+}
+
+export const careerAgeing = (
   player: CareerRatingInput,
   careerDate: Date,
   curves: Curves,
-  yearsAhead = 0,
-): ((name: AttributeName) => number) => {
+): CareerAgeing => {
   const { attributes, potential, developmentTypeCode: type, developmentStyleCode: style } = player;
   const curveAt = (id: number, age: number): number => {
     const values = curves.get(id) ?? curves.get(1) ?? [];
     return values[clamp(age, CURVE_AGE_MIN, CURVE_AGE_MAX) - CURVE_AGE_MIN] ?? 0;
   };
-  const ageNow = gameAge(player.birthdate, careerDate) + yearsAhead;
+  const age = gameAge(player.birthdate, careerDate);
   const ageRef = gameAge(player.birthdate, CAREER_REFERENCE_DATE);
-  const aged = (name: AttributeName): number => {
-    const value = attributes[name];
-    const curve = PHYSICAL.has(name) ? type + 14 : 3 * style + type - 4;
-    const ratio = Math.fround(Math.fround(value / curveAt(curve, ageRef)) * 100);
-    const adjusted = roundHalfUp(Math.fround(Math.fround(curveAt(curve, ageNow) * ratio) / 100));
-    return Math.min(clamp(adjusted, AGED_ATTRIBUTE_MIN, RATING_MAX), Math.max(potential, value));
-  };
-  return aged;
-};
-
-/**
- * The highest OVR the development curves project at a position, this season and the coming ones: the
- * game's development chart shows the same projection season by season.
- */
-export const peakOverall = (
-  overallAt: (positionCode: number, yearsAhead?: number) => number,
-  positionCode: number,
-): number =>
-  Math.max(
-    ...Array.from({ length: SCOUT_CONFIG.peakProjectionYears + 1 }, (_, years) =>
-      overallAt(positionCode, years),
+  const [physical, technical] = [type + 14, 3 * style + type - 4];
+  const curveOf = (name: AttributeName): number => (PHYSICAL.has(name) ? physical : technical);
+  const curveAges = Array.from(
+    { length: CURVE_AGE_MAX - CURVE_AGE_MIN },
+    (_, index) => CURVE_AGE_MIN + index + 1,
+  );
+  const lastRise = Math.max(
+    CURVE_AGE_MIN,
+    ...curveAges.filter((at) =>
+      [physical, technical].some((curve) => curveAt(curve, at) > curveAt(curve, at - 1)),
     ),
   );
+  return {
+    attributesIn: (yearsAhead) => (name) => {
+      const value = attributes[name];
+      const curve = curveOf(name);
+      const ratio = Math.fround(Math.fround(value / curveAt(curve, ageRef)) * 100);
+      const adjusted = roundHalfUp(
+        Math.fround(Math.fround(curveAt(curve, age + yearsAhead) * ratio) / 100),
+      );
+      return Math.min(clamp(adjusted, AGED_ATTRIBUTE_MIN, RATING_MAX), Math.max(potential, value));
+    },
+    growthSeasons: Math.max(0, lastRise - age),
+  };
+};
+
+const cappedRating = (
+  row: WeightRow,
+  value: (name: AttributeName) => number,
+  potential: number,
+): number => clamp(Math.min(ratingOf(row, value), potential), 0, RATING_MAX);
 
 /** OVR at a position from career attributes, capped at the potential. */
 export const cappedOverall = (
   value: (name: AttributeName) => number,
   positionCode: number,
   potential: number,
-): number => clamp(Math.min(ratingOf(weightRow(positionCode), value), potential), 0, RATING_MAX);
+): number => cappedRating(weightRow(positionCode), value, potential);
+
+/** The weight rows that differ, and the attributes they weigh. */
+const DISTINCT_ROWS = [...new Set(OVR_WEIGHTS)];
+const WEIGHTED = [...new Set(OVR_WEIGHTS.flat().map(([name]) => name))];
+
+/**
+ * The peak OVR at each position code 0..31: the highest OVR the development curves project there, this
+ * season and the coming ones, as the game's development chart shows it season by season.
+ */
+export const peaksByPositionCode = (ageing: CareerAgeing, potential: number): readonly number[] => {
+  // Hot path (every player of a save): each season's attributes are aged once for all positions.
+  const peaks = new Map<WeightRow, number>();
+  const seasons = Math.min(SCOUT_CONFIG.peakProjectionYears, ageing.growthSeasons);
+  for (let years = 0; years <= seasons; years += 1) {
+    const aged = ageing.attributesIn(years);
+    const values = new Map(WEIGHTED.map((name) => [name, aged(name)]));
+    for (const row of DISTINCT_ROWS) {
+      const rating = cappedRating(row, (name) => values.get(name) ?? 0, potential);
+      peaks.set(row, Math.max(peaks.get(row) ?? 0, rating));
+    }
+  }
+  return OVR_WEIGHTS.map((row) => peaks.get(row) ?? 0);
+};

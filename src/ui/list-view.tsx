@@ -60,7 +60,7 @@ const SortControls = ({
         {SORTABLE_KEYS.filter(
           (key) =>
             (state.showPotential || !POTENTIAL_KEYS.has(key)) &&
-            (key !== "peak" || state.myTeamId !== null) &&
+            ((key !== "peak" && key !== "positionPeak") || state.myTeamId !== null) &&
             (!RATING_SORT_KEYS.has(key) || state.filters.positionRating !== undefined),
         ).map((key) => (
           <option key={key} value={key}>
@@ -209,6 +209,7 @@ const ListResults = ({
           showPotential={state.showPotential}
           ratingCode={ratingCode}
           ratingName={ratingName}
+          ratingPeakSet={state.filters.positionRating?.peak !== undefined}
           rangedAttributes={ranged}
           ranges={ranges}
           currency={state.career?.currency ?? null}

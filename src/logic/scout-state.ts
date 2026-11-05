@@ -237,6 +237,14 @@ const withoutFilter = (filters: ScoutFilters, id: FilterId): ScoutFilters => {
   return compactFilters({ ...filters, [id]: undefined });
 };
 
+/** The position rating filter without its peak range, which needs a career and potential shown. */
+const withoutRatingPeak = (filters: ScoutFilters): FilterChange => {
+  const { positionRating } = filters;
+  if (positionRating?.peak === undefined) return filters;
+  const { peak: _peak, ...rest } = positionRating;
+  return { ...filters, positionRating: rest };
+};
+
 /** Preferences without potential filters and sort when potential is hidden. */
 const withPotential = (preferences: Preferences): Preferences => {
   if (preferences.showPotential) return preferences;
@@ -249,13 +257,17 @@ const withPotential = (preferences: Preferences): Preferences => {
   };
   return {
     ...preferences,
-    filters: compactFilters({ ...preferences.filters, ranges }),
+    filters: compactFilters({ ...withoutRatingPeak(preferences.filters), ranges }),
     sort: POTENTIAL_KEYS.has(preferences.sort.key) ? DEFAULT_SORT : preferences.sort,
   };
 };
 
 /** The sort keys that need a chosen position (the position rating filter). */
-export const RATING_SORT_KEYS: ReadonlySet<SortKey> = new Set(["positionRating", "ratingGain"]);
+export const RATING_SORT_KEYS: ReadonlySet<SortKey> = new Set([
+  "positionRating",
+  "ratingGain",
+  "positionPeak",
+]);
 
 /** Preferences whose sort fits the filters: by position rating only while a position is chosen. */
 const consistent = (preferences: Preferences): Preferences => {
@@ -284,7 +296,7 @@ const withPreferences = (state: ScoutState, preferences: Preferences): ScoutStat
  */
 const withoutCareer = ({ filters, sort }: Pick<Preferences, "filters" | "sort">) => ({
   filters: compactFilters({
-    ...filters,
+    ...withoutRatingPeak(filters),
     clubStatus: undefined,
     myClub: undefined,
     ranges: {
@@ -296,7 +308,10 @@ const withoutCareer = ({ filters, sort }: Pick<Preferences, "filters" | "sort">)
       ...Object.fromEntries(CAREER_FLAG_KEYS.map((key) => [key, undefined])),
     },
   }),
-  sort: CAREER_RANGE_KEYS.some((key) => key === sort.key) ? DEFAULT_SORT : sort,
+  sort:
+    sort.key === "positionPeak" || CAREER_RANGE_KEYS.some((key) => key === sort.key)
+      ? DEFAULT_SORT
+      : sort,
 });
 
 /** A filter set's action; a set loaded without a career leaves out what needs one, the set itself kept. */
