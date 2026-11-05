@@ -21,6 +21,7 @@ import {
   RANGE_LABELS,
   TEXT,
 } from "./text.ts";
+import { OFFER_TEXT } from "./text-offer.ts";
 
 const ATTRIBUTE_GROUPS: readonly (readonly [
   keyof typeof ATTRIBUTE_GROUP_LABELS,
@@ -195,24 +196,22 @@ const OfferFacts = (props: { player: Player; context: OfferContext; currency: Cu
   const { fee, wage, years } = terms;
   return (
     <section aria-labelledby="offer-title">
-      <h3 id="offer-title">{TEXT.card.offer}</h3>
-      <p className="help">{TEXT.card.offerNote}</p>
+      <h3 id="offer-title">{OFFER_TEXT.title}</h3>
+      <p className="help">{OFFER_TEXT.note}</p>
       <Facts
         facts={[
+          [OFFER_TEXT.fee, fee === null ? OFFER_TEXT.noFee : TEXT.card.money(fee, currency)],
           [
-            TEXT.card.offerFee,
-            fee === null ? TEXT.card.offerNoFee : TEXT.card.money(fee, currency),
-          ],
-          [
-            TEXT.card.offerWage,
+            OFFER_TEXT.wage,
             wage === null
-              ? TEXT.card.offerNever
-              : TEXT.card.offerWageValue(TEXT.card.money(wage, currency), TEXT.years(years)),
+              ? OFFER_TEXT.never
+              : OFFER_TEXT.wageValue(TEXT.card.money(wage, currency), TEXT.years(years)),
           ],
         ]}
       />
-      {terms.feeOverCap ? <p className="help">{TEXT.card.feeOverCap}</p> : null}
-      {terms.wageOverCap ? <p className="help">{TEXT.card.wageOverCap}</p> : null}
+      {player.clubWillSell === false ? <p className="help">{OFFER_TEXT.clubRefuses}</p> : null}
+      {terms.feeOverCap ? <p className="help">{OFFER_TEXT.feeOverCap}</p> : null}
+      {terms.wageOverCap ? <p className="help">{OFFER_TEXT.wageOverCap}</p> : null}
     </section>
   );
 };
@@ -230,6 +229,9 @@ const CareerFacts = ({ player }: { player: Player }) => (
         [TEXT.card.appearances, optional(player.appearances)],
         [RANGE_LABELS.injuryDays, optional(player.injuryDays)],
         [FLAG_LABELS.transferListed, yesNo(player.transferListed)],
+        ...(player.clubWillSell === null
+          ? []
+          : [[FLAG_LABELS.clubWillSell, yesNo(player.clubWillSell)] as const]),
       ]}
     />
   </section>

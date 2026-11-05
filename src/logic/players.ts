@@ -19,6 +19,7 @@ import {
 import { placementsOf, teamFields, teamsById } from "./placements.ts";
 import type { Placement } from "./placements.ts";
 import { financeOf, NO_FINANCE } from "./player-finance.ts";
+import { clubWillSellOf } from "./sale-rule.ts";
 import type { Finance, FinanceInput } from "./player-finance.ts";
 import { positionOf } from "./positions.ts";
 import type { PositionGroup } from "./positions.ts";
@@ -179,6 +180,8 @@ export interface Player extends Finance {
   readonly injuryDays: number | null;
   /** On the save's transfer list. */
   readonly transferListed: boolean;
+  /** In a career, whether his club may sell him at all (sale-rule.ts); null without a club or career. */
+  readonly clubWillSell: boolean | null;
   /** On the user's shortlist in the game (the save's career_shortlist). */
   readonly shortlisted: boolean;
 }
@@ -190,6 +193,8 @@ interface Context {
   readonly stats: ReadonlyMap<number, EaDbRow>;
   readonly transferList: ReadonlySet<number>;
   readonly shortlist: ReadonlySet<number>;
+  /** Career only. */
+  readonly clubWillSell: ((playerId: number) => boolean | null) | null;
   readonly freeAgents: ReadonlySet<number>;
   readonly rate: (row: EaDbRow) => Rating;
   /** Career only. */
@@ -291,6 +296,7 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
     appearances: statOf(stats, "appearances"),
     injuryDays: statOf(stats, "injurydaysout"),
     transferListed: context.transferList.has(id),
+    clubWillSell: context.clubWillSell?.(id) ?? null,
     shortlisted: context.shortlist.has(id),
     ...(context.finance?.({ row, age, club: money, overallAt }) ?? NO_FINANCE),
   };
@@ -380,12 +386,13 @@ export const buildPlayers = (db: EaDb, save?: CareerSave): readonly Player[] => 
       : effectiveRows(db, save, "teamplayerlinks");
   const stats = save === undefined ? [] : effectiveRows(db, save, "playerstats");
   const transferList = save === undefined ? [] : effectiveRows(db, save, "career_transfer_list");
+  const placements = placementsOf(links, teamsById(db, save));
   const context: Context = {
     referenceDate:
       save === undefined
         ? new Date(SCOUT_CONFIG.referenceDateIso)
         : careerManager(db, save).lastGameDate,
-    placements: placementsOf(links, teamsById(db, save)),
+    placements,
     countries: new Map(
       readTable(db, "country").map((row) => [num(row, "countryid"), String(row["countryname"])]),
     ),
@@ -399,6 +406,7 @@ export const buildPlayers = (db: EaDb, save?: CareerSave): readonly Player[] => 
     ),
     rate: rater(db, save),
     finance: save === undefined ? null : financeOf(db, save),
+    clubWillSell: save === undefined ? null : clubWillSellOf(db, save, placements),
   };
   // The game keeps generated players out of the leagues until it places them (overall-rating.md, F2).
   const placed = new Set(

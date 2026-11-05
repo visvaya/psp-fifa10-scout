@@ -58,6 +58,9 @@ test.describe("offer on the card", () => {
     await expect(value(card, "Klub przyjmie od")).toHaveText("22 500 000 €");
     await expect(value(card, "Zawodnik podpisze od")).toContainText("kontrakt 4 lata");
     await expect(card.getByText(/^Kwota przekracza limit formularza oferty/u)).toBeVisible();
+    // Barcelona has 21 players and enough wide midfielders to sell him (the refusals: unit tests).
+    await expect(value(card, "Klub może go sprzedać")).toHaveText("tak");
+    await expect(card.getByText(/^Klub odmówi sprzedaży/u)).toBeHidden();
     await page.keyboard.press("Escape");
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("brozek");
     await page.getByRole("button", { name: "Paweł Brożek" }).click();

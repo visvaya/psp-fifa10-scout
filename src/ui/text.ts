@@ -182,6 +182,7 @@ export const FLAG_LABELS: Readonly<Record<FlagKey, string>> = {
   nationalTeam: "Reprezentant kraju",
   transferListed: "Na liście transferowej",
   shortlisted: "Obserwowany w grze",
+  clubWillSell: "Klub może go sprzedać",
 };
 
 export const FILTER_SECTION_LABELS = {
@@ -413,16 +414,6 @@ export const TEXT = {
     wage: "Zarobki rynkowe",
     contractWage: "Zarobki z kontraktu",
     shortlisted: "Na twojej liście obserwowanych w grze",
-    offer: "Oferta",
-    offerNote:
-      "Z kodu gry: najniższa kwota, którą klub przyjmie, i najniższe zarobki, za które zawodnik podpisze kontrakt na długość, której chce. Bez podwójnej oferty i premii; nie uwzględnia odmowy z powodu za małej kadry klubu ani rywalizacji klubów.",
-    offerFee: "Klub przyjmie od",
-    offerNoFee: "bez kwoty (kontrakt wygasł)",
-    offerWage: "Zawodnik podpisze od",
-    offerWageValue: (wage: string, years: string): string => `${wage} na mecz, kontrakt ${years}`,
-    offerNever: "nie podpisze: kontrakt sięgnąłby poza wiek zakończenia kariery",
-    feeOverCap: "Kwota przekracza limit formularza oferty (około 125 % wartości).",
-    wageOverCap: "Zarobki przekraczają limit formularza oferty (około 120 % zarobków rynkowych).",
     wageNote: `Na mecz, wzorem gry. Po wygaśnięciu kontraktu gra może doliczyć 30${NBSP}% (wolny transfer).`,
     money: (amount: number, currency: CurrencyCode): string =>
       `${formatNumber(amount)}${NBSP}${CURRENCY_SYMBOLS[currency]}`,
