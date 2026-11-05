@@ -22,6 +22,8 @@ const valueOf = (player: Player, key: SortKey, ratingCode: number | undefined): 
   if (key === "positionRating")
     return player.overallByCode[ratingCode ?? player.positionCode] ?? null;
   if (key === "ratingGain") return ratingCode === undefined ? null : ratingGain(player, ratingCode);
+  // The packed sort key needs whole numbers: the rating with one decimal goes in tenths.
+  if (key === "form") return player.form === null ? null : Math.round(player.form * 10);
   return isAttributeName(key) ? player.attributes[key] : player[key];
 };
 
