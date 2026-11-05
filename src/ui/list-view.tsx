@@ -230,6 +230,7 @@ export const ListView = (props: ListViewProps): JSX.Element => {
         filters={state.filters}
         myTeamId={state.myTeamId}
         showPotential={state.showPotential}
+        currency={state.career?.currency ?? null}
         dispatch={dispatch}
       />
     </>

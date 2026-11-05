@@ -190,7 +190,7 @@ export const FLAG_LABELS: Readonly<Record<FlagKey, string>> = {
   transferListed: "Na liście transferowej",
   loanListed: "Na liście do wypożyczenia",
   loaned: "Wypożyczony",
-  shortlisted: pl`Obserwowany w grze`,
+  shortlisted: pl`Na liście życzeń w grze`,
   clubWillSell: "Klub może go sprzedać",
 };
 
@@ -306,9 +306,11 @@ export const TEXT = {
   groupList: (labels: readonly string[]): string =>
     labels.map((label, index) => (index === 0 ? label : label.toLocaleLowerCase("pl"))).join(" / "),
   ratingGain: "Różnica do OVR",
-  /** A money column's heading with the save's currency, once for the whole list. */
-  withCurrency: (label: string, currency: CurrencyCode): string =>
-    `${label} (${CURRENCY_SYMBOLS[currency]})`,
+  /** A price or wage label with the career's currency (once for a column or a filter); others as they are. */
+  withCurrency: (key: string, label: string, currency: CurrencyCode | null): string =>
+    (key === "price" || key === "wage") && currency !== null
+      ? `${label} (${CURRENCY_SYMBOLS[currency]})`
+      : label,
   gainAt: (position: string): string => `Różnica ${position}`,
   ratingGainShort: "różnica",
   signed: (value: number): string => signed(value),
@@ -345,7 +347,7 @@ export const TEXT = {
   /** The same at the start of a part of the phone row's line, where an ordinary space would collapse. */
   rowMetaPartSeparator: `${NBSP}·${NBSP}`,
   shortlistedMark: "★",
-  shortlisted: pl`obserwowany w grze`,
+  shortlisted: pl`na liście życzeń w grze`,
   anyOption: "Dowolna",
   min: "od",
   max: "do",
@@ -406,15 +408,15 @@ export const TEXT = {
     heightValue: (cm: number): string => `${formatNumber(cm)}${NBSP}cm`,
     weightValue: (kg: number): string => `${formatNumber(kg)}${NBSP}kg`,
     career: pl`W tym sezonie kariery`,
-    careerNote: pl`Gra prowadzi statystyki w lidze twojego klubu, w krajowym pucharze i w europejskich pucharach, dla każdego klubu tych rozgrywek. U zawodnika z innej ligi to tylko mecze w europejskich pucharach i z nich średnia ocena. U zawodnika, który odszedł z twojej ligi, to liczby z czasu gry w niej.`,
+    careerNote: pl`Gra prowadzi statystyki w lidze twojego klubu, w krajowym pucharze i w europejskich pucharach, dla każdego klubu tych rozgrywek. U zawodnika z innej ligi to tylko mecze w europejskich pucharach i z nich średnia ocena. U zawodnika, który odszedł z twojej ligi, to liczby z czasu gry w niej. KR to nagłówek kolumny średniej oceny na ekranie statystyk zawodnika w grze.`,
     form: "Średnia ocena (KR)",
     loanedFrom: "Wypożyczony z",
     morale: "Morale",
     price: "Cena",
     wage: "Zarobki rynkowe",
     contractWage: pl`Zarobki z kontraktu`,
-    shortlisted: pl`Na twojej liście obserwowanych w grze`,
-    wageNote: `Na mecz, wzorem gry. Po wygaśnięciu kontraktu gra może doliczyć 30${NBSP}% (wolny transfer).`,
+    shortlisted: pl`Na twojej liście życzeń w grze`,
+    wageNote: `Na mecz, wzorem gry. Po wygaśnięciu kontraktu gra może doliczyć 30% (wolny transfer).`,
     money: (amount: number, currency: CurrencyCode): string =>
       `${formatNumber(amount)}${NBSP}${CURRENCY_SYMBOLS[currency]}`,
     wageEstimate: (low: number, high: number, currency: CurrencyCode): string =>

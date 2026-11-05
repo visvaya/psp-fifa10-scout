@@ -34,6 +34,8 @@ test.describe("phone", () => {
     await page.getByRole("button", { name: "Filtry" }).click();
     const dialog = page.getByRole("dialog", { name: "Filtry" });
     await dialog.getByRole("checkbox", { name: "Napastnik" }).check();
+    // The reset button stays at the bottom of the long panel, in reach without scrolling.
+    await expect(dialog.getByRole("button", { name: "Wyczyść filtry" })).toBeInViewport();
     await dialog.getByRole("button", { name: "Zamknij" }).click();
     await expect(page.getByRole("button", { name: "Filtry (1)" })).toBeFocused();
     await page.getByRole("button", { name: /^Paweł Brożek/u }).click();
@@ -323,7 +325,7 @@ test.describe("career prices on a phone", () => {
     await page.getByRole("button", { name: "Filtry" }).click();
     const dialog = page.getByRole("dialog", { name: "Filtry" });
     await dialog.getByText("Kariera", { exact: true }).click();
-    const from = dialog.getByRole("group", { name: "Cena", exact: true }).getByLabel("od");
+    const from = dialog.getByRole("group", { name: "Cena (€)", exact: true }).getByLabel("od");
     await from.pressSequentially("100000000");
     await expect(from).toHaveValue("100\u00a0000\u00a0000");
     expect(await from.evaluate((input) => input.scrollWidth <= input.clientWidth)).toBe(true);

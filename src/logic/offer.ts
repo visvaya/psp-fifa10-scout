@@ -25,13 +25,13 @@ export interface OfferContext {
 export interface OfferTerms {
   /** The least fee the club accepts; null when the contract has run out and only the player decides. */
   readonly fee: number | null;
-  /** The fee is above what the offer form allows (about 125 % of the value). */
+  /** The fee is above what the offer form allows (about 125% of the value). */
   readonly feeOverCap: boolean;
   /** The contract length the player wants; 0 when any contract would outlast his career. */
   readonly years: number;
   /** The least wage per match he signs for at that length; null when he will not sign. */
   readonly wage: number | null;
-  /** The wage is above what the offer form allows (about 120 % of the market wage). */
+  /** The wage is above what the offer form allows (about 120% of the market wage). */
   readonly wageOverCap: boolean;
 }
 

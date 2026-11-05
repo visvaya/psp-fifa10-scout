@@ -14,6 +14,7 @@ import {
   TEXT,
 } from "./text.ts";
 import { FILTER_SETS_TEXT } from "./text-filter-sets.ts";
+import { FIELD_HELP } from "./text-help.ts";
 import { OFFER_TEXT } from "./text-offer.ts";
 import { tie } from "./typeset.ts";
 
@@ -36,6 +37,7 @@ const STRINGS = stringsIn([
   TEXT,
   FILTER_SETS_TEXT,
   OFFER_TEXT,
+  FIELD_HELP,
 ]);
 
 /** Address pronouns from a capital letter, though not at the start of a sentence. */
@@ -59,6 +61,7 @@ describe("UI texts", () => {
     ["writes an ellipsis as one character", (text: string) => text.includes("...")],
     ["addresses the reader in lower case", (text: string) => CAPITAL_PRONOUN.test(text)],
     ["uses no stock phrases", (text: string) => CLICHES.test(text)],
+    ["puts the percent sign right after the number", (text: string) => /\d\s%/u.test(text)],
   ])("%s", (_rule, breaks) => {
     expect(STRINGS.filter(breaks)).toEqual([]);
   });
