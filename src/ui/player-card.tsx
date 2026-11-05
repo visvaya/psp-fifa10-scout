@@ -222,7 +222,9 @@ const OfferFacts = (props: { player: Player; context: OfferContext; currency: Cu
           ],
         ]}
       />
-      {player.clubWillSell === false ? <p className="help">{OFFER_TEXT.clubRefuses}</p> : null}
+      {player.saleRefusal === null ? null : (
+        <p className="help">{OFFER_TEXT.refusals[player.saleRefusal]}</p>
+      )}
       {terms.feeOverCap ? <p className="help">{OFFER_TEXT.feeOverCap}</p> : null}
       {terms.wageOverCap ? <p className="help">{OFFER_TEXT.wageOverCap}</p> : null}
     </section>

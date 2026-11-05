@@ -145,6 +145,7 @@ export const testPlayer = (overrides: Partial<Player> = {}): Player => {
     loanedFromName: null,
     shortlisted: false,
     clubWillSell: null,
+    saleRefusal: null,
     price: null,
     wage: null,
     wageMax: null,

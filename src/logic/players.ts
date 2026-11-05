@@ -19,7 +19,8 @@ import {
 import { careerLinks, placementsOf, teamFields, teamsById } from "./placements.ts";
 import type { Placement } from "./placements.ts";
 import { financeOf, NO_FINANCE } from "./player-finance.ts";
-import { clubWillSellOf } from "./sale-rule.ts";
+import { saleVerdictOf } from "./sale-rule.ts";
+import type { SaleRefusal } from "./sale-rule.ts";
 import type { Finance, FinanceInput } from "./player-finance.ts";
 import { positionOf } from "./positions.ts";
 import type { PositionGroup } from "./positions.ts";
@@ -211,8 +212,13 @@ export interface Player extends Finance, SeasonStats {
   /** The club he is on loan from (career only); null when he plays for his own club. */
   readonly loanedFromId: number | null;
   readonly loanedFromName: string | null;
-  /** In a career, whether his club may sell him at all (sale-rule.ts); null without a club or career. */
+  /**
+   * In a career, whether his club may sell him to the user at all (sale-rule.ts); null without a club or
+   * career, or in the user's club.
+   */
   readonly clubWillSell: boolean | null;
+  /** Why the game refuses any offer for him; null when it does not, or when clubWillSell is null. */
+  readonly saleRefusal: SaleRefusal | null;
   /** On the user's shortlist in the game (the save's career_shortlist). */
   readonly shortlisted: boolean;
 }
@@ -227,7 +233,7 @@ interface Context {
   readonly shortlist: ReadonlySet<number>;
   readonly academy: ReadonlySet<number>;
   /** Career only. */
-  readonly clubWillSell: ((playerId: number) => boolean | null) | null;
+  readonly saleVerdict: ((playerId: number) => SaleRefusal | "sells" | null) | null;
   readonly freeAgents: ReadonlySet<number>;
   readonly rate: (row: EaDbRow) => Rating;
   /** Career only. */
@@ -263,6 +269,12 @@ const shortlistOf = (db: EaDb, save: CareerSave | undefined): readonly EaDbRow[]
     (db.tables.has("career_shortlist") ? readTable(db, "career_shortlist") : [])
   );
 };
+
+/** The sale fields from the game's verdict on an offer for the player. */
+const saleFields = (verdict: SaleRefusal | "sells" | null) => ({
+  clubWillSell: verdict === null ? null : verdict === "sells",
+  saleRefusal: verdict === null || verdict === "sells" ? null : verdict,
+});
 
 /** A column of the save's stats row; null without the row or the column. */
 const statOf = (stats: EaDbRow | undefined, key: string): number | null =>
@@ -350,7 +362,7 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
     ...seasonStats(stats),
     injuryDays: statOf(stats, "injurydaysout"),
     ...marketFields(context.market, context.teams, id),
-    clubWillSell: context.clubWillSell?.(id) ?? null,
+    ...saleFields(context.saleVerdict?.(id) ?? null),
     shortlisted: context.shortlist.has(id),
     ...(context.finance?.({ row, age, club: money, overallAt }) ?? NO_FINANCE),
   };
@@ -465,7 +477,7 @@ export const buildPlayers = (db: EaDb, save?: CareerSave): readonly Player[] => 
     ),
     rate: rater(db, save),
     finance: save === undefined ? null : financeOf(db, save),
-    clubWillSell: save === undefined ? null : clubWillSellOf(db, save, placements),
+    saleVerdict: save === undefined ? null : saleVerdictOf(db, save, placements),
   };
   // The game keeps generated players out of the leagues until it places them (overall-rating.md, F2).
   const placed = new Set(

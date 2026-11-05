@@ -1,8 +1,9 @@
-// Whether a club may sell a player to the user at all, before any fee: the game refuses (offer code 6)
-// when the club has too few players in his position group, or 19 players or fewer (docs: negotiation
-// spec, decoded from the game's code; it explains a refusal seen on the owner's screen).
+// Whether a club may sell a player to the user at all, before any fee, and why not (docs: sale-refusals
+// spec in the notes, decoded from the game's code): the club has too few players in his position group,
+// or 19 or fewer (offer code 6), or it is the user's historic rival (11). The user's own full squad
+// (code 7) refuses every offer alike, so it says nothing about a player and is left out here.
 
-import { seasonStartDate } from "../data/career-save.ts";
+import { careerManager, seasonStartDate } from "../data/career-save.ts";
 import type { CareerSave } from "../data/career-save.ts";
 import { readTable } from "../data/ea-db.ts";
 import type { EaDb } from "../data/ea-db.ts";
@@ -22,6 +23,9 @@ const SALE_RULE = {
   /** CAREER/TRANSFER_MIN_TEAM_SIZE: the club must have more players than this. */
   squadMoreThan: 19,
 } as const;
+
+/** Why the game refuses any offer for a player, whatever the fee. */
+export type SaleRefusal = "position" | "squad" | "rivals";
 
 export interface ClubSquad {
   /** Every player linked to the club, those on loan at it included. */
@@ -52,30 +56,43 @@ export const squadsOf = (
   return squads;
 };
 
-/** The club does not refuse to sell a player of this position (his own count included). */
-export const clubWillSell = (
+/** Why the club refuses to sell a player of this position (his own count included), or null. */
+export const squadRefusal = (
   squad: ClubSquad,
   positionCode: number,
   leaguePrestige: number,
-): boolean => {
+): "position" | "squad" | null => {
   const group = POSITION_GROUP[positionCode];
   const minimums =
     leaguePrestige >= SALE_RULE.highPrestigeFrom
       ? SALE_RULE.groupMinimum.high
       : SALE_RULE.groupMinimum.low;
   const groupFine = group === undefined || (squad.groups[group] ?? 0) >= (minimums[group] ?? 0);
-  return groupFine && squad.size > SALE_RULE.squadMoreThan;
+  if (!groupFine) return "position";
+  return squad.size > SALE_RULE.squadMoreThan ? null : "squad";
 };
 
+/** The clubs that are the given club's historic rivals (fifa.db `historicrivalries`, either order). */
+const rivalsOf = (db: EaDb, teamId: number): ReadonlySet<number> =>
+  new Set(
+    (db.tables.has("historicrivalries") ? readTable(db, "historicrivalries") : []).flatMap(
+      (row) => {
+        const [first, second] = [Number(row["clubid1"]), Number(row["clubid2"])];
+        return first === teamId ? [second] : second === teamId ? [first] : [];
+      },
+    ),
+  );
+
 /**
- * For each player with a club in a career: whether the club will sell him; null without a club. A
- * contract that has run out skips the refusal, as the game does.
+ * For each player of another club in a career: why the game refuses any offer for him, or "sells"; null
+ * without a club or in the user's own. A contract that has run out skips the club's refusals, as the game
+ * does.
  */
-export const clubWillSellOf = (
+export const saleVerdictOf = (
   db: EaDb,
   save: CareerSave,
   placements: ReadonlyMap<number, Placement>,
-): ((playerId: number) => boolean | null) => {
+): ((playerId: number) => SaleRefusal | "sells" | null) => {
   const preferred = new Map(
     readTable(db, "players").map((row) => [
       Number(row["playerid"]),
@@ -100,11 +117,14 @@ export const clubWillSellOf = (
     ),
   );
   const seasonYear = seasonStartDate(db, save).getUTCFullYear();
+  const { teamId } = careerManager(db, save);
+  const rivals = rivalsOf(db, teamId);
   return (playerId) => {
     const club = placements.get(playerId)?.club;
     const squad = club === undefined ? undefined : squads.get(club.team.id);
-    if (club === undefined || squad === undefined) return null;
-    if (Number(club.link["yearcontractvalidtil"]) <= seasonYear) return true;
-    return clubWillSell(squad, preferred.get(playerId) ?? -1, club.team.leaguePrestige);
+    if (club === undefined || squad === undefined || club.team.id === teamId) return null;
+    if (Number(club.link["yearcontractvalidtil"]) <= seasonYear) return "sells";
+    const refusal = squadRefusal(squad, preferred.get(playerId) ?? -1, club.team.leaguePrestige);
+    return refusal ?? (rivals.has(club.team.id) ? "rivals" : "sells");
   };
 };
