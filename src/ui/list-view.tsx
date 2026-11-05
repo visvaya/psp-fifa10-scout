@@ -98,6 +98,8 @@ const NoMatches = ({ dispatch }: { dispatch: Dispatch<ScoutAction> }) => (
   </div>
 );
 
+const NO_ENTRIES: readonly WatchEntry[] = [];
+
 /**
  * The ids on the watchlist, the same set while only a note changes, so typing a note does not filter and
  * sort every player again.
@@ -115,7 +117,10 @@ const useVisiblePlayers = (
 ) => {
   const filters = useDeferredValue(state.filters);
   const sort = useDeferredValue(state.sort);
-  const listed = useWatchedIds(state.watchlist);
+  // The list matters only while its filter is set, so adding a player with it off filters nothing again.
+  const listed = useWatchedIds(
+    filters.flags?.onMyList === undefined ? NO_ENTRIES : state.watchlist,
+  );
   const visible = useMemo(
     () =>
       sortPlayers(

@@ -6,44 +6,8 @@ import type { Dispatch, JSX } from "react";
 import { SCOUT_CONFIG } from "../logic/config.ts";
 import type { ScoutAction } from "../logic/scout-state.ts";
 import type { WatchEntry } from "../logic/watchlist.ts";
-import { TEXT } from "./text.ts";
+import { ConfirmQuestion } from "./confirm-question.tsx";
 import { WATCHLIST_TEXT } from "./text-watchlist.ts";
-
-/** The question before a removal; the confirm button takes the focus and carries the question. */
-const RemoveQuestion = (props: { onAnswer: (remove: boolean) => void }) => {
-  const confirm = useRef<HTMLButtonElement>(null);
-  const questionId = useId();
-  useEffect(() => {
-    confirm.current?.focus();
-  }, []);
-  return (
-    <>
-      <p id={questionId}>{WATCHLIST_TEXT.removeQuestion}</p>
-      <div className="watchlist-answer">
-        <button
-          type="button"
-          className="button"
-          onClick={() => {
-            props.onAnswer(false);
-          }}
-        >
-          {TEXT.cancel}
-        </button>
-        <button
-          ref={confirm}
-          type="button"
-          className="button primary"
-          aria-describedby={questionId}
-          onClick={() => {
-            props.onAnswer(true);
-          }}
-        >
-          {WATCHLIST_TEXT.remove}
-        </button>
-      </div>
-    </>
-  );
-};
 
 /** The note field, named by its label alone; the limit is its description. */
 const NoteField = (props: { note: string; onChange: (note: string) => void }): JSX.Element => {
@@ -88,13 +52,17 @@ export const WatchlistSection = (props: {
     <section className="watchlist" aria-labelledby="watchlist-title">
       <h3 id="watchlist-title">{WATCHLIST_TEXT.title}</h3>
       {asking ? (
-        <RemoveQuestion
-          onAnswer={(remove) => {
-            if (remove) dispatch({ type: "watch-removed", id: playerId });
-            answered.current = true;
-            setAsking(false);
-          }}
-        />
+        <div className="watchlist-answer">
+          <ConfirmQuestion
+            question={WATCHLIST_TEXT.removeQuestion}
+            confirmLabel={WATCHLIST_TEXT.remove}
+            onAnswer={(remove) => {
+              if (remove) dispatch({ type: "watch-removed", id: playerId });
+              answered.current = true;
+              setAsking(false);
+            }}
+          />
+        </div>
       ) : (
         <button
           ref={toggle}
