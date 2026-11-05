@@ -776,6 +776,28 @@ input[inputmode="numeric"] {
   padding: 0;
 }
 
+/* A field's name with its clear button at the end of the line. */
+.field-legend {
+  display: flex;
+  width: 100%;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.field-clear {
+  min-height: var(--space-6);
+  padding: 0 var(--space-1);
+  border: 0;
+  background: none;
+  color: var(--color-accent);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .field.inline {
   display: flex;
   align-items: center;
