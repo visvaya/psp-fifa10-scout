@@ -21,12 +21,26 @@ export const PotentialSwitch = (props: {
   </label>
 );
 
-/** Clears every filter; it stays at the bottom of the panel while the panel scrolls. */
+/**
+ * Takes back the last change and clears every filter; they stay at the bottom of the panel while the
+ * panel scrolls.
+ */
 export const ResetFilters = (props: {
   filters: ScoutFilters;
+  canUndo: boolean;
   dispatch: Dispatch<ScoutAction>;
 }): JSX.Element => (
   <div className="reset-filters">
+    <button
+      type="button"
+      className="button"
+      disabled={!props.canUndo}
+      onClick={() => {
+        props.dispatch({ type: "undo" });
+      }}
+    >
+      {TEXT.undo}
+    </button>
     <button
       type="button"
       className="button"
