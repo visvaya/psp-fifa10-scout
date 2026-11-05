@@ -1,4 +1,5 @@
 // Where each player plays: his club (with its league and his contract link) and his national team.
+import type { CareerSave } from "../data/career-save.ts";
 import { readTable } from "../data/ea-db.ts";
 import type { EaDb, EaDbRow } from "../data/ea-db.ts";
 import { SCOUT_CONFIG } from "./config.ts";
@@ -21,11 +22,17 @@ export interface Placement {
   readonly national?: Team;
 }
 
-/** Teams that belong to a league, with that league. */
-export const teamsById = (db: EaDb): ReadonlyMap<number, Team> => {
+/**
+ * Teams that belong to a league, with that league. A career save keeps the club leagues after promotion
+ * and relegation but not the national teams' links, so its links overlay fifa.db's team by team.
+ */
+export const teamsById = (db: EaDb, save?: CareerSave): ReadonlyMap<number, Team> => {
   const leagues = new Map(readTable(db, "leagues").map((row) => [num(row, "leagueid"), row]));
   const leagueOfTeam = new Map(
-    readTable(db, "leagueteamlinks").map((row) => [num(row, "teamid"), num(row, "leagueid")]),
+    [...readTable(db, "leagueteamlinks"), ...(save?.get("leagueteamlinks") ?? [])].map((row) => [
+      num(row, "teamid"),
+      num(row, "leagueid"),
+    ]),
   );
   return new Map(
     readTable(db, "teams").flatMap((row): [number, Team][] => {

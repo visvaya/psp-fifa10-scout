@@ -382,7 +382,7 @@ export const buildPlayers = (db: EaDb, save?: CareerSave): readonly Player[] => 
       save === undefined
         ? new Date(SCOUT_CONFIG.referenceDateIso)
         : careerManager(db, save).lastGameDate,
-    placements: placementsOf(links, teamsById(db)),
+    placements: placementsOf(links, teamsById(db, save)),
     countries: new Map(
       readTable(db, "country").map((row) => [num(row, "countryid"), String(row["countryname"])]),
     ),
