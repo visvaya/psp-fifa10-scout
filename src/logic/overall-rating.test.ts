@@ -6,9 +6,9 @@ import {
   baseOverall,
   byPositionCode,
   cappedOverall,
-  careerAttributes,
+  careerAgeing,
   OVR_WEIGHTS,
-  peakOverall,
+  peaksByPositionCode,
   potentialDeltas,
   readCurves,
 } from "./overall-rating.ts";
@@ -127,17 +127,18 @@ const careerOverall = (
   positionCode: number,
   date: Date,
   curves: Curves,
-): number => cappedOverall(careerAttributes(input, date, curves), positionCode, input.potential);
+): number =>
+  cappedOverall(careerAgeing(input, date, curves).attributesIn(0), positionCode, input.potential);
 
-describe("careerAttributes", () => {
+describe("careerAgeing", () => {
   it("ages each attribute along its curve, as the game shows them in a career", () => {
-    const aged = careerAttributes(player(), LATER, CURVES);
+    const aged = careerAgeing(player(), LATER, CURVES).attributesIn(0);
     expect([aged("finishing"), aged("sprintspeed"), aged("reflexes")]).toEqual([60, 40, 40]);
   });
 
   it("ages a player some years further, as the game's OVR in five years", () => {
     // Age 16 on 2005-03-01, rated as 21: the curves' values at 21.
-    const later = careerAttributes(player(), new Date("2005-03-01"), CURVES, 5);
+    const later = careerAgeing(player(), new Date("2005-03-01"), CURVES).attributesIn(5);
     expect([later("finishing"), later("sprintspeed")]).toEqual([60, 40]);
   });
 });
@@ -188,14 +189,57 @@ describe("careerOverall", () => {
   });
 });
 
-describe("peakOverall", () => {
-  it("takes the highest OVR the curves project over the coming seasons", () => {
-    const projection = [48, 51, 54, 56, 58, 59, 59, 58, 57];
-    expect(peakOverall((_code, years = 0) => projection[years] ?? 40, 11)).toBe(59);
+/** The peaks of the test player, 21 on LATER, on the given curves. */
+const peaks = (curves: Curves, input = player()): readonly number[] =>
+  peaksByPositionCode(careerAgeing(input, LATER, curves), input.potential);
+// Skills peak at 24, the physical curve at 22: each position peaks in its own season.
+const RISING: Curves = new Map([
+  [1, curve(50)],
+  [3, curve(50, { 22: 55, 23: 60, 24: 62, 25: 58 })],
+  [15, curve(50, { 22: 70, 23: 52 })],
+]);
+/** The test player's OVR at a position when he is `age`. */
+const at = (age: number, code: number, curves = RISING): number =>
+  careerOverall(player(), code, new Date(`${String(1989 + age)}-03-01`), curves);
+
+describe("peaksByPositionCode", () => {
+  it("takes at each position the OVR of his best season there", () => {
+    const result = peaks(RISING);
+    expect(result[ST]).toBe(Math.max(at(21, ST), at(22, ST), at(23, ST), at(24, ST), at(25, ST)));
+    expect(result[ST]).toBe(at(24, ST));
+    expect(result[GK]).toBe(at(22, GK));
+    expect(result).toHaveLength(32);
+    // The two positions peak in different seasons.
+    expect([at(24, ST) > at(22, ST), at(22, GK) > at(24, GK)]).toEqual([true, true]);
   });
 
-  it("keeps today's OVR for a player already past his peak", () => {
-    expect(peakOverall((_code, years = 0) => 80 - years, 25)).toBe(80);
+  it("keeps today's OVR for a player whose curves only fall", () => {
+    const falling: Curves = new Map([
+      [3, curve(50, { 22: 45, 23: 40 })],
+      [15, curve(50, { 22: 45, 23: 40 })],
+    ]);
+    expect(peaks(falling)[CM]).toBe(careerOverall(player(), CM, LATER, falling));
+  });
+
+  it("counts a late rise within the projection, and none beyond it", () => {
+    // 21 now: a rise at 40 is 19 seasons ahead, one at 44 is 23 seasons ahead, past the 20 projected.
+    const late = skillCurve({ 40: 70 });
+    expect(peaks(late)[CAM]).toBe(at(40, CAM, late));
+    expect(peaks(late)[CAM]).toBeGreaterThan(at(21, CAM, late));
+    const beyond = skillCurve({ 44: 70 });
+    expect(peaks(beyond)[CAM]).toBe(at(21, CAM, beyond));
+  });
+
+  it("stops at the potential", () => {
+    const strong = player({ attributes: attributes(80), potential: 70 });
+    expect(peaks(skillCurve({ 24: 70 }), strong)[CAM]).toBe(70);
+  });
+});
+
+describe("careerAgeing growth seasons", () => {
+  it("counts the seasons until the player's curves last rise", () => {
+    expect(careerAgeing(player(), LATER, skillCurve({ 30: 60 })).growthSeasons).toBe(9);
+    expect(careerAgeing(player(), LATER, skillCurve({ 18: 60 })).growthSeasons).toBe(0);
   });
 });
 

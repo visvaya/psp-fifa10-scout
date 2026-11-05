@@ -87,14 +87,16 @@ const listText = (key: ListKey, filters: ScoutFilters, names: ChipNames): string
   return filters.excludedLists?.[key] === true ? TEXT.chipExcluded(text) : text;
 };
 
-/** "BR, od 70, różnica od +1": the position, its bounds and the gain's. */
+/** "BR, od 70, różnica od +1, szczyt od 80": the position, its bounds, the gain's and the peak's. */
 const ratingText = (rating: PositionRating, names: ChipNames): string => {
   const gain = rangeText(rating.gain, TEXT.signed);
+  const peak = rangeText(rating.peak, formatNumber);
   return TEXT.chipParts(
     [
       ratingAbbreviation(rating.code, names.positionName),
       rangeText(rating, formatNumber),
       gain === "" ? "" : `${TEXT.ratingGainShort} ${gain}`,
+      peak === "" ? "" : `${TEXT.ratingPeakShort} ${peak}`,
     ].filter((part) => part !== ""),
   );
 };

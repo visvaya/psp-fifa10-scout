@@ -3,7 +3,7 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Dispatch, JSX, ReactNode } from "react";
-import { isRangeKey, rangeValue, ratingGain } from "../logic/filter-players.ts";
+import { isRangeKey, peakAt, rangeValue, ratingGain } from "../logic/filter-players.ts";
 import type { PlayerFilters } from "../logic/filter-players.ts";
 import { isAttributeName } from "../logic/players.ts";
 import type { CurrencyCode } from "../data/career-save.ts";
@@ -57,6 +57,8 @@ export const columnLabel = (
     return ratingName === null ? TEXT.columns.overall : TEXT.ratingAt(ratingName);
   }
   if (key === "ratingGain") return ratingName === null ? TEXT.ratingGain : TEXT.gainAt(ratingName);
+  if (key === "positionPeak")
+    return ratingName === null ? RANGE_LABELS.peak : TEXT.peakAt(ratingName);
   if (isAttributeName(key)) return ATTRIBUTE_LABELS[key];
   if (isTextColumn(key)) return TEXT.columns[key];
   return isRangeField(key) ? RANGE_LABELS[key] : key;
@@ -72,6 +74,8 @@ export interface ListProps {
   readonly ratingCode: number | null;
   /** That position's name in the game language; null without that filter. */
   readonly ratingName: string | null;
+  /** That filter ranges the peak at its position: the phone rows show it. */
+  readonly ratingPeakSet: boolean;
   /** Attributes with a range filter, shown as columns after OVR (rangedAttributes). */
   readonly rangedAttributes: readonly AttributeName[];
   /** The range filters, whose values the phone rows show as columns. */
@@ -143,6 +147,7 @@ const ratingIn = (player: Player, column: SortKey, ratingCode: number | null): n
   if (column === "peak") return player.peak;
   if (column === "positionRating")
     return player.overallByCode[ratingCode ?? player.positionCode] ?? null;
+  if (column === "positionPeak") return ratingCode === null ? null : peakAt(player, ratingCode);
   return isAttributeName(column) ? player.attributes[column] : null;
 };
 
@@ -290,6 +295,7 @@ const useTableColumns = ({
       ...LEAD_COLUMNS,
       "overall",
       ...(ratingCode === null ? [] : (["positionRating", "ratingGain"] as const)),
+      ...(ratingCode !== null && showPotential && projected ? (["positionPeak"] as const) : []),
       ...(showPotential ? (["potential", ...(projected ? (["peak"] as const) : [])] as const) : []),
       ...ranged,
       ...DETAIL_COLUMNS.filter((column) => priced || column !== "price"),

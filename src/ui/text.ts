@@ -317,6 +317,8 @@ export const TEXT = {
       : label,
   gainAt: (position: string): string => `Różnica ${position}`,
   ratingGainShort: "różnica",
+  peakAt: (position: string): string => `Szczyt ${position}`,
+  ratingPeakShort: "szczyt",
   signed: (value: number): string => signed(value),
   text: "Nazwisko",
   clubStatus: "Zawodnicy",

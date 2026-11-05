@@ -122,6 +122,22 @@ describe("sortPlayers", () => {
     expect(order()).toEqual(sortPlayers(rated, "name", "ascending").map((player) => player.id));
   });
 
+  it("sorts by the peak at the chosen position, missing without a choice or a career", () => {
+    const rated = PLAYERS.map((player) => ({
+      ...player,
+      peakByCode:
+        player.id === 3
+          ? []
+          : Array.from({ length: 32 }, (_, code) => (code === 4 ? 90 - player.id : 50)),
+    }));
+    const order = (code?: number) =>
+      sortPlayers(rated, "positionPeak", "descending", { ratingCode: code }).map(
+        (player) => player.id,
+      );
+    expect(order(4)).toEqual([1, 2, 5, 3]);
+    expect(order()).toEqual(sortPlayers(rated, "name", "ascending").map((player) => player.id));
+  });
+
   it("sorts by an attribute", () => {
     expect(ids("dribbling", "descending")).toEqual([2, 3, 5, 1]);
   });

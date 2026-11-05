@@ -124,6 +124,7 @@ export const testPlayer = (overrides: Partial<Player> = {}): Player => {
     developmentStyle: 2,
     traits: [],
     overallByCode: Array.from({ length: 32 }, () => 50),
+    peakByCode: [],
     attributes: attributes(50),
     clubId: 10,
     clubName: "Club",

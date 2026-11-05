@@ -138,3 +138,32 @@ test.describe("career ratings", () => {
     ).toBeVisible();
   });
 });
+
+test.describe("peak at a chosen position", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  test("ranges and sorts by the peak at a chosen position while potential shows", async ({
+    page,
+  }) => {
+    await loadCareer(page);
+    const rating = page.getByRole("group", { name: "Ocena na pozycji" });
+    await rating
+      .getByRole("combobox", { name: "Ocena na pozycji" })
+      .selectOption({ label: "Boczny obrońca (RB/LB)" });
+    const peakRange = rating.getByRole("group", { name: "Szczyt RB/LB" });
+    const header = page.getByRole("columnheader", { name: /^Szczyt RB\/LB/u });
+    await expect(peakRange).toHaveCount(0);
+    await expect(header).toHaveCount(0);
+    await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
+    await header.getByRole("button").click();
+    await expect(header).toHaveAttribute("aria-sort", "descending");
+    await peakRange.getByLabel("od").fill("99");
+    await expect(page.getByText("Żaden zawodnik nie spełnia filtrów.")).toBeVisible();
+    await expect(page.getByText(/RB\/LB, szczyt od\s99/u).first()).toBeVisible();
+    // Hiding potential drops the peak's range and sort, and keeps the position.
+    await page.getByRole("checkbox", { name: "Pokaż potencjał" }).uncheck();
+    await expect(peakRange).toHaveCount(0);
+    await expect(page.getByText("Żaden zawodnik nie spełnia filtrów.")).toHaveCount(0);
+    await expect(page.getByRole("columnheader", { name: /^OVR RB\/LB/u })).toBeVisible();
+  });
+});

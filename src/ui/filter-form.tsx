@@ -301,6 +301,7 @@ const basicSection = (kit: Kit, showPotential: boolean, career: boolean) => {
       <PositionRatingField
         rating={filters.positionRating}
         positionName={positionName}
+        peakShown={showPotential && career}
         change={change}
       />
       {showPotential

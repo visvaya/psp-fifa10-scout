@@ -193,6 +193,7 @@ describe("buildPlayers from fifa.db", () => {
       developmentStyle: 5,
       traits: ["playmaker", "technicaldribbler"],
       overallByCode: byPositionCode((code) => baseOverall(MESSI_ATTRIBUTES, code)),
+      peakByCode: [],
       attributes: MESSI_ATTRIBUTES,
       clubId: 241,
       clubName: "FC Barcelona",
@@ -340,8 +341,9 @@ describe("buildPlayers with a career save", () => {
   });
 
   it("projects the peak OVR with a save only", () => {
-    // Flat curves: the projection stays at today's OVR.
+    // Flat curves: the projection stays at today's OVR, at every position.
     expect(byId(players, 158_023)).toMatchObject({ peak: 60, overall: 60, peakGain: 0 });
+    expect(byId(players, 158_023)?.peakByCode).toEqual(byId(players, 158_023)?.overallByCode);
     expect(byId(buildPlayers(DB), 158_023)).toMatchObject({ peak: null, peakGain: null });
   });
 

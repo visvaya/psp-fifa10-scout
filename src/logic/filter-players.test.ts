@@ -160,6 +160,18 @@ describe("filterPlayers", () => {
     expect(at({ positionRating: { code: 1, gain: { max: -1 } } })).toEqual([1]);
   });
 
+  it("ranges the peak at the chosen position, which needs a career", () => {
+    const rated = PLAYERS.map((player) => ({
+      ...player,
+      peakByCode: player.id === 4 ? [] : Array.from({ length: 32 }, (_, code) => code + player.id),
+    }));
+    const at = (filters: PlayerFilters) => filterPlayers(rated, filters).map((player) => player.id);
+    // Peaks at code 5: 6, 7, 8 and none for player 4, who has no career.
+    expect(at({ positionRating: { code: 5, peak: { min: 7 } } })).toEqual([2, 3]);
+    expect(at({ positionRating: { code: 5, peak: { max: 6 } } })).toEqual([1]);
+    expect(at({ positionRating: { code: 6, peak: { max: 7 } } })).toEqual([1]);
+  });
+
   it("requires a trait or its absence", () => {
     expect(ids({ flags: { playmaker: true } })).toEqual([2]);
     expect(ids({ flags: { playmaker: false } })).toEqual([1, 3, 4]);

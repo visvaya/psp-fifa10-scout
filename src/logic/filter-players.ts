@@ -120,7 +120,19 @@ export interface PositionRating extends Range {
   readonly code: number;
   /** The OVR at the code minus the OVR at the preferred position. */
   readonly gain?: Range;
+  /** The peak OVR at the code; career only, shown with potential. */
+  readonly peak?: Range;
 }
+
+const bounded = (range: Range | undefined): range is Range =>
+  range?.min !== undefined || range?.max !== undefined;
+
+/** The position rating without a gain or peak range that sets no bound. */
+export const compactRating = ({ gain, peak, ...rating }: PositionRating): PositionRating => ({
+  ...rating,
+  ...(bounded(gain) ? { gain } : {}),
+  ...(bounded(peak) ? { peak } : {}),
+});
 
 /** The OVR at a position code minus the OVR at the preferred position, or null without that rating. */
 export const ratingGain = (player: Player, code: number): number | null => {
@@ -129,6 +141,10 @@ export const ratingGain = (player: Player, code: number): number | null => {
 };
 
 type Predicate = (player: Player) => boolean;
+
+/** The peak OVR at a position code, or null without a career. */
+export const peakAt = (player: Player, code: number): number | null =>
+  player.peakByCode[code] ?? null;
 
 /** A player's value for a range filter: a field, or an attribute. */
 export const rangeValue = (player: Player, key: RangeKey): number | null =>
@@ -184,6 +200,9 @@ const predicates = (filters: PlayerFilters): readonly Predicate[] => {
     ...(rating?.gain === undefined
       ? []
       : [inRange(rating.gain, (player) => ratingGain(player, rating.code))]),
+    ...(rating?.peak === undefined
+      ? []
+      : [inRange(rating.peak, (player) => peakAt(player, rating.code))]),
     ...FLAG_KEYS.flatMap((flag) => {
       const wanted = filters.flags?.[flag];
       return wanted === undefined ? [] : [(player: Player) => hasFlag(player, flag) === wanted];
