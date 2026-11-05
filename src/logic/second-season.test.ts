@@ -15,12 +15,14 @@ const referencePath = process.env["PSP_SECOND_SEASON_REFERENCE"] ?? "";
 const isNumbers = (item: unknown): item is readonly number[] =>
   Array.isArray(item) && item.every((value) => Number.isFinite(value));
 
-/** The rows under a key, each of the given length; a malformed row fails the test. */
+/** The rows under a key, each of the given length; a malformed list or row fails the test. */
 const rows = (body: unknown, key: string, length: number): readonly (readonly number[])[] => {
   const value: unknown =
     typeof body === "object" && body !== null
       ? Object.entries(body).find(([name]) => name === key)?.[1]
       : undefined;
+  // A missing key lists nothing; a present one must be a list.
+  expect(value === undefined || Array.isArray(value)).toBe(true);
   const list: readonly unknown[] = Array.isArray(value) ? value : [];
   expect(list.every((row) => isNumbers(row) && row.length === length)).toBe(true);
   return list.filter(isNumbers);
