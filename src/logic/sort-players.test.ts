@@ -142,6 +142,23 @@ describe("sortPlayers", () => {
     expect(ids("dribbling", "descending")).toEqual([2, 3, 5, 1]);
   });
 
+  // The sort packs each value into one integer key: an average with a decimal goes in tenths.
+  it("sorts by a group's average and spread, keeping every player", () => {
+    const grouped = PLAYERS.map((player, index) => ({
+      ...player,
+      attributes: attributes(60, {
+        marking: [61, 60, 71, 70][index] ?? 60,
+        tackling: [60, 60, 70, 71][index] ?? 60,
+      }),
+    }));
+    const order = (key: SortKey, direction: SortDirection) =>
+      sortPlayers(grouped, key, direction).map((player) => player.id);
+    // Averages 60,5 60 70,5 70,5 (ids 5, 2, 1, 3); spreads 1 0 1 1; ties go by the name order.
+    expect(order("defendingAverage", "descending")).toEqual([3, 1, 5, 2]);
+    expect(order("defendingAverage", "ascending")).toEqual([2, 5, 3, 1]);
+    expect(order("defendingSpread", "descending")).toEqual([3, 1, 5, 2]);
+  });
+
   it("leaves the input untouched", () => {
     sortPlayers(PLAYERS, "age", "ascending");
     expect(PLAYERS.map((player) => player.id)).toEqual([5, 2, 1, 3]);

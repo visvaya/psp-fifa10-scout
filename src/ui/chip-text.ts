@@ -13,9 +13,9 @@ import {
   LIST_LABELS,
   MY_CLUB_LABELS,
   POSITION_GROUP_LABELS,
-  rangeLabel,
   TEXT,
 } from "./text.ts";
+import { rangeLabel } from "./text-range-labels.ts";
 
 /** A chip names this many chosen values; it counts the rest. */
 const CHIP_VALUES_MAX = 3;
