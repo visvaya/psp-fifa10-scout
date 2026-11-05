@@ -101,6 +101,7 @@ export const testPlayer = (overrides: Partial<Player> = {}): Player => {
     searchName: "",
     nameOrder: 0,
     youth: false,
+    academy: false,
     freeAgent: false,
     age: 25,
     birthYear: 1984,

@@ -135,8 +135,13 @@ export interface Player extends Finance, SeasonStats {
   readonly searchName: string;
   /** Position in alphabetical order of names (ties by id): Polish, or the chosen game language's. */
   readonly nameOrder: number;
-  /** From the generated youth pool (shown only when a save links the player to a team). */
+  /**
+   * From the generated youth pool, shown only when the save places him: in a team, the user's academy,
+   * the transfer list or the game's shortlist (a scouted junior not signed yet).
+   */
   readonly youth: boolean;
+  /** In the user's youth academy (careers only): a junior of the user's club without a team link. */
+  readonly academy: boolean;
   /** Linked to the game's free-agent team, so any club can sign him (careers only). */
   readonly freeAgent: boolean;
   readonly age: number;
@@ -220,6 +225,7 @@ interface Context {
   readonly market: TransferMarket;
   readonly teams: ReadonlyMap<number, { readonly name: string }>;
   readonly shortlist: ReadonlySet<number>;
+  readonly academy: ReadonlySet<number>;
   /** Career only. */
   readonly clubWillSell: ((playerId: number) => boolean | null) | null;
   readonly freeAgents: ReadonlySet<number>;
@@ -317,6 +323,7 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
     initialName: firstName === "" || surname === "" ? null : `${firstName.charAt(0)}. ${surname}`,
     searchName: searchKey(name),
     youth: id >= SCOUT_CONFIG.youthPlayerIdStart,
+    academy: context.academy.has(id),
     freeAgent: context.freeAgents.has(id),
     age,
     birthYear: birthdateToDate(num(row, "birthdate")).getUTCFullYear(),
@@ -423,7 +430,7 @@ const rater = (db: EaDb, save: CareerSave | undefined): Context["rate"] => {
 
 /**
  * Every player with his club and nationality; youth-pool players only when a team link, or the
- * save's youth academy or transfer list, places them. With a save, links and stats come from it and ages are taken on its last game date.
+ * save's youth academy, transfer list or shortlist, places them. With a save, links and stats come from it and ages are taken on its last game date.
  */
 export const buildPlayers = (db: EaDb, save?: CareerSave): readonly Player[] => {
   const links =
@@ -434,6 +441,8 @@ export const buildPlayers = (db: EaDb, save?: CareerSave): readonly Player[] => 
   const transferList = save === undefined ? [] : effectiveRows(db, save, "career_transfer_list");
   const teams = teamsById(db, save);
   const placements = placementsOf(save === undefined ? links : careerLinks(db, save), teams);
+  const academy = save === undefined ? [] : effectiveRows(db, save, "career_youth_accademy");
+  const shortlist = shortlistOf(db, save);
   const context: Context = {
     referenceDate:
       save === undefined
@@ -447,7 +456,8 @@ export const buildPlayers = (db: EaDb, save?: CareerSave): readonly Player[] => 
     // fifa.db's loan list is empty: only a save holds loans.
     market: transferMarketOf(transferList, save?.get("career_loaned_list") ?? []),
     teams,
-    shortlist: new Set(shortlistOf(db, save).map((row) => num(row, "playerid"))),
+    shortlist: new Set(shortlist.map((row) => num(row, "playerid"))),
+    academy: new Set(academy.map((row) => num(row, "playerid"))),
     freeAgents: new Set(
       links
         .filter((row) => num(row, "teamid") === SCOUT_CONFIG.freeAgentTeamId)
@@ -459,12 +469,7 @@ export const buildPlayers = (db: EaDb, save?: CareerSave): readonly Player[] => 
   };
   // The game keeps generated players out of the leagues until it places them (overall-rating.md, F2).
   const placed = new Set(
-    [
-      ...links,
-      ...(save === undefined
-        ? []
-        : [...effectiveRows(db, save, "career_youth_accademy"), ...transferList]),
-    ].map((row) => num(row, "playerid")),
+    [...links, ...academy, ...transferList, ...shortlist].map((row) => num(row, "playerid")),
   );
   return withNameOrder(
     readTable(db, "players")

@@ -121,9 +121,17 @@ export const ShortlistStar = ({ player }: { player: Player }) =>
 export const ShortlistWords = ({ player }: { player: Player }) =>
   player.shortlisted ? <span className="visually-hidden">{` ${TEXT.shortlisted}`}</span> : null;
 
-/** The club name, or what stands in for it: a free agent, or a junior of the user's academy. */
+/**
+ * The club name, or what stands in for it: a junior of the user's academy, a scouted junior not signed
+ * yet (the game: no contract), or a free agent.
+ */
 export const clubText = (player: Player): string =>
-  player.clubName ?? (player.youth && !player.freeAgent ? TEXT.youth : TEXT.freeAgent);
+  player.clubName ??
+  (player.academy
+    ? TEXT.youth
+    : player.youth && !player.freeAgent
+      ? TEXT.noContract
+      : TEXT.freeAgent);
 
 const cellText = (player: Player, key: TextColumn): string | number => {
   if (key === "positionCode") return player.positionName;
