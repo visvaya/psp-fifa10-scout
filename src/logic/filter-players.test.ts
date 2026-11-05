@@ -49,6 +49,7 @@ const PLAYERS = [
     form: 4,
     transferListed: true,
     shortlisted: true,
+    clubWillSell: true,
   }),
 ];
 
@@ -159,6 +160,9 @@ describe("filterPlayers", () => {
     expect(ids({ flags: { transferListed: false } })).toEqual([1, 2, 3]);
     expect(ids({ flags: { shortlisted: true } })).toEqual([4]);
     expect(ids({ flags: { shortlisted: false } })).toEqual([1, 2, 3]);
+    // Without a career (null) a player does not count as one his club will sell.
+    expect(ids({ flags: { clubWillSell: true } })).toEqual([4]);
+    expect(ids({ flags: { clubWillSell: false } })).toEqual([1, 2, 3]);
   });
 
   it("finds free agents and excludes a team", () => {

@@ -347,6 +347,7 @@ const careerSection = ({ range, flag }: Kit) => (
     {range("wage")}
     {flag("transferListed")}
     {flag("shortlisted")}
+    {flag("clubWillSell")}
   </Section>
 );
 

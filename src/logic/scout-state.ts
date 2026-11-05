@@ -266,7 +266,7 @@ const withoutCareer = ({ filters, sort }: Pick<Preferences, "filters" | "sort">)
     clubStatus: undefined,
     myClub: undefined,
     ranges: { ...filters.ranges, peak: undefined },
-    flags: { ...filters.flags, shortlisted: undefined },
+    flags: { ...filters.flags, shortlisted: undefined, clubWillSell: undefined },
   }),
   sort: sort.key === "peak" ? DEFAULT_SORT : sort,
 });

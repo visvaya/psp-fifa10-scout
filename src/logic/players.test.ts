@@ -205,6 +205,7 @@ describe("buildPlayers from fifa.db", () => {
       injuryDays: null,
       transferListed: false,
       shortlisted: false,
+      clubWillSell: null,
       price: null,
       wage: null,
       wageMax: null,

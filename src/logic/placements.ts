@@ -16,6 +16,7 @@ interface Team {
   readonly rating: number;
   /** League prestige plus team prestige. */
   readonly prestige: number;
+  readonly leaguePrestige: number;
 }
 
 export interface Placement {
@@ -43,8 +44,9 @@ export const teamsById = (db: EaDb, save?: CareerSave): ReadonlyMap<number, Team
       const leagueId = num(league, "leagueid");
       const [name, leagueName] = [String(row["teamname"]), String(league["leaguename"])];
       const [level, rating] = [num(league, "level"), num(row, "overallrating")];
-      const prestige = num(league, "leagueprestige") + num(row, "internationalprestige");
-      return [[id, { id, name, leagueId, leagueName, level, rating, prestige }]];
+      const leaguePrestige = num(league, "leagueprestige");
+      const prestige = leaguePrestige + num(row, "internationalprestige");
+      return [[id, { id, name, leagueId, leagueName, level, rating, prestige, leaguePrestige }]];
     }),
   );
 };

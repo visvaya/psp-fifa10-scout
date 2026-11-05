@@ -182,6 +182,7 @@ export const FLAG_LABELS: Readonly<Record<FlagKey, string>> = {
   nationalTeam: "Reprezentant kraju",
   transferListed: "Na liście transferowej",
   shortlisted: "Obserwowany w grze",
+  clubWillSell: "Klub może go sprzedać",
 };
 
 export const FILTER_SECTION_LABELS = {
