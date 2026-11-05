@@ -117,6 +117,7 @@ export const RANGE_LABELS: Readonly<Record<RangeFields, string>> = {
   potential: "Potencjał",
   growth: "Zapas rozwoju",
   peak: "Szczyt OVR",
+  peakGain: "Zapas do szczytu",
   height: "Wzrost (cm)",
   weight: "Waga (kg)",
   weakFoot: "Słabsza noga (1–5)",

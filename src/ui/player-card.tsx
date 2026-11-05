@@ -60,6 +60,9 @@ const profile = (
   showPotential: boolean,
 ): readonly (readonly [string, ReactNode])[] => [
   ...(showPotential ? [[RANGE_LABELS.growth, formatNumber(player.growth)] as const] : []),
+  ...(showPotential && player.peakGain !== null
+    ? [[RANGE_LABELS.peakGain, formatNumber(player.peakGain)] as const]
+    : []),
   [TEXT.card.internationalReputation, TEXT.card.outOfFive(player.internationalReputation)],
   [TEXT.card.learningSpeed, TEXT.card.outOfFive(player.learningSpeed)],
   [RANGE_LABELS.retirementAge, TEXT.years(player.retirementAge)],

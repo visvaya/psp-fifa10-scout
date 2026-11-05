@@ -181,6 +181,7 @@ describe("buildPlayers from fifa.db", () => {
       weight: 67,
       potential: 95,
       peak: null,
+      peakGain: null,
       overall: 60,
       growth: 35,
       bodyType: 1,
@@ -340,8 +341,8 @@ describe("buildPlayers with a career save", () => {
 
   it("projects the peak OVR with a save only", () => {
     // Flat curves: the projection stays at today's OVR.
-    expect(byId(players, 158_023)?.peak).toBe(byId(players, 158_023)?.overall);
-    expect(byId(buildPlayers(DB), 158_023)?.peak).toBeNull();
+    expect(byId(players, 158_023)).toMatchObject({ peak: 60, overall: 60, peakGain: 0 });
+    expect(byId(buildPlayers(DB), 158_023)).toMatchObject({ peak: null, peakGain: null });
   });
 
   // The save keeps the average match rating times ten: 69 is the 6,9 of the game's stats screen.

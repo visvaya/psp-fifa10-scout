@@ -51,6 +51,7 @@ export const SORTABLE_KEYS: readonly SortKey[] = [
   "overall",
   "growth",
   "peak",
+  "peakGain",
   "height",
   "weight",
   "weakFoot",

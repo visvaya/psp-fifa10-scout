@@ -154,6 +154,8 @@ export interface Player extends Finance, SeasonStats {
   readonly potential: number;
   /** The highest OVR the development curves project at the preferred position; career only. */
   readonly peak: number | null;
+  /** Peak minus OVR: how much he still grows along the curves; career only. */
+  readonly peakGain: number | null;
   /** OVR at the preferred position: aged to the season's first match day with a save, from fifa.db without. */
   readonly overall: number;
   /** Potential minus OVR. */
@@ -325,6 +327,7 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
     peak,
     overall,
     growth: potential - overall,
+    peakGain: peak === null ? null : peak - overall,
     ...profileFields(row),
     overallByCode,
     attributes,
