@@ -237,6 +237,7 @@ const withPotential = (preferences: Preferences): Preferences => {
     potential: undefined,
     growth: undefined,
     peak: undefined,
+    peakGain: undefined,
   };
   return {
     ...preferences,

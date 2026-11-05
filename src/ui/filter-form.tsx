@@ -300,7 +300,11 @@ const basicSection = (kit: Kit, showPotential: boolean, career: boolean) => {
         change={change}
       />
       {showPotential
-        ? [range("potential"), range("growth"), ...(career ? [range("peak")] : [])]
+        ? [
+            range("potential"),
+            range("growth"),
+            ...(career ? [range("peak"), range("peakGain")] : []),
+          ]
         : null}
     </Section>
   );

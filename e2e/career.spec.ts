@@ -115,9 +115,12 @@ test.describe("career ratings", () => {
     await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
     await expect(page.getByRole("columnheader", { name: /^Szczyt OVR/u })).toBeVisible();
     await page.getByRole("group", { name: "Szczyt OVR" }).getByLabel("od").fill("1");
+    // Flat curves: no one grows past today's OVR.
+    await page.getByRole("group", { name: "Zapas do szczytu" }).getByLabel("do").fill("0");
     await page.getByRole("button", { name: /^Lionel Messi/u }).click();
     const card = page.getByRole("dialog", { name: "Lionel Messi" });
     await expect(card.getByRole("term").filter({ hasText: /^Szczyt OVR$/u })).toBeVisible();
+    await expect(cardValue(card, "Zapas do szczytu")).toHaveText("0");
     await expect(
       card.getByText(/Potencjału 95\szawodnik według niej nie osiągnie\.$/u),
     ).toBeVisible();
