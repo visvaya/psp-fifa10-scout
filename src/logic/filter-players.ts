@@ -177,9 +177,9 @@ const inRange =
 const isAvailable = (player: Player): boolean =>
   player.clubId !== null || player.youth || player.freeAgent;
 
-/** In the user's club: linked to it, or a junior of its academy. */
-const inClub = (player: Player, teamId: number): boolean =>
-  player.clubId === teamId || player.academy;
+/** The user's player: linked to his club, a junior of its academy, or on loan from it at another club. */
+export const inClub = (player: Player, teamId: number): boolean =>
+  player.clubId === teamId || player.academy || player.loanedFromId === teamId;
 
 const predicates = (filters: PlayerFilters): readonly Predicate[] => {
   const text = searchKey(filters.text?.trim() ?? "");

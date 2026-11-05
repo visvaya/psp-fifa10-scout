@@ -248,6 +248,17 @@ describe("filterPlayers", () => {
     expect(idsWithClubless({ excludeTeamId: 10 })).toEqual([2, 3, 6, 7, 8]);
   });
 
+  it("counts the user's players on loan at another club as the user's", () => {
+    const lent = testPlayer({ id: 9, name: "Lent", clubId: 20, loanedFromId: 10 });
+    const borrowed = testPlayer({ id: 11, name: "Borrowed", clubId: 10, loanedFromId: 20 });
+    const loanIds = (filters: PlayerFilters) =>
+      filterPlayers([lent, borrowed], filters).map((player) => player.id);
+    expect(loanIds({ onlyTeamId: 10 })).toEqual([9, 11]);
+    expect(loanIds({ excludeTeamId: 10 })).toEqual([]);
+    // Club 20 lent player 11 to club 10.
+    expect(loanIds({ onlyTeamId: 20 })).toEqual([9, 11]);
+  });
+
   it("counts only the game's free agents as free agents, not juniors or legends", () => {
     expect(idsWithClubless({ freeAgentsOnly: true })).toEqual([3, 7]);
   });

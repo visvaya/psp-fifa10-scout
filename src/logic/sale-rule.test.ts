@@ -85,6 +85,19 @@ describe("saleVerdictOf (through buildPlayers)", () => {
     expect(runOut.every((player) => player.clubWillSell === true)).toBe(true);
   });
 
+  it("gives no verdict for the user's own player on loan at another club", () => {
+    const lentOut = new Map([
+      ...save,
+      ["career_loaned_list", [{ playerid: 158_023, oldteamid: SCOUT_USER_TEAM_ID }]],
+    ]);
+    expect(of(lentOut, 158_023)).toBeNull();
+    const lentByOther = new Map([
+      ...save,
+      ["career_loaned_list", [{ playerid: 158_023, oldteamid: 10 }]],
+    ]);
+    expect(of(lentByOther, 158_023)).toBe(true);
+  });
+
   it("refuses the user's historic rival, in either order of the pair", () => {
     expect(refusal(save, 158_023)).toBeNull();
     expect(refusal(save, 158_023, rivals(SCOUT_USER_TEAM_ID, 241))).toBe("rivals");
