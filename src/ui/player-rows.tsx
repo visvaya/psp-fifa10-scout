@@ -115,18 +115,12 @@ const RowsHeader = (props: {
   layout: CSSProperties;
   sort: ScoutSort;
   dispatch: Dispatch<ScoutAction>;
-  /** Focus on a label off screen scrolls the header itself: the list follows it. */
-  onScroll: (scrollLeft: number) => void;
+  /** A label got the focus: the list scrolls it into view. */
+  onLabelFocus: (label: HTMLElement) => void;
 }) => {
-  const { ref, columns, labels, layout, sort, dispatch, onScroll } = props;
+  const { ref, columns, labels, layout, sort, dispatch, onLabelFocus } = props;
   return (
-    <div
-      ref={ref}
-      className="player-rows-header"
-      onScroll={(event) => {
-        onScroll(event.currentTarget.scrollLeft);
-      }}
-    >
+    <div ref={ref} className="player-rows-header">
       <div className="player-rows-grid" style={layout}>
         <span />
         {columns.map((column, index) => {
@@ -141,6 +135,9 @@ const RowsHeader = (props: {
               aria-label={sorted ? TEXT.sortedBy(label, sort.direction) : label}
               onClick={() => {
                 dispatch({ type: "sort-changed", key: column });
+              }}
+              onFocus={(event) => {
+                onLabelFocus(event.currentTarget);
               }}
             >
               {label}
@@ -170,6 +167,21 @@ const PhoneName = ({ player }: { player: Player }) =>
       <ShortlistWords player={player} />
     </span>
   );
+
+/**
+ * Where the list scrolls so a focused label shows whole between the kept name and the right edge, with
+ * a label's padding to spare. Measured within the header's content, whatever the header's own scroll.
+ */
+const scrollShowing = (label: HTMLElement, header: HTMLElement, from: number): number => {
+  const box = label.getBoundingClientRect();
+  const origin = header.getBoundingClientRect().left - header.scrollLeft;
+  const spare = PHONE.paddingRem * rootFontPx();
+  const [left, right] = [box.left - origin - spare, box.right - origin + spare];
+  const name = header.querySelector(".player-rows-grid > :first-child")?.getBoundingClientRect();
+  const nameWidth = name?.width ?? 0;
+  if (right > from + header.clientWidth) return right - header.clientWidth;
+  return left < from + nameWidth ? left - nameWidth : from;
+};
 
 /**
  * Tells styles.css, on the frame of the list and its labels, how far the list has scrolled sideways,
@@ -287,9 +299,13 @@ export const PlayerCards = (props: ListProps): JSX.Element => {
         layout={layout}
         sort={sort}
         dispatch={dispatch}
-        onScroll={(scrollLeft) => {
-          const list = scrollRef.current;
-          if (list !== null && list.scrollLeft !== scrollLeft) list.scrollLeft = scrollLeft;
+        onLabelFocus={(label) => {
+          // The list owns the sideways scroll and the labels follow it, so the two never drift apart,
+          // whichever browser also scrolls the labels to the focus by itself.
+          const [list, header] = [scrollRef.current, headerRef.current];
+          if (list === null || header === null) return;
+          list.scrollLeft = scrollShowing(label, header, list.scrollLeft);
+          header.scrollLeft = list.scrollLeft;
         }}
       />
       <div

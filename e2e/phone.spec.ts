@@ -184,8 +184,8 @@ test.describe("phone column labels", () => {
     await expect(page.getByRole("button", { name: /^OVR/u })).toHaveAccessibleName("OVR");
   });
 
-  // Focus on a label off screen scrolls the header to it; the rows must follow, or the label would
-  // stand over another column's values.
+  // A label off screen that gets the focus scrolls into view, and the rows with it, or the label would
+  // stay hidden or stand over another column's values.
   test("moves the rows along when a label off screen gets the focus", async ({ page }) => {
     await loadDatabase(page);
     await page.getByRole("button", { name: "Filtry" }).click();
@@ -198,7 +198,14 @@ test.describe("phone column labels", () => {
     await dialog.getByRole("button", { name: "Zamknij" }).click();
     await page.locator(".player-rows-header .column-label").last().focus();
     const [header, list] = [page.locator(".player-rows-header"), page.locator(".scroll")];
-    // WebKit scrolls the hidden overflow of the header to the focused label; Chromium does not.
+    // Whole on screen, measured: WebKit's viewport check misjudges a label in the scrolled header.
+    const label = page.locator(".player-rows-header .column-label").last();
+    await expect
+      .poll(async () => {
+        const box = await label.boundingBox();
+        return (box?.x ?? Infinity) + (box?.width ?? 0);
+      })
+      .toBeLessThanOrEqual(page.viewportSize()?.width ?? 0);
     await expect
       .poll(async () => list.evaluate(scrollLeftOf))
       .toBe(await header.evaluate(scrollLeftOf));
