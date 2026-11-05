@@ -762,10 +762,9 @@ input[inputmode="numeric"] {
   border-bottom: 1px solid var(--color-line);
 }
 
-/* The reset button stays in reach at the bottom of a long panel; the negative offset takes up the
-   panel's padding, so no filter shows below it. */
-/* The line above runs the panel's full width (the negative margins take up its padding), and the bar
-   keeps clear of the phone's home indicator. */
+/* The undo and reset buttons stay in reach at the bottom of a long panel: the negative offset and margins
+   take up the panel's padding, so no filter shows below the bar and its line runs the full width, and the
+   buttons keep clear of the phone's home indicator. */
 .reset-filters {
   display: flex;
   flex-wrap: wrap;
