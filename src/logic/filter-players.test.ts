@@ -193,6 +193,19 @@ describe("filterPlayers", () => {
     expect(kept({ ranges: { cleanSheets: { min: 1 } } })).toEqual([2]);
   });
 
+  // Without a career the peak, and so its gain, is null and never passes.
+  it("keeps players by the growth left to their peak, bounds included", () => {
+    const peaks = [
+      testPlayer({ id: 1, peakGain: 0 }),
+      testPlayer({ id: 2, peakGain: 5 }),
+      testPlayer({ id: 3 }),
+    ];
+    const kept = (filters: PlayerFilters) =>
+      filterPlayers(peaks, filters).map((player) => player.id);
+    expect(kept({ ranges: { peakGain: { min: 5 } } })).toEqual([2]);
+    expect(kept({ ranges: { peakGain: { max: 0 } } })).toEqual([1]);
+  });
+
   it("finds the players on loan and those listed for one", () => {
     expect(ids({ flags: { loaned: true } })).toEqual([2]);
     expect(ids({ flags: { loaned: false } })).toEqual([1, 3, 4]);

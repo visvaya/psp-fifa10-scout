@@ -20,6 +20,7 @@ import {
 import type { ListProps } from "./player-list.tsx";
 import { PositionName } from "./position-name.tsx";
 import { TEXT } from "./text.ts";
+import { NBSP } from "./typeset.ts";
 
 declare module "react" {
   // CSS custom properties in the style type: the phone layout passes its computed widths to styles.css.
@@ -152,6 +153,29 @@ const RowsHeader = (props: {
 };
 
 /** The name; a long one also as "A. Surname", which styles.css shows instead once the list scrolls. */
+/**
+ * The club after its dot, in parts the ellipsis replaces whole: the dot with the first word, then each
+ * further word after a non-breaking space, so the line never ends in a space before the ellipsis.
+ */
+const WholeWords = ({ text }: { text: string }) => {
+  const [first = ""] = text.split(" ");
+  return (
+    <>
+      <span className="meta-part">
+        {TEXT.rowMetaPartSeparator}
+        {first}
+      </span>
+      {/* Keyed by where each word starts: words may repeat ("Landu Landu"). */}
+      {[...text.matchAll(/ (\S+)/gu)].map((match) => (
+        <span key={match.index} className="meta-part">
+          {NBSP}
+          {match[1]}
+        </span>
+      ))}
+    </>
+  );
+};
+
 const PhoneName = ({ player }: { player: Player }) =>
   player.initialName !== null && player.name.length > PHONE.initialAboveChars ? (
     <span className="player-row-name has-initial">
@@ -235,16 +259,15 @@ const PhoneRow = (props: {
     >
       <span className="player-row-text">
         <PhoneName player={player} />
-        {/* Position, age, club (owner, 2026-11-05): the age is cut off whole with its dot, the club last
-            with an ellipsis. */}
+        {/* Position, age, club (owner, 2026-11-05): the line's ellipsis replaces the age, and the
+            club's words, whole, never leaving a space before it. */}
         <span className="player-row-meta">
           <PositionName code={player.positionCode} name={player.positionName} />
           <span className="meta-part">
             {TEXT.rowMetaPartSeparator}
             {TEXT.years(player.age)}
           </span>
-          {TEXT.rowMetaPartSeparator}
-          {clubText(player)}
+          <WholeWords text={clubText(player)} />
         </span>
       </span>
       {columns.map((column, index) => (

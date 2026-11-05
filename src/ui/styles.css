@@ -574,7 +574,8 @@ input[inputmode="numeric"] {
   width: max(var(--phone-name-least), calc(var(--phone-name) - var(--phone-scroll, 0px)));
   height: 100%;
   align-content: center;
-  padding-left: var(--space-4);
+  /* As much room on the right as on the left, so the text never runs into the column's edge. */
+  padding-inline: var(--space-4);
   background: var(--color-bg);
 }
 

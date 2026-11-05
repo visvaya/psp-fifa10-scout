@@ -21,6 +21,7 @@ const RANGE_FIELDS = [
   "potential",
   "growth",
   "peak",
+  "peakGain",
   "height",
   "weight",
   "weakFoot",
@@ -76,6 +77,7 @@ export const FLAG_KEYS: readonly FlagKey[] = [
 /** The ranges only a career save fills: without one every player has null and none passes. */
 export const CAREER_RANGE_KEYS = [
   "peak",
+  "peakGain",
   "form",
   "morale",
   ...SEASON_STAT_KEYS,

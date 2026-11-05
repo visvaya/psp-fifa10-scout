@@ -60,8 +60,10 @@ test.describe("offer on the card", () => {
     await page.keyboard.press("Escape");
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("brozek");
     await page.getByRole("button", { name: "Paweł Brożek" }).click();
-    await expect(
-      page.getByRole("dialog", { name: "Paweł Brożek" }).getByText("Oferta", { exact: true }),
-    ).toBeHidden();
+    const own = page.getByRole("dialog", { name: "Paweł Brożek" });
+    await expect(own.getByText("Oferta", { exact: true })).toBeHidden();
+    // No season row in the save: no rows of "brak" for it.
+    await expect(cardValue(own, "Średnia ocena (KR)")).toHaveCount(0);
+    await expect(cardValue(own, "Na liście transferowej")).toHaveText("nie");
   });
 });

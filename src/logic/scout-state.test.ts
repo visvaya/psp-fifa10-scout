@@ -46,7 +46,12 @@ describe("scoutReducer loading", () => {
       text: "a",
       clubStatus: "free-agents",
       myClub: "only",
-      ranges: { peak: { min: 70 }, age: { max: 21 }, cleanSheets: { min: 1 } },
+      ranges: {
+        peak: { min: 70 },
+        peakGain: { min: 1 },
+        age: { max: 21 },
+        cleanSheets: { min: 1 },
+      },
       flags: { clubWillSell: true, transferListed: true, loanListed: true, loaned: false },
     } as const;
     expect(loaded(null, { ...loading, filters }).filters).toEqual({
@@ -57,11 +62,11 @@ describe("scoutReducer loading", () => {
     const byPeak = { ...loading, sort: { key: "peak", direction: "descending" } } as const;
     expect(loaded(null, byPeak).sort).toEqual(DEFAULT_SORT);
     expect(loaded(5, byPeak).sort).toEqual(byPeak.sort);
-    const byCupGames = {
-      ...loading,
-      sort: { key: "cupAppearances", direction: "ascending" },
-    } as const;
-    expect(loaded(null, byCupGames).sort).toEqual(DEFAULT_SORT);
+    for (const key of ["cupAppearances", "peakGain"] as const) {
+      expect(loaded(null, { ...loading, sort: { key, direction: "ascending" } }).sort).toEqual(
+        DEFAULT_SORT,
+      );
+    }
   });
 
   it("tracks the phase of the current load and stays on the start view after a picked file", () => {
@@ -261,19 +266,17 @@ describe("scoutReducer filters, sort and card", () => {
             potential: { min: 80 },
             growth: { min: 10 },
             peak: { min: 70 },
+            peakGain: { min: 1 },
             age: { max: 21 },
           },
         },
       }),
-      { type: "sort-changed", key: "peak" },
+      { type: "sort-changed", key: "peakGain" },
     );
-    expect(filtered).toMatchObject({ showPotential: true, sort: { key: "peak" } });
+    expect(filtered).toMatchObject({ showPotential: true, sort: { key: "peakGain" } });
     const hidden = scoutReducer(filtered, { type: "potential-shown", shown: false });
-    expect(hidden).toMatchObject({
-      showPotential: false,
-      filters: { ranges: { age: { max: 21 } } },
-      sort: DEFAULT_SORT,
-    });
+    expect(hidden).toMatchObject({ showPotential: false, sort: DEFAULT_SORT });
+    expect(hidden.filters).toEqual({ ranges: { age: { max: 21 } } });
     const byAge = scoutReducer(filtered, { type: "sort-changed", key: "age" });
     expect(scoutReducer(byAge, { type: "potential-shown", shown: false }).sort.key).toBe("age");
   });
