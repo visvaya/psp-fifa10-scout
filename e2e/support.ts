@@ -125,13 +125,16 @@ export const showPotential = async (page: Page) => {
 };
 
 /** The value a player card shows for a label; a space in the label also matches a non-breaking one. */
-export const cardValue = (card: Locator, label: string) =>
-  card
+export const cardValue = (card: Locator, label: string) => {
+  // The label is literal text: "(KR)" or "(€)" must not turn into regex groups.
+  const literal = label.replaceAll(/[.*+?^${}()|[\]\\]/gu, String.raw`\$&`);
+  return card
     .locator(".facts > div")
     .filter({
       has: card
         .page()
         .getByRole("term")
-        .filter({ hasText: new RegExp(`^${label.replaceAll(" ", String.raw`\s`)}$`, "u") }),
+        .filter({ hasText: new RegExp(`^${literal.replaceAll(" ", String.raw`\s`)}$`, "u") }),
     })
     .getByRole("definition");
+};
