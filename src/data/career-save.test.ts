@@ -140,6 +140,19 @@ describe("parseCareerSave", () => {
     expect(date(save)).toBe("2009-07-25");
   });
 
+  it("dates the season start of a save with many fixtures", () => {
+    const fixtures = Array.from({ length: 300_000 }, (_, index) => ({
+      game_number: 0x9839807 + index,
+    }));
+    const save = new Map([...parse([MANAGERS]), ["fixtures", fixtures]]);
+    expect(seasonStartDate(DB, save).toISOString().slice(0, 10)).toBe("2009-07-25");
+  });
+
+  it("rejects fixtures without a game number", () => {
+    const save = new Map([...parse([MANAGERS]), ["fixtures", [{ home: 1 }]]]);
+    expect(() => seasonStartDate(DB, save)).toThrow(/fixtures lack game_number/);
+  });
+
   it("uses the save's rows for a replaced table and fifa.db's otherwise", () => {
     const save = parse([MANAGERS, LINKS, STATS_CLEAR]);
     expect(effectiveRows(DB, save, "teamplayerlinks")).toEqual([{ teamid: 1873, playerid: 99 }]);

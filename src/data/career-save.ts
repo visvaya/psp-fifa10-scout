@@ -169,6 +169,9 @@ export const careerManager = (
  * ages players to this day for the whole season (docs: career OVR date research), not to today.
  */
 export const seasonStartDate = (db: EaDb, save: CareerSave): Date => {
-  const games = (save.get("fixtures") ?? []).map((row) => Number(row["game_number"]));
-  return games.length === 0 ? careerManager(db, save).lastGameDate : gameDate(Math.min(...games));
+  const fixtures = save.get("fixtures") ?? [];
+  if (fixtures.length === 0) return careerManager(db, save).lastGameDate;
+  const first = fixtures.reduce((min, row) => Math.min(min, Number(row["game_number"])), Infinity);
+  if (!Number.isFinite(first)) throw new SaveFormatError("Save fixtures lack game_number");
+  return gameDate(first);
 };
