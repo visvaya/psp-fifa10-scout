@@ -70,6 +70,18 @@ describe("createSession", () => {
     });
   });
 
+  it("fails a later load at once when the worker failed to start before it", async () => {
+    const { session, worker, posted, actions } = await openSession();
+    worker.dispatchEvent(new Event("error"));
+    session.pickGame(new File(["g"], "game.iso"));
+    expect(posted).toEqual([]);
+    expect(actions.at(-1)).toEqual({
+      type: "load-failed",
+      requestId: 1,
+      error: { stage: "game", kind: "unexpected" },
+    });
+  });
+
   it("goes back to the earlier good save when a newly picked save fails", async () => {
     const { session, posted, reply } = await openSession();
     session.pickGame(new File(["g"], "game.iso"));

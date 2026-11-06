@@ -50,19 +50,37 @@ const workerFailure = (requestId: number): WorkerMessage => ({
   error: { stage: "game", kind: "unexpected" },
 });
 
+/**
+ * The parsing worker; post says false once it is gone. error: its script did not load or run (it
+ * catches every failure of a load), so it is dropped and every later load fails at once instead of
+ * waiting; messageerror: one reply could not be read, and the worker still runs.
+ */
 const startWorker = (onMessage: (message: WorkerMessage) => void, onFailed: () => void) => {
-  const worker = new Worker(new URL("scout-worker.ts", import.meta.url), { type: "module" });
+  let worker: Worker | null = new Worker(new URL("scout-worker.ts", import.meta.url), {
+    type: "module",
+  });
   worker.addEventListener("message", ({ data }: MessageEvent<WorkerMessage>) => {
     onMessage(data);
   });
-  worker.addEventListener("error", onFailed);
+  worker.addEventListener("error", () => {
+    worker?.terminate();
+    worker = null;
+    onFailed();
+  });
   worker.addEventListener("messageerror", onFailed);
-  return worker;
+  return {
+    post: (request: WorkerRequest): boolean => {
+      worker?.postMessage(request, []);
+      return worker !== null;
+    },
+    terminate: () => worker?.terminate(),
+  };
 };
 
 export const createSession = (dispatch: Dispatch<ScoutAction>, onStorageFailed: () => void) => {
+  let worker: ReturnType<typeof startWorker> | null = null;
   /** The store once open; saves wait for it, so a game picked before it opens is still kept. */
-  let [worker, store]: [Worker | null, Promise<ScoutStore> | null] = [null, null];
+  let store: Promise<ScoutStore> | null = null;
   let lastRequestId = 0;
   /** The save for every load; an attached language file for the next load only. */
   let pending: Pick<LoadRequest, "save" | "locale"> = {};
@@ -88,8 +106,7 @@ export const createSession = (dispatch: Dispatch<ScoutAction>, onStorageFailed: 
     const request: WorkerRequest = { requestId: lastRequestId, game: source, ...pending };
     pending = pending.save === undefined ? {} : { save: pending.save };
     dispatch({ type: "load-started", requestId: lastRequestId, ...started });
-    if (worker === null) workerFailed();
-    else worker.postMessage(request, []);
+    if (worker?.post(request) !== true) workerFailed();
   };
 
   /** Loads the game again, so picked or forgotten files apply. */
