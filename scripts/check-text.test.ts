@@ -47,7 +47,8 @@ describe("findContentProblems", () => {
   });
 
   it("accepts a URL, a colon between letters and a key before an escape", () => {
-    const text = "see https://example.com/a and a:b\nconst yaml = `e2e:\\n  run: x`;";
+    const text =
+      "see https://example.com/a and a:b\nconst yaml = `e2e:\\n  run: x`;\nhttps://example.com/home/x";
     expect(findContentProblems(text, "a.ts")).toEqual([]);
   });
 });

@@ -46,10 +46,10 @@ const controlMessage = (line: string): string | null => {
     : `control character U+${code.toString(16).toUpperCase().padStart(4, "0")}`;
 };
 
-// A drive letter not preceded by a word character (so neither a URL scheme nor a YAML key such as "e2e:\n"
-// in a string counts), or a home directory. A path like this names the author's machine and has no meaning
-// in a checkout elsewhere.
-const ABSOLUTE_PATH = /(?<!\w)[A-Za-z]:[\\/]|\/home\/|\/Users\//;
+// A drive letter or a home directory not preceded by a word character (so neither a URL such as
+// "https://host/home/x" nor a YAML key such as "e2e:\n" in a string counts). A path like this names the
+// author's machine and has no meaning in a checkout elsewhere.
+const ABSOLUTE_PATH = /(?<!\w)(?:[A-Za-z]:[\\/]|\/home\/|\/Users\/)/;
 const ABSOLUTE_PATH_MESSAGE = "absolute local path; use a relative path";
 
 type LineCheck = (line: string) => string | null;
@@ -104,7 +104,7 @@ const listFiles = (args: readonly string[]): readonly string[] =>
 if (import.meta.main) {
   const problems = listFiles(process.argv.slice(2)).flatMap(findFileProblems);
   if (problems.length > 0) {
-    process.stderr.write(`Forbidden characters found:\n${problems.join("\n")}\n`);
+    process.stderr.write(`Forbidden content found:\n${problems.join("\n")}\n`);
     process.exit(1);
   }
 }
