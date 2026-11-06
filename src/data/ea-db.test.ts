@@ -279,6 +279,23 @@ describe("string budget", () => {
     const overlapping = parseEaDb(withRefs((row) => base.length + row));
     expect(() => readTable(overlapping, "names")).toThrow(/strings overlap/);
   });
+
+  it("bounds the text decoded by all tables of one database together", () => {
+    // Tables a and b each point their one string at the run, one byte apart: each fits the file
+    // alone, both together do not.
+    const pair = buildEaDb(
+      ["a", "b"].map((name) => ({ name, strings: ["s"], rows: [{ strings: [""], area: [] }] })),
+    );
+    const bytes = new Uint8Array(pair.length + 2 + RUN_LENGTH + 1).fill(4);
+    bytes.set(pair);
+    const view = new DataView(bytes.buffer);
+    [0, 1].forEach((index) => view.setUint32(blockOf(bytes, index) + 8, pair.length + index, true));
+    expect(readTable(parseEaDb(bytes), "a")).toHaveLength(1);
+    expect(readTable(parseEaDb(bytes), "b")).toHaveLength(1);
+    const db = parseEaDb(bytes);
+    readTable(db, "a");
+    expect(() => readTable(db, "b")).toThrow(/strings overlap/);
+  });
 });
 
 describe("birthdates", () => {

@@ -43,6 +43,8 @@ export interface EaDbTable {
 export interface EaDb {
   readonly view: DataView;
   readonly tables: ReadonlyMap<string, EaDbTable>;
+  /** The string at an offset, from one reader whose budget covers every read of this database. */
+  readonly stringAt: (offset: number) => string;
 }
 
 export type EaDbRow = Readonly<Record<string, number | string>>;
@@ -57,7 +59,7 @@ const u32 = (view: DataView, offset: number): number => {
 /**
  * Decodes the length-prefixed strings of `view` by offset, each offset once. Strings that do not
  * overlap cannot add up to more than the view, so decoding more than its size means overlapping
- * references and throws (the real fifa.db decodes at most 17% of its size in one table).
+ * references and throws (the real fifa.db decodes about 20% of its size over all its tables).
  */
 export const stringReader = (view: DataView): ((offset: number) => string) => {
   const decoded = new Map<number, string>();
@@ -164,7 +166,7 @@ export const parseEaDb = (bytes: Uint8Array): EaDb => {
     }
     return { ...entry, directoryOffset: u32(view, block + 4), rowCount, recordsOffset };
   });
-  return { view, tables: new Map(tables.map((table) => [table.name, table])) };
+  return { view, tables: new Map(tables.map((table) => [table.name, table])), stringAt };
 };
 
 type FieldReader = (record: number) => number | string;
@@ -202,7 +204,7 @@ const fieldReader = (
 export const readTable = (db: EaDb, name: string): readonly EaDbRow[] => {
   const table = db.tables.get(name);
   if (table === undefined) throw new SaveFormatError(`Database has no table "${name}"`);
-  return readRecords(db.view, table, stringReader(db.view));
+  return readRecords(db.view, table, db.stringAt);
 };
 
 /**
