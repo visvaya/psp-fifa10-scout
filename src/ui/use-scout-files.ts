@@ -43,7 +43,24 @@ const storeSaves = (withStore: (run: StoreRun) => void) => ({
     withStore(async (opened) => opened.saveWatchlist(watchlist)),
 });
 
-const createSession = (dispatch: Dispatch<ScoutAction>, onStorageFailed: () => void) => {
+/** How a worker that cannot start, run or reply fails the latest load. */
+const workerFailure = (requestId: number): WorkerMessage => ({
+  type: "failed",
+  requestId,
+  error: { stage: "game", kind: "unexpected" },
+});
+
+const startWorker = (onMessage: (message: WorkerMessage) => void, onFailed: () => void) => {
+  const worker = new Worker(new URL("scout-worker.ts", import.meta.url), { type: "module" });
+  worker.addEventListener("message", ({ data }: MessageEvent<WorkerMessage>) => {
+    onMessage(data);
+  });
+  worker.addEventListener("error", onFailed);
+  worker.addEventListener("messageerror", onFailed);
+  return worker;
+};
+
+export const createSession = (dispatch: Dispatch<ScoutAction>, onStorageFailed: () => void) => {
   /** The store once open; saves wait for it, so a game picked before it opens is still kept. */
   let [worker, store]: [Worker | null, Promise<ScoutStore> | null] = [null, null];
   let lastRequestId = 0;
@@ -51,6 +68,17 @@ const createSession = (dispatch: Dispatch<ScoutAction>, onStorageFailed: () => v
   let pending: Pick<LoadRequest, "save" | "locale"> = {};
   const withStore = (run: StoreRun) => void store?.then(run).catch(onStorageFailed);
   const [gameMemory, saveMemory] = [createGameMemory(withStore), createSaveMemory(withStore)];
+
+  const finish = (message: WorkerMessage) => {
+    for (const memory of [gameMemory, saveMemory]) memory.finished(message);
+    // A bad save must not block the next game load: it falls back to the stored save, if any. An
+    // older load's failure says nothing about it.
+    const latest = message.requestId === lastRequestId;
+    if (latest && message.type === "failed" && message.error.stage === "save")
+      pending = saveMemory.kept();
+    dispatch(actionOf(message));
+  };
+  const workerFailed = () => finish(workerFailure(lastRequestId));
 
   /** Loads the game; a picked file carries its name, the stored one is restored, a reload has neither. */
   const start = (source: Blob, started: LoadStarted = {}) => {
@@ -60,7 +88,8 @@ const createSession = (dispatch: Dispatch<ScoutAction>, onStorageFailed: () => v
     const request: WorkerRequest = { requestId: lastRequestId, game: source, ...pending };
     pending = pending.save === undefined ? {} : { save: pending.save };
     dispatch({ type: "load-started", requestId: lastRequestId, ...started });
-    worker?.postMessage(request, []);
+    if (worker === null) workerFailed();
+    else worker.postMessage(request, []);
   };
 
   /** Loads the game again, so picked or forgotten files apply. */
@@ -77,25 +106,16 @@ const createSession = (dispatch: Dispatch<ScoutAction>, onStorageFailed: () => v
     reload();
   };
 
-  const onMessage = ({ data: message }: MessageEvent<WorkerMessage>) => {
-    // A bad save must not block the next game load; an older load's failure says nothing about it.
-    const latest = message.requestId === lastRequestId;
-    if (latest && message.type === "failed" && message.error.stage === "save") pending = {};
-    for (const memory of [gameMemory, saveMemory]) memory.finished(message);
-    dispatch(actionOf(message));
-  };
-
   return {
     /** Starts the worker, restores the stored state; resolves whether a game was stored. */
     open: async (isCancelled: () => boolean): Promise<boolean | null> => {
-      worker = new Worker(new URL("scout-worker.ts", import.meta.url), { type: "module" });
-      worker.addEventListener("message", onMessage);
+      worker = startWorker(finish, workerFailed);
       const opening = openStore(onStorageFailed);
       store = opening.then(({ store: opened }) => opened);
       const { stored } = await opening;
       if (isCancelled()) return null;
       restore(dispatch, stored);
-      if (stored.careerSave !== null) pending = { save: blobs(stored.careerSave) };
+      if (stored.careerSave !== null) pending = saveMemory.restored(blobs(stored.careerSave));
       // A game picked while the store opened wins over the stored one.
       if (stored.gameDb !== null && lastRequestId === 0)
         start(new Blob([stored.gameDb.slice()]), { restored: true, gameName: stored.gameName });

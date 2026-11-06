@@ -22,23 +22,31 @@ const bytes = async ({ dataBin, paramSfo }: SaveFiles<Blob>): Promise<SaveFiles<
 
 /**
  * Keeps the store's career save in step: a picked save is stored once the latest load succeeds (it
- * carries over to a load that supersedes its own), a save the latest load fails on is dropped, and a
- * forgotten save never comes back from a load still running.
+ * carries over to a load that supersedes its own), a stored save the latest load fails on is dropped
+ * while a newly picked one leaves the stored save in place, and a forgotten save never comes back from
+ * a load still running. kept: the save in the store as the save for the next load, which a picked save
+ * that failed falls back to; restored records the save read from the store and returns it the same way.
  */
 export const createSaveMemory = (withStore: WithStore) => {
   let picked: SaveFiles<Blob> | null = null;
   let unsaved: SaveFiles<Blob> | null = null;
+  let kept: SaveFiles<Blob> | null = null;
   let latest = 0;
   /** Counts forgets, so a write whose bytes were still being read when the save was forgotten is dropped. */
   let forgets = 0;
   return {
     forget: () => {
-      [picked, unsaved, forgets] = [null, null, forgets + 1];
+      [picked, unsaved, kept, forgets] = [null, null, null, forgets + 1];
       withStore(async (opened) => opened.saveCareerSave(null));
     },
     picked: (save: SaveFiles<Blob> | undefined) => {
       picked = save ?? null;
     },
+    restored: (save: SaveFiles<Blob>) => {
+      kept = save;
+      return { save };
+    },
+    kept: () => (kept === null ? {} : { save: kept }),
     started: (requestId: number) => {
       [unsaved, picked, latest] = [picked ?? unsaved, null, requestId];
     },
@@ -48,9 +56,12 @@ export const createSaveMemory = (withStore: WithStore) => {
       const savesFailed = message.type === "failed" && message.error.stage === "save";
       // A load that failed before the save keeps it for the next one.
       if (message.type === "done" || savesFailed) unsaved = null;
-      if (savesFailed) withStore(async (opened) => opened.saveCareerSave(null));
-      else if (message.type === "done" && save !== null) {
+      if (savesFailed && save === null) {
+        kept = null;
+        withStore(async (opened) => opened.saveCareerSave(null));
+      } else if (message.type === "done" && save !== null) {
         const before = forgets;
+        kept = save;
         withStore(async (opened) => {
           const data = await bytes(save);
           if (forgets === before) await opened.saveCareerSave(data);
@@ -61,8 +72,9 @@ export const createSaveMemory = (withStore: WithStore) => {
 };
 
 /**
- * The game to load again when a save or language file is picked (the load in progress, else the last
- * good fifa.db), and the fifa.db of the latest load from a picked file, stored under that file's name.
+ * The game to load again when a save or language file is picked (the load in progress or the one that
+ * failed on the save, else the last good fifa.db), and the fifa.db of the latest load from a picked
+ * file, stored under that file's name.
  */
 export const createGameMemory = (withStore: WithStore) => {
   const fromFile = new Map<number, string>();
@@ -78,6 +90,8 @@ export const createGameMemory = (withStore: WithStore) => {
       const name = fromFile.get(message.requestId);
       fromFile.delete(message.requestId);
       if (message.requestId !== latest) return;
+      // A load that failed on the save had a good game: a corrected save loads it again.
+      if (message.type === "failed" && message.error.stage === "save") return;
       inFlight = null;
       if (message.type !== "done") return;
       game = new Blob([message.result.gameDb.slice()]);
