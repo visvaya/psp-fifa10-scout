@@ -7,7 +7,7 @@ import { SaveFormatError } from "../data/save-format-error.ts";
 import { buildIso } from "../data/test-support/synthetic-iso.ts";
 import { buildParamSfo } from "../data/test-support/synthetic-save.ts";
 import { classifyLoadError, loadScout, pickLocaleFiles, pickSaveFiles } from "./load-scout.ts";
-import type { LoadPhase } from "./load-scout.ts";
+import type { FileSource, LoadInput, LoadPhase } from "./load-scout.ts";
 import {
   buildPlainSave,
   buildScoutDb,
@@ -16,13 +16,23 @@ import {
 } from "./test-support/scout-db.ts";
 import { table } from "./test-support/player-fixtures.ts";
 
-const blob = (bytes: Uint8Array): Blob => new Blob([bytes.slice()]);
+/** A whole file as the worker passes it. */
+const source = (bytes: Uint8Array): FileSource => ({
+  size: bytes.length,
+  bytes: () => Promise.resolve(bytes.slice()),
+});
+
+/** A game file read by byte ranges, as the worker passes it. */
+const gameOf = (bytes: Uint8Array): LoadInput["game"] => ({
+  size: bytes.length,
+  read: (offset, length) => Promise.resolve(bytes.slice(offset, offset + length)),
+});
 
 describe("loadScout", () => {
   it("reads a bare fifa.db, reports the phases and returns the players and the database", async () => {
     const phases: LoadPhase[] = [];
     const db = buildScoutDb();
-    const result = await loadScout({ game: blob(db) }, (phase) => phases.push(phase));
+    const result = await loadScout({ game: gameOf(db) }, (phase) => phases.push(phase));
     expect(phases).toEqual(["game", "players"]);
     expect(result.players).toHaveLength(63);
     expect(result.myTeamId).toBeNull();
@@ -60,7 +70,7 @@ describe("loadScout", () => {
       { path: `${locale}/cgexport/string.idx`, bytes: names.idx },
       { path: `${locale}/cgexport/pol_pl.loc`, bytes: names.loc },
     ]);
-    const result = await loadScout({ game: blob(iso) }, () => undefined);
+    const result = await loadScout({ game: gameOf(iso) }, () => undefined);
     expect(result.languages).toEqual({
       eng_us: POLISH,
       pol_pl: { ...POLISH, positionNames: { 0: "Bramkarz" } },
@@ -70,7 +80,10 @@ describe("loadScout", () => {
   it("reads an attached language file with its index", async () => {
     const { loc, idx } = buildScoutLocale();
     const result = await loadScout(
-      { game: blob(buildScoutDb()), locale: { code: "pol_pl", loc: blob(loc), idx: blob(idx) } },
+      {
+        game: gameOf(buildScoutDb()),
+        locale: { code: "pol_pl", loc: source(loc), idx: source(idx) },
+      },
       () => undefined,
     );
     expect(result.languages).toEqual({ pol_pl: POLISH });
@@ -79,9 +92,9 @@ describe("loadScout", () => {
 
   it("tags a bad language file with its own stage", async () => {
     const { idx } = buildScoutLocale();
-    const locale = { code: "pol_pl", loc: blob(new Uint8Array(32)), idx: blob(idx) };
+    const locale = { code: "pol_pl", loc: source(new Uint8Array(32)), idx: source(idx) };
     await expect(
-      loadScout({ game: blob(buildScoutDb()), locale }, () => undefined),
+      loadScout({ game: gameOf(buildScoutDb()), locale }, () => undefined),
     ).rejects.toEqual(expect.objectContaining({ error: { stage: "locale", kind: "wrong-file" } }));
   });
 
@@ -89,7 +102,10 @@ describe("loadScout", () => {
     const phases: LoadPhase[] = [];
     const { dataBin, paramSfo } = buildPlainSave();
     const result = await loadScout(
-      { game: blob(buildScoutDb()), save: { dataBin: blob(dataBin), paramSfo: blob(paramSfo) } },
+      {
+        game: gameOf(buildScoutDb()),
+        save: { dataBin: source(dataBin), paramSfo: source(paramSfo) },
+      },
       (phase) => phases.push(phase),
     );
     expect(phases).toEqual(["game", "save", "players"]);
@@ -104,12 +120,12 @@ describe("loadScout", () => {
   });
 
   it("tags a failure with the file that caused it", async () => {
-    await expect(loadScout({ game: blob(new Uint8Array(8)) }, () => undefined)).rejects.toEqual(
+    await expect(loadScout({ game: gameOf(new Uint8Array(8)) }, () => undefined)).rejects.toEqual(
       expect.objectContaining({ error: { stage: "game", kind: "wrong-file" } }),
     );
-    const bad = { dataBin: blob(new Uint8Array(4)), paramSfo: blob(new Uint8Array(4)) };
+    const bad = { dataBin: source(new Uint8Array(4)), paramSfo: source(new Uint8Array(4)) };
     await expect(
-      loadScout({ game: blob(buildScoutDb()), save: bad }, () => undefined),
+      loadScout({ game: gameOf(buildScoutDb()), save: bad }, () => undefined),
     ).rejects.toEqual(expect.objectContaining({ error: { stage: "save", kind: "wrong-file" } }));
   });
 
@@ -119,17 +135,17 @@ describe("loadScout", () => {
       { playerid: 7, potential_delta: 0, dribbling_delta: "x" },
     ]);
     const { dataBin, paramSfo } = buildPlainSave();
-    const save = { dataBin: blob(dataBin), paramSfo: blob(paramSfo) };
+    const save = { dataBin: source(dataBin), paramSfo: source(paramSfo) };
     await expect(
-      loadScout({ game: blob(buildScoutDb([grown])), save }, () => undefined),
+      loadScout({ game: gameOf(buildScoutDb([grown])), save }, () => undefined),
     ).rejects.toEqual(expect.objectContaining({ error: { stage: "save", kind: "damaged" } }));
   });
 });
 
 /** A file one byte over `maxBytes` whose contents are never read. */
 const oversized = (maxBytes: number) => {
-  const file = blob(new Uint8Array(maxBytes + 1));
-  return { file, read: vi.spyOn(file, "arrayBuffer") };
+  const read = vi.fn<FileSource["bytes"]>(() => Promise.resolve(new Uint8Array(maxBytes + 1)));
+  return { file: { size: maxBytes + 1, bytes: read }, read };
 };
 
 describe("loadScout size caps", () => {
@@ -139,10 +155,10 @@ describe("loadScout size caps", () => {
   ] as const)("rejects a %s over its cap without reading it", async (_name, key, maxBytes) => {
     const { file, read } = oversized(maxBytes);
     const plain = buildPlainSave();
-    const save = { dataBin: blob(plain.dataBin), paramSfo: blob(plain.paramSfo), [key]: file };
-    await expect(loadScout({ game: blob(buildScoutDb()), save }, () => undefined)).rejects.toEqual(
-      expect.objectContaining({ error: { stage: "save", kind: "wrong-file" } }),
-    );
+    const save = { dataBin: source(plain.dataBin), paramSfo: source(plain.paramSfo), [key]: file };
+    await expect(
+      loadScout({ game: gameOf(buildScoutDb()), save }, () => undefined),
+    ).rejects.toEqual(expect.objectContaining({ error: { stage: "save", kind: "wrong-file" } }));
     expect(read).not.toHaveBeenCalled();
   });
 
@@ -152,9 +168,9 @@ describe("loadScout size caps", () => {
   ] as const)("rejects an attached .%s over its cap without reading it", async (key, maxBytes) => {
     const { file, read } = oversized(maxBytes);
     const { loc, idx } = buildScoutLocale();
-    const locale = { code: "pol_pl", loc: blob(loc), idx: blob(idx), [key]: file };
+    const locale = { code: "pol_pl", loc: source(loc), idx: source(idx), [key]: file };
     await expect(
-      loadScout({ game: blob(buildScoutDb()), locale }, () => undefined),
+      loadScout({ game: gameOf(buildScoutDb()), locale }, () => undefined),
     ).rejects.toEqual(expect.objectContaining({ error: { stage: "locale", kind: "wrong-file" } }));
     expect(read).not.toHaveBeenCalled();
   });
