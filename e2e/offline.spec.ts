@@ -1,19 +1,15 @@
-import { AxeBuilder } from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 import { cp, readFile, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import path from "node:path";
-import { guardSecurityPolicy } from "./support.ts";
+import { expect, expectNoAxeViolations, test } from "./support.ts";
 
 /**
  * The installable, offline app: the service worker (scripts/service-worker-template.js) and the manifest.
  * The worker's life cycle across releases is checked without a browser in its unit tests; this file proves
  * that a real browser installs it, starts the app from it with no network, and offers a new release.
  */
-
-guardSecurityPolicy();
 
 const GAME_INPUT = "Wybierz obraz ISO lub fifa.db";
 const BUILD_STEP = "scripts/write-service-worker.ts";
@@ -164,8 +160,7 @@ test("a new release is offered and installs on request, under a sub-path", async
     await expect(prompt).toContainText("dane gry, zapis kariery i filtry zostaną zachowane");
     await expect(prompt).toBeVisible();
     await expect(page.getByLabel(GAME_INPUT)).toBeEnabled();
-    const { violations } = await new AxeBuilder({ page }).analyze();
-    expect(violations).toEqual([]);
+    await expectNoAxeViolations(page);
     await expect(page.locator('meta[name="e2e-release"]')).toHaveCount(0);
 
     // With no network the page after the reload can only come from the new release's own cache.

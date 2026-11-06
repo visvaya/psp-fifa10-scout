@@ -1,8 +1,5 @@
 // A list filter turned round: everyone but its chosen values.
-import { expect, test } from "@playwright/test";
-import { expectCount, guardSecurityPolicy, loadDatabase } from "./support.ts";
-
-guardSecurityPolicy();
+import { expect, expectCount, expectStored, loadDatabase, test } from "./support.ts";
 
 test.describe("excluding filters", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
@@ -21,10 +18,15 @@ test.describe("excluding filters", () => {
     await expect(page.getByRole("button", { name: /^Lionel Messi/u })).toBeHidden();
     const chips = page.getByRole("list", { name: "Aktywne filtry" }).getByRole("button");
     await expect(chips).toHaveText(["Narodowość: oprócz Argentina×"]);
+    await expectStored(page, "preferences", {
+      value: { filters: { excludedLists: { nationalityId: true } } },
+    });
     await page.reload();
     await page.getByText("Klub i kontrakt").click();
     await expect(exclude).toBeChecked();
     await expectCount(page, "31 zawodników");
+    // Argentina has 31 of the 62 players, so the count alone cannot tell the exclusion from the choice.
+    await expect(page.getByRole("button", { name: /^Lionel Messi/u })).toBeHidden();
     // Removing the chip clears the choice and its exclusion together.
     await page.getByRole("button", { name: "Usuń filtr: Narodowość: oprócz Argentina" }).click();
     await expectCount(page, "62 zawodników");

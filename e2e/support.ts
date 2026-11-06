@@ -1,9 +1,42 @@
-// Shared steps of the browser tests: loading the synthetic game, reading the store, and the security
-// policy guard every spec registers.
+// Shared steps of the browser tests: loading the synthetic game, reading the store, and the `test` every
+// spec imports, which carries the security policy guard.
 import { AxeBuilder } from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { test as base, expect } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
 import { SYNTHETIC_DB_PATH, SYNTHETIC_SAVE_PATHS } from "../scripts/write-synthetic-db.ts";
+
+export { expect };
+
+// The preview serves the production headers (public/_headers): every journey must run without breaking
+// the security policy. The page reports what the browser blocks to the test process, so a report made
+// before a reload or a navigation still counts.
+export const test = base.extend<{ securityPolicy: undefined }>({
+  securityPolicy: [
+    async ({ page }, use, testInfo) => {
+      const blocked: string[] = [];
+      await page.exposeFunction("reportBlocked", (entry: string) => {
+        blocked.push(entry);
+      });
+      await page.addInitScript(() => {
+        document.addEventListener("securitypolicyviolation", (event) => {
+          // WebKit reports the inline styles of a <select>'s own internal parts as blocked; the element
+          // renders pixel for pixel the same with and without the policy (checked 2026-11-03).
+          const webKitSelect =
+            event.effectiveDirective === "style-src-attr" &&
+            event.target instanceof HTMLSelectElement;
+          const report: unknown = Reflect.get(window, "reportBlocked");
+          if (!webKitSelect && typeof report === "function") {
+            void Reflect.apply(report, window, [`${event.effectiveDirective} ${event.blockedURI}`]);
+          }
+        });
+      });
+      await use(undefined);
+      // A skipped test opened no page to check.
+      if (testInfo.status !== "skipped") expect(blocked).toEqual([]);
+    },
+    { auto: true },
+  ],
+});
 
 /** The phone the phone specs use. */
 export const PHONE = { viewport: { width: 390, height: 844 }, hasTouch: true } as const;
@@ -25,12 +58,30 @@ export const loadDatabase = async (page: Page) => {
   await expectCount(page, "62\u00a0zawodników");
 };
 
-/** A stored record, read in the page from the app's IndexedDB store. */
+/**
+ * A stored record, read in the page from the app's IndexedDB store. It fails rather than hangs when the
+ * store cannot be opened, and never creates it: an empty database would stop the app's own upgrade.
+ * (The page gets the function alone, so writeStored repeats the opening.)
+ */
 export const readStored = async (key: string): Promise<unknown> =>
-  new Promise((resolve) => {
+  new Promise((resolve, reject) => {
     const open = indexedDB.open("psp-fifa10-scout");
+    open.addEventListener("error", () => {
+      reject(open.error ?? new Error("the store did not open"));
+    });
+    open.addEventListener("blocked", () => {
+      reject(new Error("the store is blocked by another connection"));
+    });
+    open.addEventListener("upgradeneeded", () => {
+      open.transaction?.abort();
+      reject(new Error("the store is not created yet"));
+    });
     open.addEventListener("success", () => {
-      const get = open.result.transaction("kv").objectStore("kv").get(key);
+      const read = open.result.transaction("kv");
+      read.addEventListener("error", () => {
+        reject(read.error ?? new Error("the record could not be read"));
+      });
+      const get = read.objectStore("kv").get(key);
       get.addEventListener("success", () => {
         // A connection left open can hold WebKit's store on an old state across a reload.
         open.result.close();
@@ -46,12 +97,10 @@ export const storedColumns = async (page: Page): Promise<string> => {
   return JSON.stringify(Reflect.get(Object(value), "columns") ?? {});
 };
 
-/** Waits until the stored preferences include a position group: a reload before the IndexedDB write
- * commits would restore the previous filters (a fast CI runner reloads within that window). */
-export const expectStoredPositionGroup = async (page: Page, group: string) => {
-  await expect
-    .poll(async () => page.evaluate(readStored, "preferences"))
-    .toMatchObject({ value: { filters: { lists: { positionGroup: [group] } } } });
+/** Waits until the stored record under the key matches: a reload before the IndexedDB write commits
+ * would restore the previous state (a fast CI runner reloads within that window). */
+export const expectStored = async (page: Page, key: string, partial: Record<string, unknown>) => {
+  await expect.poll(async () => page.evaluate(readStored, key)).toMatchObject(partial);
 };
 
 /** Waits until the stored preferences have no search text: a reload before that restores the old search. */
@@ -66,10 +115,23 @@ export const expectStoredSearchCleared = async (page: Page) => {
 
 /** Writes a record into the app's IndexedDB store, run in the page like `readStored`. */
 export const writeStored = async ([key, value]: readonly [string, unknown]): Promise<void> =>
-  new Promise((resolve) => {
+  new Promise((resolve, reject) => {
     const open = indexedDB.open("psp-fifa10-scout");
+    open.addEventListener("error", () => {
+      reject(open.error ?? new Error("the store did not open"));
+    });
+    open.addEventListener("blocked", () => {
+      reject(new Error("the store is blocked by another connection"));
+    });
+    open.addEventListener("upgradeneeded", () => {
+      open.transaction?.abort();
+      reject(new Error("the store is not created yet"));
+    });
     open.addEventListener("success", () => {
       const write = open.result.transaction("kv", "readwrite");
+      write.addEventListener("abort", () => {
+        reject(write.error ?? new Error("the record was not written"));
+      });
       write.objectStore("kv").put(value, key);
       write.addEventListener("complete", () => {
         open.result.close();
@@ -77,13 +139,6 @@ export const writeStored = async ([key, value]: readonly [string, unknown]): Pro
       });
     });
   });
-
-/** Waits until the stored watchlist holds a note, for the same reason as above. */
-export const expectStoredWatchNote = async (page: Page, note: string) => {
-  await expect
-    .poll(async () => page.evaluate(readStored, "watchlist"))
-    .toMatchObject({ value: [{ note }] });
-};
 
 /** The horizontal centre of an element, NaN when it is not shown. */
 export const centre = async (locator: Locator): Promise<number> => {
@@ -135,29 +190,15 @@ export const expectNoAxeViolations = async (page: Page) => {
   expect(violations).toEqual([]);
 };
 
-// The preview serves the production headers (public/_headers): every journey must run without breaking
-// the security policy. Records what the browser blocks on the last page the test opened.
-export const guardSecurityPolicy = (): void => {
-  test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
-      const blocked: string[] = [];
-      Reflect.set(window, "cspViolations", blocked);
-      document.addEventListener("securitypolicyviolation", (event) => {
-        // WebKit reports the inline styles of a <select>'s own internal parts as blocked; the element
-        // renders pixel for pixel the same with and without the policy (checked 2026-11-03).
-        const webKitSelect =
-          event.effectiveDirective === "style-src-attr" &&
-          event.target instanceof HTMLSelectElement;
-        if (!webKitSelect) blocked.push(`${event.effectiveDirective} ${event.blockedURI}`);
-      });
-    });
-  });
+/** The horizontal scroll of an element; runs in the page. */
+export const scrollLeftOf = (element: Element) => element.scrollLeft;
 
-  test.afterEach(async ({ page }, testInfo) => {
-    // A skipped test opened no page to check.
-    if (testInfo.status === "skipped") return;
-    expect(await page.evaluate((): unknown => Reflect.get(window, "cspViolations"))).toEqual([]);
-  });
+/** The first row's cell in the column whose heading starts with the text. */
+export const firstCellOf = async (page: Page, heading: string) => {
+  const headings = await page.locator("thead th").allTextContents();
+  const index = headings.findIndex((text) => text.startsWith(heading));
+  expect(index).toBeGreaterThan(0);
+  return page.locator("tbody tr[aria-rowindex]").first().locator("th, td").nth(index);
 };
 
 /** Phone: filters by these attributes from 10 up through the filter dialog, a column for each. */

@@ -1,9 +1,6 @@
 // The line under each name on the phone rows: position, age and club, shortened whole part by part.
-import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { filterByAttributes, guardSecurityPolicy, loadDatabase, PHONE } from "./support.ts";
-
-guardSecurityPolicy();
+import { expect, filterByAttributes, loadDatabase, PHONE, test } from "./support.ts";
 
 interface LineState {
   readonly parts: number;

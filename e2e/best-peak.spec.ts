@@ -1,18 +1,17 @@
-import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import {
   cardValue,
+  expect,
   expectNoAxeViolations,
   expectNoHorizontalOverflow,
-  guardSecurityPolicy,
+  expectStored,
+  firstCellOf,
   loadCareer,
   PHONE,
-  readStored,
-  storedColumns,
   showPotential,
+  storedColumns,
+  test,
 } from "./support.ts";
-
-guardSecurityPolicy();
 
 const peakAtBestBox = (page: Page) =>
   page.getByRole("checkbox", { name: "Szczyt OVR na jego najlepszej pozycji" });
@@ -21,14 +20,6 @@ const bestPeakHeader = (page: Page) =>
   page.getByRole("columnheader", { name: /^Najlepszy szczyt/u });
 const peakEye = (page: Page) =>
   page.getByRole("button", { name: "Pokaż kolumnę: Szczyt OVR", exact: true });
-
-/** The first row's cell in the column whose heading starts with the text. */
-const firstCellOf = async (page: Page, heading: string) => {
-  const headings = await page.locator("thead th").allTextContents();
-  const index = headings.findIndex((text) => text.startsWith(heading));
-  expect(index).toBeGreaterThan(0);
-  return page.locator("tbody tr[aria-rowindex]").first().locator("th, td").nth(index);
-};
 
 test.describe("peak at the best position, wide screen", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
@@ -67,9 +58,9 @@ test.describe("peak at the best position, wide screen", () => {
     await expect(bestPeakHeader(page)).toHaveAttribute("aria-sort", "descending");
     // Brożek peaks at 61 as a centre-back, below only Messi's 88; as a striker he peaks at 49.
     await expect(secondRow).toHaveText("Paweł Brożek");
-    await expect
-      .poll(async () => page.evaluate(readStored, "preferences"))
-      .toMatchObject({ value: { sort: { key: "peak", direction: "descending" } } });
+    await expectStored(page, "preferences", {
+      value: { sort: { key: "peak", direction: "descending" } },
+    });
     await peakAtBestBox(page).uncheck();
     await expect(peakHeader(page)).toHaveAttribute("aria-sort", "descending");
     await expect(secondRow).not.toHaveText("Paweł Brożek");

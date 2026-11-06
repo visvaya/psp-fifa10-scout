@@ -1,4 +1,3 @@
-import { expect, test } from "@playwright/test";
 import path from "node:path";
 import {
   SYNTHETIC_DB_PATH,
@@ -7,17 +6,16 @@ import {
 } from "../scripts/write-synthetic-db.ts";
 import {
   expandSections,
+  expect,
   expectCount,
   expectNoAxeViolations,
-  expectStoredPositionGroup,
-  guardSecurityPolicy,
+  expectStored,
   headerWidths,
+  loadCareer,
   loadDatabase,
   pickGame,
-  readStored,
+  test,
 } from "./support.ts";
-
-guardSecurityPolicy();
 
 /** The right edge of a box. */
 const rightOfBox = (box: { x: number; width: number } | null) =>
@@ -76,7 +74,9 @@ test.describe("stored state", () => {
   test("keeps the game database and filters after a reload", async ({ page }) => {
     await loadDatabase(page);
     await page.getByRole("checkbox", { name: "Bramkarz" }).check();
-    await expectStoredPositionGroup(page, "goalkeeper");
+    await expectStored(page, "preferences", {
+      value: { filters: { lists: { positionGroup: ["goalkeeper"] } } },
+    });
     await page.reload();
     // The restore is too fast to catch its skeleton reliably; the stored game opens the list directly.
     await expect(page.getByRole("checkbox", { name: "Bramkarz" })).toBeChecked();
@@ -231,12 +231,14 @@ test.describe("career save", () => {
       "Kariera: Anna Kariera, Wisła Kraków, ostatni mecz 8 sierpnia 2009",
     );
     await expect(summary).toBeVisible();
+    await expectStored(page, "careerSave", { value: expect.anything() });
     await page.reload();
     await expect(page.getByRole("table")).toBeVisible();
     await page.getByRole("button", { name: "Pliki" }).click();
     await expect(summary).toBeVisible();
     await page.getByRole("button", { name: "Usuń zapis kariery" }).click();
     await expect(summary).toBeHidden();
+    await expectStored(page, "careerSave", { value: null });
     await page.reload();
     await expect(page.getByRole("table")).toBeVisible();
     await page.getByRole("button", { name: "Pliki" }).click();
@@ -245,10 +247,7 @@ test.describe("career save", () => {
 
   // Wisła Kraków, the career's club, has Paweł Brożek and 20 of the 60 generated players.
   test("shows only my club or hides it", async ({ page }) => {
-    await page.goto("/");
-    await pickGame(page, SYNTHETIC_DB_PATH);
-    await page.getByLabel("Wybierz DATA.BIN i PARAM.SFO").setInputFiles([...SYNTHETIC_SAVE_PATHS]);
-    await page.getByRole("button", { name: /^Pokaż zawodników/u }).click();
+    await loadCareer(page);
     await page.getByText("Klub i kontrakt").click();
     await expect(page.getByRole("radio", { name: "wszyscy zawodnicy" })).toBeChecked();
     await page.getByRole("radio", { name: "tylko zawodnicy mojego klubu" }).check();
@@ -344,12 +343,10 @@ test.describe("game language", () => {
     await expect(page.getByRole("checkbox", { name: "Polska" })).toBeVisible();
     await expect(page.getByRole("checkbox", { name: "Liga BBVA (Hiszpania)" })).toBeVisible();
     await expectNoAxeViolations(page);
-    await expect
-      .poll(async () => page.evaluate(readStored, "preferences"))
-      .toMatchObject({ value: { gameLanguage: "pol_pl" } });
-    await expect
-      .poll(async () => page.evaluate(readStored, "languages"))
-      .toMatchObject({ value: { pol_pl: { countries: { 52: "Argentyna" } } } });
+    await expectStored(page, "preferences", { value: { gameLanguage: "pol_pl" } });
+    await expectStored(page, "languages", {
+      value: { pol_pl: { countries: { 52: "Argentyna" } } },
+    });
     await page.reload();
     await page.getByText("Klub i kontrakt").click();
     await expect(page.getByRole("checkbox", { name: "Argentyna" })).toBeVisible();

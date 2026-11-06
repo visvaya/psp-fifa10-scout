@@ -1,7 +1,4 @@
-import { expect, test } from "@playwright/test";
-import { guardSecurityPolicy, loadDatabase } from "./support.ts";
-
-guardSecurityPolicy();
+import { expect, loadDatabase, test } from "./support.ts";
 
 type Damage = "open" | "read" | "write" | "abort";
 
