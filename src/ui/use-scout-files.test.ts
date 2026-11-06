@@ -58,21 +58,11 @@ afterEach(() => {
 });
 
 describe("createSession", () => {
-  it("reports a worker that fails to run as a failed load", async () => {
+  // error: the worker fails to start or to run; messageerror: its reply cannot be read.
+  it.each(["error", "messageerror"])("reports a worker's %s as a failed load", async (type) => {
     const { session, worker, actions } = await openSession();
     session.pickGame(new File(["g"], "game.iso"));
-    worker.dispatchEvent(new Event("error"));
-    expect(actions.at(-1)).toEqual({
-      type: "load-failed",
-      requestId: 1,
-      error: { stage: "game", kind: "unexpected" },
-    });
-  });
-
-  it("reports a reply the worker cannot deliver as a failed load", async () => {
-    const { session, worker, actions } = await openSession();
-    session.pickGame(new File(["g"], "game.iso"));
-    worker.dispatchEvent(new MessageEvent("messageerror"));
+    worker.dispatchEvent(new Event(type));
     expect(actions.at(-1)).toEqual({
       type: "load-failed",
       requestId: 1,
