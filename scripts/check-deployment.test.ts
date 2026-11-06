@@ -125,6 +125,14 @@ describe("findDeploymentProblems", () => {
     ]);
   });
 
+  it("reads every robots meta tag, since crawlers apply the most restrictive one", () => {
+    const html = `<html><head><meta content="index" name="robots"><meta name="robots" content="noindex">${PAGE}</head></html>`;
+    const served = { ...SERVED, startPage: { ...SERVED.startPage, html } };
+    expect(findDeploymentProblems(EXPECTED, served)).toEqual([
+      "start page meta robots noindex blocks indexing",
+    ]);
+  });
+
   it("does not read max-image-preview:none as a block on indexing", () => {
     const html = `<html><head><meta name="robots" content="max-image-preview:none" />${PAGE}</head></html>`;
     const headers = { ...SERVED.startPage.headers, "x-robots-tag": "max-image-preview: none" };

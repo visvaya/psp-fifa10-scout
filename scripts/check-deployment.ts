@@ -55,12 +55,15 @@ export const headersForAllPaths = (text: string): Record<string, string> => {
 const attributeOf = (html: string, pattern: RegExp): string | null =>
   pattern.exec(html)?.[1] ?? null;
 
-/** The content of the robots meta tag, whatever the order of its attributes. */
-const robotsMetaOf = (html: string): string | null =>
+/**
+ * The content of every robots meta tag, whatever the order of its attributes: crawlers apply the most
+ * restrictive one, so a later tag can block what an earlier one allows.
+ */
+const robotsMetasOf = (html: string): string[] =>
   (html.match(/<meta\s[^>]*>/gi) ?? [])
     .filter((tag) => /\sname="robots"/i.test(tag))
     .map((tag) => attributeOf(tag, /\scontent="([^"]*)"/i))
-    .find((content) => content !== null) ?? null;
+    .filter((content) => content !== null);
 
 // "none" is short for "noindex, nofollow"; as the value of max-image-preview it only hides large previews.
 const BLOCKS_INDEXING = /\b(?:noindex|(?<!max-image-preview:\s*)none)\b/i;
@@ -68,15 +71,14 @@ const BLOCKS_INDEXING = /\b(?:noindex|(?<!max-image-preview:\s*)none)\b/i;
 const indexingProblems = (expected: Expected, served: Served): string[] => {
   const { headers, html } = served.startPage;
   const robotsHeader = headers["x-robots-tag"] ?? "";
-  const robotsMeta = robotsMetaOf(html) ?? "";
   const canonical = attributeOf(html, /<link\s+rel="canonical"\s+href="([^"]*)"/i);
   return [
     ...(BLOCKS_INDEXING.test(robotsHeader)
       ? [`start page X-Robots-Tag ${robotsHeader} blocks indexing`]
       : []),
-    ...(BLOCKS_INDEXING.test(robotsMeta)
-      ? [`start page meta robots ${robotsMeta} blocks indexing`]
-      : []),
+    ...robotsMetasOf(html)
+      .filter((content) => BLOCKS_INDEXING.test(content))
+      .map((content) => `start page meta robots ${content} blocks indexing`),
     ...(canonical === expected.siteUrl
       ? []
       : [`canonical ${canonical ?? "(missing)"}, expected ${expected.siteUrl}`]),
