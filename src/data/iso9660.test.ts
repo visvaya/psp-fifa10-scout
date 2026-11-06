@@ -346,14 +346,14 @@ describe("readIsoLocales", () => {
       }));
     const atCap = localeIso([
       { path: `${LOCALE}/cgexport/string.idx`, bytes: Uint8Array.of(7) },
-      ...languages(32),
+      ...languages(8),
     ]);
     expect(
       (await readIsoLocales(reader(atCap).read, atCap.length))?.cgexport?.languages,
-    ).toHaveLength(32);
+    ).toHaveLength(8);
     const overCap = localeIso([
       { path: `${LOCALE}/cgexport/string.idx`, bytes: Uint8Array.of(7) },
-      ...languages(33),
+      ...languages(9),
     ]);
     await expect(readIsoLocales(reader(overCap).read, overCap.length)).rejects.toThrow(
       "Disc image lists too many languages",

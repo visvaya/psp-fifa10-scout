@@ -16,8 +16,8 @@ const RECORD_HEAD_BYTES = 33;
 const FLAG_DIRECTORY = 0x02;
 const MAX_DIRECTORY_BYTES = 1024 * 1024;
 const MAX_DATABASE_BYTES = 16 * 1024 * 1024;
-/** Languages of one locale directory; the game has 4. */
-const MAX_LANGUAGES = 32;
+/** Languages of one locale directory: the game has 4, and twice that leaves room for other editions. */
+const MAX_LANGUAGES = 8;
 const GAME_ID = "ULES01328";
 const SFO_PATH = "PSP_GAME/PARAM.SFO";
 const DATABASE_PATH = "PSP_GAME/USRDIR/data/cmn/fifa.db";
