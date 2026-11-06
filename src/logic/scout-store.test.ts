@@ -195,7 +195,6 @@ describe("scout store", () => {
     expect(loaded).toEqual(stored);
   });
 
-  // The removed group statistics (average and spread of an attribute group) may still be in storage.
   it("falls back to the default sorting for an unknown key or a missing direction", async () => {
     const defaults = { filters: {}, sort: DEFAULT_SORT, showPotential: false };
     const unknownKey = { filters: {}, sort: { key: "salary", direction: "ascending" } };

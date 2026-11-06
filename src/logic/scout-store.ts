@@ -48,7 +48,7 @@ export interface StoredScout {
   readonly watchlist: readonly WatchEntry[];
 }
 
-/** The sort keys the screens offer; anything else in storage is dropped. */
+/** The sort keys the screens offer; anything else in storage falls back to the default sort. */
 export const SORTABLE_KEYS: readonly SortKey[] = [
   "name",
   "age",
