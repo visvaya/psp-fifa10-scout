@@ -14,6 +14,14 @@ in a planned redesign.
 
 What it does today:
 
+- Shows each player's potential, which the game does not show as a number. This needs only the
+  player database.
+- With a career save: projects each player's peak OVR, the rating he reaches by the game's
+  development curves (at his preferred position the same as the game's development chart, without
+  future gains from matches and training), and how much he still grows to it. The peak is counted
+  at every position, and the list can show it at the position where it is highest, which need not
+  be the one he plays best today.
+- Hides potential and the peak by default; one switch reveals them.
 - Reads the player database (`fifa.db`) straight from your disc image (ISO), or from a `fifa.db`
   file you extracted yourself. From the image it reads only the database, the language files and
   the game's identifier.
@@ -26,8 +34,7 @@ What it does today:
   in your ISO, or one `.loc` file you attach with its `string.idx`.
 - Computes each player's overall rating (OVR) with the game's own formula at every position, and
   the rating at a position in each way the game rates it, with the gain over the OVR.
-- In a career: projects each player's peak OVR (also at the player's best position) and the growth
-  left to it; shows league and cup appearances, goals, assists and clean sheets for the season.
+- In a career: shows league and cup appearances, goals, assists and clean sheets for the season.
 - Prices players and wages with the game's formulas, and shows on the player card what an offer
   needs to succeed (fee, wage, contract length) or why the game would refuse any offer, for example
   when the club will not sell.
@@ -37,7 +44,6 @@ What it does today:
   saved as named sets, the last change can be undone, and each filter can show or hide its value as
   a list column. The list sorts by its column labels, and each player has a detail card.
 - Keeps your own watchlist with notes, without the game's limit of 20 players.
-- Hides potential by default; one switch reveals it.
 - Installs as an app on a phone or a PC and works offline after the first visit. On an iPhone, pick
   the files in the Files app.
 

@@ -37,7 +37,10 @@ const SHOTS: readonly Shot[] = [
     file: "list-wide.webp",
     viewport: { width: 1280, height: 800 },
     phone: false,
-    arrange: checkGroups,
+    arrange: async (page) => {
+      await checkGroups(page);
+      await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
+    },
   },
   {
     file: "card-wide.webp",
@@ -98,7 +101,8 @@ const shoot = async (
     viewport: shot.viewport,
     deviceScaleFactor: shot.phone ? PHONE_SCALE : 1,
     hasTouch: shot.phone,
-    serviceWorkers: "block",
+    // A blocked worker would put the notice that the app cannot work offline into the picture.
+    serviceWorkers: "allow",
   });
   const page = await context.newPage();
   await page.goto(baseUrl);
