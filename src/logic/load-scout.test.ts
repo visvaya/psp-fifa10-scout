@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { MAX_LOC_BYTES, teamKey, textKey } from "../data/game-locale.ts";
+import { MAX_IDX_BYTES, MAX_LOC_BYTES, teamKey, textKey } from "../data/game-locale.ts";
 import { MAX_SFO_BYTES } from "../data/param-sfo.ts";
 import { MAX_DATA_BIN_BYTES } from "../data/read-save-data.ts";
 import { buildLocale } from "../data/test-support/synthetic-locale.ts";
@@ -133,9 +133,13 @@ describe("loadScout size caps", () => {
     expect(read).not.toHaveBeenCalled();
   });
 
-  it("rejects an attached language file over its cap without reading it", async () => {
-    const { file, read } = oversized(MAX_LOC_BYTES);
-    const locale = { code: "pol_pl", loc: file, idx: blob(buildScoutLocale().idx) };
+  it.each([
+    ["loc", MAX_LOC_BYTES],
+    ["idx", MAX_IDX_BYTES],
+  ] as const)("rejects an attached .%s over its cap without reading it", async (key, maxBytes) => {
+    const { file, read } = oversized(maxBytes);
+    const { loc, idx } = buildScoutLocale();
+    const locale = { code: "pol_pl", loc: blob(loc), idx: blob(idx), [key]: file };
     await expect(
       loadScout({ game: blob(buildScoutDb()), locale }, () => undefined),
     ).rejects.toEqual(expect.objectContaining({ error: { stage: "locale", kind: "wrong-file" } }));
