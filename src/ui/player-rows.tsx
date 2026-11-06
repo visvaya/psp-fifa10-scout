@@ -6,7 +6,6 @@ import type { Player } from "../logic/players.ts";
 import type { ScoutAction, ScoutSort } from "../logic/scout-state.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 import {
-  BEST_PEAK_GAP_REM,
   clubText,
   ColumnValue,
   columnLabel,
@@ -15,7 +14,7 @@ import {
   rootFontPx,
   ShortlistStar,
   ShortlistWords,
-  useBestPeakNameRem,
+  useBestPeakRoom,
   useRows,
   widestTextRem,
 } from "./player-list.tsx";
@@ -78,18 +77,18 @@ const useValueRems = (
   players: readonly Player[],
   columns: readonly SortKey[],
   ratingCode: number | null,
-  nameRem: number,
+  besideRem: number,
 ): readonly number[] =>
   useMemo(
     () =>
       columns.map((column) =>
-        column === "bestPeak" && nameRem > 0
-          ? PHONE.ratingRem + BEST_PEAK_GAP_REM + nameRem
+        column === "bestPeak" && besideRem > 0
+          ? PHONE.ratingRem + besideRem
           : widestTextRem(
               players.flatMap((player) => columnText(player, column, ratingCode) ?? []),
             ),
       ),
-    [players, columns, ratingCode, nameRem],
+    [players, columns, ratingCode, besideRem],
   );
 
 /**
@@ -429,8 +428,8 @@ const useFollowedEdges = (scrollRef: RefObject<HTMLDivElement | null>) => {
 /** The columns' labels and the grid that fits them. */
 const usePhoneColumns = (props: ListProps) => {
   const { allPlayers, columns, ratingCode, ratingName, currency } = props;
-  const nameRem = useBestPeakNameRem(allPlayers);
-  const valueRems = useValueRems(allPlayers, columns, ratingCode, nameRem);
+  const room = useBestPeakRoom(allPlayers);
+  const valueRems = useValueRems(allPlayers, columns, ratingCode, room.besideRem);
   // Measured once per change of the columns or their values, not on every render.
   return useMemo(() => {
     // The potential's short label, as the narrow rows have always shown it.
@@ -438,8 +437,8 @@ const usePhoneColumns = (props: ListProps) => {
       column === "potential" ? TEXT.potentialShort : columnLabel(column, ratingName, currency),
     );
     const layout = phoneLayout(measureLabels(labels), valueRems);
-    return { columns, labels, layout: { ...layout, "--best-peak-name": `${String(nameRem)}rem` } };
-  }, [columns, ratingName, currency, valueRems, nameRem]);
+    return { columns, labels, layout: { ...layout, ...room.style } };
+  }, [columns, ratingName, currency, valueRems, room.style]);
 };
 
 export const PlayerCards = (props: ListProps): JSX.Element => {

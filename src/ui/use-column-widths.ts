@@ -47,7 +47,7 @@ const readMetrics = (table: HTMLTableElement): Metrics | null => {
   };
 };
 
-type WidthSource<Row, Column> = Pick<
+export type WidthSource<Row, Column> = Pick<
   WidthInput<Row, Column>,
   "rows" | "columns" | "label" | "text" | "besidePx"
 > & {

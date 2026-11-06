@@ -99,9 +99,10 @@ test.describe("peak at the best position, wide screen", () => {
     await expect(bestPeakHeader(page)).toBeVisible();
     const headings = await page.locator("thead th").allTextContents();
     const column = headings.findIndex((text) => text.startsWith("Najlepszy szczyt")) + 1;
-    await expectAlignedPeaks(
-      page.locator(`tbody tr[aria-rowindex] > :nth-child(${String(column)})`),
-    );
+    const cells = page.locator(`tbody tr[aria-rowindex] > :nth-child(${String(column)})`);
+    await expectAlignedPeaks(cells);
+    // Read as "88 RWM", not run together by the grid that lines them up.
+    await expect(cells.first()).toHaveAccessibleName("88 RWM");
   });
 
   test("sorts by the best peak with the choice and by the preferred one without", async ({
@@ -181,17 +182,13 @@ test.describe("peak at the best position, phone", () => {
     await expectNoHorizontalOverflow(page);
     await expectNoAxeViolations(page);
     await page.getByRole("button", { name: "Zamknij" }).click();
-    const cell = page
-      .locator(".player-row-cell")
-      .filter({ has: page.locator(".position") })
-      .first();
+    const cells = page.locator(".player-row-cell:has(.best-peak)");
+    const cell = cells.first();
     await expect(cell).toBeVisible();
     expect(
       await cell.evaluate((element) => element.scrollWidth - element.clientWidth),
     ).toBeLessThanOrEqual(0);
-    await expectAlignedPeaks(
-      page.locator(".player-row-cell").filter({ has: page.locator(".position") }),
-    );
+    await expectAlignedPeaks(cells);
     await expectNoHorizontalOverflow(page);
   });
 });

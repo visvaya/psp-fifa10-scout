@@ -883,7 +883,7 @@ input[inputmode="numeric"] {
 }
 
 /* The best peak in two sub-columns alike in every row, so neither the badges nor the positions step:
-   the position as wide as the widest (--best-peak-name, BEST_PEAK_GAP_REM in player-list.tsx). */
+   the position as wide as the widest (--best-peak-name, useBestPeakRoom in player-list.tsx). */
 .best-peak {
   display: inline-grid;
   grid-template-columns: auto var(--best-peak-name, auto);
