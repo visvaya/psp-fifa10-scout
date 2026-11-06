@@ -138,6 +138,23 @@
       }
     },
     {
+      "files": ["e2e/**/*.spec.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "@playwright/test",
+                "importNames": ["test", "expect"],
+                "message": "Import test and expect from ./support.ts: its test carries the security policy guard."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "files": ["scripts/service-worker-template.js"],
       "rules": {
         "no-await-in-loop": "off",
