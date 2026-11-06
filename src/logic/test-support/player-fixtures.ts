@@ -66,6 +66,7 @@ export const attributes = (value: number, overrides: Partial<Attributes> = {}): 
 
 /** A players row with every column the summary reads. */
 export const playerRow = (overrides: Row): Row => ({
+  // Data rows, alike by nature. jscpd:ignore-start
   playerid: 1,
   firstname: "First",
   surname: "Last",
@@ -84,6 +85,7 @@ export const playerRow = (overrides: Row): Row => ({
   learningspeed: 3,
   retirementage: 35,
   playingstyle: 13,
+  // jscpd:ignore-end
   ...Object.fromEntries(TRAIT_NAMES.map((name) => [name, 0])),
   ...attributes(50),
   ...overrides,

@@ -4,6 +4,7 @@ import { ratingValueOf, SORTABLE_KEYS, sortPlayers } from "./sort-players.ts";
 import type { SortDirection, SortKey } from "./sort-players.ts";
 import { attributes, testPlayer } from "./test-support/player-fixtures.ts";
 
+// Data rows, alike by nature. jscpd:ignore-start
 const PLAYERS = [
   testPlayer({
     id: 5,
@@ -38,6 +39,7 @@ const PLAYERS = [
     attributes: attributes(70),
   }),
 ];
+// jscpd:ignore-end
 
 const ids = (key: SortKey, direction: SortDirection): readonly number[] =>
   sortPlayers(PLAYERS, key, direction).map((player) => player.id);

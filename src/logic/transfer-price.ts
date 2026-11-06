@@ -11,6 +11,7 @@ import type { CurrencyCode } from "../data/career-save.ts";
 /** Bands as [lowest value, adjustment], highest first; a value takes the first band it reaches. */
 type Bands = readonly (readonly [number, number])[];
 
+// Data rows, alike by nature. jscpd:ignore-start
 const PRICE_TUNING = {
   valueLowestBase: 100_000,
   valueMagic: 39_000_000,
@@ -80,6 +81,7 @@ const PRICE_TUNING = {
    * euro on the game's screen; the pound and dollar order follows from the rates. */
   exchangeRates: [1, 0.86, 1.41],
 } as const;
+// jscpd:ignore-end
 
 type PriceGroup = keyof typeof PRICE_TUNING.valuePosition;
 

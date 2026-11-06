@@ -1,6 +1,6 @@
 {
   "minLines": 12,
-  "minTokens": 60,
+  "minTokens": 50,
   "threshold": 0,
   "reporters": ["console"],
   "gitignore": true,
