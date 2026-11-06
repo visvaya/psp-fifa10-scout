@@ -1,17 +1,7 @@
 import { expect, test } from "@playwright/test";
-import { SYNTHETIC_DB_PATH, SYNTHETIC_SAVE_PATHS } from "../scripts/write-synthetic-db.ts";
-import { cardValue, expectCount, guardSecurityPolicy, pickGame } from "./support.ts";
-import type { Page } from "@playwright/test";
+import { cardValue, expectCount, guardSecurityPolicy, loadCareer } from "./support.ts";
 
 guardSecurityPolicy();
-
-/** The synthetic game with its career save, on the list. */
-const loadCareer = async (page: Page) => {
-  await page.goto("/");
-  await pickGame(page, SYNTHETIC_DB_PATH);
-  await page.getByLabel("Wybierz DATA.BIN i PARAM.SFO").setInputFiles([...SYNTHETIC_SAVE_PATHS]);
-  await page.getByRole("button", { name: /^Pokaż zawodników/u }).click();
-};
 
 test.describe("career", () => {
   test.use({ viewport: { width: 1280, height: 800 } });

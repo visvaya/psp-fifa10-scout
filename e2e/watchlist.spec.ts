@@ -3,6 +3,7 @@ import type { Page } from "@playwright/test";
 import {
   expectCount,
   expectNoAxeViolations,
+  expectNoHorizontalOverflow,
   expectStoredPositionGroup,
   expectStoredSearchCleared,
   expectStoredWatchNote,
@@ -137,14 +138,7 @@ test.describe("own watchlist on a phone", () => {
     await note.scrollIntoViewIfNeeded();
     await expect(card.getByRole("heading", { name: "Moja lista" })).toBeVisible();
     await expect(note).toBeInViewport();
-    const overflow = await page.evaluate(() => {
-      const body = document.querySelector(".dialog-body");
-      return [
-        (document.scrollingElement?.scrollWidth ?? 0) - window.innerWidth,
-        (body?.scrollWidth ?? 0) - (body?.clientWidth ?? 0),
-      ];
-    });
-    expect(overflow).toEqual([0, 0]);
+    await expectNoHorizontalOverflow(page);
     await expectNoAxeViolations(page);
   });
 });

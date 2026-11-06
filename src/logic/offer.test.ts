@@ -154,6 +154,8 @@ describe("offerTerms", () => {
   it("skips the club when the contract has run out, and needs a wage", () => {
     expect(offerTerms(player({ price: 0 }), CONTEXT)).toMatchObject({ fee: null });
     expect(offerTerms(player({ wage: null }), CONTEXT)).toBeNull();
+    // A market wage of 0 leaves nothing to scale: any wage will do.
+    expect(offerTerms(player({ wage: 0 }), CONTEXT)).toMatchObject({ wage: 0 });
   });
 });
 

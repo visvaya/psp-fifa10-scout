@@ -1,12 +1,13 @@
 import { expect, test } from "@playwright/test";
-import { SYNTHETIC_DB_PATH, SYNTHETIC_SAVE_PATHS } from "../scripts/write-synthetic-db.ts";
 import {
   cardValue,
   expectCount,
   expectNoAxeViolations,
+  expectNoHorizontalOverflow,
   guardSecurityPolicy,
+  loadCareer,
   loadDatabase,
-  pickGame,
+  PHONE,
 } from "./support.ts";
 
 guardSecurityPolicy();
@@ -61,10 +62,7 @@ test.describe("offer on the card", () => {
   // The synthetic manager has no prestige or upgrades: an unlisted player costs 1.5 times his value,
   // exactly the offer form's limit. The user's own player gets no offer.
   test("shows what an offer needs for another club's player only", async ({ page }) => {
-    await page.goto("/");
-    await pickGame(page, SYNTHETIC_DB_PATH);
-    await page.getByLabel("Wybierz DATA.BIN i PARAM.SFO").setInputFiles([...SYNTHETIC_SAVE_PATHS]);
-    await page.getByRole("button", { name: /^Pokaż zawodników/u }).click();
+    await loadCareer(page);
     await page.getByRole("button", { name: /^Lionel Messi/u }).click();
     const card = page.getByRole("dialog", { name: "Lionel Messi" });
     await expect(cardValue(card, "Klub przyjmie od")).toHaveText("22 500 000 €");
@@ -93,19 +91,13 @@ test.describe("offer on the card", () => {
     await expect(cardValue(own, "Średnia ocena (KR)")).toHaveCount(0);
     await expect(cardValue(own, "Na liście transferowej")).toHaveText("nie");
   });
-});
-
-test.describe("offer conditions on the card", () => {
-  test.use({ viewport: { width: 390, height: 844 } });
 
   // Each choice moves the player's points, so the least wage changes at once; a new card starts over.
   test("recalculates the result for a double offer, a bonus and a contract length", async ({
     page,
   }) => {
-    await page.goto("/");
-    await pickGame(page, SYNTHETIC_DB_PATH);
-    await page.getByLabel("Wybierz DATA.BIN i PARAM.SFO").setInputFiles([...SYNTHETIC_SAVE_PATHS]);
-    await page.getByRole("button", { name: /^Pokaż zawodników/u }).click();
+    await page.setViewportSize(PHONE.viewport);
+    await loadCareer(page);
     await page.getByRole("button", { name: /^Lionel Messi/u }).click();
     const card = page.getByRole("dialog", { name: "Lionel Messi" });
     const wage = cardValue(card, "Zawodnik podpisze od");
@@ -127,14 +119,7 @@ test.describe("offer conditions on the card", () => {
     await length.selectOption("1");
     await expect(wage).toContainText("kontrakt 1 rok");
 
-    const overflow = await page.evaluate(() => {
-      const body = document.querySelector(".dialog-body");
-      return [
-        (document.scrollingElement?.scrollWidth ?? 0) - window.innerWidth,
-        (body?.scrollWidth ?? 0) - (body?.clientWidth ?? 0),
-      ];
-    });
-    expect(overflow).toEqual([0, 0]);
+    await expectNoHorizontalOverflow(page);
     await expectNoAxeViolations(page);
 
     await page.keyboard.press("Escape");
