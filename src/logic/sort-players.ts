@@ -26,6 +26,13 @@ export const POTENTIAL_KEYS: ReadonlySet<SortKey> = new Set([
   "positionPeak",
 ]);
 
+/** The sort keys that need a chosen position (the position rating filter). */
+export const RATING_SORT_KEYS: ReadonlySet<SortKey> = new Set([
+  "positionRating",
+  "ratingGain",
+  "positionPeak",
+]);
+
 const valueOf = (player: Player, key: SortKey, ratingCode: number | undefined): Scalar => {
   if (key === "name") return player.nameOrder;
   if (key === "positionRating")

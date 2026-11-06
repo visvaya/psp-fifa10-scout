@@ -969,11 +969,13 @@ input[inputmode="numeric"] {
   display: flex;
   align-items: baseline;
   gap: var(--space-1);
+  font-weight: 600;
 }
 
-/* A small grey mark right after the name. A full touch target, its extra size taken back by the margins,
-   so the name's line keeps its height when the mark appears. */
-.field-clear {
+/* Small marks right after the name: the column's eye and the clear button. Each a full touch target, its
+   extra size taken back by the margins, so the name's line keeps its height when a mark appears. */
+.field-clear,
+.column-eye {
   min-width: var(--touch-target);
   min-height: var(--touch-target);
   margin-block: calc((var(--space-6) - var(--touch-target)) / 2);
@@ -982,12 +984,37 @@ input[inputmode="numeric"] {
   border: 0;
   background: none;
   color: var(--color-muted);
+  cursor: pointer;
+}
+
+/* The eye stands out while its column shows; the crossed-out eye tells the two apart without colour. */
+.column-eye {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+}
+
+.column-eye[aria-pressed="true"] {
+  color: var(--color-ink);
+}
+
+.column-eye-icon {
+  width: var(--font-size-lg);
+  height: var(--font-size-lg);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.field-clear {
   font: inherit;
   font-size: var(--font-size-lg);
   font-weight: 400;
   line-height: 1;
   opacity: 0.7;
-  cursor: pointer;
 }
 
 .field-clear:hover,

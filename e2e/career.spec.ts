@@ -131,7 +131,8 @@ test.describe("career ratings", () => {
     await expect(page.getByRole("columnheader", { name: /^Szczyt OVR/u })).toBeVisible();
     await page.getByRole("group", { name: "Szczyt OVR" }).getByLabel("od").fill("1");
     // Flat curves: no one grows past today's OVR.
-    await page.getByRole("group", { name: "Zapas do szczytu" }).getByLabel("do").fill("0");
+    const room = page.getByRole("group", { name: "Zapas do szczytu" });
+    await room.getByLabel("do", { exact: true }).fill("0");
     await page.getByRole("button", { name: /^Lionel Messi/u }).click();
     const card = page.getByRole("dialog", { name: "Lionel Messi" });
     await expect(card.getByRole("term").filter({ hasText: /^Szczyt OVR$/u })).toBeVisible();

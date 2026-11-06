@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { Dispatch, JSX } from "react";
 import type { CurrencyCode } from "../data/career-save.ts";
-import type { FlagKey, ListKey, Range, RangeKey } from "../logic/filter-players.ts";
-import { ATTRIBUTE_NAMES, SEASON_STAT_KEYS, TRAIT_NAMES } from "../logic/players.ts";
-import type { AttributeName, Player, TraitName } from "../logic/players.ts";
+import type { FlagKey, ListKey, RangeKey } from "../logic/filter-players.ts";
+import { SEASON_STAT_KEYS, TRAIT_NAMES } from "../logic/players.ts";
+import type { Player, TraitName } from "../logic/players.ts";
 import { POSITION_GROUPS } from "../logic/positions.ts";
+import type { SortKey } from "../logic/sort-players.ts";
 import { facetOptions } from "../logic/facets.ts";
 import type { FacetOption } from "../logic/facets.ts";
 import type {
@@ -15,13 +16,9 @@ import type {
   ScoutFilters,
   ScoutState,
 } from "../logic/scout-state.ts";
-import {
-  ChoiceField,
-  FlagField,
-  numberOrUndefined,
-  RangeField,
-  Section,
-} from "./filter-fields.tsx";
+import { ChoiceField, FlagField, RangeField, Section } from "./filter-fields.tsx";
+import { AttributeRanges, ContractField } from "./filter-field-groups.tsx";
+import type { Eye } from "./column-eye.tsx";
 import { codeName } from "./text-code-names.ts";
 import type { CodedKey } from "./text-code-names.ts";
 import type { Choice } from "./filter-fields.tsx";
@@ -30,7 +27,6 @@ import { SettingsActions } from "./settings-actions.tsx";
 import { FIELD_HELP } from "./text-help.ts";
 import { PositionRatingField } from "./position-rating-field.tsx";
 import {
-  ATTRIBUTE_LABELS,
   CLUB_STATUS_LABELS,
   MY_CLUB_LABELS,
   FILTER_SECTION_LABELS,
@@ -53,10 +49,34 @@ interface FilterFormProps {
   readonly settings: Pick<ScoutState, "filters" | "sort" | "showPotential" | "undo">;
   /** The career's currency, shown with the price and the wage; null without a career. */
   readonly currency: CurrencyCode | null;
+  /** The columns the list shows: each filter's eye is open while its column is among them. */
+  readonly columns: readonly SortKey[];
   readonly dispatch: Dispatch<ScoutAction>;
 }
 
 type Change = (filters: FilterChange) => void;
+
+/** The eyes of the filters, open for the columns the list shows. */
+const columnEye =
+  (columns: readonly SortKey[], dispatch: Dispatch<ScoutAction>): Eye =>
+  (key) => {
+    if (key === undefined) return undefined;
+    const visible = columns.includes(key);
+    return {
+      visible,
+      onToggle: () => {
+        dispatch({ type: "column-shown", key, shown: !visible });
+      },
+    };
+  };
+
+/** The list column of each list filter whose value it shows. */
+const LIST_COLUMNS: Readonly<Partial<Record<ListKey, SortKey>>> = {
+  positionCode: "positionCode",
+  leagueId: "leagueName",
+  clubId: "clubName",
+  nationalityId: "nationalityName",
+};
 
 /** Traits about character and renown; the other traits describe play. */
 const CHARACTER_TRAITS: readonly TraitName[] = [
@@ -132,86 +152,6 @@ const CareerClubFields = ({ filters, change }: { filters: ScoutFilters; change: 
   </>
 );
 
-const ContractField = (props: {
-  years: readonly number[];
-  range: Range | undefined;
-  onChange: (range: Range) => void;
-}) => (
-  <label className="field">
-    <span>{TEXT.contractEndsBy}</span>
-    <select
-      value={props.range?.max ?? ""}
-      onChange={(event) => {
-        props.onChange({ max: numberOrUndefined(event.currentTarget.value) });
-      }}
-    >
-      <option value="">{TEXT.anyOption}</option>
-      {props.years.map((year) => (
-        <option key={year} value={year}>
-          {year}
-        </option>
-      ))}
-    </select>
-  </label>
-);
-
-/** Ranges for the attributes the user adds from a list, instead of one input pair per attribute. */
-const AttributeRanges = (props: {
-  ranges: ScoutFilters["ranges"];
-  onChange: (name: AttributeName, range: Range | undefined) => void;
-}) => {
-  const [added, setAdded] = useState<readonly AttributeName[]>([]);
-  const shown = ATTRIBUTE_NAMES.filter(
-    (name) => added.includes(name) || props.ranges?.[name] !== undefined,
-  );
-  return (
-    <>
-      {shown.map((name) => (
-        <div key={name} className="attribute-range">
-          <RangeField
-            label={ATTRIBUTE_LABELS[name]}
-            range={props.ranges?.[name]}
-            onChange={(range) => {
-              // A field being edited stays until removed: clearing its value to type a new one
-              // drops the empty range from the filters, which alone would take the field away.
-              if (!added.includes(name)) setAdded([...added, name]);
-              props.onChange(name, range);
-            }}
-          />
-          <button
-            type="button"
-            className="button"
-            aria-label={TEXT.removeAttribute(ATTRIBUTE_LABELS[name])}
-            onClick={() => {
-              setAdded(added.filter((item) => item !== name));
-              props.onChange(name, undefined);
-            }}
-          >
-            {TEXT.removeMark}
-          </button>
-        </div>
-      ))}
-      <label className="field">
-        <span>{TEXT.addAttribute}</span>
-        <select
-          value=""
-          onChange={(event) => {
-            const name = ATTRIBUTE_NAMES.find((item) => item === event.currentTarget.value);
-            if (name !== undefined) setAdded([...added, name]);
-          }}
-        >
-          <option value="">{TEXT.chooseAttribute}</option>
-          {ATTRIBUTE_NAMES.filter((name) => !shown.includes(name)).map((name) => (
-            <option key={name} value={name}>
-              {ATTRIBUTE_LABELS[name]}
-            </option>
-          ))}
-        </select>
-      </label>
-    </>
-  );
-};
-
 const facetChoices = (options: readonly FacetOption[]): readonly Choice<number>[] =>
   options.map((option) => ({ value: option.id, label: option.name }));
 
@@ -222,7 +162,12 @@ const codeChoices = (codes: readonly number[], key: CodedKey): readonly Choice<n
 const GROUPED_RANGES: ReadonlySet<RangeKey> = new Set(["price", "wage"]);
 
 /** Builders for one control of each kind, bound to the current filters. */
-const controls = (filters: ScoutFilters, change: Change, currency: CurrencyCode | null) => ({
+const controls = (
+  filters: ScoutFilters,
+  change: Change,
+  currency: CurrencyCode | null,
+  eye: Eye,
+) => ({
   range: (key: RangeKey) => (
     <RangeField
       key={key}
@@ -231,6 +176,7 @@ const controls = (filters: ScoutFilters, change: Change, currency: CurrencyCode 
       grouped={GROUPED_RANGES.has(key)}
       decimal={key === "form"}
       help={FIELD_HELP[key]}
+      column={eye(key)}
       onChange={(range) => {
         change({ ranges: { ...filters.ranges, [key]: range } });
       }}
@@ -245,6 +191,7 @@ const controls = (filters: ScoutFilters, change: Change, currency: CurrencyCode 
         change({ lists: { ...filters.lists, [key]: chosen } });
       }}
       help={FIELD_HELP[key]}
+      column={eye(LIST_COLUMNS[key])}
       excluded={filters.excludedLists?.[key] === true}
       onExcludedChange={(excluded) => {
         change({ excludedLists: { ...filters.excludedLists, [key]: excluded } });
@@ -267,12 +214,13 @@ type Kit = ReturnType<typeof controls> & {
   readonly filters: ScoutFilters;
   readonly change: Change;
   readonly facets: ReturnType<typeof facetOptions>;
+  readonly eye: Eye;
   readonly positionName: (code: number) => string;
 };
 
 /** career: the peak OVR exists only with a career save. */
 const basicSection = (kit: Kit, showPotential: boolean, career: boolean) => {
-  const { filters, change, facets, range, list, flag, positionName } = kit;
+  const { filters, change, facets, range, list, flag, positionName, eye } = kit;
   return (
     <Section title={FILTER_SECTION_LABELS.basic} initiallyOpen>
       <label className="field">
@@ -304,6 +252,7 @@ const basicSection = (kit: Kit, showPotential: boolean, career: boolean) => {
         rating={filters.positionRating}
         positionName={positionName}
         peakShown={showPotential && career}
+        eye={eye}
         change={change}
       />
       {showPotential
@@ -337,7 +286,7 @@ const characterSection = ({ facets, range, list, flag }: Kit) => (
   </Section>
 );
 
-const clubSection = ({ filters, change, facets, range, list, flag }: Kit, career: boolean) => (
+const clubSection = ({ filters, change, facets, range, list, flag, eye }: Kit, career: boolean) => (
   <Section title={FILTER_SECTION_LABELS.club}>
     {list("leagueId", facetChoices(facets.leagues))}
     {list("clubId", facetChoices(facets.clubs))}
@@ -346,6 +295,7 @@ const clubSection = ({ filters, change, facets, range, list, flag }: Kit, career
     <ContractField
       years={facets.contractYears}
       range={filters.ranges?.contractEndYear}
+      column={eye("contractEndYear")}
       onChange={(next) => {
         change({ ranges: { ...filters.ranges, contractEndYear: next } });
       }}
@@ -380,6 +330,7 @@ export const FilterForm = ({
   showPotential,
   settings,
   currency,
+  columns,
   dispatch,
 }: FilterFormProps): JSX.Element => {
   const facets = useMemo(
@@ -389,11 +340,13 @@ export const FilterForm = ({
   const change: Change = (next) => {
     dispatch({ type: "filters-changed", filters: next });
   };
+  const eye = columnEye(columns, dispatch);
   const kit: Kit = {
-    ...controls(filters, change, currency),
+    ...controls(filters, change, currency, eye),
     filters,
     change,
     facets,
+    eye,
     positionName,
   };
   return (
@@ -404,6 +357,7 @@ export const FilterForm = ({
       <Section title={FILTER_SECTION_LABELS.attributes}>
         <AttributeRanges
           ranges={filters.ranges}
+          eye={kit.eye}
           onChange={(name, next) => {
             change({ ranges: { ...filters.ranges, [name]: next } });
           }}

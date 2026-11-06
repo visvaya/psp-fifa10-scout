@@ -1,12 +1,15 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, JSX, ReactNode } from "react";
+import { effectiveColumns, tableColumns } from "../logic/columns.ts";
 import { filterPlayers, rangedAttributes } from "../logic/filter-players.ts";
+import { phoneColumns } from "../logic/phone-columns.ts";
 import type { Player } from "../logic/players.ts";
 import { effectiveFilters } from "../logic/effective-filters.ts";
-import { activeFilters, RATING_SORT_KEYS } from "../logic/scout-state.ts";
+import { activeFilters } from "../logic/scout-state.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
 import { SORTABLE_KEYS } from "../logic/scout-store.ts";
-import { POTENTIAL_KEYS, sortPlayers } from "../logic/sort-players.ts";
+import { POTENTIAL_KEYS, RATING_SORT_KEYS, sortPlayers } from "../logic/sort-players.ts";
+import type { SortKey } from "../logic/sort-players.ts";
 import type { WatchEntry } from "../logic/watchlist.ts";
 import { FilterChips } from "./filter-chips.tsx";
 import { FilterForm } from "./filter-form.tsx";
@@ -134,6 +137,40 @@ const useVisiblePlayers = (
   return { visible, sort };
 };
 
+/**
+ * The columns both the list and the filters' eyes go by: the layout's automatic ones with the user's
+ * choice applied. Prices and peaks exist only in a career.
+ */
+const useColumns = (state: ScoutState, players: readonly Player[], wide: boolean) => {
+  const { showPotential, columns, myTeamId, sort } = state;
+  const { positionRating, ranges } = state.filters;
+  const priced = useMemo(() => players.some((player) => player.price !== null), [players]);
+  const projected = useMemo(() => players.some((player) => player.peak !== null), [players]);
+  return useMemo(() => {
+    const ratingCode = positionRating?.code ?? null;
+    const automatic = wide
+      ? tableColumns({
+          ratingCode,
+          showPotential,
+          ranged: rangedAttributes(ranges),
+          priced,
+          projected,
+        })
+      : phoneColumns({
+          showPotential,
+          ratingCode,
+          ratingPeakSet: positionRating?.peak !== undefined,
+          ranges,
+          sortKey: sort.key,
+        });
+    return effectiveColumns(automatic, columns, {
+      showPotential,
+      ratingCode,
+      career: myTeamId !== null,
+    });
+  }, [wide, showPotential, columns, myTeamId, sort.key, positionRating, ranges, priced, projected]);
+};
+
 const FiltersDialogButton = ({ count, children }: { count: number; children: ReactNode }) => {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -186,13 +223,12 @@ const ListResults = ({
   positionName,
   wide,
   form,
+  columns,
   dispatch,
-}: ListViewProps & { form: JSX.Element }) => {
+}: ListViewProps & { form: JSX.Element; columns: readonly SortKey[] }) => {
   const { visible, sort } = useVisiblePlayers(players, state, collator);
   const ratingCode = state.filters.positionRating?.code ?? null;
   const ratingName = ratingCode === null ? null : ratingAbbreviation(ratingCode, positionName);
-  const { ranges } = state.filters;
-  const ranged = useMemo(() => rangedAttributes(ranges), [ranges]);
   const List = wide ? PlayerTable : PlayerCards;
   return (
     <section className="results" aria-labelledby={RESULTS_TITLE_ID}>
@@ -223,12 +259,9 @@ const ListResults = ({
           players={visible}
           allPlayers={players}
           sort={sort}
-          showPotential={state.showPotential}
+          columns={columns}
           ratingCode={ratingCode}
           ratingName={ratingName}
-          ratingPeakSet={state.filters.positionRating?.peak !== undefined}
-          rangedAttributes={ranged}
-          ranges={ranges}
           currency={state.career?.currency ?? null}
           dispatch={dispatch}
         />
@@ -239,6 +272,7 @@ const ListResults = ({
 
 export const ListView = (props: ListViewProps): JSX.Element => {
   const { state, players, collator, positionName, wide, dispatch } = props;
+  const columns = useColumns(state, players, wide);
   const form = (
     <>
       <FilterSets sets={state.filterSets ?? []} dispatch={dispatch} />
@@ -251,6 +285,7 @@ export const ListView = (props: ListViewProps): JSX.Element => {
         showPotential={state.showPotential}
         settings={state}
         currency={state.career?.currency ?? null}
+        columns={columns}
         dispatch={dispatch}
       />
     </>
@@ -263,7 +298,7 @@ export const ListView = (props: ListViewProps): JSX.Element => {
           {form}
         </aside>
       ) : null}
-      <ListResults {...props} form={form} />
+      <ListResults {...props} form={form} columns={columns} />
     </div>
   );
 };

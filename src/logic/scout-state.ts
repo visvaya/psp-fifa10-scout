@@ -14,10 +14,12 @@ import { defaultLanguage } from "./game-names.ts";
 import type { GameLanguages } from "./game-names.ts";
 import type { CareerSummary, LoadError, LoadPhase, WorkerMessage } from "./load-scout.ts";
 import type { Player } from "./players.ts";
-import { POTENTIAL_KEYS } from "./sort-players.ts";
+import { POTENTIAL_KEYS, RATING_SORT_KEYS } from "./sort-players.ts";
 import type { SortDirection, SortKey } from "./sort-players.ts";
 import { filterSetsAfter } from "./saved-filters.ts";
 import { withUndo } from "./undo.ts";
+import { columnReducer, isColumnAction } from "./column-preference.ts";
+import type { ColumnAction, ColumnPreference } from "./column-preference.ts";
 import { effectiveFilters } from "./effective-filters.ts";
 import { isWatchlistAction, watchedIds, watchlistReducer } from "./watchlist.ts";
 import type { WatchEntry, WatchlistAction } from "./watchlist.ts";
@@ -65,6 +67,8 @@ export interface Preferences {
   readonly gameLanguage?: string | null;
   /** Filters and sort saved under a name; unset as none. */
   readonly filterSets?: readonly FilterSet[];
+  /** A view setting, kept out of the filters, the sets and undo; unset as none. */
+  readonly columns?: ColumnPreference;
 }
 
 export type ScoutError =
@@ -135,6 +139,7 @@ export type ScoutAction =
   | { readonly type: "preferences-restored"; readonly preferences: Preferences }
   | FilterSetAction
   | WatchlistAction
+  | ColumnAction
   | { readonly type: "player-opened"; readonly id: number }
   | { readonly type: "player-closed" };
 
@@ -273,13 +278,6 @@ const withPotential = (preferences: Preferences): Preferences => {
   };
 };
 
-/** The sort keys that need a chosen position (the position rating filter). */
-export const RATING_SORT_KEYS: ReadonlySet<SortKey> = new Set([
-  "positionRating",
-  "ratingGain",
-  "positionPeak",
-]);
-
 /** Preferences whose sort fits the filters: by position rating only while a position is chosen. */
 const consistent = (preferences: Preferences): Preferences => {
   const shown = withPotential(preferences);
@@ -292,12 +290,13 @@ const isLoadAction = (action: ScoutAction): action is LoadAction => action.type.
 
 /** The stored preferences over the state, made consistent. */
 const withPreferences = (state: ScoutState, preferences: Preferences): ScoutState => {
-  const { filters, sort, showPotential, gameLanguage, filterSets } = preferences;
+  const { filters, sort, showPotential, gameLanguage, filterSets, columns } = preferences;
   return {
     ...state,
     ...consistent({ filters: compactFilters(filters), sort, showPotential }),
     ...(gameLanguage === undefined ? {} : { gameLanguage }),
     ...(filterSets === undefined ? {} : { filterSets }),
+    ...(columns === undefined ? {} : { columns }),
   };
 };
 
@@ -390,7 +389,7 @@ const isResetAction = (action: ScoutAction): action is ResetAction => action.typ
 
 const changes = (
   state: ScoutState,
-  action: Exclude<ScoutAction, UndoAction | WatchlistAction>,
+  action: Exclude<ScoutAction, UndoAction | WatchlistAction | ColumnAction>,
 ): ScoutState => {
   if (isLoadAction(action)) return loadReducer(state, action);
   if (isFilterSetAction(action)) return withFilterSets(state, action);
@@ -436,9 +435,10 @@ const changes = (
 };
 
 /** The state after an action, with undo for the user's changes. */
-export const scoutReducer = withUndo((state, action) =>
-  isWatchlistAction(action) ? watchlistReducer(state, action) : changes(state, action),
-);
+export const scoutReducer = withUndo((state, action) => {
+  if (isWatchlistAction(action)) return watchlistReducer(state, action);
+  return isColumnAction(action) ? columnReducer(state, action) : changes(state, action);
+});
 
 /** The stored game is loading and nothing shows yet: the list skeleton stands in for it. */
 export const isRestoring = ({ loading, players }: ScoutState): boolean =>

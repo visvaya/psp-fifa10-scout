@@ -356,6 +356,8 @@ export const TEXT = {
   /** A mark right after a field's name (owner, 2026-11-05: an icon, not a word); the label names it. */
   clearField: "×",
   clearFieldLabel: (label: string): string => `Wyczyść: ${label}`,
+  /** The eye that shows or hides a filter's column, pressed while it shows. */
+  columnToggleLabel: (label: string): string => `Kolumna: ${label}`,
   removeFilter: (label: string): string => `Usuń filtr: ${label}`,
   activeFilters: "Aktywne filtry",
   activeFiltersCount: (value: number): string => `Aktywne filtry (${String(value)})`,
