@@ -4,6 +4,7 @@ import type { Page } from "@playwright/test";
 import {
   expandSections,
   expectNoAxeViolations,
+  expectNoHorizontalOverflow,
   guardSecurityPolicy,
   loadDatabase,
   PHONE,
@@ -113,12 +114,7 @@ test.describe("phone", () => {
     await expect(line).not.toContainText(clubName);
     await expect(line).toContainText("lat");
     // The list scrolls sideways, not the page.
-    const sideways = await page.evaluate(
-      () =>
-        (document.scrollingElement?.scrollWidth ?? 0) >
-        (document.scrollingElement?.clientWidth ?? 0),
-    );
-    expect(sideways).toBe(false);
+    await expectNoHorizontalOverflow(page);
   });
 
   test("starts the line under the name with what has no column, and drops it when all have", async ({
