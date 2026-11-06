@@ -1,7 +1,8 @@
 // Named filter sets: the current filters and sort saved under a name, then loaded, renamed or deleted.
 import { useEffect, useId, useRef, useState } from "react";
 import type { Dispatch, JSX, Ref } from "react";
-import type { FilterSet } from "../logic/saved-filters.ts";
+import { checkSetName } from "../logic/saved-filters.ts";
+import type { FilterSet, SetNameCheck } from "../logic/saved-filters.ts";
 import type { ScoutAction } from "../logic/scout-state.ts";
 import { Section } from "./filter-fields.tsx";
 import { FILTER_SETS_TEXT } from "./text-filter-sets.ts";
@@ -33,11 +34,10 @@ const SetButton = ({
   </button>
 );
 
-/** Why a new name cannot be taken, or null when it can. */
-const nameProblem = (name: string, set: FilterSet, names: readonly string[]): string | null => {
-  const trimmed = name.trim();
-  if (trimmed === "") return FILTER_SETS_TEXT.emptyName;
-  return trimmed !== set.name && names.includes(trimmed) ? FILTER_SETS_TEXT.takenName : null;
+/** Why a name cannot be taken. */
+const NAME_PROBLEMS: Record<Extract<SetNameCheck, { ok: false }>["error"], string> = {
+  empty: FILTER_SETS_TEXT.emptyName,
+  taken: FILTER_SETS_TEXT.takenName,
 };
 
 /**
@@ -46,11 +46,11 @@ const nameProblem = (name: string, set: FilterSet, names: readonly string[]): st
  */
 const RenameEditor = (props: {
   set: FilterSet;
-  names: readonly string[];
+  sets: readonly FilterSet[];
   dispatch: Dispatch<ScoutAction>;
   onDone: (name: string) => void;
 }) => {
-  const { set, names, dispatch, onDone } = props;
+  const { set, sets, dispatch, onDone } = props;
   const [name, setName] = useState(set.name);
   const [problem, setProblem] = useState<string | null>(null);
   const input = useRef<HTMLInputElement>(null);
@@ -84,14 +84,14 @@ const RenameEditor = (props: {
         label={FILTER_SETS_TEXT.saveName}
         set={set.name}
         onClick={() => {
-          const refused = nameProblem(name, set, names);
-          setProblem(refused);
-          if (refused !== null) {
+          const check = checkSetName(sets, name, set.name);
+          setProblem(check.ok ? null : NAME_PROBLEMS[check.error]);
+          if (!check.ok) {
             input.current?.focus();
             return;
           }
           dispatch({ type: "filter-set-renamed", from: set.name, to: name });
-          onDone(name.trim());
+          onDone(check.name);
         }}
       />
       <SetButton
@@ -190,18 +190,18 @@ const SetRow = (props: {
  */
 const SetItem = (props: {
   set: FilterSet;
-  names: readonly string[];
+  sets: readonly FilterSet[];
   focus: boolean;
   dispatch: Dispatch<ScoutAction>;
   onRenameDone: (name: string) => void;
 }) => {
-  const { set, names, focus, dispatch, onRenameDone } = props;
+  const { set, sets, focus, dispatch, onRenameDone } = props;
   const [mode, setMode] = useState<"row" | "editing" | "asking" | "asked">("row");
   if (mode === "editing") {
     return (
       <RenameEditor
         set={set}
-        names={names}
+        sets={sets}
         dispatch={dispatch}
         onDone={(name) => {
           setMode("row");
@@ -245,7 +245,8 @@ const SaveSet = ({
   dispatch: Dispatch<ScoutAction>;
 }) => {
   const [name, setName] = useState("");
-  const taken = sets.some((set) => set.name === name.trim());
+  const check = checkSetName(sets, name);
+  const taken = !check.ok && check.error === "taken";
   return (
     <>
       <label className="field">
@@ -262,7 +263,7 @@ const SaveSet = ({
       <button
         type="button"
         className="button"
-        disabled={name.trim() === ""}
+        disabled={!check.ok && check.error === "empty"}
         onClick={() => {
           dispatch({ type: "filter-set-saved", name });
           setName("");
@@ -281,7 +282,6 @@ export const FilterSets = (props: {
   const { sets, dispatch } = props;
   // The set whose row takes the focus back once its name editor closes.
   const [focusName, setFocusName] = useState<string | null>(null);
-  const names = sets.map((set) => set.name);
   return (
     <Section title={FILTER_SETS_TEXT.title}>
       <SaveSet sets={sets} dispatch={dispatch} />
@@ -293,7 +293,7 @@ export const FilterSets = (props: {
             <SetItem
               key={set.name}
               set={set}
-              names={names}
+              sets={sets}
               focus={focusName === set.name}
               dispatch={dispatch}
               onRenameDone={setFocusName}
