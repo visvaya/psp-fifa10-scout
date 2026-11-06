@@ -5,8 +5,10 @@ export interface WidthInput<Row, Column> {
   readonly columns: readonly Column[];
   readonly rows: readonly Row[];
   readonly label: (column: Column) => string;
-  /** The cell's text, or null for a rating cell, whose width is ratingPx. */
+  /** The cell's text, or null for a rating cell, whose width is ratingPx with besidePx. */
   readonly text: (row: Row, column: Column) => string | null;
+  /** What a column draws beside its rating badges, in px: the best peak's position, or 0. */
+  readonly besidePx: (column: Column) => number;
   /** Pixel widths of a cell text and of a header label in their fonts. */
   readonly measureText: (text: string) => number;
   readonly measureLabel: (text: string) => number;
@@ -22,7 +24,9 @@ export const columnWidths = <Row, Column>(input: WidthInput<Row, Column>): reado
     const values = new Set(input.rows.map((row) => input.text(row, column)));
     const content = Math.max(
       0,
-      ...[...values].map((value) => (value === null ? input.ratingPx : input.measureText(value))),
+      ...[...values].map((value) =>
+        value === null ? input.ratingPx + input.besidePx(column) : input.measureText(value),
+      ),
     );
     return Math.ceil(
       Math.max(

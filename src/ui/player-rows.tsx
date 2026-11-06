@@ -6,6 +6,7 @@ import type { Player } from "../logic/players.ts";
 import type { ScoutAction, ScoutSort } from "../logic/scout-state.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 import {
+  BEST_PEAK_GAP_REM,
   clubText,
   ColumnValue,
   columnLabel,
@@ -14,7 +15,9 @@ import {
   rootFontPx,
   ShortlistStar,
   ShortlistWords,
+  useBestPeakNameRem,
   useRows,
+  widestTextRem,
 } from "./player-list.tsx";
 import type { ListProps } from "./player-list.tsx";
 import { PositionName } from "./position-name.tsx";
@@ -52,20 +55,6 @@ const PHONE = {
 const phoneColumnRem = (labelRem: number, valueRem: number): number =>
   Math.max(PHONE.ratingRem, labelRem + PHONE.paddingRem, valueRem + PHONE.paddingRem);
 
-/**
- * The widest of these texts in rem, in the rows' font or the given one; every digit as wide as a 0, as
- * the page's tabular digits are (a canvas does not apply them).
- */
-const widestTextRem = (texts: readonly string[], font?: string): number => {
-  const context = document.createElement("canvas").getContext("2d");
-  if (context === null || texts.length === 0) return 0;
-  const style = getComputedStyle(document.body);
-  context.font = font ?? `${style.fontSize} ${style.fontFamily}`;
-  const shapes = new Set(texts.map((text) => text.replaceAll(/\d/gu, "0")));
-  const widest = Math.max(...[...shapes].map((text) => context.measureText(text).width));
-  return widest / rootFontPx();
-};
-
 /** A label with each sort mark after it, as styles.css draws TEXT.sortMark once it is sorted. */
 const withSortMarks = (label: string): string[] =>
   Object.values(TEXT.sortMark).map((mark) => `${label} ${mark}`);
@@ -81,18 +70,26 @@ const measureLabels = (labels: readonly string[]): readonly number[] => {
   return labels.map((label) => widestTextRem(withSortMarks(label), font));
 };
 
-/** Each column's widest text in rem over every player, so the widths stay put whatever the filters. */
+/**
+ * Each column's widest text in rem over every player, so the widths stay put whatever the filters; the
+ * best peak's badge with its widest position.
+ */
 const useValueRems = (
   players: readonly Player[],
   columns: readonly SortKey[],
   ratingCode: number | null,
+  nameRem: number,
 ): readonly number[] =>
   useMemo(
     () =>
       columns.map((column) =>
-        widestTextRem(players.flatMap((player) => columnText(player, column, ratingCode) ?? [])),
+        column === "bestPeak" && nameRem > 0
+          ? PHONE.ratingRem + BEST_PEAK_GAP_REM + nameRem
+          : widestTextRem(
+              players.flatMap((player) => columnText(player, column, ratingCode) ?? []),
+            ),
       ),
-    [players, columns, ratingCode],
+    [players, columns, ratingCode, nameRem],
   );
 
 /**
@@ -432,15 +429,17 @@ const useFollowedEdges = (scrollRef: RefObject<HTMLDivElement | null>) => {
 /** The columns' labels and the grid that fits them. */
 const usePhoneColumns = (props: ListProps) => {
   const { allPlayers, columns, ratingCode, ratingName, currency } = props;
-  const valueRems = useValueRems(allPlayers, columns, ratingCode);
+  const nameRem = useBestPeakNameRem(allPlayers);
+  const valueRems = useValueRems(allPlayers, columns, ratingCode, nameRem);
   // Measured once per change of the columns or their values, not on every render.
   return useMemo(() => {
     // The potential's short label, as the narrow rows have always shown it.
     const labels = columns.map((column) =>
       column === "potential" ? TEXT.potentialShort : columnLabel(column, ratingName, currency),
     );
-    return { columns, labels, layout: phoneLayout(measureLabels(labels), valueRems) };
-  }, [columns, ratingName, currency, valueRems]);
+    const layout = phoneLayout(measureLabels(labels), valueRems);
+    return { columns, labels, layout: { ...layout, "--best-peak-name": `${String(nameRem)}rem` } };
+  }, [columns, ratingName, currency, valueRems, nameRem]);
 };
 
 export const PlayerCards = (props: ListProps): JSX.Element => {

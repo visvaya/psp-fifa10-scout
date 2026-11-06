@@ -882,6 +882,15 @@ input[inputmode="numeric"] {
   font-weight: 600;
 }
 
+/* The best peak in two sub-columns alike in every row, so neither the badges nor the positions step:
+   the position as wide as the widest (--best-peak-name, BEST_PEAK_GAP_REM in player-list.tsx). */
+.best-peak {
+  display: inline-grid;
+  grid-template-columns: auto var(--best-peak-name, auto);
+  column-gap: var(--space-1);
+  justify-items: start;
+}
+
 /* One colour per line, alike by nature. jscpd:ignore-start */
 .position-goalkeeper {
   color: var(--color-position-goalkeeper);

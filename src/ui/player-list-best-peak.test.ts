@@ -10,8 +10,8 @@ describe("the best peak columns", () => {
     bestPeakGain: 12,
   });
 
-  it("counts the position abbreviation in the width text of the peak, the gain stays a number", () => {
-    expect(columnText(player, "bestPeak", null)).toBe("83 ŚPO");
+  it("draws the peak as a rating, whose width counts the position beside it, the gain as a number", () => {
+    expect(columnText(player, "bestPeak", null)).toBeNull();
     expect(columnText(player, "bestPeakGain", null)).toBe("12");
   });
 

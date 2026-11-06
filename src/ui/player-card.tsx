@@ -113,9 +113,10 @@ export const bestPeak = (
     ? [
         [
           TEXT.card.bestPeak,
+          // The position first, so the badge ends the row in line with the other ratings' badges.
           <>
-            <AttributeValue value={player.bestPeak} />{" "}
-            <PositionName code={player.bestPeakCode} name={names.short(player.bestPeakCode)} />
+            <PositionName code={player.bestPeakCode} name={names.short(player.bestPeakCode)} />{" "}
+            <AttributeValue value={player.bestPeak} />
           </>,
         ],
       ]

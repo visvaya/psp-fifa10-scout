@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import {
   cardValue,
   expect,
@@ -20,6 +20,51 @@ const bestPeakHeader = (page: Page) =>
   page.getByRole("columnheader", { name: /^Najlepszy szczyt/u });
 const peakEye = (page: Page) =>
   page.getByRole("button", { name: "Pokaż kolumnę: Szczyt OVR", exact: true });
+
+/**
+ * How far a card value's rating badge ends before its row's right edge: 0 when it ends the row, in line
+ * with the badges of the rows above and below it.
+ */
+const badgeGap = async (value: Locator) =>
+  value
+    .locator(".rating")
+    .evaluate((badge) =>
+      Math.round(
+        (badge.closest(".facts > div")?.getBoundingClientRect().right ?? 0) -
+          badge.getBoundingClientRect().right,
+      ),
+    );
+
+/**
+ * The best peak cells as two sub-columns: every badge from one left edge, every abbreviation from another
+ * whatever its length, all within the cell.
+ */
+const expectAlignedPeaks = async (cells: Locator) => {
+  const boxes = await cells.evaluateAll((elements) =>
+    elements.map((cell) => {
+      const [cellBox, badge, name] = [
+        cell.getBoundingClientRect(),
+        cell.querySelector(".rating")?.getBoundingClientRect(),
+        cell.querySelector(".position"),
+      ];
+      return {
+        badge: Math.round(badge?.left ?? Number.NaN),
+        name: Math.round(name?.getBoundingClientRect().left ?? Number.NaN),
+        length: name?.textContent.length ?? 0,
+        overflow: cell.scrollWidth - cell.clientWidth,
+        beyond: (name?.getBoundingClientRect().right ?? 0) - cellBox.right,
+      };
+    }),
+  );
+  // Abbreviations of different lengths, as "N" against "CPS".
+  expect(new Set(boxes.map((box) => box.length)).size).toBeGreaterThan(1);
+  expect(new Set(boxes.map((box) => box.badge)).size).toBe(1);
+  expect(new Set(boxes.map((box) => box.name)).size).toBe(1);
+  for (const box of boxes) {
+    expect(box.overflow).toBeLessThanOrEqual(0);
+    expect(box.beyond).toBeLessThanOrEqual(0);
+  }
+};
 
 test.describe("peak at the best position, wide screen", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
@@ -45,6 +90,18 @@ test.describe("peak at the best position, wide screen", () => {
     await page.getByRole("group", { name: "Szczyt OVR", exact: true }).getByLabel("od").fill("1");
     await expect(page.getByText(/Najlepszy szczyt: od\s1/u).first()).toBeVisible();
     await expectNoAxeViolations(page);
+  });
+
+  test("lines up the badges and the positions of the best peak in every row", async ({ page }) => {
+    await loadCareer(page);
+    await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
+    await peakAtBestBox(page).check();
+    await expect(bestPeakHeader(page)).toBeVisible();
+    const headings = await page.locator("thead th").allTextContents();
+    const column = headings.findIndex((text) => text.startsWith("Najlepszy szczyt")) + 1;
+    await expectAlignedPeaks(
+      page.locator(`tbody tr[aria-rowindex] > :nth-child(${String(column)})`),
+    );
   });
 
   test("sorts by the best peak with the choice and by the preferred one without", async ({
@@ -97,7 +154,11 @@ test.describe("peak at the best position, eye and card", () => {
     await page.getByRole("button", { name: "Paweł Brożek" }).click();
     const card = page.getByRole("dialog", { name: "Paweł Brożek" });
     await expect(cardValue(card, "Szczyt OVR")).toHaveText("49");
-    await expect(cardValue(card, "Szczyt na najlepszej pozycji")).toHaveText(/^61\s\S+$/u);
+    // The abbreviation first, the badge at the right edge in line with the OVR's.
+    const best = cardValue(card, "Szczyt na najlepszej pozycji");
+    await expect(best).toHaveText(/^\S+\s61$/u);
+    const values = [best, cardValue(card, "OVR"), cardValue(card, "Szczyt OVR")];
+    expect(await Promise.all(values.map(badgeGap))).toEqual([0, 0, 0]);
     await page.keyboard.press("Escape");
     await expect(card).toBeHidden();
     // A player who peaks best at his own position gets no extra row.
@@ -128,6 +189,9 @@ test.describe("peak at the best position, phone", () => {
     expect(
       await cell.evaluate((element) => element.scrollWidth - element.clientWidth),
     ).toBeLessThanOrEqual(0);
+    await expectAlignedPeaks(
+      page.locator(".player-row-cell").filter({ has: page.locator(".position") }),
+    );
     await expectNoHorizontalOverflow(page);
   });
 });

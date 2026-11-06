@@ -1,7 +1,7 @@
 // The filtered players, virtualized with fixed row heights: a sortable native table on wide
 // screens; the phone rows (player-rows.tsx) share its columns, values and virtual rows.
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Dispatch, JSX, ReactNode } from "react";
 import { isRangeKey, rangeValue } from "../logic/filter-players.ts";
 import { isAttributeName } from "../logic/players.ts";
@@ -65,6 +65,36 @@ export interface ListProps {
 /** The root font size in px, which enlarged text raises. */
 export const rootFontPx = (): number =>
   Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+
+/**
+ * The widest of these texts in rem, in the rows' font or the given one; every digit as wide as a 0, as
+ * the page's tabular digits are (a canvas does not apply them).
+ */
+export const widestTextRem = (texts: readonly string[], font?: string): number => {
+  const context = document.createElement("canvas").getContext("2d");
+  if (context === null || texts.length === 0) return 0;
+  const style = getComputedStyle(document.body);
+  context.font = font ?? `${style.fontSize} ${style.fontFamily}`;
+  const shapes = new Set(texts.map((text) => text.replaceAll(/\d/gu, "0")));
+  const widest = Math.max(...[...shapes].map((text) => context.measureText(text).width));
+  return widest / rootFontPx();
+};
+
+/**
+ * The best peak cell's two sub-columns (owner, 2026-11-06: in line in every row, not stepped): its badge,
+ * then after this gap (--space-1) the position, as wide as the widest of every player's (--best-peak-name).
+ */
+export const BEST_PEAK_GAP_REM = 0.25;
+
+/** The widest best peak position of these players in rem, in the positions' bold font. */
+export const useBestPeakNameRem = (players: readonly Player[]): number =>
+  useMemo(() => {
+    const style = getComputedStyle(document.body);
+    return widestTextRem(
+      players.flatMap((player) => player.bestPeakName ?? []),
+      `600 ${style.fontSize} ${style.fontFamily}`,
+    );
+  }, [players]);
 
 export const useRows = (count: number, rowHeightRem: number) => {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -151,9 +181,6 @@ export const columnText = (
   column: SortKey,
   ratingCode: number | null,
 ): string | null => {
-  // The best peak is a rating badge with the position beside it: the width counts both.
-  if (column === "bestPeak" && player.bestPeak !== null && player.bestPeakName !== null)
-    return `${formatNumber(player.bestPeak)} ${player.bestPeakName}`;
   if (numberIn(player, column, ratingCode) !== null) return null;
   if (isTextColumn(column)) return String(cellText(player, column));
   const field = isRangeKey(column) || column === "bestPeakGain" ? rangeValue(player, column) : null;
@@ -172,10 +199,10 @@ export const ColumnValue = (props: {
   if (value !== null) {
     if (column === "ratingGain") return <GainValue value={value} />;
     return column === "bestPeak" && player.bestPeakCode !== null && player.bestPeakName !== null ? (
-      <>
+      <span className="best-peak">
         <AttributeValue value={value} />{" "}
         <PositionName code={player.bestPeakCode} name={player.bestPeakName} />
-      </>
+      </span>
     ) : (
       <AttributeValue value={value} />
     );
@@ -267,6 +294,23 @@ const Spacer = ({ height, columns }: { height: number; columns: number }) =>
 const widthText = (player: Player, column: SortKey): string | null =>
   columnText(player, column, null);
 
+/**
+ * The table's column widths (useColumnWidths), the best peak's with room for its widest position beside
+ * the badges, and that position's width for styles.css.
+ */
+const useTableWidths = (
+  source: Omit<Parameters<typeof useColumnWidths<Player, SortKey>>[0], "text" | "besidePx">,
+) => {
+  const nameRem = useBestPeakNameRem(source.rows);
+  const besidePx = useCallback(
+    (column: SortKey) =>
+      column === "bestPeak" && nameRem > 0 ? (BEST_PEAK_GAP_REM + nameRem) * rootFontPx() : 0,
+    [nameRem],
+  );
+  const widths = useColumnWidths({ ...source, text: widthText, besidePx });
+  return { widths, style: { "--best-peak-name": `${String(nameRem)}rem` } };
+};
+
 const ColumnGroup = ({ widths }: { widths: readonly number[] | null }) =>
   widths === null ? null : (
     <colgroup>
@@ -285,19 +329,19 @@ export const PlayerTable = (props: ListProps): JSX.Element => {
     [ratingName, currency],
   );
   const tableRef = useRef<HTMLTableElement>(null);
-  const widths = useColumnWidths({
+  const { widths, style } = useTableWidths({
     table: tableRef,
     drawn: items.length > 0,
     rows: allPlayers,
     columns,
     label,
-    text: widthText,
   });
   return (
     <div ref={scrollRef} className="scroll table-scroll">
       <table
         ref={tableRef}
         className={widths === null ? "players" : "players measured"}
+        style={style}
         aria-rowcount={players.length + 1}
       >
         <ColumnGroup widths={widths} />
