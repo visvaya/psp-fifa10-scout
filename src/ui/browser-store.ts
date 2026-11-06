@@ -1,5 +1,6 @@
-// The storage backend for this browser: IndexedDB when it opens, memory otherwise (private modes,
-// blocked storage). Either way nothing leaves the device.
+// The storage backend for this browser: IndexedDB when it opens, memory otherwise. Either way nothing
+// leaves the device. A browser without IndexedDB uses memory silently; one whose IndexedDB fails to open
+// (a damaged profile, blocked storage) says so, since nothing will be remembered.
 import { memoryBackend } from "../logic/scout-store.ts";
 import type { StorageBackend } from "../logic/scout-store.ts";
 
@@ -29,15 +30,28 @@ const indexedDbBackend = (db: IDBDatabase): StorageBackend => ({
     const value: unknown = await settle(db.transaction(STORE).objectStore(STORE).get(key));
     return value;
   },
-  set: async (key, value) => {
-    await settle(db.transaction(STORE, "readwrite").objectStore(STORE).put(value, key));
-  },
+  // Saved once the transaction commits: a request can succeed and the transaction still abort.
+  set: async (key, value) =>
+    new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE, "readwrite");
+      const fail = () => {
+        reject(transaction.error ?? new DOMException("The save was aborted", "AbortError"));
+      };
+      transaction.addEventListener("complete", () => {
+        resolve();
+      });
+      transaction.addEventListener("abort", fail);
+      transaction.addEventListener("error", fail);
+      transaction.objectStore(STORE).put(value, key);
+    }),
 });
 
-export const detectBackend = async (): Promise<StorageBackend> => {
+export const detectBackend = async (onOpenFailed: () => void): Promise<StorageBackend> => {
+  if (typeof indexedDB === "undefined") return memoryBackend();
   try {
     return indexedDbBackend(await openDatabase());
   } catch {
+    onOpenFailed();
     return memoryBackend();
   }
 };

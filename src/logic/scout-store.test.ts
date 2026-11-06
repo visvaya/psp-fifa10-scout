@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { DEFAULT_SORT } from "./scout-state.ts";
 import type { Preferences } from "./scout-state.ts";
-import { createScoutStore, memoryBackend, SCHEMA_VERSION } from "./scout-store.ts";
+import { createScoutStore, memoryBackend, openScoutStore, SCHEMA_VERSION } from "./scout-store.ts";
+import type { StorageBackend } from "./scout-store.ts";
 
 const loadPreferences = async (record: unknown) => {
   const backend = memoryBackend();
@@ -359,6 +360,31 @@ describe("scout store", () => {
       languages: {},
       careerSave: null,
       watchlist: [],
+    });
+  });
+
+  describe("opening", () => {
+    it("loads what the backend holds", async () => {
+      const backend = memoryBackend();
+      await createScoutStore(backend).saveGameDb(Uint8Array.of(7), "fifa.db");
+      const onUnreadable = vi.fn<() => void>();
+      const opened = await openScoutStore(backend, onUnreadable);
+      expect(opened.stored.gameDb).toEqual(Uint8Array.of(7));
+      expect(onUnreadable).not.toHaveBeenCalled();
+    });
+
+    it("reports a backend that cannot be read and works on, keeping nothing", async () => {
+      const unreadable: StorageBackend = {
+        get: () => Promise.reject(new Error("the store cannot be read")),
+        set: () => Promise.reject(new Error("the store cannot be written")),
+      };
+      const onUnreadable = vi.fn<() => void>();
+      const opened = await openScoutStore(unreadable, onUnreadable);
+      expect(onUnreadable).toHaveBeenCalledOnce();
+      expect(opened.stored.gameDb).toBeNull();
+      await expect(
+        opened.store.savePreferences({ filters: {}, sort: DEFAULT_SORT, showPotential: false }),
+      ).resolves.toBeUndefined();
     });
   });
 });

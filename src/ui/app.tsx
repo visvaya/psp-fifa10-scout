@@ -119,6 +119,11 @@ const TopBar = (props: {
   );
 };
 
+/** A region that is always there, so a screen reader hears the notice when it appears. */
+const StorageNotice = ({ failed }: { failed: boolean }) => (
+  <output className="storage-notice">{failed ? <p>{TEXT.storageFailed}</p> : null}</output>
+);
+
 export const App = (): JSX.Element => {
   const [state, dispatch] = useReducer(scoutReducer, initialScoutState);
   const files = useScoutFiles(dispatch);
@@ -133,6 +138,7 @@ export const App = (): JSX.Element => {
     <div className="app">
       <TopBar view={players === null ? null : view} update={update} dispatch={dispatch} />
       <UpdatePrompt status={update.status} install={update.install} dismiss={update.dismiss} />
+      <StorageNotice failed={files.storageFailed} />
       <main className="main">
         {view === "list" && players !== null ? (
           <ListView
