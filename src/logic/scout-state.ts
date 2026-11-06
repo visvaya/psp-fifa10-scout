@@ -361,7 +361,7 @@ const loadReducer = (state: ScoutState, action: LoadAction): ScoutState => {
   }
 };
 
-/** What each reset sets: the filters and sort, or with the potential switch too ("Resetuj"). */
+/** What each reset sets: the filters and sort, or with the potential switch too ("Resetuj", which also drops the columns). */
 const RESETS = {
   "filters-reset": { filters: {}, sort: DEFAULT_SORT },
   "settings-reset": { filters: {}, sort: DEFAULT_SORT, showPotential: false },

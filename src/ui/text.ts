@@ -348,7 +348,7 @@ export const TEXT = {
   resetFilters: "Wyczyść filtry",
   /** Takes back the last change of the filters, the sort or the saved sets. */
   undo: "Cofnij",
-  /** Filters, sort and the potential switch back to their defaults, after a question. */
+  /** Filters, sort, columns and the potential switch back to their defaults, after a question. */
   resetSettings: "Resetuj",
   resetQuestion: pl`Przywrócić domyślne filtry, sortowanie, kolumny i widok bez potencjału? Wgrane pliki, język nazw i zapisane zestawy zostaną.`,
   cancel: "Anuluj",

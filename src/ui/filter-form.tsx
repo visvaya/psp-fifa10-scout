@@ -14,7 +14,6 @@ import type {
   MyClub,
   ScoutAction,
   ScoutFilters,
-  ScoutState,
 } from "../logic/scout-state.ts";
 import { ChoiceField, FlagField, RangeField, Section } from "./filter-fields.tsx";
 import { AttributeRanges, ContractField } from "./filter-field-groups.tsx";
@@ -24,6 +23,7 @@ import type { CodedKey } from "./text-code-names.ts";
 import type { Choice } from "./filter-fields.tsx";
 import { PotentialSwitch } from "./filter-panel-controls.tsx";
 import { SettingsActions } from "./settings-actions.tsx";
+import type { Settings } from "./settings-actions.tsx";
 import { FIELD_HELP } from "./text-help.ts";
 import { PositionRatingField } from "./position-rating-field.tsx";
 import {
@@ -46,7 +46,7 @@ interface FilterFormProps {
   readonly myTeamId: number | null;
   readonly showPotential: boolean;
   /** The settings "Cofnij" and "Resetuj" act on. */
-  readonly settings: Pick<ScoutState, "filters" | "sort" | "showPotential" | "columns" | "undo">;
+  readonly settings: Settings;
   /** The career's currency, shown with the price and the wage; null without a career. */
   readonly currency: CurrencyCode | null;
   /** The columns the list shows: each filter's eye is open while its column is among them. */

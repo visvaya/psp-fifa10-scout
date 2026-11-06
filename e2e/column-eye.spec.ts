@@ -66,6 +66,30 @@ test.describe("wide screen", () => {
   });
 });
 
+/** The stored column choices as JSON, "{}" when there are none. */
+const storedColumns = async (page: Page): Promise<string> => {
+  const stored = await page.evaluate(readStored, "preferences");
+  const value: unknown = Reflect.get(Object(stored), "value");
+  return JSON.stringify(Reflect.get(Object(value), "columns") ?? {});
+};
+
+test.describe("back to the automatic columns", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  test("stores no choice once a column is back as the filters show it", async ({ page }) => {
+    await loadDatabase(page);
+    await page.getByText("Atrybuty", { exact: true }).click();
+    await page.getByLabel("Dodaj atrybut").selectOption({ label: "Drybling" });
+    await page.getByRole("group", { name: "Drybling" }).getByLabel("od").fill("10");
+    await eyeOf(page, "Drybling").click();
+    await expect.poll(async () => storedColumns(page)).toBe('{"dribbling":"hidden"}');
+    // Shown again, the column is what the filter gives: nothing is stored for it.
+    await eyeOf(page, "Drybling").click();
+    await expect(page.getByRole("columnheader", { name: /^Drybling/u })).toBeVisible();
+    await expect.poll(async () => storedColumns(page)).toBe("{}");
+  });
+});
+
 test.describe("filter panel", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 

@@ -972,8 +972,9 @@ input[inputmode="numeric"] {
   font-weight: 600;
 }
 
-/* Small marks right after the name: the column's eye and the clear button. Each a full touch target, its
-   extra size taken back by the margins, so the name's line keeps its height when a mark appears. */
+/* Small marks right after the name: the column's eye and the clear button. Each a full touch target; side
+   margins and the block margins take back its extra size, so the name's line keeps its height when a mark
+   appears. Beside the eye the clear button starts at the eye's edge, so the two never overlap. */
 .field-clear,
 .column-eye {
   min-width: var(--touch-target);
@@ -987,16 +988,11 @@ input[inputmode="numeric"] {
   cursor: pointer;
 }
 
-/* The eye stands out while its column shows; the crossed-out eye tells the two apart without colour. */
 .column-eye {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   align-self: center;
-}
-
-/* Beside the eye the clear button starts at the eye's edge: two touch targets never overlap. */
-.column-eye {
   margin-inline-end: 0;
 }
 
@@ -1004,6 +1000,7 @@ input[inputmode="numeric"] {
   margin-inline-start: 0;
 }
 
+/* The eye stands out while its column shows; the crossed-out eye tells the two apart without colour. */
 .column-eye[aria-pressed="true"] {
   color: var(--color-ink);
 }

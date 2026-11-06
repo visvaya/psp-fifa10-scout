@@ -7,7 +7,7 @@ import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
 import { ConfirmQuestion } from "./confirm-question.tsx";
 import { TEXT } from "./text.ts";
 
-type Settings = Pick<ScoutState, "filters" | "sort" | "showPotential" | "columns" | "undo">;
+export type Settings = Pick<ScoutState, "filters" | "sort" | "showPotential" | "columns" | "undo">;
 
 /** Something differs from the defaults the reset brings back. */
 const resettable = ({ filters, sort, showPotential, columns }: Settings): boolean =>
