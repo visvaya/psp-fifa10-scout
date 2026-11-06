@@ -1,13 +1,12 @@
 // The filtered players, virtualized with fixed row heights: a sortable native table on wide
 // screens; the phone rows (player-rows.tsx) share its columns, values and virtual rows.
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { Dispatch, JSX, ReactNode } from "react";
 import { isRangeKey, peakAt, rangeValue, ratingGain } from "../logic/filter-players.ts";
-import type { PlayerFilters } from "../logic/filter-players.ts";
 import { isAttributeName } from "../logic/players.ts";
 import type { CurrencyCode } from "../data/career-save.ts";
-import type { AttributeName, Player } from "../logic/players.ts";
+import type { Player } from "../logic/players.ts";
 import type { ScoutAction, ScoutSort } from "../logic/scout-state.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 import { AttributeValue, GainValue } from "./attribute-value.tsx";
@@ -20,24 +19,6 @@ export const ROW_HEIGHT_REM = { table: 2.5, list: 4 } as const;
 const OVERSCAN_ROWS = 12;
 
 type TextColumn = keyof typeof TEXT.columns;
-
-// The ratings follow the position, before the wide text columns, so they show without scrolling sideways.
-const LEAD_COLUMNS: readonly TextColumn[] = ["name", "age", "positionCode"];
-const DETAIL_COLUMNS: readonly TextColumn[] = [
-  "clubName",
-  "leagueName",
-  "nationalityName",
-  "contractEndYear",
-  "price",
-];
-const TABLE_ATTRIBUTES: readonly AttributeName[] = [
-  "sprintspeed",
-  "dribbling",
-  "shortpassing",
-  "finishing",
-  "tackling",
-  "reactions",
-];
 
 const isTextColumn = (key: string): key is TextColumn => key in TEXT.columns;
 
@@ -69,17 +50,12 @@ export interface ListProps {
   /** Every player of the game: the table's column widths fit them all, whatever the filters. */
   readonly allPlayers: readonly Player[];
   readonly sort: ScoutSort;
-  readonly showPotential: boolean;
+  /** The columns to show, the name first in the table (effectiveColumns). */
+  readonly columns: readonly SortKey[];
   /** The position of the position rating filter, shown as a column; null without that filter. */
   readonly ratingCode: number | null;
   /** That position's name in the game language; null without that filter. */
   readonly ratingName: string | null;
-  /** That filter ranges the peak at its position: the phone rows show it. */
-  readonly ratingPeakSet: boolean;
-  /** Attributes with a range filter, shown as columns after OVR (rangedAttributes). */
-  readonly rangedAttributes: readonly AttributeName[];
-  /** The range filters, whose values the phone rows show as columns. */
-  readonly ranges: PlayerFilters["ranges"];
   /** The career's currency, null without a career. */
   readonly currency: CurrencyCode | null;
   readonly dispatch: Dispatch<ScoutAction>;
@@ -279,47 +255,7 @@ const Spacer = ({ height, columns }: { height: number; columns: number }) =>
 
 /** A cell's text for its width, null for a rating cell. */
 const widthText = (player: Player, column: SortKey): string | null =>
-  isTextColumn(column) && column !== "overall" && column !== "potential"
-    ? String(cellText(player, column))
-    : null;
-
-/** The table's columns and their labels, stable while the position rating, potential and ranged
- * attributes stay. */
-const useTableColumns = ({
-  ratingCode,
-  ratingName,
-  showPotential,
-  rangedAttributes: ranged,
-  currency,
-  priced,
-  projected,
-}: Pick<
-  ListProps,
-  "ratingCode" | "ratingName" | "showPotential" | "rangedAttributes" | "currency"
-> & {
-  readonly priced: boolean;
-  /** Some player has a peak OVR (a career save). */
-  readonly projected: boolean;
-}) => {
-  const columns = useMemo(
-    (): readonly SortKey[] => [
-      ...LEAD_COLUMNS,
-      "overall",
-      ...(ratingCode === null ? [] : (["positionRating", "ratingGain"] as const)),
-      ...(ratingCode !== null && showPotential && projected ? (["positionPeak"] as const) : []),
-      ...(showPotential ? (["potential", ...(projected ? (["peak"] as const) : [])] as const) : []),
-      ...ranged,
-      ...DETAIL_COLUMNS.filter((column) => priced || column !== "price"),
-      ...TABLE_ATTRIBUTES.filter((name) => !ranged.includes(name)),
-    ],
-    [ratingCode, showPotential, ranged, priced, projected],
-  );
-  const label = useCallback(
-    (column: SortKey) => columnLabel(column, ratingName, currency),
-    [ratingName, currency],
-  );
-  return { columns, label };
-};
+  columnText(player, column, null);
 
 const ColumnGroup = ({ widths }: { widths: readonly number[] | null }) =>
   widths === null ? null : (
@@ -332,12 +268,12 @@ const ColumnGroup = ({ widths }: { widths: readonly number[] | null }) =>
   );
 
 export const PlayerTable = (props: ListProps): JSX.Element => {
-  const { players, allPlayers, sort, ratingCode, dispatch } = props;
+  const { players, allPlayers, sort, columns, ratingCode, ratingName, currency, dispatch } = props;
   const { scrollRef, items, before, after } = useRows(players.length, ROW_HEIGHT_REM.table);
-  // Prices and peaks exist only in a career.
-  const priced = useMemo(() => allPlayers.some((player) => player.price !== null), [allPlayers]);
-  const projected = useMemo(() => allPlayers.some((player) => player.peak !== null), [allPlayers]);
-  const { columns, label } = useTableColumns({ ...props, priced, projected });
+  const label = useCallback(
+    (column: SortKey) => columnLabel(column, ratingName, currency),
+    [ratingName, currency],
+  );
   const tableRef = useRef<HTMLTableElement>(null);
   const widths = useColumnWidths({
     table: tableRef,

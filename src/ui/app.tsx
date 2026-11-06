@@ -51,6 +51,7 @@ const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFile
     showPotential,
     gameLanguage,
     filterSets,
+    columns,
     languages,
     watchlist,
     watchlistEdited,
@@ -64,9 +65,10 @@ const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFile
         showPotential,
         ...(gameLanguage === undefined ? {} : { gameLanguage }),
         ...(filterSets === undefined ? {} : { filterSets }),
+        ...(columns === undefined ? {} : { columns }),
       });
     }
-  }, [ready, savePreferences, filters, sort, showPotential, gameLanguage, filterSets]);
+  }, [ready, savePreferences, filters, sort, showPotential, gameLanguage, filterSets, columns]);
 
   useEffect(() => {
     if (ready) saveLanguages(languages);

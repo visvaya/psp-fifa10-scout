@@ -3,7 +3,8 @@
 // Nothing leaves the device. Preferences 2, 3 and 4 migrate to 5, a fifa.db 1 (bare bytes) to 2 (bytes and
 // the game file's name) and languages 1 and 2 to 3 (empty for the position names they lack); any other
 // version or shape is ignored, and
-// unknown or malformed filter values are dropped one by one.
+// unknown or malformed filter values and column overrides are dropped one by one (a record without the
+// columns loads as none, so they needed no new version).
 import type { GameLanguages, GameNames } from "./game-names.ts";
 import { FLAG_KEYS, LIST_FIELDS, RANGE_KEYS } from "./filter-players.ts";
 import type { ListKey, PositionRating, Range } from "./filter-players.ts";
@@ -13,6 +14,7 @@ import { ATTRIBUTE_NAMES, SEASON_STAT_KEYS } from "./players.ts";
 import { POSITION_GROUPS, ratingCodeOf } from "./positions.ts";
 import { compactFilters, DEFAULT_SORT, inRecordOrder } from "./scout-state.ts";
 import type { ClubStatus, MyClub, Preferences, ScoutFilters, ScoutSort } from "./scout-state.ts";
+import type { ColumnPreference } from "./column-preference.ts";
 import type { FilterSet } from "./saved-filters.ts";
 import type { SortKey } from "./sort-players.ts";
 import { clippedNote } from "./watchlist.ts";
@@ -210,13 +212,21 @@ const parseFilterSets = (value: unknown): readonly FilterSet[] => {
   });
 };
 
+/** The stored column overrides in the order they were made; unknown keys and values are dropped. */
+const parseColumns = (value: unknown): ColumnPreference =>
+  entriesOf(value, SORTABLE_KEYS, (item) =>
+    item === "shown" || item === "hidden" ? item : undefined,
+  );
+
 const parsePreferences = (value: unknown): Preferences | null => {
   if (!isRecord(value) || !isRecord(value["filters"])) return null;
   const filterSets = parseFilterSets(value["filterSets"]);
+  const columns = parseColumns(value["columns"]);
   return {
     filters: compactFilters(parseFilters(value["filters"])),
     sort: parseSort(value["sort"]),
     ...(filterSets.length === 0 ? {} : { filterSets }),
+    ...(Object.keys(columns).length === 0 ? {} : { columns }),
     showPotential: value["showPotential"] === true,
     ...(typeof value["gameLanguage"] === "string" || value["gameLanguage"] === null
       ? { gameLanguage: value["gameLanguage"] }

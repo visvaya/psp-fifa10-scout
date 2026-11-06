@@ -26,6 +26,33 @@ export const POTENTIAL_KEYS: ReadonlySet<SortKey> = new Set([
   "positionPeak",
 ]);
 
+/** The sort keys that need a chosen position (the position rating filter). */
+export const RATING_SORT_KEYS: ReadonlySet<SortKey> = new Set([
+  "positionRating",
+  "ratingGain",
+  "positionPeak",
+]);
+
+/** Keys whose first click sorts ascending (text, age, position, contract); numbers start high. */
+const ASCENDING_FIRST = new Set<SortKey>([
+  "name",
+  "age",
+  "positionCode",
+  "clubName",
+  "leagueName",
+  "nationalityName",
+  "contractEndYear",
+]);
+
+/** The direction a click on a sort key gives: the sorted one turns round, another starts its own way. */
+export const nextDirection = (
+  current: { readonly key: SortKey; readonly direction: SortDirection },
+  key: SortKey,
+): SortDirection => {
+  if (current.key === key) return current.direction === "ascending" ? "descending" : "ascending";
+  return ASCENDING_FIRST.has(key) ? "ascending" : "descending";
+};
+
 const valueOf = (player: Player, key: SortKey, ratingCode: number | undefined): Scalar => {
   if (key === "name") return player.nameOrder;
   if (key === "positionRating")

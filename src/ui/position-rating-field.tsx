@@ -5,6 +5,7 @@ import type { JSX } from "react";
 import type { PositionRating } from "../logic/filter-players.ts";
 import { RATING_CHOICES } from "../logic/positions.ts";
 import type { FilterChange } from "../logic/scout-state.ts";
+import type { Eye } from "./column-eye.tsx";
 import { numberOrUndefined, RangeField } from "./filter-fields.tsx";
 import { ratingAbbreviation, ratingChoiceName } from "./position-name.tsx";
 import { RATING_PEAK_HELP } from "./text-help.ts";
@@ -16,14 +17,16 @@ const RatingRanges = (props: {
   /** The position's abbreviation in the game language. */
   abbreviation: string;
   peakShown: boolean;
+  eye: Eye;
   change: (filters: FilterChange) => void;
 }) => {
-  const { rating, abbreviation, change } = props;
+  const { rating, abbreviation, eye, change } = props;
   return (
     <>
       <RangeField
         label={TEXT.ratingAt(abbreviation)}
         range={rating}
+        column={eye("positionRating")}
         onChange={(range) => {
           // The bounds are replaced whole, so clearing the range clears both.
           const { code, gain, peak } = rating;
@@ -51,6 +54,7 @@ const RatingRanges = (props: {
       <RangeField
         label={TEXT.ratingGain}
         range={rating.gain}
+        column={eye("ratingGain")}
         allowNegative
         onChange={(gain) => {
           change({ positionRating: { ...rating, gain } });
@@ -60,6 +64,7 @@ const RatingRanges = (props: {
         <RangeField
           label={TEXT.peakAt(abbreviation)}
           range={rating.peak}
+          column={eye("positionPeak")}
           help={RATING_PEAK_HELP}
           onChange={(peak) => {
             change({ positionRating: { ...rating, peak } });
@@ -76,9 +81,11 @@ export const PositionRatingField = (props: {
   positionName: (code: number) => string;
   /** The peak range: a career is loaded and potential shown. */
   peakShown: boolean;
+  /** The eye of a column of the position rating; undefined for one without. */
+  eye: Eye;
   change: (filters: FilterChange) => void;
 }): JSX.Element => {
-  const { rating, positionName, change } = props;
+  const { rating, positionName, eye, change } = props;
   const legendId = useId();
   return (
     <fieldset className="field">
@@ -104,6 +111,7 @@ export const PositionRatingField = (props: {
           rating={rating}
           abbreviation={ratingAbbreviation(rating.code, positionName)}
           peakShown={props.peakShown}
+          eye={eye}
           change={change}
         />
       )}

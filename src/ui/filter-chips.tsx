@@ -3,15 +3,16 @@ import { useMemo } from "react";
 import type { Dispatch, JSX } from "react";
 import type { Player } from "../logic/players.ts";
 import { activeFilters } from "../logic/scout-state.ts";
-import type { ScoutAction, ScoutFilters, ScoutState } from "../logic/scout-state.ts";
+import type { ScoutAction, ScoutFilters } from "../logic/scout-state.ts";
 import { chipText, namesById } from "./chip-text.ts";
 import { SettingsActions } from "./settings-actions.tsx";
+import type { Settings } from "./settings-actions.tsx";
 import { TEXT } from "./text.ts";
 
 export const FilterChips = (props: {
   filters: ScoutFilters;
   /** The settings "Cofnij" and "Resetuj" beside the chips act on (owner, 2026-11-05). */
-  settings: Pick<ScoutState, "filters" | "sort" | "showPotential" | "undo">;
+  settings: Settings;
   /** The loaded players, for the names of the chosen leagues, clubs and countries. */
   players: readonly Player[];
   positionName: (code: number) => string;

@@ -2,7 +2,6 @@
 // scrolled sideways under the kept name.
 import { useLayoutEffect, useMemo, useRef } from "react";
 import type { CSSProperties, Dispatch, JSX, RefObject } from "react";
-import { phoneColumns } from "../logic/phone-columns.ts";
 import type { Player } from "../logic/players.ts";
 import type { ScoutAction, ScoutSort } from "../logic/scout-state.ts";
 import type { SortKey } from "../logic/sort-players.ts";
@@ -162,15 +161,15 @@ const RowsHeader = (props: {
 
 /** The name; a long one also as "A. Surname", which styles.css shows instead once the list scrolls. */
 /**
- * The club after its dot, in parts the ellipsis replaces whole: the dot with the first word, then each
- * further word after a non-breaking space, so the line never ends in a space before the ellipsis.
+ * The club after its separator, in parts the ellipsis replaces whole: the separator with the first word,
+ * then each further word after a non-breaking space, so the line never ends in a space before the ellipsis.
  */
-const WholeWords = ({ text }: { text: string }) => {
+const WholeWords = ({ text, separator }: { text: string; separator: string }) => {
   const [first = ""] = text.split(" ");
   return (
     <>
       <span className="meta-part">
-        {TEXT.rowMetaPartSeparator}
+        {separator}
         {first}
       </span>
       {/* Keyed by where each word starts: words may repeat ("Landu Landu"). */}
@@ -342,7 +341,38 @@ const followScroll = (list: HTMLElement, frame: HTMLElement): void => {
   fitRows(frame);
 };
 
-/** One phone row: the name with club, position and age, then the number columns. */
+/**
+ * The line under the name (position, age, club, owner, 2026-11-05): the line's ellipsis replaces the age,
+ * and the club's words, whole, never leaving a space before it. What has a column shows there instead.
+ */
+const MetaLine = ({ player, columns }: { player: Player; columns: readonly SortKey[] }) => {
+  const [position, age, club] = [
+    !columns.includes("positionCode"),
+    !columns.includes("age"),
+    !columns.includes("clubName"),
+  ];
+  if (!(position || age || club)) return null;
+  // The first part opens the line and needs no separator.
+  return (
+    <span className="player-row-meta">
+      {position ? <PositionName code={player.positionCode} name={player.positionName} /> : null}
+      {age ? (
+        <span className="meta-part">
+          {position ? TEXT.rowMetaPartSeparator : ""}
+          {TEXT.years(player.age)}
+        </span>
+      ) : null}
+      {club ? (
+        <WholeWords
+          text={clubText(player)}
+          separator={position || age ? TEXT.rowMetaPartSeparator : ""}
+        />
+      ) : null}
+    </span>
+  );
+};
+
+/** One phone row: the name with what has no column of its own, then the columns. */
 const PhoneRow = (props: {
   player: Player;
   columns: readonly SortKey[];
@@ -362,16 +392,7 @@ const PhoneRow = (props: {
     >
       <span className="player-row-text">
         <PhoneName player={player} />
-        {/* Position, age, club (owner, 2026-11-05): the line's ellipsis replaces the age, and the
-            club's words, whole, never leaving a space before it. */}
-        <span className="player-row-meta">
-          <PositionName code={player.positionCode} name={player.positionName} />
-          <span className="meta-part">
-            {TEXT.rowMetaPartSeparator}
-            {TEXT.years(player.age)}
-          </span>
-          <WholeWords text={clubText(player)} />
-        </span>
+        <MetaLine player={player} columns={columns} />
       </span>
       {columns.map((column, index) => (
         <span key={column} className="player-row-cell">
@@ -405,22 +426,9 @@ const useFollowedEdges = (scrollRef: RefObject<HTMLDivElement | null>) => {
   return { frameRef, rowsRef };
 };
 
-/** The number columns with their labels and the grid that fits them. */
+/** The columns' labels and the grid that fits them. */
 const usePhoneColumns = (props: ListProps) => {
-  const {
-    allPlayers,
-    showPotential,
-    ratingCode,
-    ratingPeakSet,
-    ratingName,
-    ranges,
-    currency,
-    sort,
-  } = props;
-  const columns = useMemo(
-    () => phoneColumns({ showPotential, ratingCode, ratingPeakSet, ranges, sortKey: sort.key }),
-    [showPotential, ratingCode, ratingPeakSet, ranges, sort.key],
-  );
+  const { allPlayers, columns, ratingCode, ratingName, currency } = props;
   // The potential's short label, as the narrow rows have always shown it.
   const labels = columns.map((column) =>
     column === "potential" ? TEXT.potentialShort : columnLabel(column, ratingName, currency),

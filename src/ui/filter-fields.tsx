@@ -4,6 +4,8 @@ import { useId, useLayoutEffect, useReducer, useRef, useState } from "react";
 import type { JSX, ReactNode } from "react";
 import type { Range } from "../logic/filter-players.ts";
 import { searchKey } from "../logic/players.ts";
+import { ColumnEye } from "./column-eye.tsx";
+import type { ColumnToggle } from "./column-eye.tsx";
 import { caretAfterDigits, editGrouped } from "./grouped-number.ts";
 import { decimalText } from "./decimal-text.ts";
 import { DECIMAL_SEPARATOR, formatNumber, TEXT } from "./text.ts";
@@ -23,17 +25,19 @@ const useFieldHelp = (help: string | undefined) => {
 };
 
 /**
- * A field's name, with a button that clears the field while it filters (owner, 2026-11-05). The group
- * takes its name from the name alone (labelId), so the button does not join it.
+ * A field's name, with the eye of its column and a button that clears the field while it filters (owner,
+ * 2026-11-05). The group takes its name from the name alone (labelId), so the buttons do not join it.
  */
 const FieldLegend = (props: {
   labelId: string;
   label: string;
   filtering: boolean;
+  column: ColumnToggle | undefined;
   onClear: () => void;
 }) => (
   <legend className="field-legend">
     <span id={props.labelId}>{props.label}</span>
+    <ColumnEye label={props.label} column={props.column} />
     {props.filtering ? (
       <button
         type="button"
@@ -208,6 +212,8 @@ export const RangeField = (props: {
   /** A decimal (a match rating), typed with the interface language's separator. */
   decimal?: boolean;
   help?: string | undefined;
+  /** The eye of the field's column; unset where it has none. */
+  column?: ColumnToggle | undefined;
   onChange: (range: Range) => void;
 }): JSX.Element => {
   const range = props.range ?? {};
@@ -220,6 +226,7 @@ export const RangeField = (props: {
         labelId={labelId}
         label={props.label}
         filtering={range.min !== undefined || range.max !== undefined}
+        column={props.column}
         onClear={() => {
           props.onChange({});
         }}
@@ -298,6 +305,8 @@ export const ChoiceField = <T extends string | number>(props: {
   excluded: boolean;
   onExcludedChange: (excluded: boolean) => void;
   help?: string | undefined;
+  /** The eye of the field's column; unset where it has none. */
+  column?: ColumnToggle | undefined;
 }): JSX.Element => {
   const { label, choices, onChange } = props;
   const chosen = props.chosen ?? [];
@@ -318,6 +327,7 @@ export const ChoiceField = <T extends string | number>(props: {
         labelId={labelId}
         label={label}
         filtering={chosen.length > 0}
+        column={props.column}
         onClear={() => {
           onChange([]);
         }}
