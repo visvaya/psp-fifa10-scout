@@ -8,6 +8,7 @@ import {
   LIST_FIELDS,
   RANGE_KEYS,
   compactRating,
+  peakField,
 } from "./filter-players.ts";
 import type { FlagKey, ListKey, PlayerFilters, Range, RangeKey } from "./filter-players.ts";
 import { defaultLanguage } from "./game-names.ts";
@@ -208,7 +209,7 @@ export const activeFilters = (filters: FilterChange): readonly FilterId[] => [
 
 /** Only the active filters, so empty values never linger in state or storage. */
 export const compactFilters = (filters: FilterChange): ScoutFilters => {
-  const { text, clubStatus, myClub, positionRating } = filters;
+  const { text, clubStatus, myClub, positionRating, peakAtBest } = filters;
   const ranges = pick(filters.ranges, RANGE_KEYS, isRangeSet);
   const lists = pick(filters.lists, LIST_FIELDS, isNonEmpty);
   // An exclusion means nothing without its list's values.
@@ -222,6 +223,7 @@ export const compactFilters = (filters: FilterChange): ScoutFilters => {
     ...(text === undefined || text.trim() === "" ? {} : { text }),
     ...(ranges === undefined ? {} : { ranges }),
     ...(positionRating === undefined ? {} : { positionRating: compactRating(positionRating) }),
+    ...(peakAtBest === true ? { peakAtBest } : {}),
     ...(lists === undefined ? {} : { lists }),
     ...(excludedLists === undefined ? {} : { excludedLists }),
     ...(flags === undefined ? {} : { flags }),
@@ -262,7 +264,11 @@ const withPotential = (preferences: Preferences): Preferences => {
   };
   return {
     ...preferences,
-    filters: compactFilters({ ...withoutRatingPeak(preferences.filters), ranges }),
+    filters: compactFilters({
+      ...withoutRatingPeak(preferences.filters),
+      peakAtBest: undefined,
+      ranges,
+    }),
     sort: POTENTIAL_KEYS.has(preferences.sort.key) ? DEFAULT_SORT : preferences.sort,
   };
 };
@@ -270,9 +276,11 @@ const withPotential = (preferences: Preferences): Preferences => {
 /** Preferences whose sort fits the filters: by position rating only while a position is chosen. */
 const consistent = (preferences: Preferences): Preferences => {
   const shown = withPotential(preferences);
-  return RATING_SORT_KEYS.has(shown.sort.key) && shown.filters.positionRating === undefined
-    ? { ...shown, sort: DEFAULT_SORT }
-    : shown;
+  if (RATING_SORT_KEYS.has(shown.sort.key) && shown.filters.positionRating === undefined)
+    return { ...shown, sort: DEFAULT_SORT };
+  // The peak sorts follow the filters' mode: by the best position's while peakAtBest is on.
+  const key = peakField(shown.sort.key, shown.filters.peakAtBest === true);
+  return key === shown.sort.key ? shown : { ...shown, sort: { ...shown.sort, key } };
 };
 
 const isLoadAction = (action: ScoutAction): action is LoadAction => action.type.startsWith("load-");
@@ -296,6 +304,7 @@ const withPreferences = (state: ScoutState, preferences: Preferences): ScoutStat
 const withoutCareer = ({ filters, sort }: Pick<Preferences, "filters" | "sort">) => ({
   filters: compactFilters({
     ...withoutRatingPeak(filters),
+    peakAtBest: undefined,
     clubStatus: undefined,
     myClub: undefined,
     ranges: {

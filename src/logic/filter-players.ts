@@ -22,6 +22,8 @@ const RANGE_FIELDS = [
   "growth",
   "peak",
   "peakGain",
+  "bestPeak",
+  "bestPeakGain",
   "height",
   "weight",
   "weakFoot",
@@ -80,6 +82,8 @@ export const FLAG_KEYS: readonly FlagKey[] = [
 export const CAREER_RANGE_KEYS = [
   "peak",
   "peakGain",
+  "bestPeak",
+  "bestPeakGain",
   "form",
   "morale",
   ...SEASON_STAT_KEYS,
@@ -108,6 +112,8 @@ export interface PlayerFilters {
   readonly flags?: { readonly [K in FlagKey]?: boolean | undefined };
   /** OVR at one position code, whatever the preferred position. */
   readonly positionRating?: PositionRating;
+  /** The peak and its gain ranges count at the position where his peak is highest (best-peak.ts). */
+  readonly peakAtBest?: boolean;
   readonly freeAgentsOnly?: boolean;
   /** Players one can sign: with a club, free agents and academy youth; leaves out legends and
    * national-team-only players. */
@@ -158,6 +164,21 @@ export const ratingGain = (player: Player, code: number): number | null => {
 
 type Predicate = (player: Player) => boolean;
 
+/** The peak fields and their best-position twins, which fill the same columns, ranges and sorts. */
+const PEAK_PAIRS = [
+  ["peak", "bestPeak"],
+  ["peakGain", "bestPeakGain"],
+] as const;
+
+/** The key a peak field has while peakAtBest is on or off (either twin may be given); others as they are. */
+export const peakField = <K extends string>(
+  key: K,
+  peakAtBest: boolean,
+): K | (typeof PEAK_PAIRS)[number][number] => {
+  const pair = PEAK_PAIRS.find((twins) => twins.some((twin) => twin === key));
+  return pair === undefined ? key : pair[peakAtBest ? 1 : 0];
+};
+
 /** The peak OVR at a position code, or null without a career. */
 export const peakAt = (player: Player, code: number): number | null =>
   player.peakByCode[code] ?? null;
@@ -201,11 +222,13 @@ const predicates = (filters: PlayerFilters): readonly Predicate[] => {
   const text = searchKey(filters.text?.trim() ?? "");
   const { excludeTeamId, onlyTeamId } = filters;
   const rating = filters.positionRating;
+  const peakAtBest = filters.peakAtBest === true;
   return [
     ...(text === "" ? [] : [(player: Player) => player.searchName.includes(text)]),
     ...RANGE_KEYS.flatMap((key) => {
       const range = filters.ranges?.[key];
-      return range === undefined ? [] : [inRange(range, (player) => rangeValue(player, key))];
+      const field = peakField(key, peakAtBest);
+      return range === undefined ? [] : [inRange(range, (player) => rangeValue(player, field))];
     }),
     ...LIST_FIELDS.flatMap((key) => {
       const values: readonly unknown[] = filters.lists?.[key] ?? [];

@@ -136,6 +136,21 @@ describe("localizePlayers", () => {
     expect(unknown).toEqual(players[1]);
   });
 
+  it("names the best peak position in the game language, or keeps its name", () => {
+    const peak = { bestPeak: 80, bestPeakGain: 5 };
+    const [known, unknown, none] = localizePlayers(
+      [
+        testPlayer({ ...peak, bestPeakCode: 17, bestPeakName: "CM" }),
+        testPlayer({ id: 2, ...peak, bestPeakCode: 0, bestPeakName: "GK" }),
+        testPlayer({ id: 3 }),
+      ],
+      names,
+    );
+    expect(known?.bestPeakName).toBe("ŚP");
+    expect(unknown?.bestPeakName).toBe("GK");
+    expect(none?.bestPeakName).toBeNull();
+  });
+
   it("names a misleading position by its bare abbreviation, as the list's narrow column shows it", () => {
     const polish = { ...names, positions: { 1: "ST", 30: "N" } };
     const [sweeper] = localizePlayers(

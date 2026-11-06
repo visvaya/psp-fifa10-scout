@@ -64,6 +64,8 @@ export const SORTABLE_KEYS: readonly SortKey[] = [
   "growth",
   "peak",
   "peakGain",
+  "bestPeak",
+  "bestPeakGain",
   "height",
   "weight",
   "weakFoot",
@@ -167,6 +169,7 @@ const entriesOf = <K extends string, V>(
 const parseFilters = (value: unknown): ScoutFilters => {
   const record = recordOf(value);
   const { text, ranges, lists, excludedLists, flags, clubStatus, myClub, excludeMyClub } = record;
+  const { peakAtBest } = record;
   const rating = parsePositionRating(record["positionRating"]);
   return {
     ...(typeof text === "string" ? { text } : {}),
@@ -182,6 +185,7 @@ const parseFilters = (value: unknown): ScoutFilters => {
     ),
     flags: entriesOf(flags, FLAG_KEYS, (item) => (typeof item === "boolean" ? item : undefined)),
     ...(rating === undefined ? {} : { positionRating: rating }),
+    ...(peakAtBest === true ? { peakAtBest } : {}),
     ...(isClubStatus(clubStatus) ? { clubStatus } : {}),
     // excludeMyClub: the checkbox "Mój klub" replaced, kept as "hide".
     ...(isMyClub(myClub) ? { myClub } : excludeMyClub === true ? { myClub: "hide" as const } : {}),

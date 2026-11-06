@@ -132,6 +132,7 @@ const ratingIn = (player: Player, column: SortKey, ratingCode: number | null): n
   if (column === "overall") return player.overall;
   if (column === "potential") return player.potential;
   if (column === "peak") return player.peak;
+  if (column === "bestPeak") return player.bestPeak;
   if (column === "positionRating")
     return player.overallByCode[ratingCode ?? player.positionCode] ?? null;
   if (column === "positionPeak") return ratingCode === null ? null : peakAt(player, ratingCode);
@@ -168,7 +169,15 @@ export const ColumnValue = (props: {
   const { player, column, ratingCode } = props;
   const value = numberIn(player, column, ratingCode);
   if (value !== null) {
-    return column === "ratingGain" ? <GainValue value={value} /> : <AttributeValue value={value} />;
+    if (column === "ratingGain") return <GainValue value={value} />;
+    return column === "bestPeak" && player.bestPeakCode !== null ? (
+      <>
+        <AttributeValue value={value} />{" "}
+        <PositionName code={player.bestPeakCode} name={player.bestPeakName ?? ""} />
+      </>
+    ) : (
+      <AttributeValue value={value} />
+    );
   }
   return isTextColumn(column)
     ? cellContent(player, column)

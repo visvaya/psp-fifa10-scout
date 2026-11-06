@@ -99,6 +99,28 @@ const money = (
         ],
       ];
 
+/** His best peak and where it comes, when that position peaks above the preferred one. */
+const bestPeak = (
+  player: Player,
+  showPotential: boolean,
+  names: PositionNames,
+): readonly (readonly [string, ReactNode])[] =>
+  showPotential &&
+  player.peak !== null &&
+  player.bestPeak !== null &&
+  player.bestPeakCode !== null &&
+  player.bestPeak > player.peak
+    ? [
+        [
+          TEXT.card.bestPeak,
+          <>
+            <AttributeValue value={player.bestPeak} />{" "}
+            <PositionName code={player.bestPeakCode} name={names.short(player.bestPeakCode)} />
+          </>,
+        ],
+      ]
+    : [];
+
 const basics = (
   player: Player,
   showPotential: boolean,
@@ -126,6 +148,7 @@ const basics = (
   ...(showPotential && player.peak !== null
     ? [[TEXT.card.peak, <AttributeValue key="peak" value={player.peak} />] as const]
     : []),
+  ...bestPeak(player, showPotential, names),
   [TEXT.card.foot, player.preferredFoot === "left" ? TEXT.card.left : TEXT.card.right],
   [TEXT.card.weakFoot, <Stars key="weak-foot" value={player.weakFoot} />],
   [TEXT.card.height, TEXT.card.heightValue(player.height)],

@@ -5,6 +5,7 @@ import type { CareerSave } from "../data/career-save.ts";
 import { ageOn, birthdateToDate, readTable } from "../data/ea-db.ts";
 import type { EaDb, EaDbRow } from "../data/ea-db.ts";
 import { SaveFormatError } from "../data/save-format-error.ts";
+import { bestPeakFields } from "./best-peak.ts";
 import { SCOUT_CONFIG } from "./config.ts";
 import {
   attributeGains,
@@ -162,6 +163,13 @@ export interface Player extends Finance, SeasonStats {
   readonly peak: number | null;
   /** Peak minus OVR: how much he still grows along the curves; career only. */
   readonly peakGain: number | null;
+  /** The highest peak over all position codes, at bestPeakCode (best-peak.ts); career only. */
+  readonly bestPeak: number | null;
+  readonly bestPeakCode: number | null;
+  /** The short name of bestPeakCode, in the game language once localized. */
+  readonly bestPeakName: string | null;
+  /** The best peak minus the OVR at the same position; career only. */
+  readonly bestPeakGain: number | null;
   /** OVR at the preferred position: aged to the season's first match day with a save, from fifa.db without. */
   readonly overall: number;
   /** Potential minus OVR. */
@@ -350,6 +358,7 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
     overall,
     growth: potential - overall,
     peakGain: peak === null ? null : peak - overall,
+    ...bestPeakFields(peakByCode, overallByCode, num(row, "preferredposition1")),
     ...profileFields(row),
     overallByCode,
     peakByCode,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterPlayers, rangedAttributes } from "./filter-players.ts";
+import { filterPlayers, peakField, rangedAttributes } from "./filter-players.ts";
 import type { PlayerFilters } from "./filter-players.ts";
 import { attributes, testPlayer } from "./test-support/player-fixtures.ts";
 
@@ -242,6 +242,28 @@ describe("filterPlayers", () => {
       filterPlayers(peaks, filters).map((player) => player.id);
     expect(kept({ ranges: { peakGain: { min: 5 } } })).toEqual([2]);
     expect(kept({ ranges: { peakGain: { max: 0 } } })).toEqual([1]);
+  });
+
+  it("ranges the peak and its gain at the best peak position while peakAtBest is on", () => {
+    const peaks = [
+      testPlayer({ id: 1, peak: 70, peakGain: 2, bestPeak: 80, bestPeakGain: 12 }),
+      testPlayer({ id: 2, peak: 85, peakGain: 9, bestPeak: 85, bestPeakGain: 9 }),
+      testPlayer({ id: 3 }),
+    ];
+    const kept = (filters: PlayerFilters) =>
+      filterPlayers(peaks, filters).map((player) => player.id);
+    expect(kept({ ranges: { peak: { min: 80 } } })).toEqual([2]);
+    expect(kept({ ranges: { peak: { min: 80 } }, peakAtBest: true })).toEqual([1, 2]);
+    expect(kept({ ranges: { peakGain: { min: 10 } } })).toEqual([]);
+    expect(kept({ ranges: { peakGain: { min: 10 } }, peakAtBest: true })).toEqual([1]);
+    expect(kept({ ranges: { peak: { min: 80 } }, peakAtBest: false })).toEqual([2]);
+  });
+
+  it("names the peak field of either mode", () => {
+    expect(peakField("peak", true)).toBe("bestPeak");
+    expect(peakField("bestPeakGain", false)).toBe("peakGain");
+    expect(peakField("peakGain", false)).toBe("peakGain");
+    expect(peakField("potential", true)).toBe("potential");
   });
 
   it("finds the players on loan and those listed for one", () => {

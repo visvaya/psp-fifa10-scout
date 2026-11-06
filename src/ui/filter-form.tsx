@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { Dispatch, JSX } from "react";
 import type { CurrencyCode } from "../data/career-save.ts";
+import { peakField } from "../logic/filter-players.ts";
 import type { FlagKey, ListKey, RangeKey } from "../logic/filter-players.ts";
 import { SEASON_STAT_KEYS, TRAIT_NAMES } from "../logic/players.ts";
 import type { Player, TraitName } from "../logic/players.ts";
@@ -15,7 +16,7 @@ import type {
   ScoutAction,
   ScoutFilters,
 } from "../logic/scout-state.ts";
-import { ChoiceField, FlagField, RangeField, Section } from "./filter-fields.tsx";
+import { CheckField, ChoiceField, FlagField, RangeField, Section } from "./filter-fields.tsx";
 import { AttributeRanges, ContractField } from "./filter-field-groups.tsx";
 import type { Eye } from "./column-eye.tsx";
 import { codeName } from "./text-code-names.ts";
@@ -187,7 +188,7 @@ const controls = (
       grouped={GROUPED_RANGES.has(key)}
       decimal={key === "form"}
       help={FIELD_HELP[key]}
-      column={eye(key)}
+      column={eye(peakField(key, filters.peakAtBest === true))}
       onChange={(range) => {
         change({ ranges: { ...filters.ranges, [key]: range } });
       }}
@@ -229,6 +230,21 @@ type Kit = ReturnType<typeof controls> & {
   readonly positionName: (code: number) => string;
 };
 
+/** The peak OVR, with the choice of counting it at the best position, and the growth left to it. */
+const peakFields = ({ filters, change, range }: Kit) => [
+  range("peak"),
+  <CheckField
+    key="peakAtBest"
+    label={TEXT.peakAtBest}
+    checked={filters.peakAtBest === true}
+    help={FIELD_HELP.bestPeak}
+    onChange={(peakAtBest) => {
+      change({ peakAtBest });
+    }}
+  />,
+  range("peakGain"),
+];
+
 /** career: the peak OVR exists only with a career save. */
 const basicSection = (kit: Kit, showPotential: boolean, career: boolean) => {
   const { filters, change, facets, range, list, flag, positionName, eye } = kit;
@@ -267,11 +283,7 @@ const basicSection = (kit: Kit, showPotential: boolean, career: boolean) => {
         change={change}
       />
       {showPotential
-        ? [
-            range("potential"),
-            range("growth"),
-            ...(career ? [range("peak"), range("peakGain")] : []),
-          ]
+        ? [range("potential"), range("growth"), ...(career ? peakFields(kit) : [])]
         : null}
       {flag("onMyList")}
     </Section>

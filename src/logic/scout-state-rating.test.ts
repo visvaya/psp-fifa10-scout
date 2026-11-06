@@ -58,3 +58,38 @@ describe("the position rating's ranges", () => {
     expect(unticked.filters).toEqual({ positionRating: { code: 3 } });
   });
 });
+
+/** Potential shown, sorted by the peak (the preferred or the best position's), the peak ranged from 80. */
+const atBest = (peakAtBest: boolean | undefined, sortKey: "peak" | "bestPeak"): ScoutState => {
+  const shown = scoutReducer(initialScoutState, { type: "potential-shown", shown: true });
+  const sorted = scoutReducer(shown, { type: "sort-changed", key: sortKey });
+  return scoutReducer(sorted, {
+    type: "filters-changed",
+    filters: { ranges: { peak: { min: 80 } }, peakAtBest },
+  });
+};
+
+describe("the peak at the best position", () => {
+  it("moves the peak sort to the best position's while on, and back when off", () => {
+    expect(atBest(true, "peak")).toMatchObject({
+      filters: { ranges: { peak: { min: 80 } }, peakAtBest: true },
+      sort: { key: "bestPeak" },
+    });
+    expect(atBest(undefined, "bestPeak")).toMatchObject({ sort: { key: "peak" } });
+    expect(atBest(false, "bestPeak").filters).toEqual({ ranges: { peak: { min: 80 } } });
+  });
+
+  it("is dropped with its sort when potential is hidden", () => {
+    const hidden = scoutReducer(atBest(true, "peak"), { type: "potential-shown", shown: false });
+    expect(hidden.filters).toEqual({});
+    expect(hidden.sort).toEqual(DEFAULT_SORT);
+  });
+
+  it("is dropped with its sort when a load brings no career", () => {
+    expect(loaded(atBest(true, "peak"), null)).toMatchObject({ filters: {}, sort: DEFAULT_SORT });
+    expect(loaded(atBest(true, "peak"), 5)).toMatchObject({
+      filters: { peakAtBest: true },
+      sort: { key: "bestPeak" },
+    });
+  });
+});

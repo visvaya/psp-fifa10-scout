@@ -1,7 +1,7 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, JSX, ReactNode } from "react";
 import { effectiveColumns, tableColumns } from "../logic/columns.ts";
-import { filterPlayers, rangedAttributes } from "../logic/filter-players.ts";
+import { filterPlayers, peakField, rangedAttributes } from "../logic/filter-players.ts";
 import { phoneColumns } from "../logic/phone-columns.ts";
 import type { Player } from "../logic/players.ts";
 import { effectiveFilters } from "../logic/effective-filters.ts";
@@ -64,6 +64,7 @@ const SortControls = ({
       >
         {SORTABLE_KEYS.filter(
           (key) =>
+            peakField(key, state.filters.peakAtBest === true) === key &&
             (state.showPotential || !POTENTIAL_KEYS.has(key)) &&
             ((key !== "peak" && key !== "positionPeak") || state.myTeamId !== null) &&
             (!RATING_SORT_KEYS.has(key) || state.filters.positionRating !== undefined),
@@ -143,12 +144,12 @@ const useVisiblePlayers = (
  */
 const useColumns = (state: ScoutState, players: readonly Player[], wide: boolean) => {
   const { showPotential, columns, myTeamId, sort } = state;
-  const { positionRating, ranges } = state.filters;
+  const { positionRating, ranges, peakAtBest } = state.filters;
   const priced = useMemo(() => players.some((player) => player.price !== null), [players]);
   const projected = useMemo(() => players.some((player) => player.peak !== null), [players]);
   return useMemo(() => {
     const ratingCode = positionRating?.code ?? null;
-    const automatic = wide
+    const layout = wide
       ? tableColumns({
           ratingCode,
           showPotential,
@@ -163,13 +164,26 @@ const useColumns = (state: ScoutState, players: readonly Player[], wide: boolean
           ranges,
           sortKey: sort.key,
         });
+    // The peak columns show the best position's while peakAtBest is on.
+    const automatic = layout.map((key) => peakField(key, peakAtBest === true));
     const effective = effectiveColumns(automatic, columns, {
       showPotential,
       ratingCode,
       career: myTeamId !== null,
     });
     return { columns: effective, automatic };
-  }, [wide, showPotential, columns, myTeamId, sort.key, positionRating, ranges, priced, projected]);
+  }, [
+    wide,
+    showPotential,
+    columns,
+    myTeamId,
+    sort.key,
+    positionRating,
+    ranges,
+    peakAtBest,
+    priced,
+    projected,
+  ]);
 };
 
 const FiltersDialogButton = ({ count, children }: { count: number; children: ReactNode }) => {

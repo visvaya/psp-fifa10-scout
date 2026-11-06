@@ -5,6 +5,7 @@ import type { CareerSave } from "../data/career-save.ts";
 import { parseEaDb } from "../data/ea-db.ts";
 import type { EaDbRow } from "../data/ea-db.ts";
 import { buildEaDb } from "../data/test-support/synthetic-ea-db.ts";
+import { NO_BEST_PEAK } from "./best-peak.ts";
 import { filterPlayers } from "./filter-players.ts";
 import { buildPlayers } from "./players.ts";
 import { sortPlayers } from "./sort-players.ts";
@@ -184,6 +185,7 @@ describe("buildPlayers from fifa.db", () => {
       potential: 95,
       peak: null,
       peakGain: null,
+      ...NO_BEST_PEAK,
       overall: 60,
       growth: 35,
       bodyType: 1,
@@ -333,9 +335,11 @@ describe("buildPlayers with a career save", () => {
 
   it("projects the peak OVR with a save only", () => {
     // Flat curves: the projection stays at today's OVR, at every position.
+    // The best peak is the preferred position's too: flat curves, and no position rates higher.
     expect(byId(players, 158_023)).toMatchObject({ peak: 60, overall: 60, peakGain: 0 });
+    expect(byId(players, 158_023)).toMatchObject({ bestPeak: 60, bestPeakGain: 0 });
     expect(byId(players, 158_023)?.peakByCode).toEqual(byId(players, 158_023)?.overallByCode);
-    expect(byId(buildPlayers(DB), 158_023)).toMatchObject({ peak: null, peakGain: null });
+    expect(byId(buildPlayers(DB), 158_023)).toMatchObject({ peak: null, ...NO_BEST_PEAK });
   });
 
   // The save keeps the average match rating times ten: 69 is the 6,9 of the game's stats screen.

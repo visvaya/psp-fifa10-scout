@@ -20,6 +20,19 @@ describe("chipText", () => {
     expect(chipText("ranges.sprintspeed", filters, names)).toBe("Szybkość: od 90");
   });
 
+  it("names the peak ranges for the best position while peakAtBest is on", () => {
+    const ranges = { peak: { min: 80 }, peakGain: { max: 3 } };
+    expect(chipText("ranges.peak", { ranges }, names)).toBe("Szczyt OVR: od 80");
+    const atBest = { ranges, peakAtBest: true };
+    expect(chipText("ranges.peak", atBest, names)).toBe("Szczyt OVR na najlepszej pozycji: od 80");
+    expect(chipText("ranges.peakGain", atBest, names)).toBe(
+      "Zapas do szczytu na najlepszej pozycji: do 3",
+    );
+    expect(
+      chipText("ranges.overall", { ranges: { overall: { min: 70 } }, peakAtBest: true }, names),
+    ).toBe("OVR: od 70");
+  });
+
   it("names the chosen values, and counts those past the first three", () => {
     const filters = {
       lists: {

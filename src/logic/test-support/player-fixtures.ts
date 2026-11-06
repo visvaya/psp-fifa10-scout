@@ -2,6 +2,7 @@
 import type { TableSpec } from "../../data/test-support/synthetic-ea-db.ts";
 import { ATTRIBUTE_NAMES, attributesOf, searchKey, TRAIT_NAMES } from "../players.ts";
 import type { Attributes, Player } from "../players.ts";
+import { NO_BEST_PEAK } from "../best-peak.ts";
 import { CURVE_COLUMNS } from "../overall-rating.ts";
 import type { CareerSummary } from "../load-scout.ts";
 
@@ -97,6 +98,8 @@ export const NO_STATS = {
   injuryDays: null,
 } as const;
 
+const NO_PEAKS = { peak: null, peakGain: null, ...NO_BEST_PEAK } as const;
+
 export const testPlayer = (overrides: Partial<Player> = {}): Player => {
   const player: Player = {
     id: 1,
@@ -116,8 +119,7 @@ export const testPlayer = (overrides: Partial<Player> = {}): Player => {
     height: 180,
     weight: 75,
     potential: 70,
-    peak: null,
-    peakGain: null,
+    ...NO_PEAKS,
     overall: 50,
     growth: 20,
     bodyType: 2,

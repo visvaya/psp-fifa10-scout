@@ -1,5 +1,5 @@
 // The text of an active filter's chip: the filter's name and the value it takes.
-import { FLAG_KEYS, LIST_FIELDS, RANGE_KEYS } from "../logic/filter-players.ts";
+import { FLAG_KEYS, LIST_FIELDS, peakField, RANGE_KEYS } from "../logic/filter-players.ts";
 import type { ListKey, PositionRating, Range } from "../logic/filter-players.ts";
 import type { Player } from "../logic/players.ts";
 import { POSITION_GROUPS } from "../logic/positions.ts";
@@ -126,7 +126,12 @@ export const chipText = (id: FilterId, filters: ScoutFilters, names: ChipNames):
   if (id === "clubStatus" && filters.clubStatus !== undefined) {
     return TEXT.capitalized(CLUB_STATUS_LABELS[filters.clubStatus]);
   }
-  const label = FILTER_LABELS.get(id) ?? id;
+  // The peak ranges are named for the best position while peakAtBest is on.
+  const range = RANGE_KEYS.find((key) => `ranges.${key}` === id);
+  const label =
+    range === undefined
+      ? (FILTER_LABELS.get(id) ?? id)
+      : rangeLabel(peakField(range, filters.peakAtBest === true));
   const value = valueText(id, filters, names);
   return TEXT.capitalized(value === "" ? label : TEXT.chip(label, value));
 };
