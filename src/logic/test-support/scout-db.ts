@@ -103,10 +103,9 @@ const STATS = table("playerstats", [
 
 export const SCOUT_USER_TEAM_ID = 1873;
 
-/** The synthetic database, with `extra` tables a test adds. */
+/** The synthetic database, with `extra` tables a test adds; one named like a default table replaces it. */
 export const buildScoutDb = (extra: readonly TableSpec[] = []): Uint8Array =>
   buildEaDb([
-    ...extra,
     table("leagues", [
       { leagueid: 53, leaguename: "Spain Primera Division (1)", level: 1, leagueprestige: 19 },
       { leagueid: 76, leaguename: "Rest of World", level: 4, leagueprestige: 5 },
@@ -167,6 +166,8 @@ export const buildScoutDb = (extra: readonly TableSpec[] = []): Uint8Array =>
       { playerid: 7, wage: floatBits(5700), bonus: 0, bonus_type: 0, contract_status: 0 },
     ]),
     flatCurves(),
+    // The parser keeps the last table of a name.
+    ...extra,
   ]);
 
 /** Polish game names for part of the synthetic database: a pol_pl.loc and its string.idx. */

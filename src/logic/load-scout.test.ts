@@ -14,6 +14,7 @@ import {
   buildScoutLocale,
   SCOUT_USER_TEAM_ID,
 } from "./test-support/scout-db.ts";
+import { table } from "./test-support/player-fixtures.ts";
 
 const blob = (bytes: Uint8Array): Blob => new Blob([bytes.slice()]);
 
@@ -110,6 +111,18 @@ describe("loadScout", () => {
     await expect(
       loadScout({ game: blob(buildScoutDb()), save: bad }, () => undefined),
     ).rejects.toEqual(expect.objectContaining({ error: { stage: "save", kind: "wrong-file" } }));
+  });
+
+  it("blames the save when its tables break the players", async () => {
+    // A career gain that is no number turns Brożek's attributes into NaN.
+    const grown = table("career_players_grown_attributes", [
+      { playerid: 7, potential_delta: 0, dribbling_delta: "x" },
+    ]);
+    const { dataBin, paramSfo } = buildPlainSave();
+    const save = { dataBin: blob(dataBin), paramSfo: blob(paramSfo) };
+    await expect(
+      loadScout({ game: blob(buildScoutDb([grown])), save }, () => undefined),
+    ).rejects.toEqual(expect.objectContaining({ error: { stage: "save", kind: "damaged" } }));
   });
 });
 

@@ -172,7 +172,8 @@ export const loadScout = async (
   };
   if (save === undefined) {
     onPhase("players");
-    return { players: buildPlayers(db), myTeamId: null, career: null, gameDb, ...names };
+    const players = await atStage("game", () => buildPlayers(db));
+    return { players, myTeamId: null, career: null, gameDb, ...names };
   }
   onPhase("save");
   const career = await atStage("save", async () =>
@@ -188,18 +189,15 @@ export const loadScout = async (
     careerManager(db, career),
   );
   onPhase("players");
-  const players = buildPlayers(db, career);
+  const { players, offer } = await atStage("save", () => {
+    const built = buildPlayers(db, career);
+    return { players: built, offer: offerContextOf(db, career, built) };
+  });
   const clubName = players.find((player) => player.clubId === teamId)?.clubName ?? null;
   return {
     players,
     myTeamId: teamId,
-    career: {
-      managerName,
-      clubName,
-      lastGameDate,
-      currency,
-      offer: offerContextOf(db, career, players),
-    },
+    career: { managerName, clubName, lastGameDate, currency, offer },
     gameDb,
     ...names,
   };
