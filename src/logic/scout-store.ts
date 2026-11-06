@@ -390,3 +390,18 @@ export const createScoutStore = (backend: StorageBackend) => ({
 });
 
 export type ScoutStore = ReturnType<typeof createScoutStore>;
+
+/**
+ * The store over a backend, with what it holds. A backend that cannot be read (a broken IndexedDB)
+ * gives an empty store that keeps nothing past the session, and calls onUnreadable.
+ */
+export const openScoutStore = async (backend: StorageBackend, onUnreadable: () => void) => {
+  const store = createScoutStore(backend);
+  try {
+    return { store, stored: await store.load() };
+  } catch {
+    onUnreadable();
+    const session = createScoutStore(memoryBackend());
+    return { store: session, stored: await session.load() };
+  }
+};

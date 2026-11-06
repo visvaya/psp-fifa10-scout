@@ -300,6 +300,7 @@ export const TEXT = {
     dismissMark: "×",
     reload: "Odśwież",
   },
+  storageFailed: pl`Nie udało się użyć pamięci przeglądarki. Narzędzie działa dalej, ale filtry i wczytane pliki mogą nie zostać zapamiętane. Po ponownym otwarciu wczytaj pliki jeszcze raz.`,
   noData: "Nie wczytano jeszcze bazy gry.",
   noMatches: "Żaden zawodnik nie spełnia filtrów.",
   filters: "Filtry",
