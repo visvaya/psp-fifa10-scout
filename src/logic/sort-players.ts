@@ -3,7 +3,7 @@
 // turned into its rank among the distinct values first: text in the given collation (Polish by
 // default), numbers by size, the name by nameOrder.
 import { peakAt, ratingGain } from "./filter-players.ts";
-import { isAttributeName, nameCollator } from "./players.ts";
+import { ATTRIBUTE_NAMES, isAttributeName, nameCollator, SEASON_STAT_KEYS } from "./players.ts";
 import type { AttributeName, Player } from "./players.ts";
 
 type Scalar = number | string | boolean | null;
@@ -17,6 +17,39 @@ type ScalarKey = {
  */
 export type SortKey = ScalarKey | AttributeName | "positionRating" | "ratingGain" | "positionPeak";
 export type SortDirection = "ascending" | "descending";
+
+/** The sort keys the screens offer; anything else in storage falls back to the default sort. */
+export const SORTABLE_KEYS: readonly SortKey[] = [
+  "name",
+  "age",
+  "positionCode",
+  "clubName",
+  "leagueName",
+  "nationalityName",
+  "contractEndYear",
+  "potential",
+  "overall",
+  "growth",
+  "peak",
+  "peakGain",
+  "height",
+  "weight",
+  "weakFoot",
+  "internationalReputation",
+  "learningSpeed",
+  "retirementAge",
+  "clubRating",
+  "form",
+  "morale",
+  ...SEASON_STAT_KEYS,
+  "injuryDays",
+  "price",
+  "wage",
+  "positionRating",
+  "ratingGain",
+  "positionPeak",
+  ...ATTRIBUTE_NAMES,
+];
 
 /** Values that reveal potential: they show only when the user asks for potential. */
 export const POTENTIAL_KEYS: ReadonlySet<SortKey> = new Set([

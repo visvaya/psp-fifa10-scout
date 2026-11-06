@@ -7,8 +7,12 @@ import type { Player } from "../logic/players.ts";
 import { effectiveFilters } from "../logic/effective-filters.ts";
 import { activeFilters } from "../logic/scout-state.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
-import { SORTABLE_KEYS } from "../logic/scout-store.ts";
-import { POTENTIAL_KEYS, RATING_SORT_KEYS, sortPlayers } from "../logic/sort-players.ts";
+import {
+  POTENTIAL_KEYS,
+  RATING_SORT_KEYS,
+  SORTABLE_KEYS,
+  sortPlayers,
+} from "../logic/sort-players.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 import type { WatchEntry } from "../logic/watchlist.ts";
 import { FilterChips } from "./filter-chips.tsx";

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { sortPlayers } from "./sort-players.ts";
+import { RANGE_KEYS } from "./filter-players.ts";
+import { SORTABLE_KEYS, sortPlayers } from "./sort-players.ts";
 import type { SortDirection, SortKey } from "./sort-players.ts";
 import { attributes, testPlayer } from "./test-support/player-fixtures.ts";
 
@@ -164,6 +165,10 @@ describe("sortPlayers", () => {
 
   it("sorts by an attribute", () => {
     expect(ids("dribbling", "descending")).toEqual([2, 3, 5, 1]);
+  });
+
+  it("offers every range field as a sort key", () => {
+    expect(RANGE_KEYS.filter((key) => !SORTABLE_KEYS.includes(key))).toEqual([]);
   });
 
   it("leaves the input untouched", () => {

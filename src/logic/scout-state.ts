@@ -6,6 +6,7 @@ import {
   CAREER_RANGE_KEYS,
   filterPlayers,
   FLAG_KEYS,
+  isRangeKey,
   LIST_FIELDS,
   RANGE_KEYS,
   compactRating,
@@ -256,10 +257,7 @@ const withPotential = (preferences: Preferences): Preferences => {
   if (preferences.showPotential) return preferences;
   const ranges = {
     ...preferences.filters.ranges,
-    potential: undefined,
-    growth: undefined,
-    peak: undefined,
-    peakGain: undefined,
+    ...Object.fromEntries([...POTENTIAL_KEYS].filter(isRangeKey).map((key) => [key, undefined])),
   };
   return {
     ...preferences,
