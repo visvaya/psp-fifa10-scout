@@ -52,9 +52,6 @@ const PHONE = {
 const phoneColumnRem = (labelRem: number, valueRem: number): number =>
   Math.max(PHONE.ratingRem, labelRem + PHONE.paddingRem, valueRem + PHONE.paddingRem);
 
-/** The sort mark after a sorted label (styles.css), counted in every label so none is cut once sorted. */
-const SORT_MARK = " ▼";
-
 /**
  * The widest of these texts in rem, in the rows' font or the given one; every digit as wide as a 0, as
  * the page's tabular digits are (a canvas does not apply them).
@@ -69,14 +66,20 @@ const widestTextRem = (texts: readonly string[], font?: string): number => {
   return widest / rootFontPx();
 };
 
-/** Each label's width in rem with the sort mark, in the labels' font (bold, --font-size-sm). */
-const useLabelRems = (labels: readonly string[]): readonly number[] =>
-  useMemo(() => {
-    const root = getComputedStyle(document.documentElement);
-    const sizeRem = Number.parseFloat(root.getPropertyValue("--font-size-sm")) || 1;
-    const font = `600 ${String(sizeRem * rootFontPx())}px ${getComputedStyle(document.body).fontFamily}`;
-    return labels.map((label) => widestTextRem([`${label}${SORT_MARK}`], font));
-  }, [labels]);
+/** A label with each sort mark after it, as styles.css draws TEXT.sortMark once it is sorted. */
+const withSortMarks = (label: string): string[] =>
+  Object.values(TEXT.sortMark).map((mark) => `${label} ${mark}`);
+
+/**
+ * Each label's width in rem with the wider sort mark, counted in every label so none is cut once sorted;
+ * in the labels' font (bold, --font-size-sm).
+ */
+const measureLabels = (labels: readonly string[]): readonly number[] => {
+  const root = getComputedStyle(document.documentElement);
+  const sizeRem = Number.parseFloat(root.getPropertyValue("--font-size-sm")) || 1;
+  const font = `600 ${String(sizeRem * rootFontPx())}px ${getComputedStyle(document.body).fontFamily}`;
+  return labels.map((label) => widestTextRem(withSortMarks(label), font));
+};
 
 /** Each column's widest text in rem over every player, so the widths stay put whatever the filters. */
 const useValueRems = (
@@ -159,7 +162,6 @@ const RowsHeader = (props: {
   );
 };
 
-/** The name; a long one also as "A. Surname", which styles.css shows instead once the list scrolls. */
 /**
  * The club after its separator, in parts the ellipsis replaces whole: the separator with the first word,
  * then each further word after a non-breaking space, so the line never ends in a space before the ellipsis.
@@ -212,6 +214,7 @@ const LabelButton = (props: {
   );
 };
 
+/** The name; a long one also as "A. Surname", which styles.css shows instead once the list scrolls. */
 const PhoneName = ({ player }: { player: Player }) =>
   player.initialName !== null && player.name.length > PHONE.initialAboveChars ? (
     <span className="player-row-name has-initial">
@@ -429,15 +432,15 @@ const useFollowedEdges = (scrollRef: RefObject<HTMLDivElement | null>) => {
 /** The columns' labels and the grid that fits them. */
 const usePhoneColumns = (props: ListProps) => {
   const { allPlayers, columns, ratingCode, ratingName, currency } = props;
-  // The potential's short label, as the narrow rows have always shown it.
-  const labels = columns.map((column) =>
-    column === "potential" ? TEXT.potentialShort : columnLabel(column, ratingName, currency),
-  );
-  return {
-    columns,
-    labels,
-    layout: phoneLayout(useLabelRems(labels), useValueRems(allPlayers, columns, ratingCode)),
-  };
+  const valueRems = useValueRems(allPlayers, columns, ratingCode);
+  // Measured once per change of the columns or their values, not on every render.
+  return useMemo(() => {
+    // The potential's short label, as the narrow rows have always shown it.
+    const labels = columns.map((column) =>
+      column === "potential" ? TEXT.potentialShort : columnLabel(column, ratingName, currency),
+    );
+    return { columns, labels, layout: phoneLayout(measureLabels(labels), valueRems) };
+  }, [columns, ratingName, currency, valueRems]);
 };
 
 export const PlayerCards = (props: ListProps): JSX.Element => {
