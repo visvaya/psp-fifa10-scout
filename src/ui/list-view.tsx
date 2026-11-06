@@ -1,7 +1,7 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, JSX, ReactNode } from "react";
 import { effectiveColumns, tableColumns } from "../logic/columns.ts";
-import { filterPlayers, rangedAttributes } from "../logic/filter-players.ts";
+import { filterPlayers, peakField, rangedAttributes } from "../logic/filter-players.ts";
 import { phoneColumns } from "../logic/phone-columns.ts";
 import type { Player } from "../logic/players.ts";
 import { effectiveFilters } from "../logic/effective-filters.ts";
@@ -69,7 +69,7 @@ const SortControls = ({
             (!RATING_SORT_KEYS.has(key) || state.filters.positionRating !== undefined),
         ).map((key) => (
           <option key={key} value={key}>
-            {columnLabel(key, ratingName)}
+            {columnLabel(peakField(key, state.filters.peakAtBest === true), ratingName)}
           </option>
         ))}
       </select>
@@ -124,17 +124,23 @@ const useVisiblePlayers = (
   const listed = useWatchedIds(
     filters.flags?.onMyList === undefined ? NO_ENTRIES : state.watchlist,
   );
+  // The stored peak sort reads the best position's peak while peakAtBest is on; headers mark that key.
+  const atBest = filters.peakAtBest === true;
+  const shownSort = useMemo(
+    () => ({ key: peakField(sort.key, atBest), direction: sort.direction }),
+    [sort, atBest],
+  );
   const visible = useMemo(
     () =>
       sortPlayers(
         filterPlayers(players, effectiveFilters(filters, state.myTeamId, listed)),
-        sort.key,
-        sort.direction,
+        shownSort.key,
+        shownSort.direction,
         { ratingCode: filters.positionRating?.code, collator },
       ),
-    [players, filters, sort, state.myTeamId, listed, collator],
+    [players, filters, shownSort, state.myTeamId, listed, collator],
   );
-  return { visible, sort };
+  return { visible, sort: shownSort, atBest };
 };
 
 /**
@@ -227,7 +233,11 @@ const ListResults = ({
   columns,
   dispatch,
 }: ListViewProps & { form: JSX.Element; columns: readonly SortKey[] }) => {
-  const { visible, sort } = useVisiblePlayers(players, state, collator);
+  const { visible, sort, atBest } = useVisiblePlayers(players, state, collator);
+  const shownColumns = useMemo(
+    () => columns.map((column) => peakField(column, atBest)),
+    [columns, atBest],
+  );
   const ratingCode = state.filters.positionRating?.code ?? null;
   const ratingName = ratingCode === null ? null : ratingAbbreviation(ratingCode, positionName);
   const List = wide ? PlayerTable : PlayerCards;
@@ -260,7 +270,7 @@ const ListResults = ({
           players={visible}
           allPlayers={players}
           sort={sort}
-          columns={columns}
+          columns={shownColumns}
           ratingCode={ratingCode}
           ratingName={ratingName}
           currency={state.career?.currency ?? null}

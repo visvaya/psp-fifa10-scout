@@ -101,6 +101,10 @@ const renamed = (players: readonly Player[], names: GameNames | null): readonly 
         // The bare abbreviation, for the list's narrow position column (owner, 2026-11-04); the card and the
         // filters add the English name to a misleading one (positionNameIn).
         positionName: names.positions[player.positionCode] ?? player.positionName,
+        bestPeakName:
+          player.bestPeakCode === null
+            ? null
+            : (names.positions[player.bestPeakCode] ?? player.bestPeakName),
       }));
 
 /**

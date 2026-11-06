@@ -256,6 +256,32 @@ export interface Choice<T> {
   readonly label: string;
 }
 
+/** One checkbox with its explanation, linked to it for screen readers. */
+export const CheckField = (props: {
+  label: string;
+  checked: boolean;
+  help: string;
+  onChange: (checked: boolean) => void;
+}): JSX.Element => {
+  const { describedBy, note } = useFieldHelp(props.help);
+  return (
+    <div className="field">
+      <label className="check">
+        <input
+          type="checkbox"
+          aria-describedby={describedBy}
+          checked={props.checked}
+          onChange={(event) => {
+            props.onChange(event.currentTarget.checked);
+          }}
+        />
+        {props.label}
+      </label>
+      {note}
+    </div>
+  );
+};
+
 /** Turns a list round to everyone but its chosen values; shown once a value is chosen. */
 const ExcludeToggle = (props: { excluded: boolean; onChange: (excluded: boolean) => void }) => (
   <label className="check">

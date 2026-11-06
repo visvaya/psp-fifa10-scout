@@ -8,6 +8,7 @@ import {
   LIST_FIELDS,
   RANGE_KEYS,
   compactRating,
+  peakField,
 } from "./filter-players.ts";
 import type { FlagKey, ListKey, PlayerFilters, Range, RangeKey } from "./filter-players.ts";
 import { defaultLanguage } from "./game-names.ts";
@@ -208,7 +209,7 @@ export const activeFilters = (filters: FilterChange): readonly FilterId[] => [
 
 /** Only the active filters, so empty values never linger in state or storage. */
 export const compactFilters = (filters: FilterChange): ScoutFilters => {
-  const { text, clubStatus, myClub, positionRating } = filters;
+  const { text, clubStatus, myClub, positionRating, peakAtBest } = filters;
   const ranges = pick(filters.ranges, RANGE_KEYS, isRangeSet);
   const lists = pick(filters.lists, LIST_FIELDS, isNonEmpty);
   // An exclusion means nothing without its list's values.
@@ -222,6 +223,7 @@ export const compactFilters = (filters: FilterChange): ScoutFilters => {
     ...(text === undefined || text.trim() === "" ? {} : { text }),
     ...(ranges === undefined ? {} : { ranges }),
     ...(positionRating === undefined ? {} : { positionRating: compactRating(positionRating) }),
+    ...(peakAtBest === true ? { peakAtBest } : {}),
     ...(lists === undefined ? {} : { lists }),
     ...(excludedLists === undefined ? {} : { excludedLists }),
     ...(flags === undefined ? {} : { flags }),
@@ -262,7 +264,11 @@ const withPotential = (preferences: Preferences): Preferences => {
   };
   return {
     ...preferences,
-    filters: compactFilters({ ...withoutRatingPeak(preferences.filters), ranges }),
+    filters: compactFilters({
+      ...withoutRatingPeak(preferences.filters),
+      peakAtBest: undefined,
+      ranges,
+    }),
     sort: POTENTIAL_KEYS.has(preferences.sort.key) ? DEFAULT_SORT : preferences.sort,
   };
 };
@@ -296,6 +302,7 @@ const withPreferences = (state: ScoutState, preferences: Preferences): ScoutStat
 const withoutCareer = ({ filters, sort }: Pick<Preferences, "filters" | "sort">) => ({
   filters: compactFilters({
     ...withoutRatingPeak(filters),
+    peakAtBest: undefined,
     clubStatus: undefined,
     myClub: undefined,
     ranges: {
@@ -408,11 +415,11 @@ const changes = (
       };
     case "potential-shown":
       return { ...state, ...consistent({ ...state, showPotential: action.shown }) };
-    case "sort-changed":
-      return {
-        ...state,
-        sort: { key: action.key, direction: nextDirection(state.sort, action.key) },
-      };
+    case "sort-changed": {
+      // A best-peak column sorts the stored peak: the list maps it back by the filters' mode.
+      const key = peakField(action.key, false);
+      return { ...state, sort: { key, direction: nextDirection(state.sort, key) } };
+    }
     case "preferences-restored":
       return withPreferences(state, action.preferences);
 

@@ -9,6 +9,7 @@ import {
   loadDatabase,
   PHONE,
   readStored,
+  storedColumns,
   resetSettings,
 } from "./support.ts";
 
@@ -65,13 +66,6 @@ test.describe("wide screen", () => {
     await expect(eyeOf(page, "Wiek")).toHaveAttribute("aria-pressed", "true");
   });
 });
-
-/** The stored column choices as JSON, "{}" when there are none. */
-const storedColumns = async (page: Page): Promise<string> => {
-  const stored = await page.evaluate(readStored, "preferences");
-  const value: unknown = Reflect.get(Object(stored), "value");
-  return JSON.stringify(Reflect.get(Object(value), "columns") ?? {});
-};
 
 test.describe("back to the automatic columns", () => {
   test.use({ viewport: { width: 1280, height: 800 } });

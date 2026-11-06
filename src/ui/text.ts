@@ -1,7 +1,7 @@
 /** Every text the user reads, in one module, with the Polish number and plural helpers. */
 import type { CurrencyCode } from "../data/career-save.ts";
 import type { CareerSummary, LoadErrorKind, LoadPhase, LoadStage } from "../logic/load-scout.ts";
-import type { FlagKey, ListKey, RangeFields, RangeKey } from "../logic/filter-players.ts";
+import type { FlagKey, ListKey, PeakTwin, RangeFields, RangeKey } from "../logic/filter-players.ts";
 import { isAttributeName } from "../logic/players.ts";
 import type { AttributeName } from "../logic/players.ts";
 import type { PositionGroup } from "../logic/positions.ts";
@@ -115,13 +115,15 @@ export const ATTRIBUTE_GROUP_LABELS = {
   goalkeeping: "Bramkarz",
 } as const;
 
-export const RANGE_LABELS: Readonly<Record<RangeFields, string>> = {
+export const RANGE_LABELS: Readonly<Record<RangeFields | PeakTwin, string>> = {
   age: "Wiek",
   overall: "OVR",
   potential: "Potencjał",
   growth: "Zapas rozwoju",
   peak: "Szczyt OVR",
   peakGain: "Zapas do szczytu",
+  bestPeak: "Najlepszy szczyt",
+  bestPeakGain: "Zapas do najlepszego szczytu",
   height: "Wzrost (cm)",
   weight: "Waga (kg)",
   weakFoot: "Słabsza noga (1–5)",
@@ -145,7 +147,7 @@ export const RANGE_LABELS: Readonly<Record<RangeFields, string>> = {
   wage: "Zarobki rynkowe (szacunek)",
 };
 
-export const rangeLabel = (key: RangeKey): string =>
+export const rangeLabel = (key: RangeKey | PeakTwin): string =>
   isAttributeName(key) ? ATTRIBUTE_LABELS[key] : RANGE_LABELS[key];
 
 export const LIST_LABELS: Readonly<Record<ListKey, string>> = {
@@ -321,6 +323,7 @@ export const TEXT = {
   ratingGainShort: "różnica",
   peakAt: (position: string): string => `Szczyt ${position}`,
   ratingPeakShort: "szczyt",
+  peakAtBest: "Szczyt OVR na jego najlepszej pozycji",
   bestPositionOnly: "Tylko jego najlepsza pozycja",
   bestPositionShort: "najlepsza pozycja",
   signed: (value: number): string => signed(value),
@@ -406,6 +409,7 @@ export const TEXT = {
     contract: "Kontrakt do",
     potential: "Potencjał",
     peak: "Szczyt OVR",
+    bestPeak: "Szczyt na najlepszej pozycji",
     peakNote: (potential: number, peak: number): string =>
       pl`Szczyt OVR to prognoza z krzywych rozwoju gry, ta sama co na jej wykresie rozwoju; nie obejmuje przyszłych przyrostów z meczów i treningu.${peak < potential ? pl` Potencjału ${formatNumber(potential)} zawodnik według niej nie osiągnie.` : ""}`,
     overallByGroup: "OVR na pozycjach",

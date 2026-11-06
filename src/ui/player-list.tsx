@@ -132,6 +132,7 @@ const ratingIn = (player: Player, column: SortKey, ratingCode: number | null): n
   if (column === "overall") return player.overall;
   if (column === "potential") return player.potential;
   if (column === "peak") return player.peak;
+  if (column === "bestPeak") return player.bestPeak;
   if (column === "positionRating")
     return player.overallByCode[ratingCode ?? player.positionCode] ?? null;
   if (column === "positionPeak") return ratingCode === null ? null : peakAt(player, ratingCode);
@@ -152,9 +153,12 @@ export const columnText = (
   column: SortKey,
   ratingCode: number | null,
 ): string | null => {
+  // The best peak is a rating badge with the position beside it: the width counts both.
+  if (column === "bestPeak" && player.bestPeak !== null && player.bestPeakName !== null)
+    return `${formatNumber(player.bestPeak)} ${player.bestPeakName}`;
   if (numberIn(player, column, ratingCode) !== null) return null;
   if (isTextColumn(column)) return String(cellText(player, column));
-  const field = isRangeKey(column) ? rangeValue(player, column) : null;
+  const field = isRangeKey(column) || column === "bestPeakGain" ? rangeValue(player, column) : null;
   if (field === null) return null;
   return column === "form" ? formatRating(field) : formatNumber(field);
 };
@@ -168,7 +172,15 @@ export const ColumnValue = (props: {
   const { player, column, ratingCode } = props;
   const value = numberIn(player, column, ratingCode);
   if (value !== null) {
-    return column === "ratingGain" ? <GainValue value={value} /> : <AttributeValue value={value} />;
+    if (column === "ratingGain") return <GainValue value={value} />;
+    return column === "bestPeak" && player.bestPeakCode !== null && player.bestPeakName !== null ? (
+      <>
+        <AttributeValue value={value} />{" "}
+        <PositionName code={player.bestPeakCode} name={player.bestPeakName} />
+      </>
+    ) : (
+      <AttributeValue value={value} />
+    );
   }
   return isTextColumn(column)
     ? cellContent(player, column)

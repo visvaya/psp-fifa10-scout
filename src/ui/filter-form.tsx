@@ -15,7 +15,7 @@ import type {
   ScoutAction,
   ScoutFilters,
 } from "../logic/scout-state.ts";
-import { ChoiceField, FlagField, RangeField, Section } from "./filter-fields.tsx";
+import { CheckField, ChoiceField, FlagField, RangeField, Section } from "./filter-fields.tsx";
 import { AttributeRanges, ContractField } from "./filter-field-groups.tsx";
 import type { Eye } from "./column-eye.tsx";
 import { codeName } from "./text-code-names.ts";
@@ -24,7 +24,7 @@ import type { Choice } from "./filter-fields.tsx";
 import { PotentialSwitch } from "./filter-panel-controls.tsx";
 import { SettingsActions } from "./settings-actions.tsx";
 import type { Settings } from "./settings-actions.tsx";
-import { FIELD_HELP } from "./text-help.ts";
+import { FIELD_HELP, PEAK_AT_BEST_HELP } from "./text-help.ts";
 import { PositionRatingField } from "./position-rating-field.tsx";
 import {
   CLUB_STATUS_LABELS,
@@ -229,6 +229,21 @@ type Kit = ReturnType<typeof controls> & {
   readonly positionName: (code: number) => string;
 };
 
+/** The peak OVR, with the choice of counting it at the best position, and the growth left to it. */
+const peakFields = ({ filters, change, range }: Kit) => [
+  range("peak"),
+  <CheckField
+    key="peakAtBest"
+    label={TEXT.peakAtBest}
+    checked={filters.peakAtBest === true}
+    help={PEAK_AT_BEST_HELP}
+    onChange={(peakAtBest) => {
+      change({ peakAtBest });
+    }}
+  />,
+  range("peakGain"),
+];
+
 /** career: the peak OVR exists only with a career save. */
 const basicSection = (kit: Kit, showPotential: boolean, career: boolean) => {
   const { filters, change, facets, range, list, flag, positionName, eye } = kit;
@@ -267,11 +282,7 @@ const basicSection = (kit: Kit, showPotential: boolean, career: boolean) => {
         change={change}
       />
       {showPotential
-        ? [
-            range("potential"),
-            range("growth"),
-            ...(career ? [range("peak"), range("peakGain")] : []),
-          ]
+        ? [range("potential"), range("growth"), ...(career ? peakFields(kit) : [])]
         : null}
       {flag("onMyList")}
     </Section>
