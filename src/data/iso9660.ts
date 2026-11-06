@@ -14,7 +14,6 @@ const SECTOR_BYTES = 2048;
 const PVD_OFFSET = 16 * SECTOR_BYTES;
 const RECORD_HEAD_BYTES = 33;
 const FLAG_DIRECTORY = 0x02;
-const MAX_PATH_DEPTH = 8;
 const MAX_DIRECTORY_BYTES = 1024 * 1024;
 const MAX_SFO_BYTES = 64 * 1024;
 const MAX_DATABASE_BYTES = 16 * 1024 * 1024;
@@ -83,7 +82,10 @@ interface Entry extends Extent {
   readonly name: string;
 }
 
-/** The records of a directory, names normalised (".", ".." and the version suffix stripped). */
+/**
+ * The records of a directory, names normalised (version suffix and trailing dot stripped); the self
+ * and parent records keep their one-byte names 0x00 and 0x01.
+ */
 const directoryEntries = (directory: Uint8Array): readonly Entry[] => {
   const view = new DataView(directory.buffer, directory.byteOffset, directory.length);
   const entries: Entry[] = [];
@@ -115,19 +117,16 @@ const directoryEntries = (directory: Uint8Array): readonly Entry[] => {
 const findEntry = (directory: Uint8Array, name: string): Extent | undefined =>
   directoryEntries(directory).find((entry) => entry.name === name.toUpperCase());
 
-const notFound = (path: string) => new SaveFormatError(`Not found in the disc image: ${path}`);
-
-const resolvePath = async (volume: Volume, path: string): Promise<Extent> => {
-  const parts = path.split("/").filter((part) => part !== "");
-  if (parts.length > MAX_PATH_DEPTH) throw new SaveFormatError("Disc image path is too deep");
-  return parts.reduce(async (parent: Promise<Extent>, part) => {
-    const directory = await parent;
-    if (!directory.directory) throw notFound(path);
-    const found = findEntry(await readExtentBytes(volume, directory, MAX_DIRECTORY_BYTES), part);
-    if (found === undefined) throw notFound(path);
-    return found;
-  }, Promise.resolve(volume.root));
-};
+/** The extent at `path`, or undefined when a part of it is missing or is not a directory. */
+const resolvePath = async (volume: Volume, path: string): Promise<Extent | undefined> =>
+  path
+    .split("/")
+    .filter((part) => part !== "")
+    .reduce(async (parent: Promise<Extent | undefined>, part) => {
+      const directory = await parent;
+      if (directory?.directory !== true) return undefined;
+      return findEntry(await readExtentBytes(volume, directory, MAX_DIRECTORY_BYTES), part);
+    }, Promise.resolve(volume.root));
 
 const readVolumeFile = async (
   volume: Volume,
@@ -135,6 +134,7 @@ const readVolumeFile = async (
   maxBytes: number,
 ): Promise<Uint8Array> => {
   const extent = await resolvePath(volume, path);
+  if (extent === undefined) throw new SaveFormatError(`Not found in the disc image: ${path}`);
   if (extent.directory)
     throw new SaveFormatError(`Not a file in the disc image: ${path}`, "wrong-file");
   return readExtentBytes(volume, extent, maxBytes);
@@ -175,10 +175,7 @@ export interface IsoLocales extends LocaleTables {
 
 /** The text tables of one locale directory, or null when it is missing or has no index or language. */
 const readLocaleTables = async (volume: Volume, path: string): Promise<LocaleTables | null> => {
-  const directory = await resolvePath(volume, path).catch((error: unknown) => {
-    if (error instanceof SaveFormatError && error.message === notFound(path).message) return null;
-    throw error;
-  });
+  const directory = await resolvePath(volume, path);
   if (directory?.directory !== true) return null;
   const entries = directoryEntries(await readExtentBytes(volume, directory, MAX_DIRECTORY_BYTES));
   const idx = entries.find((entry) => entry.name === "STRING.IDX");

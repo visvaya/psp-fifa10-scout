@@ -203,12 +203,6 @@ describe("readIsoFile", () => {
     await expect(readIsoFile(read, "PSP_GAME/USRDIR", 1 << 20)).rejects.toThrow("Not a file");
   });
 
-  it("caps the path depth", async () => {
-    const { read } = reader(gameIso());
-    await expect(readIsoFile(read, "a/b/c/d/e/f/g/h/i", 10)).rejects.toThrow("too deep");
-    await expect(readIsoFile(read, "a/b/c/d/e/f/g/h", 10)).rejects.toThrow("Not found");
-  });
-
   it("throws SaveFormatError", async () => {
     await expect(readIsoFile(reader(new Uint8Array(0)).read, DB_PATH, 1)).rejects.toBeInstanceOf(
       SaveFormatError,
