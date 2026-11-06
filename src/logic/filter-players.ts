@@ -1,7 +1,5 @@
 // Declarative player filters: each set filter adds one predicate, and a player must pass them all.
 // Lists keep any of the chosen values, ranges are inclusive, flags require a trait or its absence.
-import { GROUP_STAT_KEYS, groupStat, isAttributeKey, isGroupStatKey } from "./attribute-groups.ts";
-import type { AttributeKey, GroupStatKey } from "./attribute-groups.ts";
 import {
   ATTRIBUTE_NAMES,
   isAttributeName,
@@ -41,12 +39,8 @@ const RANGE_FIELDS = [
 ] as const satisfies readonly (keyof Player)[];
 
 export type RangeFields = (typeof RANGE_FIELDS)[number];
-export type RangeKey = RangeFields | AttributeName | GroupStatKey;
-export const RANGE_KEYS: readonly RangeKey[] = [
-  ...RANGE_FIELDS,
-  ...ATTRIBUTE_NAMES,
-  ...GROUP_STAT_KEYS,
-];
+export type RangeKey = RangeFields | AttributeName;
+export const RANGE_KEYS: readonly RangeKey[] = [...RANGE_FIELDS, ...ATTRIBUTE_NAMES];
 
 /** Fields chosen from a list of values. */
 export const LIST_FIELDS = [
@@ -168,11 +162,9 @@ type Predicate = (player: Player) => boolean;
 export const peakAt = (player: Player, code: number): number | null =>
   player.peakByCode[code] ?? null;
 
-/** A player's value for a range filter: a field, an attribute, or a group's average or spread. */
-export const rangeValue = (player: Player, key: RangeKey): number | null => {
-  if (isGroupStatKey(key)) return groupStat(player.attributes, key);
-  return isAttributeName(key) ? player.attributes[key] : player[key];
-};
+/** A player's value for a range filter: a field, or an attribute. */
+export const rangeValue = (player: Player, key: RangeKey): number | null =>
+  isAttributeName(key) ? player.attributes[key] : player[key];
 
 const hasFlag = (player: Player, flag: Exclude<FlagKey, "onMyList">): boolean => {
   if (flag === "nationalTeam") return player.nationalTeamId !== null;
@@ -245,6 +237,7 @@ const predicates = (filters: PlayerFilters): readonly Predicate[] => {
   ];
 };
 
+/** The attributes with a set range, in the order they were added: the list shows them as columns. */
 export const isRangeKey = (key: string): key is RangeKey =>
   RANGE_KEYS.some((candidate) => candidate === key);
 
@@ -257,10 +250,8 @@ export const rangedKeys = (ranges: PlayerFilters["ranges"]): readonly RangeKey[]
       : [];
   });
 
-/** The attributes, and group averages and spreads, with a set range, in the order they were added: the
- * list shows them as columns. */
-export const rangedAttributes = (ranges: PlayerFilters["ranges"]): readonly AttributeKey[] =>
-  rangedKeys(ranges).filter(isAttributeKey);
+export const rangedAttributes = (ranges: PlayerFilters["ranges"]): readonly AttributeName[] =>
+  rangedKeys(ranges).filter(isAttributeName);
 
 /** The players that pass every set filter; empty filters return all of them. */
 export const filterPlayers = (

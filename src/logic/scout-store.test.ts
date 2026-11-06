@@ -85,7 +85,6 @@ describe("scout store", () => {
       filterSets: [
         set,
         { name: "", filters: {}, sort: DEFAULT_SORT },
-        { name: "X", sort: 1 },
         { name: " Perełki ", filters: {}, sort: DEFAULT_SORT },
       ],
     };
@@ -179,11 +178,6 @@ describe("scout store", () => {
     });
     await backend.set("gameDb", "junk");
     expect((await createScoutStore(backend).load()).gameDb).toBeNull();
-    const unsorted = { filters: {}, sort: { key: "salary", direction: "ascending" } };
-    expect(await loadPreferences({ schemaVersion: 3, value: unsorted })).toBeNull();
-    expect(
-      await loadPreferences({ schemaVersion: 3, value: { filters: {}, sort: { key: "age" } } }),
-    ).toBeNull();
     expect(await loadPreferences({ schemaVersion: 3, value: [] })).toBeNull();
     expect(await loadPreferences({ schemaVersion: 2, value: "junk" })).toBeNull();
   });
@@ -202,18 +196,49 @@ describe("scout store", () => {
     expect(loaded).toEqual(stored);
   });
 
-  it("restores the group average and spread ranges and sorting by them", async () => {
-    const stored = (["physicalAverage", "goalkeepingSpread"] as const).map((key): Preferences => ({
-      filters: { ranges: { [key]: { min: 60.5, max: 80 } } },
+  it("falls back to the default sorting for an unknown key or a missing direction", async () => {
+    const defaults = { filters: {}, sort: DEFAULT_SORT, showPotential: false };
+    const unknownKey = { filters: {}, sort: { key: "salary", direction: "ascending" } };
+    expect(await loadPreferences({ schemaVersion: 3, value: unknownKey })).toEqual(defaults);
+    const noDirection = { filters: {}, sort: { key: "age" } };
+    expect(await loadPreferences({ schemaVersion: 3, value: noDirection })).toEqual(defaults);
+  });
+
+  it("drops the removed group ranges and falls back to the default sorting, keeping the rest", async () => {
+    const stored = (["physicalAverage", "goalkeepingSpread"] as const).map((key) => ({
+      filters: { ranges: { [key]: { min: 60.5, max: 80 }, age: { max: 21 } } },
       sort: { key, direction: "descending" },
-      showPotential: false,
+      showPotential: true,
     }));
     const loaded = await Promise.all(
       stored.map(async (value) =>
         loadPreferences({ schemaVersion: SCHEMA_VERSION.preferences, value }),
       ),
     );
-    expect(loaded).toEqual(stored);
+    const expected: Preferences = {
+      filters: { ranges: { age: { max: 21 } } },
+      sort: DEFAULT_SORT,
+      showPotential: true,
+    };
+    expect(loaded).toEqual([expected, expected]);
+  });
+
+  it("keeps a named filter set whose sorting or ranges used the removed group statistics", async () => {
+    const value = {
+      filters: {},
+      sort: DEFAULT_SORT,
+      filterSets: [
+        {
+          name: "Uneven",
+          filters: { ranges: { mentalSpread: { min: 10 }, age: { max: 21 } } },
+          sort: { key: "mentalAverage", direction: "ascending" },
+        },
+      ],
+    };
+    const loaded = await loadPreferences({ schemaVersion: SCHEMA_VERSION.preferences, value });
+    expect(loaded?.filterSets).toEqual([
+      { name: "Uneven", filters: { ranges: { age: { max: 21 } } }, sort: DEFAULT_SORT },
+    ]);
   });
 
   it("drops unknown and malformed filter values", async () => {

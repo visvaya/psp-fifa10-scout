@@ -1237,10 +1237,6 @@ input[inputmode="numeric"] {
   margin-bottom: var(--space-2);
 }
 
-.attribute-groups .group-summary {
-  margin: 0 0 var(--space-2);
-}
-
 .field > select,
 .field > input,
 .field > textarea {

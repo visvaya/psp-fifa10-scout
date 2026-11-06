@@ -5,8 +5,6 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Dispatch, JSX, ReactNode } from "react";
 import { isRangeKey, peakAt, rangeValue, ratingGain } from "../logic/filter-players.ts";
 import type { PlayerFilters } from "../logic/filter-players.ts";
-import { isGroupAverage, isGroupStatKey } from "../logic/attribute-groups.ts";
-import type { AttributeKey } from "../logic/attribute-groups.ts";
 import { isAttributeName } from "../logic/players.ts";
 import type { CurrencyCode } from "../data/career-save.ts";
 import type { AttributeName, Player } from "../logic/players.ts";
@@ -15,7 +13,6 @@ import type { SortKey } from "../logic/sort-players.ts";
 import { AttributeValue, GainValue } from "./attribute-value.tsx";
 import { PositionName } from "./position-name.tsx";
 import { ATTRIBUTE_LABELS, formatNumber, formatRating, RANGE_LABELS, TEXT } from "./text.ts";
-import { groupStatLabel } from "./text-range-labels.ts";
 import { useColumnWidths } from "./use-column-widths.ts";
 
 /** Row heights as styles.css sets them (td 2.5rem, .player-row 4rem). */
@@ -63,7 +60,6 @@ export const columnLabel = (
   if (key === "positionPeak")
     return ratingName === null ? RANGE_LABELS.peak : TEXT.peakAt(ratingName);
   if (isAttributeName(key)) return ATTRIBUTE_LABELS[key];
-  if (isGroupStatKey(key)) return groupStatLabel(key);
   if (isTextColumn(key)) return TEXT.columns[key];
   return isRangeField(key) ? RANGE_LABELS[key] : key;
 };
@@ -81,7 +77,7 @@ export interface ListProps {
   /** That filter ranges the peak at its position: the phone rows show it. */
   readonly ratingPeakSet: boolean;
   /** Attributes with a range filter, shown as columns after OVR (rangedAttributes). */
-  readonly rangedAttributes: readonly AttributeKey[];
+  readonly rangedAttributes: readonly AttributeName[];
   /** The range filters, whose values the phone rows show as columns. */
   readonly ranges: PlayerFilters["ranges"];
   /** The career's currency, null without a career. */
@@ -184,7 +180,7 @@ export const columnText = (
   if (isTextColumn(column)) return String(cellText(player, column));
   const field = isRangeKey(column) ? rangeValue(player, column) : null;
   if (field === null) return null;
-  return column === "form" || isGroupAverage(column) ? formatRating(field) : formatNumber(field);
+  return column === "form" ? formatRating(field) : formatNumber(field);
 };
 
 /** A column's value: a rating with its colour band, the gain with its sign, a number, or the text. */

@@ -16,7 +16,6 @@ import {
 import { FILTER_SETS_TEXT } from "./text-filter-sets.ts";
 import { CODE_NAMES } from "./text-code-names.ts";
 import { FIELD_HELP } from "./text-help.ts";
-import { GROUP_STAT_PREFIXES } from "./text-range-labels.ts";
 import { OFFER_TEXT } from "./text-offer.ts";
 import { startDescription } from "./test-support/start-description.ts";
 import { WATCHLIST_TEXT } from "./text-watchlist.ts";
@@ -40,7 +39,6 @@ const STRINGS = stringsIn([
   CLUB_STATUS_LABELS,
   FILTER_SECTION_LABELS,
   FLAG_LABELS,
-  GROUP_STAT_PREFIXES,
   LIST_LABELS,
   MY_CLUB_LABELS,
   POSITION_GROUP_LABELS,
