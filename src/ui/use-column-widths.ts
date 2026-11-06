@@ -20,7 +20,10 @@ const paddingOf = (element: Element): number => {
   return px(style.paddingLeft) + px(style.paddingRight);
 };
 
-/** Text widths in the table's own fonts, read once it is drawn with a row; null before that. */
+/**
+ * Text widths in the table's own fonts, read once it is drawn with a row; null before that. A table
+ * drawn without a rating column has no rating to measure, and gives it no width.
+ */
 const readMetrics = (table: HTMLTableElement): Metrics | null => {
   const context = document.createElement("canvas").getContext("2d");
   const [header, label, mark, cell, rating] = [
@@ -30,7 +33,7 @@ const readMetrics = (table: HTMLTableElement): Metrics | null => {
     "tbody tr[aria-rowindex] td",
     ".rating",
   ].map((selector) => table.querySelector(selector));
-  if (!context || !header || !label || !mark || !cell || !rating) return null;
+  if (!context || !header || !label || !mark || !cell) return null;
   const measure = (font: string) => (text: string) => {
     context.font = font;
     return context.measureText(text).width;
@@ -40,7 +43,7 @@ const readMetrics = (table: HTMLTableElement): Metrics | null => {
     measureLabel: measure(fontOf(label)),
     labelExtraPx: paddingOf(header) + mark.getBoundingClientRect().width,
     cellExtraPx: paddingOf(cell),
-    ratingPx: rating.getBoundingClientRect().width,
+    ratingPx: rating?.getBoundingClientRect().width ?? 0,
   };
 };
 
