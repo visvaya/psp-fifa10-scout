@@ -1126,6 +1126,7 @@ input[inputmode="numeric"] {
 
 .filter-set-name {
   flex: 1 1 100%;
+  margin: 0;
   font-weight: 600;
   overflow-wrap: anywhere;
 }

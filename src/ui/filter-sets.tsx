@@ -4,6 +4,7 @@ import type { Dispatch, JSX, Ref } from "react";
 import { checkSetName } from "../logic/saved-filters.ts";
 import type { FilterSet, SetNameCheck } from "../logic/saved-filters.ts";
 import type { ScoutAction } from "../logic/scout-state.ts";
+import { ConfirmQuestion } from "./confirm-question.tsx";
 import { Section } from "./filter-fields.tsx";
 import { FILTER_SETS_TEXT } from "./text-filter-sets.ts";
 
@@ -13,22 +14,13 @@ const SetButton = ({
   set,
   onClick,
   ref,
-  describedBy,
 }: {
   label: string;
   set: string;
   onClick: () => void;
   ref?: Ref<HTMLButtonElement>;
-  /** The id of a text the button acts on, read with it (a question it answers). */
-  describedBy?: string;
 }) => (
-  <button
-    ref={ref}
-    type="button"
-    className="button"
-    aria-describedby={describedBy}
-    onClick={onClick}
-  >
+  <button ref={ref} type="button" className="button" onClick={onClick}>
     {label}
     <span className="visually-hidden">{FILTER_SETS_TEXT.of(set)}</span>
   </button>
@@ -101,38 +93,6 @@ const RenameEditor = (props: {
           onDone(set.name);
         }}
       />
-    </li>
-  );
-};
-
-/** Asks before a set takes the current filters and sort; the confirm button takes the focus. */
-const OverwriteConfirm = (props: {
-  set: FilterSet;
-  dispatch: Dispatch<ScoutAction>;
-  onDone: () => void;
-}) => {
-  const { set, dispatch, onDone } = props;
-  const confirm = useRef<HTMLButtonElement>(null);
-  const questionId = useId();
-  useEffect(() => {
-    confirm.current?.focus();
-  }, []);
-  return (
-    <li className="filter-set">
-      <span id={questionId} className="filter-set-name">
-        {FILTER_SETS_TEXT.overwriteQuestion(set.name)}
-      </span>
-      <SetButton
-        ref={confirm}
-        describedBy={questionId}
-        label={FILTER_SETS_TEXT.overwriteSet}
-        set={set.name}
-        onClick={() => {
-          dispatch({ type: "filter-set-saved", name: set.name });
-          onDone();
-        }}
-      />
-      <SetButton label={FILTER_SETS_TEXT.cancel} set={set.name} onClick={onDone} />
     </li>
   );
 };
@@ -211,14 +171,20 @@ const SetItem = (props: {
     );
   }
   if (mode === "asking") {
+    // Asks before the set takes the current filters and sort; the confirm button takes the focus.
     return (
-      <OverwriteConfirm
-        set={set}
-        dispatch={dispatch}
-        onDone={() => {
-          setMode("asked");
-        }}
-      />
+      <li className="filter-set">
+        <ConfirmQuestion
+          question={FILTER_SETS_TEXT.overwriteQuestion(set.name)}
+          confirmLabel={FILTER_SETS_TEXT.overwriteSet}
+          questionClassName="filter-set-name"
+          subject={FILTER_SETS_TEXT.of(set.name)}
+          onAnswer={(confirmed) => {
+            if (confirmed) dispatch({ type: "filter-set-saved", name: set.name });
+            setMode("asked");
+          }}
+        />
+      </li>
     );
   }
   return (
