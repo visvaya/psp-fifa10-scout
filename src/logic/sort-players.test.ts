@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { RANGE_KEYS } from "./filter-players.ts";
-import { SORTABLE_KEYS, sortPlayers } from "./sort-players.ts";
+import { ratingValueOf, SORTABLE_KEYS, sortPlayers } from "./sort-players.ts";
 import type { SortDirection, SortKey } from "./sort-players.ts";
 import { attributes, testPlayer } from "./test-support/player-fixtures.ts";
 
@@ -174,5 +174,26 @@ describe("sortPlayers", () => {
   it("leaves the input untouched", () => {
     sortPlayers(PLAYERS, "age", "ascending");
     expect(PLAYERS.map((player) => player.id)).toEqual([5, 2, 1, 3]);
+  });
+});
+
+describe("ratingValueOf", () => {
+  const player = testPlayer({
+    overall: 60,
+    positionCode: 2,
+    overallByCode: Array.from({ length: 32 }, (_, code) => 50 + code),
+    peakByCode: Array.from({ length: 32 }, (_, code) => 70 + code),
+  });
+
+  it("gives the OVR at the chosen position, or at the preferred one without a choice", () => {
+    expect(ratingValueOf(player, "positionRating", 4)).toBe(54);
+    expect(ratingValueOf(player, "positionRating", null)).toBe(52);
+  });
+
+  it("gives the gain and the peak at the chosen position, none without a choice", () => {
+    expect(ratingValueOf(player, "ratingGain", 4)).toBe(-6);
+    expect(ratingValueOf(player, "positionPeak", 4)).toBe(74);
+    expect(ratingValueOf(player, "ratingGain", null)).toBeNull();
+    expect(ratingValueOf(player, "positionPeak", null)).toBeNull();
   });
 });

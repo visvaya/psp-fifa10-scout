@@ -3,11 +3,12 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useCallback, useEffect, useRef } from "react";
 import type { Dispatch, JSX, ReactNode } from "react";
-import { isRangeKey, peakAt, rangeValue, ratingGain } from "../logic/filter-players.ts";
+import { isRangeKey, rangeValue } from "../logic/filter-players.ts";
 import { isAttributeName } from "../logic/players.ts";
 import type { CurrencyCode } from "../data/career-save.ts";
 import type { Player } from "../logic/players.ts";
 import type { ScoutAction, ScoutSort } from "../logic/scout-state.ts";
+import { ratingValueOf } from "../logic/sort-players.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 import { AttributeValue, GainValue } from "./attribute-value.tsx";
 import { PositionName } from "./position-name.tsx";
@@ -133,18 +134,15 @@ const ratingIn = (player: Player, column: SortKey, ratingCode: number | null): n
   if (column === "potential") return player.potential;
   if (column === "peak") return player.peak;
   if (column === "bestPeak") return player.bestPeak;
-  if (column === "positionRating")
-    return player.overallByCode[ratingCode ?? player.positionCode] ?? null;
-  if (column === "positionPeak") return ratingCode === null ? null : peakAt(player, ratingCode);
+  if (column === "positionRating" || column === "positionPeak")
+    return ratingValueOf(player, column, ratingCode);
   return isAttributeName(column) ? player.attributes[column] : null;
 };
 
 /** A column's number: a rating, or the gain of the chosen position over the OVR. */
 const numberIn = (player: Player, column: SortKey, ratingCode: number | null): number | null =>
   column === "ratingGain"
-    ? ratingCode === null
-      ? null
-      : ratingGain(player, ratingCode)
+    ? ratingValueOf(player, column, ratingCode)
     : ratingIn(player, column, ratingCode);
 
 /** A column's text as ColumnValue shows it, or null for a rating or the gain, drawn as badges. */
