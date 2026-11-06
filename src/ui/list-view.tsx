@@ -1,18 +1,13 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, JSX, ReactNode } from "react";
-import { effectiveColumns, tableColumns } from "../logic/columns.ts";
+import { effectiveColumns, isKeyAvailable, tableColumns } from "../logic/columns.ts";
 import { filterPlayers, peakField, rangedAttributes } from "../logic/filter-players.ts";
 import { phoneColumns } from "../logic/phone-columns.ts";
 import type { Player } from "../logic/players.ts";
 import { effectiveFilters } from "../logic/effective-filters.ts";
 import { activeFilters } from "../logic/scout-state.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
-import {
-  POTENTIAL_KEYS,
-  RATING_SORT_KEYS,
-  SORTABLE_KEYS,
-  sortPlayers,
-} from "../logic/sort-players.ts";
+import { SORTABLE_KEYS, sortPlayers } from "../logic/sort-players.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 import type { WatchEntry } from "../logic/watchlist.ts";
 import { FilterChips } from "./filter-chips.tsx";
@@ -66,11 +61,12 @@ const SortControls = ({
           if (key !== undefined) dispatch({ type: "sort-changed", key });
         }}
       >
-        {SORTABLE_KEYS.filter(
-          (key) =>
-            (state.showPotential || !POTENTIAL_KEYS.has(key)) &&
-            ((key !== "peak" && key !== "positionPeak") || state.myTeamId !== null) &&
-            (!RATING_SORT_KEYS.has(key) || state.filters.positionRating !== undefined),
+        {SORTABLE_KEYS.filter((key) =>
+          isKeyAvailable(key, {
+            showPotential: state.showPotential,
+            ratingCode: state.filters.positionRating?.code ?? null,
+            career: state.myTeamId !== null,
+          }),
         ).map((key) => (
           <option key={key} value={key}>
             {columnLabel(peakField(key, state.filters.peakAtBest === true), ratingName)}

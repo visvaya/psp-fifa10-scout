@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { effectiveColumns, tableColumns } from "./columns.ts";
+import { effectiveColumns, isKeyAvailable, tableColumns } from "./columns.ts";
 import { phoneColumns } from "./phone-columns.ts";
 
 const TABLE = {
@@ -120,5 +120,34 @@ describe("effectiveColumns", () => {
       "price",
       "form",
     ]);
+  });
+});
+
+describe("isKeyAvailable", () => {
+  it("offers a career's values only with a career", () => {
+    for (const key of ["price", "wage", "form", "morale", "injuryDays", "goals"] as const) {
+      expect(isKeyAvailable(key, PLAIN)).toBe(false);
+      expect(isKeyAvailable(key, { ...PLAIN, career: true })).toBe(true);
+    }
+  });
+
+  it("offers the potential's values only while the potential shows, and a career's peak only in one", () => {
+    expect(isKeyAvailable("potential", PLAIN)).toBe(false);
+    expect(isKeyAvailable("potential", { ...PLAIN, showPotential: true })).toBe(true);
+    expect(isKeyAvailable("peak", { ...PLAIN, showPotential: true })).toBe(false);
+    expect(isKeyAvailable("peak", { ...PLAIN, showPotential: true, career: true })).toBe(true);
+  });
+
+  it("offers the position rating's values only with a chosen position", () => {
+    expect(isKeyAvailable("positionRating", PLAIN)).toBe(false);
+    expect(isKeyAvailable("positionRating", { ...PLAIN, ratingCode: 5 })).toBe(true);
+    const all = { showPotential: true, ratingCode: 5, career: true };
+    expect(isKeyAvailable("positionPeak", { ...all, career: false })).toBe(false);
+    expect(isKeyAvailable("positionPeak", all)).toBe(true);
+  });
+
+  it("always offers the game's own values", () => {
+    expect(isKeyAvailable("name", PLAIN)).toBe(true);
+    expect(isKeyAvailable("overall", PLAIN)).toBe(true);
   });
 });
