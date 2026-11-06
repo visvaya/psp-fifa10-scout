@@ -40,7 +40,9 @@ const RELEASE_B: Release = {
 
 const precacheFor = (release: Release) =>
   precacheOf(Object.entries(release).map(([path, body]) => ({ path, sha256: sha256Hex(body) })));
-const cacheNameOf = (release: Release) => `${CACHE_PREFIX}${cacheIdOf(precacheFor(release))}`;
+const HEADERS_SHA256 = sha256Hex("/*\n  X-Content-Type-Options: nosniff\n");
+const cacheNameOf = (release: Release) =>
+  `${CACHE_PREFIX}${cacheIdOf(precacheFor(release), HEADERS_SHA256)}`;
 const sorted = (names: Iterable<string>) => [...names].toSorted();
 
 interface Registration {
@@ -75,7 +77,7 @@ const startWorker = (release: Release, w: World) => {
     skipWaiting: () => tookOver.push("skipWaiting"),
     clients: { claim: () => tookOver.push("clients.claim") },
   };
-  const source = renderServiceWorker(TEMPLATE, precacheFor(release));
+  const source = renderServiceWorker(TEMPLATE, precacheFor(release), HEADERS_SHA256);
   Reflect.apply(compileFunction(source, ["self", "caches", "fetch"]), undefined, [
     scope,
     w.caches,
@@ -163,8 +165,20 @@ describe("the release written into the worker", () => {
     expect(cacheNameOf(RELEASE_A)).toBe(cacheNameOf({ ...RELEASE_A }));
   });
 
+  it("names its cache after the host headers too, so a release that changes only them is another release", () => {
+    const precache = precacheFor(RELEASE_A);
+    const before = sha256Hex("/*\n  X-Frame-Options: DENY\n");
+    const after = sha256Hex("/*\n  X-Frame-Options: SAMEORIGIN\n");
+    expect(cacheIdOf(precache, before)).not.toBe(cacheIdOf(precache, after));
+    expect(renderServiceWorker(TEMPLATE, precache, before)).not.toBe(
+      renderServiceWorker(TEMPLATE, precache, after),
+    );
+  });
+
   it("refuses a template without exactly one placeholder", () => {
-    expect(() => renderServiceWorker("const RELEASE = {};", [])).toThrow(/exactly once/u);
+    expect(() => renderServiceWorker("const RELEASE = {};", [], HEADERS_SHA256)).toThrow(
+      /exactly once/u,
+    );
   });
 });
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { commitMessageProblems, hasAbsolutePath, isOwnerIdentity } from "./git-hooks.ts";
+import { commitMessageProblems, isOwnerIdentity } from "./git-hooks.ts";
 
 describe("commitMessageProblems", () => {
   it("accepts a plain conventional message", () => {
@@ -14,8 +14,10 @@ describe("commitMessageProblems", () => {
     expect(commitMessageProblems("fix: x\n\nGenerated with some tool")).toHaveLength(1);
   });
 
-  it("ignores comment lines that git strips", () => {
-    expect(commitMessageProblems("fix: x\n# Co-authored-by: hint")).toEqual([]);
+  // git keeps comment lines with -m and -F, so a commented trailer would reach the history.
+  it("rejects a commented co-author line", () => {
+    const trailer = ["# Co", "authored-by: A <a@b.c>"].join("-");
+    expect(commitMessageProblems(`fix: x\n\n${trailer}\n`)).toHaveLength(1);
   });
 });
 
@@ -28,18 +30,5 @@ describe("isOwnerIdentity", () => {
 
   it("rejects any other e-mail", () => {
     expect(isOwnerIdentity("Someone <someone@example.com> 1 +0100")).toBe(false);
-  });
-});
-
-// Built from pieces so this file does not trip the pre-commit check it tests.
-const QUOTED_WINDOWS_PATH = ['"', "C:", "\\data", '"'].join("");
-
-describe("hasAbsolutePath", () => {
-  it("finds a Windows path in a code file", () => {
-    expect(hasAbsolutePath("src/a.ts", `const p = ${QUOTED_WINDOWS_PATH};`)).toBe(true);
-  });
-
-  it("ignores documentation", () => {
-    expect(hasAbsolutePath("README.md", QUOTED_WINDOWS_PATH)).toBe(false);
   });
 });

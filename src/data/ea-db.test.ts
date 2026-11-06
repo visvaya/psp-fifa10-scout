@@ -15,6 +15,11 @@ describe("num", () => {
     expect(() => num({ playerid: 7 }, "teamid")).toThrow(SaveFormatError);
     expect(() => num({ name: "Brożek" }, "name")).toThrow(SaveFormatError);
   });
+
+  it("throws a file error on a blank text column instead of reading 0", () => {
+    expect(() => num({ height: "" }, "height")).toThrow(SaveFormatError);
+    expect(() => num({ height: " \t" }, "height")).toThrow(SaveFormatError);
+  });
 });
 
 // Bit area vector from the format notes: 0010001|100001|00101|0 with widths 7/6/5/1.

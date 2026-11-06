@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  activeRegistration,
   canCheck,
   checkForUpdate,
   installUpdate,
@@ -128,9 +129,9 @@ describe("installUpdate", () => {
         registration,
         (s) => reports.push(s),
         () => (reloads += 1),
-        () => undefined,
+        () => () => undefined,
       ),
-    ).toBe(true);
+    ).toBeTypeOf("function");
     expect(waiting.sent).toEqual([{ type: "psp-fifa10-scout:take-over" }]);
     expect(reports).toEqual(["installing"]);
     waiting.moveTo("activating");
@@ -140,28 +141,22 @@ describe("installUpdate", () => {
     expect(waiting.listenerCount()).toBe(0);
   });
 
-  it("reports a release that did not take over, and does nothing when none waits", () => {
+  it("reports a release that did not take over, or none waiting, and watches again either way", () => {
     const registration = makeRegistration(makeWorker("activated"));
     const reports: UpdateStatus[] = [];
     const report = (status: UpdateStatus) => reports.push(status);
-    expect(
-      installUpdate(
-        registration,
-        report,
-        () => undefined,
-        () => undefined,
-      ),
-    ).toBe(false);
+    let watches = 0;
+    const watchAgain = () => {
+      watches += 1;
+      return () => undefined;
+    };
+    installUpdate(registration, report, () => undefined, watchAgain);
+    expect([reports, watches]).toEqual([["failed"], 1]);
     const waiting = makeWorker("installed");
     registration.waiting = waiting;
-    installUpdate(
-      registration,
-      report,
-      () => undefined,
-      () => undefined,
-    );
+    installUpdate(registration, report, () => undefined, watchAgain);
     waiting.moveTo("redundant");
-    expect(reports).toEqual(["installing", "failed"]);
+    expect([reports, watches]).toEqual([["failed", "installing", "failed"], 2]);
   });
 
   it("watches again after a release did not take over, so a later check can still report one", () => {
@@ -170,9 +165,7 @@ describe("installUpdate", () => {
     registration.waiting = waiting;
     const reports: UpdateStatus[] = [];
     const report = (status: UpdateStatus) => reports.push(status);
-    const watchAgain = () => {
-      watchForUpdates(registration, report);
-    };
+    const watchAgain = () => watchForUpdates(registration, report);
     installUpdate(registration, report, () => undefined, watchAgain);
     // A release that failed is no longer the registration's waiting worker.
     registration.waiting = null;
@@ -181,6 +174,102 @@ describe("installUpdate", () => {
     registration.find(next);
     next.moveTo("installed");
     expect(reports).toEqual(["installing", "failed", "waiting"]);
+  });
+
+  it("does nothing more once stopped: no reload, report or new watcher", () => {
+    const registration = makeRegistration(makeWorker("activated"));
+    const reports: UpdateStatus[] = [];
+    let [reloads, watches] = [0, 0];
+    const install = (waiting: FakeWorker) => {
+      registration.waiting = waiting;
+      const stop = installUpdate(
+        registration,
+        (status) => reports.push(status),
+        () => (reloads += 1),
+        () => {
+          watches += 1;
+          return () => undefined;
+        },
+      );
+      stop();
+      expect(waiting.listenerCount()).toBe(0);
+      return waiting;
+    };
+    install(makeWorker("installed")).moveTo("redundant");
+    install(makeWorker("installed")).moveTo("activated");
+    expect(reports).toEqual(["installing", "installing"]);
+    expect([reloads, watches]).toEqual([0, 0]);
+  });
+
+  it("stops the watcher it started again after a release did not take over", () => {
+    const registration = makeRegistration(makeWorker("activated"));
+    const waiting = makeWorker("installed");
+    registration.waiting = waiting;
+    let watching = false;
+    const stop = installUpdate(
+      registration,
+      () => undefined,
+      () => undefined,
+      () => {
+        watching = true;
+        return () => {
+          watching = false;
+        };
+      },
+    );
+    waiting.moveTo("redundant");
+    expect(watching).toBe(true);
+    stop();
+    expect(watching).toBe(false);
+  });
+});
+
+/** A first visit: no active worker yet, the first one installing; ready settles when the test says. */
+const firstVisit = () => {
+  const registration = makeRegistration(null);
+  const first = makeWorker("installing");
+  registration.installing = first;
+  let resolveReady: (() => void) | undefined;
+  const ready = new Promise<void>((resolve) => {
+    resolveReady = resolve;
+  });
+  return { registration, first, ready, markReady: () => resolveReady?.() };
+};
+
+describe("activeRegistration", () => {
+  it("gives the registration once the first worker is active", async () => {
+    const { registration, first, ready, markReady } = firstVisit();
+    const active = activeRegistration(registration, ready);
+    first.moveTo("installed");
+    markReady();
+    await expect(active).resolves.toBe(registration);
+    expect(first.listenerCount()).toBe(0);
+  });
+
+  it("fails when the first worker cannot be stored, which ready would never say", async () => {
+    const { registration, first, ready } = firstVisit();
+    const active = activeRegistration(registration, ready);
+    // The browser reports the worker redundant before it clears the registration's installing worker.
+    first.moveTo("redundant");
+    await expect(active).rejects.toThrow(/first service worker/u);
+    expect(first.listenerCount()).toBe(0);
+  });
+
+  it("fails at once when the first worker failed before it could be followed", async () => {
+    const { registration, first, ready } = firstVisit();
+    first.state = "redundant";
+    await expect(activeRegistration(registration, ready)).rejects.toThrow(/first service worker/u);
+  });
+
+  it("follows a newer worker that replaced the first one before it was active", async () => {
+    const { registration, first, ready, markReady } = firstVisit();
+    const active = activeRegistration(registration, ready);
+    const newer = makeWorker("installing");
+    registration.installing = newer;
+    first.moveTo("redundant");
+    expect(newer.listenerCount()).toBe(1);
+    markReady();
+    await expect(active).resolves.toBe(registration);
   });
 });
 

@@ -38,11 +38,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         # A failed API call (a GitHub 502) gets two retries and then an error of its own, rather than an
-        # empty title that commitlint reports as a bad one.
+        # empty title that commitlint reports as a bad one. The title goes through the commit-msg hook,
+        # which runs commitlint and the rules commitlint lacks (characters, attribution lines).
         run: |
           for attempt in 1 2 3; do
             title=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq .title) && break
             if [ "$attempt" = 3 ]; then echo "::error::could not read the pull request title"; exit 1; fi
             sleep 10
           done
-          printf '%s\n' "$title" | pnpm exec commitlint
+          file="$RUNNER_TEMP/pr-title.txt"
+          printf '%s\n' "$title" > "$file"
+          node scripts/git-hooks.ts commit-msg "$file"

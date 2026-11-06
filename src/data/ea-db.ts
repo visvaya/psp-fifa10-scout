@@ -207,9 +207,11 @@ export const readTable = (db: EaDb, name: string): readonly EaDbRow[] => {
   return readRecords(db.view, table, db.stringAt);
 };
 
-/** A column of a row as a number; a missing or non-numeric column means a damaged file. */
+/** A column of a row as a number; a missing, blank or non-numeric column means a damaged file. */
 export const num = (row: EaDbRow, key: string): number => {
-  const value = Number(row[key]);
+  const raw = row[key];
+  // Number("") and Number(" ") are 0, so blank text needs its own check.
+  const value = typeof raw === "string" && raw.trim() === "" ? Number.NaN : Number(raw);
   if (!Number.isFinite(value)) throw new SaveFormatError(`Column "${key}" is no number`);
   return value;
 };
