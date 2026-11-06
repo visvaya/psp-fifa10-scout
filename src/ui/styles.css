@@ -162,6 +162,7 @@ h3 {
 .button,
 .chip,
 select,
+textarea,
 input[type="text"],
 input[type="search"],
 input[type="number"],
@@ -1180,7 +1181,29 @@ input[inputmode="numeric"] {
 }
 
 .field > select,
-.field > input {
+.field > input,
+.field > textarea {
   width: 100%;
   min-width: 0;
+}
+
+.watchlist {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.watchlist-answer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.watchlist-answer > p {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.watchlist .field {
+  justify-self: stretch;
 }

@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import type { JSX, ReactNode } from "react";
+import type { Dispatch, JSX, ReactNode } from "react";
 import type { CurrencyCode } from "../data/career-save.ts";
 import {
   ATTRIBUTE_GROUP_NAMES,
@@ -13,14 +13,17 @@ import type { AttributeGroup } from "../logic/attribute-groups.ts";
 import { offerTerms } from "../logic/offer.ts";
 import type { OfferContext } from "../logic/offer.ts";
 import type { Player } from "../logic/players.ts";
+import type { ScoutAction } from "../logic/scout-state.ts";
+import type { WatchEntry } from "../logic/watchlist.ts";
 import { nameTextIdOf, POSITION_CODES, RATING_CHOICES, ratingCodeOf } from "../logic/positions.ts";
 import { Stars } from "./stars.tsx";
+import { WatchlistSection } from "./watchlist-section.tsx";
 import { codeName } from "./text-code-names.ts";
 import { AttributeValue, GainValue } from "./attribute-value.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
 import { PositionName, ratingChoiceName } from "./position-name.tsx";
 import type { PositionNames } from "./position-name.tsx";
-import { clubText } from "./player-list.tsx";
+import { clubText, RESULTS_TITLE_ID } from "./player-list.tsx";
 import {
   ATTRIBUTE_GROUP_LABELS,
   ATTRIBUTE_LABELS,
@@ -292,11 +295,17 @@ export const PlayerCard = (props: {
   showPotential: boolean;
   /** Position names in the chosen language. */
   names: PositionNames;
+  /** The player's entry on the own watchlist, undefined while he is not on it. */
+  watched: WatchEntry | undefined;
+  dispatch: Dispatch<ScoutAction>;
   onClose: () => void;
 }): JSX.Element => {
-  const { player, career, currency, offer, showPotential, names, onClose } = props;
+  const { player, career, currency, offer, showPotential, names, watched, dispatch, onClose } =
+    props;
   const returnFocus = useCallback(
-    () => document.querySelector<HTMLElement>(`[data-player-id="${String(player.id)}"]`),
+    () =>
+      document.querySelector<HTMLElement>(`[data-player-id="${String(player.id)}"]`) ??
+      document.getElementById(RESULTS_TITLE_ID),
     [player.id],
   );
   return (
@@ -306,6 +315,7 @@ export const PlayerCard = (props: {
           <span aria-hidden="true">{TEXT.shortlistedMark}</span> {TEXT.card.shortlisted}
         </p>
       ) : null}
+      <WatchlistSection playerId={player.id} entry={watched} dispatch={dispatch} />
       <Facts facts={basics(player, showPotential, currency, names)} />
       {showPotential && player.peak !== null ? (
         <p className="help">{TEXT.card.peakNote(player.potential, player.peak)}</p>

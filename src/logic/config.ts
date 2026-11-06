@@ -27,6 +27,8 @@ export const SCOUT_CONFIG = {
   },
   /** Seasons ahead the peak OVR projection looks: from 16 years old past the oldest curve age. */
   peakProjectionYears: 20,
+  /** Longest note on a player of the own watchlist, in characters. */
+  watchlistNoteMaxChars: 500,
   /** Changes of the filters, sort and sets the user can take back, newest first. */
   undoSteps: 50,
 } as const;

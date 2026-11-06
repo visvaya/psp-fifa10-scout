@@ -2,15 +2,17 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } f
 import type { Dispatch, JSX, ReactNode } from "react";
 import { filterPlayers, rangedAttributes } from "../logic/filter-players.ts";
 import type { Player } from "../logic/players.ts";
-import { activeFilters, effectiveFilters, RATING_SORT_KEYS } from "../logic/scout-state.ts";
+import { effectiveFilters } from "../logic/effective-filters.ts";
+import { activeFilters, RATING_SORT_KEYS } from "../logic/scout-state.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
 import { SORTABLE_KEYS } from "../logic/scout-store.ts";
 import { POTENTIAL_KEYS, sortPlayers } from "../logic/sort-players.ts";
+import type { WatchEntry } from "../logic/watchlist.ts";
 import { FilterChips } from "./filter-chips.tsx";
 import { FilterForm } from "./filter-form.tsx";
 import { FilterSets } from "./filter-sets.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
-import { columnLabel, PlayerTable } from "./player-list.tsx";
+import { columnLabel, PlayerTable, RESULTS_TITLE_ID } from "./player-list.tsx";
 import { PlayerCards } from "./player-rows.tsx";
 import { ratingAbbreviation } from "./position-name.tsx";
 import { TEXT } from "./text.ts";
@@ -96,6 +98,17 @@ const NoMatches = ({ dispatch }: { dispatch: Dispatch<ScoutAction> }) => (
   </div>
 );
 
+const NO_ENTRIES: readonly WatchEntry[] = [];
+
+/**
+ * The ids on the watchlist, the same set while only a note changes, so typing a note does not filter and
+ * sort every player again.
+ */
+const useWatchedIds = (watchlist: readonly WatchEntry[]): ReadonlySet<number> => {
+  const key = watchlist.map((entry) => entry.playerId).join(",");
+  return useMemo(() => new Set(key === "" ? [] : key.split(",").map(Number)), [key]);
+};
+
 /** The filtered and sorted players; deferred so typing stays responsive. */
 const useVisiblePlayers = (
   players: readonly Player[],
@@ -104,15 +117,19 @@ const useVisiblePlayers = (
 ) => {
   const filters = useDeferredValue(state.filters);
   const sort = useDeferredValue(state.sort);
+  // The list matters only while its filter is set, so adding a player with it off filters nothing again.
+  const listed = useWatchedIds(
+    filters.flags?.onMyList === undefined ? NO_ENTRIES : state.watchlist,
+  );
   const visible = useMemo(
     () =>
       sortPlayers(
-        filterPlayers(players, effectiveFilters(filters, state.myTeamId)),
+        filterPlayers(players, effectiveFilters(filters, state.myTeamId, listed)),
         sort.key,
         sort.direction,
         { ratingCode: filters.positionRating?.code, collator },
       ),
-    [players, filters, sort, state.myTeamId, collator],
+    [players, filters, sort, state.myTeamId, listed, collator],
   );
   return { visible, sort };
 };
@@ -178,8 +195,8 @@ const ListResults = ({
   const ranged = useMemo(() => rangedAttributes(ranges), [ranges]);
   const List = wide ? PlayerTable : PlayerCards;
   return (
-    <section className="results" aria-labelledby="results-title">
-      <h2 id="results-title" className="visually-hidden">
+    <section className="results" aria-labelledby={RESULTS_TITLE_ID}>
+      <h2 id={RESULTS_TITLE_ID} className="visually-hidden" tabIndex={-1}>
         {TEXT.showList}
       </h2>
       <div className="toolbar">
