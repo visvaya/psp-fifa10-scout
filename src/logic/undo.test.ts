@@ -11,6 +11,17 @@ const goalkeepers = {
   filters: { lists: { positionGroup: ["goalkeeper"] } },
 } as const;
 
+/** A finished load of an empty game, for the load with `requestId`. */
+const loadSucceeded = (requestId: number): ScoutAction => ({
+  type: "load-succeeded",
+  requestId,
+  players: [],
+  myTeamId: null,
+  career: null,
+  languages: {},
+  attachedLanguage: null,
+});
+
 describe("undo", () => {
   it("takes back the last change of the filters, the sort or the sets, one at a time", () => {
     const changed = run([
@@ -80,39 +91,12 @@ describe("undo across loads", () => {
 
   it("starts afresh when a load succeeds", () => {
     const loading = run([goalkeepers, { type: "load-started", requestId: 1 }]);
-    const loaded = run(
-      [
-        {
-          type: "load-succeeded",
-          requestId: 1,
-          players: [],
-          myTeamId: null,
-          career: null,
-          languages: {},
-          attachedLanguage: null,
-        },
-      ],
-      loading,
-    );
-    expect(loaded.undo).toEqual([]);
+    expect(run([loadSucceeded(1)], loading).undo).toEqual([]);
   });
 
   it("keeps the steps when a superseded load finishes", () => {
     const loading = run([goalkeepers, { type: "load-started", requestId: 2 }]);
-    const stale = run(
-      [
-        {
-          type: "load-succeeded",
-          requestId: 1,
-          players: [],
-          myTeamId: null,
-          career: null,
-          languages: {},
-          attachedLanguage: null,
-        },
-      ],
-      loading,
-    );
+    const stale = run([loadSucceeded(1)], loading);
     expect(stale).toBe(loading);
     expect(stale.undo).toHaveLength(1);
   });
