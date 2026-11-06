@@ -5,7 +5,7 @@
 // fifa.db rows left unmarked plus the chunk's rows: a full bitmap replaces the table, a partial one
 // replaces or drops single rows, an empty one with rows adds them (a new season's rtsg). The save is
 // untrusted input.
-import { birthdateToDate, readRecords, readString, readTable } from "./ea-db.ts";
+import { birthdateToDate, readRecords, readTable, stringReader } from "./ea-db.ts";
 import type { EaDb, EaDbRow, EaDbTable } from "./ea-db.ts";
 import { SaveFormatError } from "./save-format-error.ts";
 
@@ -63,13 +63,16 @@ const parseChunk = (
   }
   const marked = rowBits(view, bitmapOffset, table.rowCount);
   if (rowCount === 0 && !marked.includes(true)) return { rows: null, end };
-  const pool = new DataView(view.buffer, view.byteOffset + poolOffset, poolLength);
+  const dbString = stringReader(db.view);
+  const poolString = stringReader(
+    new DataView(view.buffer, view.byteOffset + poolOffset, poolLength),
+  );
   const stringAt = (ref: number): string => {
-    if (ref < SAVE_STRING_BASE) return readString(db.view, ref);
+    if (ref < SAVE_STRING_BASE) return dbString(ref);
     if (ref - SAVE_STRING_BASE >= poolLength) {
       throw new SaveFormatError(`Save string reference is out of range in ${table.name}`);
     }
-    return readString(pool, ref - SAVE_STRING_BASE);
+    return poolString(ref - SAVE_STRING_BASE);
   };
   const records = { ...table, rowCount, recordsOffset: offset + CHUNK_HEAD_BYTES };
   const kept = marked.includes(false)

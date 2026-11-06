@@ -247,6 +247,40 @@ describe("readTable", () => {
   });
 });
 
+describe("string budget", () => {
+  // Records of one string field point into a run of 4s, where every u16 reads as length 0x0404.
+  const RUN_LENGTH = 0x404;
+  const ROWS = 300;
+  const base = buildEaDb([
+    {
+      name: "names",
+      strings: ["name"],
+      rows: Array.from({ length: ROWS }, () => ({ strings: [""], area: [] })),
+    },
+  ]);
+  const withRefs = (ref: (row: number) => number): Uint8Array => {
+    const bytes = new Uint8Array(base.length + 2 + RUN_LENGTH + ROWS).fill(4);
+    bytes.set(base);
+    const view = new DataView(bytes.buffer);
+    const records = blockOf(bytes, 0) + 8;
+    Array.from({ length: ROWS }, (_, row) => view.setUint32(records + 4 * row, ref(row), true));
+    return bytes;
+  };
+
+  it("decodes a string shared by every record once", () => {
+    const rows = readTable(parseEaDb(withRefs(() => base.length)), "names");
+    expect(rows).toHaveLength(ROWS);
+    expect(new Set(rows.map((row) => row["name"]))).toEqual(
+      new Set([String.fromCharCode(4).repeat(RUN_LENGTH)]),
+    );
+  });
+
+  it("bounds the decoded text to the file size", () => {
+    const overlapping = parseEaDb(withRefs((row) => base.length + row));
+    expect(() => readTable(overlapping, "names")).toThrow(/strings overlap/);
+  });
+});
+
 describe("birthdates", () => {
   it("counts days from 1582-10-14", () => {
     expect(birthdateToDate(0).toISOString().slice(0, 10)).toBe("1582-10-14");

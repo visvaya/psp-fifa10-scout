@@ -214,6 +214,22 @@ describe("parseCareerSave", () => {
     expect(() => parse([{ ...MANAGERS, records }])).toThrow(/string reference is out of range/);
   });
 
+  it("bounds the decoded save text to the pool size", () => {
+    // Each record's names point into a pool run of 4s, where every u16 reads as length 0x0404.
+    const rows = 100;
+    const records = Array.from({ length: rows }, (_, row) => [
+      ...le32(0x9839807),
+      ...le32(SAVE_STRING + row),
+      ...le32(SAVE_STRING + row),
+      0xea,
+      0x40,
+      0,
+      0,
+    ]).flat();
+    const pool = Array<number>(2 + 0x404 + rows).fill(4);
+    expect(() => parse([{ ...MANAGERS, rows, records, pool }])).toThrow(/strings overlap/);
+  });
+
   // A start-of-season save adds rows to rtsg with an empty bitmap (2011-07, the owner's career).
   it("keeps the fifa.db rows left unmarked and adds the save's rows after them", () => {
     const added = { teamid: 1873, playerid: 99 };

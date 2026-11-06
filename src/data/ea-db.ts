@@ -54,12 +54,27 @@ const u32 = (view: DataView, offset: number): number => {
   return view.getUint32(offset, true);
 };
 
-export const readString = (view: DataView, offset: number): string => {
-  if (offset + 2 > view.byteLength) throw new SaveFormatError("Database offset is out of range");
-  const start = offset + 2;
-  const end = start + view.getUint16(offset, true);
-  if (end > view.byteLength) throw new SaveFormatError("Database string is out of range");
-  return utf8.decode(new Uint8Array(view.buffer, view.byteOffset + start, end - start));
+/**
+ * Decodes the length-prefixed strings of `view` by offset, each offset once. Strings that do not
+ * overlap cannot add up to more than the view, so decoding more than its size means overlapping
+ * references and throws (the real fifa.db decodes at most 17% of its size in one table).
+ */
+export const stringReader = (view: DataView): ((offset: number) => string) => {
+  const decoded = new Map<number, string>();
+  let budgetBytes = view.byteLength;
+  return (offset) => {
+    const known = decoded.get(offset);
+    if (known !== undefined) return known;
+    if (offset + 2 > view.byteLength) throw new SaveFormatError("Database offset is out of range");
+    const start = offset + 2;
+    const end = start + view.getUint16(offset, true);
+    if (end > view.byteLength) throw new SaveFormatError("Database string is out of range");
+    budgetBytes -= end - offset;
+    if (budgetBytes < 0) throw new SaveFormatError("Database strings overlap");
+    const text = utf8.decode(new Uint8Array(view.buffer, view.byteOffset + start, end - start));
+    decoded.set(offset, text);
+    return text;
+  };
 };
 
 const bitWidth = (lo: number, hi: number): number => Math.max(1, 32 - Math.clz32((hi - lo) >>> 0));
@@ -87,9 +102,10 @@ const bitFields = (
 const parseEntry = (
   view: DataView,
   offset: number,
+  stringAt: (offset: number) => string,
 ): { entry: Omit<EaDbTable, "rowCount" | "recordsOffset" | "directoryOffset">; end: number } => {
   const word = (index: number): number => u32(view, offset + 4 * index);
-  const name = readString(view, word(0));
+  const name = stringAt(word(0));
   const recordSize = word(2);
   const [ints, raws, strings, bits] = [word(3), word(4), word(5), word(6)];
   const fixed = ints + raws + strings;
@@ -100,7 +116,7 @@ const parseEntry = (
   const end = namesOffset + 4 * (fixed + bits);
   if (end > view.byteLength) throw new SaveFormatError(`Database entry ${name} is out of range`);
   const names = Array.from({ length: fixed + bits }, (_, index) =>
-    readString(view, view.getUint32(namesOffset + 4 * index, true)),
+    stringAt(view.getUint32(namesOffset + 4 * index, true)),
   );
   const words = names.slice(0, fixed).map((fieldName, index): WordField => ({
     name: fieldName,
@@ -127,9 +143,10 @@ export const parseEaDb = (bytes: Uint8Array): EaDb => {
   const lookup = view.getUint32(12, true);
   if (lookup > bytes.length) throw new SaveFormatError("Database directory is out of range");
   const entries = new Map<number, ReturnType<typeof parseEntry>["entry"]>();
+  const stringAt = stringReader(view);
   let offset = directory;
   while (offset < lookup) {
-    const { entry, end } = parseEntry(view, offset);
+    const { entry, end } = parseEntry(view, offset, stringAt);
     entries.set(offset, entry);
     offset = end;
   }
@@ -185,7 +202,7 @@ const fieldReader = (
 export const readTable = (db: EaDb, name: string): readonly EaDbRow[] => {
   const table = db.tables.get(name);
   if (table === undefined) throw new SaveFormatError(`Database has no table "${name}"`);
-  return readRecords(db.view, table, (ref) => readString(db.view, ref));
+  return readRecords(db.view, table, stringReader(db.view));
 };
 
 /**
