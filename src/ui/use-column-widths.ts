@@ -47,9 +47,9 @@ const readMetrics = (table: HTMLTableElement): Metrics | null => {
   };
 };
 
-type WidthSource<Row, Column> = Pick<
+export type WidthSource<Row, Column> = Pick<
   WidthInput<Row, Column>,
-  "rows" | "columns" | "label" | "text"
+  "rows" | "columns" | "label" | "text" | "besidePx"
 > & {
   readonly table: RefObject<HTMLTableElement | null>;
   /** The table shows a row, so its fonts and paddings can be read. */
@@ -58,16 +58,16 @@ type WidthSource<Row, Column> = Pick<
 
 /**
  * The table's column widths from every row, null until the first drawn row is measured. `columns`,
- * `label` and `text` must be stable between renders, or the widths are computed again. A table measured
- * without a rating is measured again once its columns change, so a rating column shown later gets the
- * rating's width; once a rating is measured, never again.
+ * `label`, `text` and `besidePx` must be stable between renders, or the widths are computed again. A
+ * table measured without a rating is measured again once its columns change, so a rating column shown
+ * later gets the rating's width; once a rating is measured, never again.
  */
 export const useColumnWidths = <Row, Column>({
   table,
   drawn,
   ...source
 }: WidthSource<Row, Column>): readonly number[] | null => {
-  const { rows, columns, label, text } = source;
+  const { rows, columns, label, text, besidePx } = source;
   const [measured, setMeasured] = useState<{
     metrics: Metrics;
     columns: readonly Column[];
@@ -83,7 +83,8 @@ export const useColumnWidths = <Row, Column>({
   }, [measured, drawn, table, columns]);
   const metrics = measured?.metrics ?? null;
   return useMemo(
-    () => (metrics === null ? null : columnWidths({ ...metrics, columns, rows, label, text })),
-    [metrics, columns, rows, label, text],
+    () =>
+      metrics === null ? null : columnWidths({ ...metrics, columns, rows, label, text, besidePx }),
+    [metrics, columns, rows, label, text, besidePx],
   );
 };

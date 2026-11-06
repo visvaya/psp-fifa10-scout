@@ -8,6 +8,7 @@ const measures = {
   labelExtraPx: 3,
   cellExtraPx: 10,
   ratingPx: 7,
+  besidePx: () => 0,
 };
 
 describe("columnWidths", () => {
@@ -44,6 +45,24 @@ describe("columnWidths", () => {
         text: (row) => row,
       }),
     ).toEqual([11]);
+  });
+
+  it("adds what a column draws beside its rating badges", () => {
+    expect(
+      columnWidths({
+        ...measures,
+        columns: ["overall", "bestPeak"],
+        rows: [0],
+        label: () => "",
+        text: () => null,
+        besidePx: (column) => (column === "bestPeak" ? 5 : 0),
+      }),
+    ).toEqual([
+      // overall: a rating 7 + 10
+      17,
+      // bestPeak: a rating 7, its position 5, + 10
+      22,
+    ]);
   });
 
   it("rounds widths up to whole pixels", () => {
