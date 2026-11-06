@@ -117,7 +117,8 @@ const parseEntry = (
 /** The table catalogue of a database file. Throws SaveFormatError on a malformed file. */
 export const parseEaDb = (bytes: Uint8Array): EaDb => {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.length);
-  if (bytes.length < HEADER_BYTES) throw new SaveFormatError("Database file is too short");
+  if (bytes.length < HEADER_BYTES)
+    throw new SaveFormatError("Database file is too short", "wrong-file");
   const count = view.getUint32(8, true);
   const directory = HEADER_BYTES + 4 * (count + 1);
   if (directory > bytes.length) throw new SaveFormatError("Database table list is out of range");

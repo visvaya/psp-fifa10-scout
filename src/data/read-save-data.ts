@@ -24,7 +24,7 @@ export const readSaveData = (dataBin: Uint8Array, paramSfo: Uint8Array): Uint8Ar
   const params = sfo.get("SAVEDATA_PARAMS");
   const fileList = sfo.get("SAVEDATA_FILE_LIST");
   if (!(params instanceof Uint8Array) || !(fileList instanceof Uint8Array)) {
-    throw new SaveFormatError("PARAM.SFO does not describe a save");
+    throw new SaveFormatError("PARAM.SFO does not describe a save", "wrong-file");
   }
   const flag = params[0];
   if (flag === CRYPT_FLAG_NONE) return dataBin;
@@ -32,6 +32,6 @@ export const readSaveData = (dataBin: Uint8Array, paramSfo: Uint8Array): Uint8Ar
     throw new SaveFormatError(`Unsupported save encryption (flag 0x${(flag ?? 0).toString(16)})`);
   }
   const hash = savedFileHash(fileList, FIFA10.dataFileName);
-  if (hash === undefined) throw new SaveFormatError("PARAM.SFO lists no DATA.BIN");
+  if (hash === undefined) throw new SaveFormatError("PARAM.SFO lists no DATA.BIN", "wrong-file");
   return decryptSaveData(dataBin, FIFA10.saveKey, hash);
 };

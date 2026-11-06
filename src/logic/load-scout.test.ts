@@ -112,20 +112,20 @@ describe("loadScout", () => {
 });
 
 describe("classifyLoadError", () => {
-  it.each([
-    ["Disc image is not FIFA 10 ULES01328: found X", "wrong-game"],
-    ["Save hash does not match PARAM.SFO: wrong game or damaged file", "wrong-game"],
-    ["Not an ISO 9660 disc image", "wrong-file"],
-    ["Not a FIFA 10 disc image or database file", "wrong-file"],
-    ["PARAM.SFO is too short", "wrong-file"],
-    ["PARAM.SFO does not describe a save", "wrong-file"],
-    ["Save holds players twice", "damaged"],
-    // The profile and squads saves load as saves but have no career.
-    ["Save has no user team", "not-career"],
-  ])("%s is %s", (message, kind) => {
-    expect(classifyLoadError("save", new SaveFormatError(message))).toEqual({
-      stage: "save",
-      kind,
+  it.each(["wrong-game", "wrong-file", "not-career", "damaged"] as const)(
+    "takes the kind %s from the file error",
+    (kind) => {
+      expect(classifyLoadError("save", new SaveFormatError("x", kind))).toEqual({
+        stage: "save",
+        kind,
+      });
+    },
+  );
+
+  it("calls a file error without a kind damaged", () => {
+    expect(classifyLoadError("game", new SaveFormatError("x"))).toEqual({
+      stage: "game",
+      kind: "damaged",
     });
   });
 

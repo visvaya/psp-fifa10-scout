@@ -102,7 +102,10 @@ export const decryptSaveData = (
     );
   }
   if (!sameBytes(computeSaveHash(file, gameKey), expectedHash)) {
-    throw new SaveFormatError("Save hash does not match PARAM.SFO: wrong game or damaged file");
+    throw new SaveFormatError(
+      "Save hash does not match PARAM.SFO: wrong game or damaged file",
+      "wrong-game",
+    );
   }
   return applyKeystream(file.subarray(0, BLOCK_BYTES), file.subarray(BLOCK_BYTES), gameKey);
 };

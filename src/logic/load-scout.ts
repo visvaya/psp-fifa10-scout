@@ -11,6 +11,7 @@ import { readGameDatabase, readIsoLocales } from "../data/iso9660.ts";
 import type { ReadRange } from "../data/iso9660.ts";
 import { readSaveData } from "../data/read-save-data.ts";
 import { SaveFormatError } from "../data/save-format-error.ts";
+import type { SaveFormatErrorKind } from "../data/save-format-error.ts";
 import { gameNamesOf } from "./game-names.ts";
 import type { GameLanguages, NameIds } from "./game-names.ts";
 import { buildPlayers } from "./players.ts";
@@ -18,7 +19,7 @@ import type { Player } from "./players.ts";
 
 export type LoadPhase = "game" | "save" | "players";
 export type LoadStage = "game" | "save" | "locale";
-export type LoadErrorKind = "wrong-game" | "wrong-file" | "not-career" | "damaged" | "unexpected";
+export type LoadErrorKind = SaveFormatErrorKind | "unexpected";
 
 export interface LoadError {
   readonly stage: LoadStage;
@@ -77,18 +78,10 @@ export type WorkerMessage =
   | { readonly type: "done"; readonly requestId: number; readonly result: LoadResult }
   | { readonly type: "failed"; readonly requestId: number; readonly error: LoadError };
 
-const KIND_PATTERNS: readonly (readonly [LoadErrorKind, RegExp])[] = [
-  ["wrong-game", /not FIFA 10|wrong game/u],
-  ["wrong-file", /^Not an? |too short|too large|does not describe|lists no/u],
-  // The profile and squads saves decrypt and parse like a career save, but have no user team.
-  ["not-career", /no user team/u],
-];
-
 /** What went wrong in user terms: only SaveFormatError comes from the file itself. */
 export const classifyLoadError = (stage: LoadStage, error: unknown): LoadError => {
   if (!(error instanceof SaveFormatError)) return { stage, kind: "unexpected" };
-  const kind = KIND_PATTERNS.find(([, pattern]) => pattern.test(error.message))?.[0];
-  return { stage, kind: kind ?? "damaged" };
+  return { stage, kind: error.kind };
 };
 
 const bytesOf = async (blob: Blob): Promise<Uint8Array> => new Uint8Array(await blob.arrayBuffer());

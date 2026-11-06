@@ -58,7 +58,8 @@ const readExtent = (view: DataView, offset: number): Extent => ({
 const openVolume = async (read: ReadRange): Promise<Volume> => {
   const pvd = await readExactly(read, PVD_OFFSET, SECTOR_BYTES);
   const view = new DataView(pvd.buffer, pvd.byteOffset, pvd.length);
-  if (pvd[0] !== 1 || !isIsoVolume(pvd)) throw new SaveFormatError("Not an ISO 9660 disc image");
+  if (pvd[0] !== 1 || !isIsoVolume(pvd))
+    throw new SaveFormatError("Not an ISO 9660 disc image", "wrong-file");
   if (view.getUint16(128, true) !== SECTOR_BYTES) {
     throw new SaveFormatError("Unsupported ISO 9660 block size");
   }
@@ -66,7 +67,8 @@ const openVolume = async (read: ReadRange): Promise<Volume> => {
 };
 
 const readExtentBytes = (volume: Volume, extent: Extent, maxBytes: number): Promise<Uint8Array> => {
-  if (extent.size > maxBytes) throw new SaveFormatError("Disc image file is too large");
+  if (extent.size > maxBytes)
+    throw new SaveFormatError("Disc image file is too large", "wrong-file");
   if (extent.sector + Math.ceil(extent.size / SECTOR_BYTES) > volume.sectors) {
     throw new SaveFormatError("Disc image extent is out of range");
   }
@@ -133,7 +135,8 @@ const readVolumeFile = async (
   maxBytes: number,
 ): Promise<Uint8Array> => {
   const extent = await resolvePath(volume, path);
-  if (extent.directory) throw new SaveFormatError(`Not a file in the disc image: ${path}`);
+  if (extent.directory)
+    throw new SaveFormatError(`Not a file in the disc image: ${path}`, "wrong-file");
   return readExtentBytes(volume, extent, maxBytes);
 };
 
@@ -150,7 +153,10 @@ const readDatabaseFromIso = async (read: ReadRange): Promise<Uint8Array> => {
     "DISC_ID",
   );
   if (discId !== GAME_ID) {
-    throw new SaveFormatError(`Disc image is not FIFA 10 ${GAME_ID}: found ${String(discId)}`);
+    throw new SaveFormatError(
+      `Disc image is not FIFA 10 ${GAME_ID}: found ${String(discId)}`,
+      "wrong-game",
+    );
   }
   return readVolumeFile(volume, DATABASE_PATH, MAX_DATABASE_BYTES);
 };
@@ -222,9 +228,10 @@ export const readGameDatabase = async (read: ReadRange, fileBytes: number): Prom
   if (fileBytes >= DATABASE_HEADER.length) {
     const header = await readExactly(read, 0, DATABASE_HEADER.length);
     if (header.every((byte, index) => byte === DATABASE_HEADER[index])) {
-      if (fileBytes > MAX_DATABASE_BYTES) throw new SaveFormatError("Database file is too large");
+      if (fileBytes > MAX_DATABASE_BYTES)
+        throw new SaveFormatError("Database file is too large", "wrong-file");
       return readExactly(read, 0, fileBytes);
     }
   }
-  throw new SaveFormatError("Not a FIFA 10 disc image or database file");
+  throw new SaveFormatError("Not a FIFA 10 disc image or database file", "wrong-file");
 };

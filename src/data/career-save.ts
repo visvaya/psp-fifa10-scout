@@ -144,7 +144,8 @@ export const careerManager = (
   negotiator: number;
 } => {
   const user = rowsOf(db, save, "team_manager").find((row) => row["team_id"] !== -1);
-  if (user === undefined) throw new SaveFormatError("Save has no user team");
+  // The profile and squads saves decrypt and parse like a career save, but have no user team.
+  if (user === undefined) throw new SaveFormatError("Save has no user team", "not-career");
   // A table without the column (test schemas) counts as euro.
   const currency = Number(user["currency"] ?? 0);
   if (!isCurrencyCode(currency))

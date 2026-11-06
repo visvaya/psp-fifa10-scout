@@ -32,9 +32,11 @@ const readValue = (bytes: Uint8Array, format: number, start: number, length: num
 
 /** Every entry of a PARAM.SFO by key. Throws SaveFormatError on a malformed file. */
 export const parseParamSfo = (bytes: Uint8Array): ReadonlyMap<string, SfoValue> => {
-  if (bytes.length < HEADER_BYTES) throw new SaveFormatError("PARAM.SFO is too short");
+  if (bytes.length < HEADER_BYTES)
+    throw new SaveFormatError("PARAM.SFO is too short", "wrong-file");
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.length);
-  if (view.getUint32(0, true) !== MAGIC) throw new SaveFormatError("Not a PARAM.SFO file");
+  if (view.getUint32(0, true) !== MAGIC)
+    throw new SaveFormatError("Not a PARAM.SFO file", "wrong-file");
   const keyTable = view.getUint32(8, true);
   const dataTable = view.getUint32(12, true);
   const count = view.getUint32(16, true);
