@@ -132,7 +132,8 @@ export interface PositionRating extends Range {
   readonly bestOnly?: boolean;
 }
 
-const bounded = (range: Range | undefined): range is Range =>
+/** Whether a range sets a bound. */
+export const bounded = (range: Range | undefined): range is Range =>
   range?.min !== undefined || range?.max !== undefined;
 
 /** The position rating without a gain or peak range that sets no bound, nor bestOnly unset. */
@@ -269,9 +270,7 @@ export const isRangeKey = (key: string): key is RangeKey =>
 export const rangedKeys = (ranges: PlayerFilters["ranges"]): readonly RangeKey[] =>
   Object.entries(ranges ?? {}).flatMap(([key, range]) => {
     const found = RANGE_KEYS.find((candidate) => candidate === key);
-    return found !== undefined && (range?.min !== undefined || range?.max !== undefined)
-      ? [found]
-      : [];
+    return found !== undefined && bounded(range) ? [found] : [];
   });
 
 export const rangedAttributes = (ranges: PlayerFilters["ranges"]): readonly AttributeName[] =>

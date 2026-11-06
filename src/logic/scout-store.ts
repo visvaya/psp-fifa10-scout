@@ -6,7 +6,7 @@
 // unknown or malformed filter values and column overrides are dropped one by one (a record without the
 // columns loads as none, so they needed no new version).
 import type { GameLanguages, GameNames } from "./game-names.ts";
-import { FLAG_KEYS, LIST_FIELDS, RANGE_KEYS } from "./filter-players.ts";
+import { bounded, FLAG_KEYS, LIST_FIELDS, RANGE_KEYS } from "./filter-players.ts";
 import type { ListKey, PositionRating, Range } from "./filter-players.ts";
 import type { SaveFiles } from "./load-scout.ts";
 import { OVR_WEIGHTS } from "./overall-rating.ts";
@@ -122,7 +122,7 @@ const parseRange = (value: unknown): Range => {
 /** A range of a position rating (its gain or peak), undefined when it sets no bound. */
 const parseRatingRange = (value: unknown): Range | undefined => {
   const range = parseRange(value);
-  return Object.keys(range).length === 0 ? undefined : range;
+  return bounded(range) ? range : undefined;
 };
 
 /**

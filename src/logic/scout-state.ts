@@ -1,6 +1,7 @@
 // The app state as a reducer with pure transitions, and the pure view helpers the screens share.
 import { SCOUT_CONFIG } from "./config.ts";
 import {
+  bounded,
   CAREER_FLAG_KEYS,
   CAREER_RANGE_KEYS,
   filterPlayers,
@@ -10,7 +11,7 @@ import {
   compactRating,
   peakField,
 } from "./filter-players.ts";
-import type { FlagKey, ListKey, PlayerFilters, Range, RangeKey } from "./filter-players.ts";
+import type { FlagKey, ListKey, PlayerFilters, RangeKey } from "./filter-players.ts";
 import { defaultLanguage } from "./game-names.ts";
 import type { GameLanguages } from "./game-names.ts";
 import type { CareerSummary, LoadError, LoadPhase, WorkerMessage } from "./load-scout.ts";
@@ -184,8 +185,6 @@ const pick = <T extends object>(
   return Object.keys(kept).length === 0 ? undefined : kept;
 };
 
-const isRangeSet = (range: Range | undefined): boolean =>
-  range?.min !== undefined || range?.max !== undefined;
 const isNonEmpty = (values: readonly unknown[] | undefined): boolean =>
   values !== undefined && values.length > 0;
 const isDefined = (value: unknown): boolean => value !== undefined;
@@ -193,7 +192,7 @@ const isDefined = (value: unknown): boolean => value !== undefined;
 /** Each filter that narrows the list, in a fixed order (for chips and the count on the button). */
 export const activeFilters = (filters: FilterChange): readonly FilterId[] => [
   ...(filters.text === undefined || filters.text.trim() === "" ? [] : ["text" as const]),
-  ...RANGE_KEYS.filter((key) => isRangeSet(filters.ranges?.[key])).map(
+  ...RANGE_KEYS.filter((key) => bounded(filters.ranges?.[key])).map(
     (key) => `ranges.${key}` as const,
   ),
   ...(filters.positionRating === undefined ? [] : ["positionRating" as const]),
@@ -210,7 +209,7 @@ export const activeFilters = (filters: FilterChange): readonly FilterId[] => [
 /** Only the active filters, so empty values never linger in state or storage. */
 export const compactFilters = (filters: FilterChange): ScoutFilters => {
   const { text, clubStatus, myClub, positionRating, peakAtBest } = filters;
-  const ranges = pick(filters.ranges, RANGE_KEYS, isRangeSet);
+  const ranges = pick(filters.ranges, RANGE_KEYS, bounded);
   const lists = pick(filters.lists, LIST_FIELDS, isNonEmpty);
   // An exclusion means nothing without its list's values.
   const excludedLists = pick(
