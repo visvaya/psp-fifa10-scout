@@ -58,21 +58,30 @@ type WidthSource<Row, Column> = Pick<
 
 /**
  * The table's column widths from every row, null until the first drawn row is measured. `columns`,
- * `label` and `text` must be stable between renders, or the widths are computed again.
+ * `label` and `text` must be stable between renders, or the widths are computed again. A table measured
+ * without a rating is measured again once its columns change, so a rating column shown later gets the
+ * rating's width; once a rating is measured, never again.
  */
 export const useColumnWidths = <Row, Column>({
   table,
   drawn,
   ...source
 }: WidthSource<Row, Column>): readonly number[] | null => {
-  const [metrics, setMetrics] = useState<Metrics | null>(null);
-  useLayoutEffect(() => {
-    if (metrics !== null || !drawn || table.current === null) return;
-    // Measuring layout before paint is what a layout effect is for; the first widths never show.
-    // oxlint-disable-next-line react/set-state-in-effect -- runs once, when the first row is drawn
-    setMetrics(readMetrics(table.current));
-  }, [metrics, drawn, table]);
   const { rows, columns, label, text } = source;
+  const [measured, setMeasured] = useState<{
+    metrics: Metrics;
+    columns: readonly Column[];
+  } | null>(null);
+  useLayoutEffect(() => {
+    if (!drawn || table.current === null) return;
+    if (measured !== null && (measured.metrics.ratingPx > 0 || measured.columns === columns))
+      return;
+    // Measuring layout before paint is what a layout effect is for; the first widths never show.
+    const metrics = readMetrics(table.current);
+    // oxlint-disable-next-line react/set-state-in-effect -- runs when the first row is drawn, and again only after the columns change while no rating was measured
+    if (metrics !== null) setMeasured({ metrics, columns });
+  }, [measured, drawn, table, columns]);
+  const metrics = measured?.metrics ?? null;
   return useMemo(
     () => (metrics === null ? null : columnWidths({ ...metrics, columns, rows, label, text })),
     [metrics, columns, rows, label, text],
