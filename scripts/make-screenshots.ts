@@ -1,5 +1,6 @@
 // Takes the sample screenshots of the start page (public/screenshots/*.webp) from a sample database of invented
-// players and clubs (scripts/sample-database.ts), so no game data is ever shown. Run by hand when the interface changes; the WebP files are committed.
+// players and clubs (scripts/sample-database.ts) and a plain career save for it, so the peak OVR shows and no game
+// data is ever shown. Run by hand when the interface changes; the WebP files are committed.
 //
 // Usage: pnpm build && pnpm make:screenshots  (needs `pnpm exec playwright install chromium` once)
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -7,6 +8,7 @@ import path from "node:path";
 import { chromium } from "@playwright/test";
 import type { Browser, Locator, Page } from "@playwright/test";
 import { preview } from "vite";
+import { buildPlainSave } from "../src/logic/test-support/scout-db.ts";
 import { buildSampleDb } from "./sample-database.ts";
 
 const OUTPUT_DIR = path.join(import.meta.dirname, "..", "public", "screenshots");
@@ -40,6 +42,9 @@ const SHOTS: readonly Shot[] = [
     arrange: async (page) => {
       await checkGroups(page);
       await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
+      await page.getByRole("checkbox", { name: "Szczyt OVR na jego najlepszej pozycji" }).check();
+      // Checking the box scrolled the panel down to it; the picture shows the position filter.
+      await page.locator("#filters-title").scrollIntoViewIfNeeded();
     },
   },
   {
@@ -48,7 +53,9 @@ const SHOTS: readonly Shot[] = [
     phone: false,
     arrange: async (page) => {
       await checkGroups(page);
-      await page.locator("table.players tbody tr").first().getByRole("button").click();
+      await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
+      // A young player who still grows and peaks higher at another position than at his own.
+      await page.getByRole("button", { name: "Marek Marren" }).click();
     },
   },
   {
@@ -116,6 +123,11 @@ const shoot = async (
     mimeType: "application/octet-stream",
     buffer: Buffer.from(buildSampleDb()),
   });
+  const { dataBin, paramSfo } = buildPlainSave();
+  await page.getByLabel("Wybierz DATA.BIN i PARAM.SFO").setInputFiles([
+    { name: "DATA.BIN", mimeType: "application/octet-stream", buffer: Buffer.from(dataBin) },
+    { name: "PARAM.SFO", mimeType: "application/octet-stream", buffer: Buffer.from(paramSfo) },
+  ]);
   await page.getByRole("button", { name: /^Pokaż zawodników/u }).click();
   await page.getByRole("table").or(page.locator(".phone-list")).first().waitFor();
   await shot.arrange(page);

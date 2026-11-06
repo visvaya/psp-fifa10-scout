@@ -1,15 +1,12 @@
 // A fifa.db for the start page's screenshots: invented clubs, leagues, countries and players, with attributes
-// that follow each position, drawn from a seeded generator (the same bytes on every run). It holds no real
-// player or club. The browser tests keep their own, hand-made database (src/logic/test-support/scout-db.ts).
+// that follow each position, drawn from a seeded generator (the same bytes on every run), invented
+// development curves and a career in the user's club, so a plain save shows the peak OVR. It holds no real
+// player, club or curve. The browser tests keep their own, hand-made database (src/logic/test-support/scout-db.ts).
 import { buildEaDb } from "../src/data/test-support/synthetic-ea-db.ts";
+import { CURVE_COLUMNS } from "../src/logic/overall-rating.ts";
 import { ATTRIBUTE_NAMES } from "../src/logic/players.ts";
 import type { AttributeName } from "../src/logic/players.ts";
-import {
-  daysSince1582,
-  flatCurves,
-  playerRow,
-  table,
-} from "../src/logic/test-support/player-fixtures.ts";
+import { daysSince1582, playerRow, table } from "../src/logic/test-support/player-fixtures.ts";
 
 const SEED = 20_091_010;
 const PLAYER_COUNT = 48;
@@ -88,6 +85,64 @@ const STRONG_BASE = 48;
 const SKILL_SPREAD = 32;
 const NOISE = 10;
 
+/** The career's user club, and its last game: 2009-08-08, days since 1582-10-14 times 1024. */
+const USER_CLUB_ID = 2001;
+const LAST_GAME_NUMBER = 155_892 * 1024;
+
+/** The development styles the players draw from (1 Normal, 2 Good); the types run 1..3, early to late. */
+const STYLES = [1, 2] as const;
+const TYPES = [1, 2, 3] as const;
+const CURVE_AGE_FIRST = 15;
+const CURVE_TOP = 100;
+const CURVE_FLOOR = 30;
+
+/**
+ * An invented curve shaped like the game's: it rises to its top at `peakAge`, stays there `plateauYears`,
+ * then falls by `fallPerYear`, a value for every curve column (ages 15..45).
+ */
+const curveRow = (
+  id: number,
+  shape: { peakAge: number; risePerYear: number; plateauYears: number; fallPerYear: number },
+) => ({
+  id,
+  ...Object.fromEntries(
+    CURVE_COLUMNS.map((column, index) => {
+      const age = CURVE_AGE_FIRST + index;
+      const fallYears = age - shape.peakAge - shape.plateauYears;
+      const value =
+        age < shape.peakAge
+          ? CURVE_TOP - (shape.peakAge - age) * shape.risePerYear
+          : CURVE_TOP - Math.max(0, fallYears) * shape.fallPerYear;
+      return [column, Math.max(CURVE_FLOOR, value)];
+    }),
+  ),
+});
+
+/**
+ * The curves as the game numbers them: the skill curve 3 * style + type - 4 peaks later for a later type
+ * and rises faster for a better style; the physical curve 14 + type peaks earlier and falls faster.
+ */
+const CURVES = [
+  ...STYLES.flatMap((style) =>
+    TYPES.map((type) =>
+      curveRow(3 * style + type - 4, {
+        peakAge: 24 + 2 * type,
+        risePerYear: 3 + style,
+        plateauYears: 2,
+        fallPerYear: 2,
+      }),
+    ),
+  ),
+  ...TYPES.map((type) =>
+    curveRow(14 + type, {
+      peakAge: 22 + 2 * type,
+      risePerYear: 3,
+      plateauYears: 1,
+      fallPerYear: 4,
+    }),
+  ),
+];
+
 /** mulberry32: a small seeded generator returning numbers in [0, 1). */
 const seeded = (seed: number): (() => number) => {
   let state = seed;
@@ -133,10 +188,15 @@ const playerAt = (index: number, random: () => number) => {
     height: 170 + Math.floor(random() * 25),
     weight: 65 + Math.floor(random() * 22),
     potential: clamp(50 + skill * 30 + (youth ? 8 + random() * 8 : random() * 3)),
+    // Drawn last, so the attributes stay those of the earlier sample.
+    developmenttypecode: TYPES[Math.floor(random() * TYPES.length)] ?? 2,
+    developmentstylecode: STYLES[Math.floor(random() * STYLES.length)] ?? 1,
   });
 };
 
-/** The sample database: the tables the app needs to list players, without any career. */
+const empty = (name: string) => ({ name, u32: ["playerid"], rows: [] });
+
+/** The sample database: the tables the app needs to list players, and a career a plain save reads. */
 export const buildSampleDb = (): Uint8Array => {
   const random = seeded(SEED);
   const players = Array.from({ length: PLAYER_COUNT }, (_, index) => playerAt(index, random));
@@ -167,6 +227,25 @@ export const buildSampleDb = (): Uint8Array => {
         position: 33,
       })),
     ),
-    flatCurves(),
+    table("curves", CURVES),
+    table("team_manager", [
+      {
+        team_id: USER_CLUB_ID,
+        firstname: "Anna",
+        surname: "Menedżer",
+        last_game_number: LAST_GAME_NUMBER,
+        currency: 0,
+        prestige: 0,
+        upgrade_fin: 0,
+      },
+    ]),
+    ...[
+      "playerstats",
+      "career_youth_accademy",
+      "career_transfer_list",
+      "career_shortlist",
+      "career_players_grown_attributes",
+      "career_extra_user_team_info",
+    ].map(empty),
   ]);
 };
