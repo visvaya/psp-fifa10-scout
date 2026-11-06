@@ -117,20 +117,23 @@ export const watchForUpdates = (
 /**
  * Asks the waiting release to take over and reloads the page once it has; false when no release waits.
  * Followed by the worker's own state rather than the page's controller: a page loaded past the worker (a
- * forced reload) has no controller to change, and is reloaded all the same.
+ * forced reload) has no controller to change, and is reloaded all the same. The caller stops its watcher
+ * first; a release that does not take over starts it again (watchAgain), so a later one is still reported.
  */
 export const installUpdate = (
   registration: RegistrationLike,
   report: (status: UpdateStatus) => void,
   reload: () => void,
+  watchAgain: () => void,
 ): boolean => {
   const waiting = registration.waiting;
   if (waiting === null) return false;
   const onState = () => {
     if (waiting.state !== "activated" && waiting.state !== "redundant") return;
     waiting.removeEventListener("statechange", onState);
-    if (waiting.state === "activated") reload();
-    else report("failed");
+    if (waiting.state === "activated") return reload();
+    report("failed");
+    watchAgain();
   };
   waiting.addEventListener("statechange", onState);
   report("installing");
@@ -249,8 +252,12 @@ export const useAppUpdate = () => {
     // From here the install reports alone: the watcher would report the same worker's take-over as one
     // from another window.
     stopWatching.current?.();
-    const started =
-      registration.current !== null && installUpdate(registration.current, setStatus, reloadPage);
+    const found = registration.current;
+    // A release found after a failed take-over shows at once: the first launch's flash is long past.
+    const watchAgain = () => {
+      if (found !== null) stopWatching.current = watchForUpdates(found, setStatus);
+    };
+    const started = found !== null && installUpdate(found, setStatus, reloadPage, watchAgain);
     if (!started) setStatus("failed");
   }, [status]);
 

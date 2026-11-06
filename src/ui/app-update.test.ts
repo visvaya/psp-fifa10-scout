@@ -128,6 +128,7 @@ describe("installUpdate", () => {
         registration,
         (s) => reports.push(s),
         () => (reloads += 1),
+        () => undefined,
       ),
     ).toBe(true);
     expect(waiting.sent).toEqual([{ type: "psp-fifa10-scout:take-over" }]);
@@ -143,12 +144,43 @@ describe("installUpdate", () => {
     const registration = makeRegistration(makeWorker("activated"));
     const reports: UpdateStatus[] = [];
     const report = (status: UpdateStatus) => reports.push(status);
-    expect(installUpdate(registration, report, () => undefined)).toBe(false);
+    expect(
+      installUpdate(
+        registration,
+        report,
+        () => undefined,
+        () => undefined,
+      ),
+    ).toBe(false);
     const waiting = makeWorker("installed");
     registration.waiting = waiting;
-    installUpdate(registration, report, () => undefined);
+    installUpdate(
+      registration,
+      report,
+      () => undefined,
+      () => undefined,
+    );
     waiting.moveTo("redundant");
     expect(reports).toEqual(["installing", "failed"]);
+  });
+
+  it("watches again after a release did not take over, so a later check can still report one", () => {
+    const registration = makeRegistration(makeWorker("activated"));
+    const waiting = makeWorker("installed");
+    registration.waiting = waiting;
+    const reports: UpdateStatus[] = [];
+    const report = (status: UpdateStatus) => reports.push(status);
+    const watchAgain = () => {
+      watchForUpdates(registration, report);
+    };
+    installUpdate(registration, report, () => undefined, watchAgain);
+    // A release that failed is no longer the registration's waiting worker.
+    registration.waiting = null;
+    waiting.moveTo("redundant");
+    const next = makeWorker("installing");
+    registration.find(next);
+    next.moveTo("installed");
+    expect(reports).toEqual(["installing", "failed", "waiting"]);
   });
 });
 
