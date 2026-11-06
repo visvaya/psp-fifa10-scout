@@ -34,8 +34,8 @@ jobs:
       ACTIONLINT_VERSION: 1.7.12
       ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
       # Checksum of the manylinux x86_64 wheel on PyPI.
-      ZIZMOR_VERSION: 1.31.1
-      ZIZMOR_SHA256: 58e878eb2dbd2c6183c105e1ac28c14f7dd1eca44a783f1fe2a69647d012c410
+      ZIZMOR_VERSION: 1.32.0
+      ZIZMOR_SHA256: 84a6acb975accc13408786a2bd274b572537ca19c933ebbc13e78f3988562071
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
