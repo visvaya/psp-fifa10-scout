@@ -26,6 +26,19 @@ describe("loading a picked or a stored game", () => {
     expect(succeeded({ ...started(), filters }).filters).toEqual({ flags: { leadership: true } });
   });
 
+  it("drops the career filters and sort of preferences restored after a game without a career", () => {
+    const restored = scoutReducer(succeeded(started()), {
+      type: "preferences-restored",
+      preferences: {
+        filters: { ranges: { price: { min: 1 }, age: { max: 30 } } },
+        sort: { key: "price", direction: "descending" },
+        showPotential: false,
+      },
+    });
+    expect(restored.filters).toEqual({ ranges: { age: { max: 30 } } });
+    expect(restored.sort.key).not.toBe("price");
+  });
+
   it("stays on the start view after a picked file and opens the list after the stored game", () => {
     expect(succeeded(started()).view).toBe("start");
     expect(succeeded(started({ restored: true })).view).toBe("list");

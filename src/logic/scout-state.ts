@@ -283,12 +283,15 @@ const consistent = (preferences: Preferences): Preferences => {
 
 const isLoadAction = (action: ScoutAction): action is LoadAction => action.type.startsWith("load-");
 
-/** The stored preferences over the state, made consistent. */
+/** The stored preferences over the state, made consistent; after a game without a career, without what needs one. */
 const withPreferences = (state: ScoutState, preferences: Preferences): ScoutState => {
   const { filters, sort, showPotential, gameLanguage, filterSets, columns } = preferences;
+  const restored = { filters: compactFilters(filters), sort };
+  const fitted =
+    state.players !== null && state.myTeamId === null ? withoutCareer(restored) : restored;
   return {
     ...state,
-    ...consistent({ filters: compactFilters(filters), sort, showPotential }),
+    ...consistent({ ...fitted, showPotential }),
     ...(gameLanguage === undefined ? {} : { gameLanguage }),
     ...(filterSets === undefined ? {} : { filterSets }),
     ...(columns === undefined ? {} : { columns }),
@@ -456,7 +459,7 @@ export const activeLanguage = (
   browserLanguages: readonly string[],
 ): string | null => {
   if (gameLanguage === undefined) return defaultLanguage(Object.keys(languages), browserLanguages);
-  return gameLanguage !== null && gameLanguage in languages ? gameLanguage : null;
+  return gameLanguage !== null && Object.hasOwn(languages, gameLanguage) ? gameLanguage : null;
 };
 
 export type AttributeBand = "high" | "good" | "average" | "low";
