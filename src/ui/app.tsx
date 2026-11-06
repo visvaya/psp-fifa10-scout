@@ -163,6 +163,7 @@ export const App = (props: { registering: Promise<UpdatableRegistration> | null 
             onForgetSave={files.forgetSave}
             onLocale={files.pickLocale}
             dispatch={dispatch}
+            offline={!update.unregistered}
           />
         )}
       </main>

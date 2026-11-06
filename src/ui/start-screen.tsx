@@ -17,6 +17,8 @@ interface StartScreenProps {
   readonly onForgetSave: () => void;
   readonly onLocale: (files: readonly File[]) => void;
   readonly dispatch: Dispatch<ScoutAction>;
+  /** The app is stored for offline use, or will be: false after a failed registration. */
+  readonly offline: boolean;
 }
 
 interface FileStepProps {
@@ -263,7 +265,7 @@ export const StartScreen = (props: StartScreenProps): JSX.Element => {
         <LanguageStep {...props} />
         <section className="step install-help" aria-labelledby="install-title">
           <h3 id="install-title">{TEXT.installHeading}</h3>
-          <p className="help">{TEXT.installHelp}</p>
+          <p className="help">{TEXT.installHelp(props.offline)}</p>
         </section>
       </section>
       <About />

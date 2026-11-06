@@ -248,6 +248,9 @@ const STAGES: Readonly<Record<LoadStage, string>> = {
 
 const LOCALE_MISSING = pl`Wybierz oba pliki naraz: plik .loc i string.idx z tego samego folderu.`;
 
+const INSTALL_OFFLINE = pl`Po pierwszym otwarciu narzędzie działa też bez internetu.`;
+const INSTALL_STEPS = pl`iPhone: w Safari wybierz Udostępnij, potem Do ekranu początkowego. Chrome i Edge: menu przeglądarki, potem Zainstaluj aplikację.`;
+
 export const TEXT = {
   traitsNote: pl`Cechy pochodzą z bazy gry. Czy wpływają na rozgrywkę w wersji PSP, nie jest potwierdzone.`,
   appTitle: pl`PSP FIFA 10 Scout`,
@@ -286,7 +289,9 @@ export const TEXT = {
   localeHelp: pl`Pliki leżą w obrazie ISO w PSP_GAME/USRDIR/data/gui/locale, np. pol_pl.loc. Zaznacz plik języka razem ze string.idx z tego samego folderu.`,
   resultCount: (value: number): string => count(value, PLAYERS),
   installHeading: "Aplikacja na ekranie początkowym",
-  installHelp: pl`Po pierwszym otwarciu narzędzie działa też bez internetu. iPhone: w Safari wybierz Udostępnij, potem Do ekranu początkowego. Chrome i Edge: menu przeglądarki, potem Zainstaluj aplikację.`,
+  /** offline: the app is stored for offline use, or will be; not after a failed registration. */
+  installHelp: (offline: boolean): string =>
+    offline ? `${INSTALL_OFFLINE} ${INSTALL_STEPS}` : INSTALL_STEPS,
   update: {
     waiting: pl`Dostępna jest nowa wersja. Wczytane dane gry, zapis kariery i filtry zostaną zachowane.`,
     installing: "Instalowanie nowej wersji…",

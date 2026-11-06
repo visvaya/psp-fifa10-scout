@@ -208,12 +208,13 @@ const useExpiringCurrent = (
 
 /**
  * The update prompt's state and actions (React); `install` also serves "outdated" as a plain reload,
- * `check` looks for a new release on request once a worker is registered (`registered`). `registering`
- * is the service worker's registration, null where none is made (development, an insecure page).
+ * `check` looks for a new release on request once a worker is active (`registered`). `registering`
+ * resolves with the service worker's registration once its worker is active, and is null where none is
+ * made (development, an insecure page); `unregistered`: it failed, so the app does not work offline.
  */
 export const useAppUpdate = (registering: Promise<UpdatableRegistration> | null) => {
   const [status, setStatus] = useState<UpdateStatus>("idle");
-  const [registered, setRegistered] = useState(false);
+  const [worker, setWorker] = useState<"pending" | "active" | "failed">("pending");
   const registration = useRef<UpdatableRegistration | null>(null);
   const stopWatching = useRef<(() => void) | null>(null);
 
@@ -230,11 +231,13 @@ export const useAppUpdate = (registering: Promise<UpdatableRegistration> | null)
       (found) => {
         if (!mounted) return;
         registration.current = found;
-        setRegistered(true);
+        setWorker("active");
         stopWatching.current = watchForUpdates(found, report);
       },
       () => {
-        if (mounted) setStatus("unregistered");
+        if (!mounted) return;
+        setStatus("unregistered");
+        setWorker("failed");
       },
     );
     return () => {
@@ -245,10 +248,7 @@ export const useAppUpdate = (registering: Promise<UpdatableRegistration> | null)
   }, [registering]);
 
   const install = useCallback(() => {
-    if (status === "outdated") {
-      reloadPage();
-      return;
-    }
+    if (status === "outdated") return reloadPage();
     // From here the install reports alone: the watcher would report the same worker's take-over as one
     // from another window.
     stopWatching.current?.();
@@ -257,8 +257,10 @@ export const useAppUpdate = (registering: Promise<UpdatableRegistration> | null)
     const watchAgain = () => {
       if (found !== null) stopWatching.current = watchForUpdates(found, setStatus);
     };
-    const started = found !== null && installUpdate(found, setStatus, reloadPage, watchAgain);
-    if (!started) setStatus("failed");
+    if (found !== null && installUpdate(found, setStatus, reloadPage, watchAgain)) return;
+    // No release waits, or none could be asked: the watcher still looks for the next one.
+    setStatus("failed");
+    watchAgain();
   }, [status]);
 
   const check = useCallback(() => {
@@ -274,5 +276,6 @@ export const useAppUpdate = (registering: Promise<UpdatableRegistration> | null)
   }, []);
   useExpiringCurrent(status, setStatus);
 
-  return { status, install, check, dismiss, registered };
+  const [registered, unregistered] = [worker === "active", worker === "failed"];
+  return { status, install, check, dismiss, registered, unregistered };
 };

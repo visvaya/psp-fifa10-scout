@@ -40,6 +40,23 @@ test("after one visit the app starts without a network", async ({ page, context 
   await expect(page.getByLabel(GAME_INPUT)).toBeEnabled();
 });
 
+test("says when the app cannot be stored for offline use, and then promises none", async ({
+  page,
+}) => {
+  // A worker script the browser refuses (a missing file after a path change, a security policy).
+  await page.addInitScript(() => {
+    navigator.serviceWorker.register = async () => Promise.reject(new Error("refused"));
+  });
+  await page.goto("/");
+  await expect(
+    page.getByText("Nie udało się zapisać narzędzia do pracy bez internetu."),
+  ).toBeVisible();
+  const help = page.locator(".install-help .help");
+  await expect(help).toContainText("iPhone:");
+  await expect(help).not.toContainText("bez internetu");
+  await expect(page.getByRole("button", { name: "Sprawdź aktualizacje" })).toHaveCount(0);
+});
+
 test("the app is installable", async ({ page, browserName }) => {
   test.skip(browserName !== "chromium", "only Chromium reports what keeps a page from installing");
   await page.goto("/");
