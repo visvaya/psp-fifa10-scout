@@ -136,7 +136,7 @@ const idsOf = (db: EaDb): NameIds => {
 
 /** The names of the disc image's languages, or of the attached file. */
 const readLanguages = async (db: EaDb, { game, locale }: LoadInput): Promise<GameLanguages> => {
-  const ids = idsOf(db);
+  const ids = await atStage("game", () => idsOf(db));
   if (locale !== undefined) {
     return atStage("locale", async () => {
       const table = readLocale(

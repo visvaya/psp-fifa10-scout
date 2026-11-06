@@ -129,8 +129,15 @@ describe("loadScout", () => {
     ).rejects.toEqual(expect.objectContaining({ error: { stage: "save", kind: "wrong-file" } }));
   });
 
+  it("blames the game when its ids cannot be read", async () => {
+    const country = table("country", [{ countryname: "Poland" }]);
+    await expect(
+      loadScout({ game: gameOf(buildScoutDb([country])) }, () => undefined),
+    ).rejects.toEqual(expect.objectContaining({ error: { stage: "game", kind: "damaged" } }));
+  });
+
   it("blames the save when its tables break the players", async () => {
-    // A career gain that is no number turns Brożek's attributes into NaN.
+    // A career gain that is no number makes reading Brożek's attributes fail.
     const grown = table("career_players_grown_attributes", [
       { playerid: 7, potential_delta: 0, dribbling_delta: "x" },
     ]);
