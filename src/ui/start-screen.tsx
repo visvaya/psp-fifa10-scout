@@ -3,6 +3,7 @@ import { languageLabel } from "../logic/game-names.ts";
 import type { LoadStage } from "../logic/load-scout.ts";
 import { isRestoring, listedCount } from "../logic/scout-state.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
+import { About } from "./about.tsx";
 import { TEXT } from "./text.ts";
 
 interface StartScreenProps {
@@ -226,43 +227,46 @@ export const StartScreen = (props: StartScreenProps): JSX.Element => {
     return <ListSkeleton phase={TEXT.phase(loading.phase)} />;
   const shared = { state, ready };
   return (
-    <section className="start" aria-labelledby="start-title">
-      <h2 id="start-title">{TEXT.startHeading}</h2>
-      <p className="muted">
-        {players === null ? `${TEXT.noData} ${TEXT.startIntro}` : TEXT.startIntro}
-      </p>
-      {/* Hidden while another game loads: the count and the list would be the previous game's. */}
-      {players === null || loading !== null ? null : (
-        <ShowPlayers count={listedCount(state)} dispatch={dispatch} />
-      )}
-      <output className="status">
-        {loading === null ? (ready ? "" : TEXT.preparing) : TEXT.phase(loading.phase)}
-      </output>
-      <FileStep
-        {...shared}
-        stage="game"
-        title={TEXT.gameStep}
-        label={TEXT.gameInput}
-        multiple={false}
-        accept=".iso,.db"
-        loaded={players === null ? null : TEXT.gameLoaded(state.gameName)}
-        onFiles={([file]) => {
-          if (file !== undefined) onGame(file);
-        }}
-        help={
-          <>
-            {players === null ? null : <p>{TEXT.gameStored}</p>}
-            <p>{TEXT.gameHelpPhone}</p>
-            <p>{TEXT.gameHelpPc}</p>
-          </>
-        }
-      />
-      <SaveStep {...props} />
-      <LanguageStep {...props} />
-      <section className="step install-help" aria-labelledby="install-title">
-        <h3 id="install-title">{TEXT.installHeading}</h3>
-        <p className="help">{TEXT.installHelp}</p>
+    <div className="start">
+      <section className="start-files" aria-labelledby="start-title">
+        <h2 id="start-title">{TEXT.startHeading}</h2>
+        <p className="muted">
+          {players === null ? `${TEXT.noData} ${TEXT.startIntro}` : TEXT.startIntro}
+        </p>
+        {/* Hidden while another game loads: the count and the list would be the previous game's. */}
+        {players === null || loading !== null ? null : (
+          <ShowPlayers count={listedCount(state)} dispatch={dispatch} />
+        )}
+        <output className="status">
+          {loading === null ? (ready ? "" : TEXT.preparing) : TEXT.phase(loading.phase)}
+        </output>
+        <FileStep
+          {...shared}
+          stage="game"
+          title={TEXT.gameStep}
+          label={TEXT.gameInput}
+          multiple={false}
+          accept=".iso,.db"
+          loaded={players === null ? null : TEXT.gameLoaded(state.gameName)}
+          onFiles={([file]) => {
+            if (file !== undefined) onGame(file);
+          }}
+          help={
+            <>
+              {players === null ? null : <p>{TEXT.gameStored}</p>}
+              <p>{TEXT.gameHelpPhone}</p>
+              <p>{TEXT.gameHelpPc}</p>
+            </>
+          }
+        />
+        <SaveStep {...props} />
+        <LanguageStep {...props} />
+        <section className="step install-help" aria-labelledby="install-title">
+          <h3 id="install-title">{TEXT.installHeading}</h3>
+          <p className="help">{TEXT.installHelp}</p>
+        </section>
       </section>
-    </section>
+      <About />
+    </div>
   );
 };

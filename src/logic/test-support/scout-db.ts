@@ -6,10 +6,17 @@ import type { TableSpec } from "../../data/test-support/synthetic-ea-db.ts";
 import { countryKey, labelKey, leagueKey, teamKey } from "../../data/game-locale.ts";
 import { buildLocale } from "../../data/test-support/synthetic-locale.ts";
 import { buildFileList, buildParamSfo } from "../../data/test-support/synthetic-save.ts";
-import { attributes, flatCurves, floatBits, playerRow, table } from "./player-fixtures.ts";
+import {
+  attributes,
+  daysSince1582,
+  flatCurves,
+  floatBits,
+  playerRow,
+  table,
+} from "./player-fixtures.ts";
 
-/** Days since 1582-10-14, the fifa.db birthdate epoch. */
-const born = (year: number): number => (Date.UTC(year, 0, 15) - Date.UTC(1582, 9, 14)) / 86_400_000;
+/** The birthdate of a player born on 15 January of `year`. */
+const born = (year: number): number => daysSince1582(year, 1, 15);
 
 const empty = (name: string): TableSpec => ({ name, u32: ["playerid"], rows: [] });
 

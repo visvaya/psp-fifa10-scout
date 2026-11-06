@@ -17,6 +17,7 @@ import { FILTER_SETS_TEXT } from "./text-filter-sets.ts";
 import { CODE_NAMES } from "./text-code-names.ts";
 import { FIELD_HELP } from "./text-help.ts";
 import { OFFER_TEXT } from "./text-offer.ts";
+import { startDescription } from "./test-support/start-description.ts";
 import { WATCHLIST_TEXT } from "./text-watchlist.ts";
 import { tie } from "./typeset.ts";
 
@@ -24,6 +25,12 @@ const stringsIn = (value: unknown): readonly string[] => {
   if (typeof value === "string") return [value];
   if (value === null || typeof value !== "object") return [];
   return Object.values(value).flatMap(stringsIn);
+};
+
+/** The description of the tool, static HTML in index.html: each block's text and each image's alt text. */
+const descriptionStrings = (): readonly string[] => {
+  const { blocks, images } = startDescription();
+  return [...blocks.map((block) => block.text), ...images.map((image) => image["alt"] ?? "")];
 };
 
 const STRINGS = stringsIn([
@@ -42,6 +49,7 @@ const STRINGS = stringsIn([
   WATCHLIST_TEXT,
   FIELD_HELP,
   CODE_NAMES,
+  descriptionStrings(),
 ]);
 
 /** Address pronouns from a capital letter, though not at the start of a sentence. */
@@ -54,6 +62,8 @@ const CLICHES =
 describe("UI texts", () => {
   it("covers the text modules", () => {
     expect(STRINGS.length).toBeGreaterThan(200);
+    // The rules reach the description of the start page, not an empty reading of it.
+    expect(descriptionStrings().length).toBeGreaterThan(15);
   });
 
   it.each([

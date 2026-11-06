@@ -145,6 +145,18 @@ describe("the release written into the worker", () => {
     ]);
   });
 
+  it("leaves the sample screenshots to the network: they are pictures for the page, not part of the app", () => {
+    const paths = [
+      "index.html",
+      "screenshots/list-wide.webp",
+      "screenshots/card-wide.webp",
+      "icon.svg",
+    ];
+    expect(
+      precacheOf(paths.map((path) => ({ path, sha256: path }))).map((entry) => entry.url),
+    ).toEqual(["./icon.svg", "./"]);
+  });
+
   it("names its cache after its files, so a changed file is another release", () => {
     const changed = { ...RELEASE_A, [SCRIPT_A]: "console.log('a2')" };
     expect(cacheNameOf(RELEASE_A)).not.toBe(cacheNameOf(changed));
