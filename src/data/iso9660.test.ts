@@ -337,6 +337,28 @@ describe("readIsoLocales", () => {
     expect(await readIsoLocales(reader(noLoc).read, noLoc.length)).toBeNull();
   });
 
+  it("rejects a locale directory with more languages than the cap", async () => {
+    const languages = (count: number) =>
+      Array.from({ length: count }, (_, index) => ({
+        path: `${LOCALE}/cgexport/l${String(index)}.loc`,
+        bytes: Uint8Array.of(index),
+      }));
+    const atCap = localeIso([
+      { path: `${LOCALE}/cgexport/string.idx`, bytes: Uint8Array.of(7) },
+      ...languages(32),
+    ]);
+    expect(
+      (await readIsoLocales(reader(atCap).read, atCap.length))?.cgexport?.languages,
+    ).toHaveLength(32);
+    const overCap = localeIso([
+      { path: `${LOCALE}/cgexport/string.idx`, bytes: Uint8Array.of(7) },
+      ...languages(33),
+    ]);
+    await expect(readIsoLocales(reader(overCap).read, overCap.length)).rejects.toThrow(
+      "Disc image lists too many languages",
+    );
+  });
+
   it("reports a damaged image instead of hiding it", async () => {
     const image = localeIso();
     // Point the root directory record's extent past the end of the image.

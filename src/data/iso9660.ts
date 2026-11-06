@@ -17,6 +17,8 @@ const FLAG_DIRECTORY = 0x02;
 const MAX_DIRECTORY_BYTES = 1024 * 1024;
 const MAX_SFO_BYTES = 64 * 1024;
 const MAX_DATABASE_BYTES = 16 * 1024 * 1024;
+/** Languages of one locale directory; the game has 4. */
+const MAX_LANGUAGES = 32;
 const GAME_ID = "ULES01328";
 const SFO_PATH = "PSP_GAME/PARAM.SFO";
 const DATABASE_PATH = "PSP_GAME/USRDIR/data/cmn/fifa.db";
@@ -183,18 +185,19 @@ const readLocaleTables = async (volume: Volume, path: string): Promise<LocaleTab
     .filter((entry) => !entry.directory && entry.name.endsWith(".LOC"))
     .toSorted((a, b) => a.name.localeCompare(b.name));
   if (idx === undefined || locs.length === 0) return null;
-  return {
-    idx: await readExtentBytes(volume, idx, MAX_IDX_BYTES),
-    languages: await Promise.all(
-      locs.map(
-        async (entry) =>
-          [
-            entry.name.slice(0, -".LOC".length).toLowerCase(),
-            await readExtentBytes(volume, entry, MAX_LOC_BYTES),
-          ] as const,
-      ),
-    ),
-  };
+  if (locs.length > MAX_LANGUAGES) throw new SaveFormatError("Disc image lists too many languages");
+  // One file after another, not all reads at once.
+  const languages = await locs.reduce<Promise<LocaleTables["languages"]>>(
+    async (read, entry) => [
+      ...(await read),
+      [
+        entry.name.slice(0, -".LOC".length).toLowerCase(),
+        await readExtentBytes(volume, entry, MAX_LOC_BYTES),
+      ] as const,
+    ],
+    Promise.resolve([]),
+  );
+  return { idx: await readExtentBytes(volume, idx, MAX_IDX_BYTES), languages };
 };
 
 /**
