@@ -45,6 +45,8 @@ export const parseParamSfo = (bytes: Uint8Array): ReadonlyMap<string, SfoValue> 
   if (HEADER_BYTES + count * ENTRY_BYTES > bytes.length) {
     throw new SaveFormatError("PARAM.SFO index is out of range");
   }
+  // Entries that do not overlap cannot add up to more than the file.
+  let budgetBytes = bytes.length;
   return new Map(
     Array.from({ length: count }, (_, index) => {
       const entry = HEADER_BYTES + index * ENTRY_BYTES;
@@ -52,7 +54,10 @@ export const parseParamSfo = (bytes: Uint8Array): ReadonlyMap<string, SfoValue> 
       const format = view.getUint16(entry + 2, true);
       const length = view.getUint32(entry + 4, true);
       const start = dataTable + view.getUint32(entry + 12, true);
-      return [key, readValue(bytes, format, start, length)] as const;
+      const value = readValue(bytes, format, start, length);
+      budgetBytes -= key.length + 1 + length;
+      if (budgetBytes < 0) throw new SaveFormatError("PARAM.SFO entries overlap");
+      return [key, value] as const;
     }),
   );
 };
