@@ -178,11 +178,9 @@ export const attributeGains = (
   new Map(
     effectiveRows(db, save, "career_players_grown_attributes").map((row) => [
       num(row, "playerid"),
-      // A gain the save has no column for counts 0: real saves lack tacticalawareness_delta.
-      (name: AttributeName) => {
-        const column = `${name}_delta`;
-        return row[column] === undefined ? 0 : num(row, column);
-      },
+      // fifa.db and every real save lack tacticalawareness_delta: that attribute gains 0. Any other
+      // missing delta column means a damaged file.
+      (name: AttributeName) => (name === "tacticalawareness" ? 0 : num(row, `${name}_delta`)),
     ]),
   );
 

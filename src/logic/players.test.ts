@@ -13,6 +13,7 @@ import { baseOverall, byPositionCode } from "./overall-rating.ts";
 import {
   attributes,
   flatCurves,
+  grownRow,
   NO_STATS,
   playerRow,
   table,
@@ -138,7 +139,7 @@ const SAVE: CareerSave = new Map([
   ["career_transfer_list", [row({ playerid: 400_003, is_loan: 0, sold: 0 })]],
   // 400_004: a scouted junior on the shortlist, not signed and in no team.
   ["career_shortlist", [158_023, 400_004].map((playerid) => row({ playerid, shortlist_dummy: 0 }))],
-  ["career_players_grown_attributes", [row({ playerid: 7, potential_delta: -25 })]],
+  ["career_players_grown_attributes", [row(grownRow(7, { potential_delta: -25 }))]],
   ["career_extra_user_team_info", []],
   [
     "playerstats",
@@ -321,10 +322,7 @@ describe("buildPlayers with a career save", () => {
   it("adds the attribute gains the save records", () => {
     const grown: CareerSave = new Map([
       ...SAVE,
-      [
-        "career_players_grown_attributes",
-        [row({ playerid: 158_023, potential_delta: 0, finishing_delta: 10 })],
-      ],
+      ["career_players_grown_attributes", [row(grownRow(158_023, { finishing_delta: 10 }))]],
     ]);
     const before = byId(players, 158_023);
     const after = byId(buildPlayers(DB, grown), 158_023);

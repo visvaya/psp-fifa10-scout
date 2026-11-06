@@ -133,8 +133,8 @@ export const sortPlayers = (
   // Missing values sort after every present one, whatever the direction.
   const [lowest, missing] = [Math.min(0, ...present), Math.max(0, ...present) + 1];
   // One integer per player, (value, nameOrder, index), sorted natively: the slow laptop needs that
-  // for 13 000 players within the 30 ms budget. Ranks stay below the count, so the largest key
-  // (ids near 4e5 times two counts near 1.3e4, about 7e13) stays far below 2^53 for any field.
+  // for 13 000 players within the 30 ms budget. Ranks and name orders stay below the count, so the
+  // largest key is about count cubed (2.2e12 for 13 000 players), far below 2^53 for any field.
   const count = players.length;
   const scale = Math.max(0, ...players.map((player) => player.nameOrder)) + 1;
   const keys = Float64Array.from(

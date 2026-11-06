@@ -2,7 +2,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { effectiveRows, careerManager, parseCareerSave } from "../data/career-save.ts";
 import { birthdateToDate, parseEaDb, readTable } from "../data/ea-db.ts";
+import type { EaDbRow } from "../data/ea-db.ts";
+import { SaveFormatError } from "../data/save-format-error.ts";
 import {
+  attributeGains,
   baseOverall,
   byPositionCode,
   cappedOverall,
@@ -14,7 +17,7 @@ import {
 } from "./overall-rating.ts";
 import type { CareerRatingInput, Curves } from "./overall-rating.ts";
 import { attributesOf } from "./players.ts";
-import { attributes, flatCurves, table } from "./test-support/player-fixtures.ts";
+import { attributes, flatCurves, grownRow, table } from "./test-support/player-fixtures.ts";
 import { buildEaDb } from "../data/test-support/synthetic-ea-db.ts";
 
 const GK = 0;
@@ -256,6 +259,28 @@ describe("readCurves and potentialDeltas", () => {
       ["career_players_grown_attributes", [{ playerid: 7, potential_delta: 6 }]],
     ]);
     expect(potentialDeltas(db, save)).toEqual(new Map([[7, 6]]));
+  });
+});
+
+/** Player 7's gains from a save holding one grown-attributes row. */
+const gainsOf = (row: EaDbRow) =>
+  attributeGains(
+    parseEaDb(
+      buildEaDb([table("career_players_grown_attributes", [{ playerid: 0, potential_delta: 0 }])]),
+    ),
+    new Map([["career_players_grown_attributes", [row]]]),
+  ).get(7);
+
+describe("attributeGains", () => {
+  it("reads each attribute's delta; tactical awareness, which the game has no column for, gains 0", () => {
+    const gain = gainsOf(grownRow(7, { finishing_delta: 2 }));
+    expect(gain?.("finishing")).toBe(2);
+    expect(gain?.("tacticalawareness")).toBe(0);
+  });
+
+  it("throws a file error when another attribute's delta column is missing", () => {
+    const { dribbling_delta: _missing, ...row } = grownRow(7);
+    expect(() => gainsOf(row)?.("dribbling")).toThrow(SaveFormatError);
   });
 });
 
