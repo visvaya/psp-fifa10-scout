@@ -11,6 +11,9 @@ export const FIFA10 = {
   saveKey: hexToBytes("f0c7f22683e651c8cec54e343241504b"),
 } as const;
 
+/** Real DATA.BIN files of the game are up to 542 KB. */
+export const MAX_DATA_BIN_BYTES = 8 * 1024 * 1024;
+
 /** First byte of SAVEDATA_PARAMS: 0 for a save PPSSPP wrote without encryption, 0x41 for mode 5. */
 const CRYPT_FLAG_NONE = 0x00;
 const CRYPT_FLAG_MODE5 = 0x41;
@@ -24,7 +27,7 @@ export const readSaveData = (dataBin: Uint8Array, paramSfo: Uint8Array): Uint8Ar
   const params = sfo.get("SAVEDATA_PARAMS");
   const fileList = sfo.get("SAVEDATA_FILE_LIST");
   if (!(params instanceof Uint8Array) || !(fileList instanceof Uint8Array)) {
-    throw new SaveFormatError("PARAM.SFO does not describe a save");
+    throw new SaveFormatError("PARAM.SFO does not describe a save", "wrong-file");
   }
   const flag = params[0];
   if (flag === CRYPT_FLAG_NONE) return dataBin;
@@ -32,6 +35,6 @@ export const readSaveData = (dataBin: Uint8Array, paramSfo: Uint8Array): Uint8Ar
     throw new SaveFormatError(`Unsupported save encryption (flag 0x${(flag ?? 0).toString(16)})`);
   }
   const hash = savedFileHash(fileList, FIFA10.dataFileName);
-  if (hash === undefined) throw new SaveFormatError("PARAM.SFO lists no DATA.BIN");
+  if (hash === undefined) throw new SaveFormatError("PARAM.SFO lists no DATA.BIN", "wrong-file");
   return decryptSaveData(dataBin, FIFA10.saveKey, hash);
 };

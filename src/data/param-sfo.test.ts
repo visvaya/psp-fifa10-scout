@@ -49,6 +49,22 @@ describe("parseParamSfo", () => {
     expect(parseParamSfo(SAMPLE).get("SAVEDATA_PARAMS")).toBeInstanceOf(Uint8Array);
   });
 
+  it("bounds the decoded keys and values to the file size", () => {
+    const entries = Array.from({ length: 20 }, (_, index) => ({
+      key: `K${String(index)}`,
+      value: "x".repeat(200),
+    }));
+    const bytes = buildParamSfo(entries);
+    expect(parseParamSfo(bytes).size).toBe(20);
+    // Every entry's value now covers all twenty values.
+    const view = new DataView(bytes.buffer);
+    entries.forEach((_, index) => {
+      view.setUint32(ENTRY(index) + 4, 20 * 201, true);
+      view.setUint32(ENTRY(index) + 12, 0, true);
+    });
+    expect(() => parseParamSfo(bytes)).toThrow("PARAM.SFO entries overlap");
+  });
+
   it("rejects files that are too short or lack the PSF magic", () => {
     expect(() => parseParamSfo(new Uint8Array(19))).toThrow(/too short/);
     expect(() => parseParamSfo(new Uint8Array(20))).toThrow(/Not a PARAM.SFO/);

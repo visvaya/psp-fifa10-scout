@@ -6,11 +6,13 @@ import { careerManager, parseCareerSave } from "../data/career-save.ts";
 import type { CurrencyCode } from "../data/career-save.ts";
 import { parseEaDb, readTable } from "../data/ea-db.ts";
 import type { EaDb } from "../data/ea-db.ts";
-import { readLocale } from "../data/game-locale.ts";
+import { MAX_IDX_BYTES, MAX_LOC_BYTES, readLocale } from "../data/game-locale.ts";
 import { readGameDatabase, readIsoLocales } from "../data/iso9660.ts";
 import type { ReadRange } from "../data/iso9660.ts";
-import { readSaveData } from "../data/read-save-data.ts";
+import { MAX_SFO_BYTES } from "../data/param-sfo.ts";
+import { MAX_DATA_BIN_BYTES, readSaveData } from "../data/read-save-data.ts";
 import { SaveFormatError } from "../data/save-format-error.ts";
+import type { SaveFormatErrorKind } from "../data/save-format-error.ts";
 import { gameNamesOf } from "./game-names.ts";
 import type { GameLanguages, NameIds } from "./game-names.ts";
 import { buildPlayers } from "./players.ts";
@@ -18,7 +20,7 @@ import type { Player } from "./players.ts";
 
 export type LoadPhase = "game" | "save" | "players";
 export type LoadStage = "game" | "save" | "locale";
-export type LoadErrorKind = "wrong-game" | "wrong-file" | "not-career" | "damaged" | "unexpected";
+export type LoadErrorKind = SaveFormatErrorKind | "unexpected";
 
 export interface LoadError {
   readonly stage: LoadStage;
@@ -77,21 +79,17 @@ export type WorkerMessage =
   | { readonly type: "done"; readonly requestId: number; readonly result: LoadResult }
   | { readonly type: "failed"; readonly requestId: number; readonly error: LoadError };
 
-const KIND_PATTERNS: readonly (readonly [LoadErrorKind, RegExp])[] = [
-  ["wrong-game", /not FIFA 10|wrong game/u],
-  ["wrong-file", /^Not an? |too short|too large|does not describe|lists no/u],
-  // The profile and squads saves decrypt and parse like a career save, but have no user team.
-  ["not-career", /no user team/u],
-];
-
 /** What went wrong in user terms: only SaveFormatError comes from the file itself. */
 export const classifyLoadError = (stage: LoadStage, error: unknown): LoadError => {
   if (!(error instanceof SaveFormatError)) return { stage, kind: "unexpected" };
-  const kind = KIND_PATTERNS.find(([, pattern]) => pattern.test(error.message))?.[0];
-  return { stage, kind: kind ?? "damaged" };
+  return { stage, kind: error.kind };
 };
 
-const bytesOf = async (blob: Blob): Promise<Uint8Array> => new Uint8Array(await blob.arrayBuffer());
+/** The contents of a user file, checking its size before reading it. */
+const bytesOf = async (blob: Blob, maxBytes: number): Promise<Uint8Array> => {
+  if (blob.size > maxBytes) throw new SaveFormatError("File is too large", "wrong-file");
+  return new Uint8Array(await blob.arrayBuffer());
+};
 
 /** A load that failed, with what went wrong in user terms. */
 export class LoadFailure extends Error {
@@ -131,7 +129,10 @@ const readLanguages = async (
   const ids = idsOf(db);
   if (locale !== undefined) {
     return atStage("locale", async () => {
-      const table = readLocale(await bytesOf(locale.loc), await bytesOf(locale.idx));
+      const table = readLocale(
+        await bytesOf(locale.loc, MAX_LOC_BYTES),
+        await bytesOf(locale.idx, MAX_IDX_BYTES),
+      );
       return { [locale.code]: gameNamesOf(table, ids) };
     });
   }
@@ -161,7 +162,8 @@ export const loadScout = async (
 ): Promise<LoadResult> => {
   onPhase("game");
   const { game, save } = request;
-  const read: ReadRange = async (offset, length) => bytesOf(game.slice(offset, offset + length));
+  const read: ReadRange = async (offset, length) =>
+    bytesOf(game.slice(offset, offset + length), length);
   const gameDb = await atStage("game", () => readGameDatabase(read, game.size));
   const db = await atStage("game", () => parseEaDb(gameDb));
   const names = {
@@ -174,7 +176,13 @@ export const loadScout = async (
   }
   onPhase("save");
   const career = await atStage("save", async () =>
-    parseCareerSave(db, readSaveData(await bytesOf(save.dataBin), await bytesOf(save.paramSfo))),
+    parseCareerSave(
+      db,
+      readSaveData(
+        await bytesOf(save.dataBin, MAX_DATA_BIN_BYTES),
+        await bytesOf(save.paramSfo, MAX_SFO_BYTES),
+      ),
+    ),
   );
   const { teamId, managerName, lastGameDate, currency } = await atStage("save", () =>
     careerManager(db, career),

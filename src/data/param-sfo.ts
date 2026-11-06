@@ -3,6 +3,8 @@
 // 16-byte index entries (key offset u16, format u16, length u32, max length u32, data offset u32).
 import { SaveFormatError } from "./save-format-error.ts";
 
+/** Real PARAM.SFO files of the game and its saves are about 5 KB. */
+export const MAX_SFO_BYTES = 64 * 1024;
 const MAGIC = 0x46535000; // "\0PSF" read as a little-endian u32
 const HEADER_BYTES = 20;
 const ENTRY_BYTES = 16;
@@ -32,15 +34,19 @@ const readValue = (bytes: Uint8Array, format: number, start: number, length: num
 
 /** Every entry of a PARAM.SFO by key. Throws SaveFormatError on a malformed file. */
 export const parseParamSfo = (bytes: Uint8Array): ReadonlyMap<string, SfoValue> => {
-  if (bytes.length < HEADER_BYTES) throw new SaveFormatError("PARAM.SFO is too short");
+  if (bytes.length < HEADER_BYTES)
+    throw new SaveFormatError("PARAM.SFO is too short", "wrong-file");
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.length);
-  if (view.getUint32(0, true) !== MAGIC) throw new SaveFormatError("Not a PARAM.SFO file");
+  if (view.getUint32(0, true) !== MAGIC)
+    throw new SaveFormatError("Not a PARAM.SFO file", "wrong-file");
   const keyTable = view.getUint32(8, true);
   const dataTable = view.getUint32(12, true);
   const count = view.getUint32(16, true);
   if (HEADER_BYTES + count * ENTRY_BYTES > bytes.length) {
     throw new SaveFormatError("PARAM.SFO index is out of range");
   }
+  // Entries that do not overlap cannot add up to more than the file.
+  let budgetBytes = bytes.length;
   return new Map(
     Array.from({ length: count }, (_, index) => {
       const entry = HEADER_BYTES + index * ENTRY_BYTES;
@@ -48,7 +54,10 @@ export const parseParamSfo = (bytes: Uint8Array): ReadonlyMap<string, SfoValue> 
       const format = view.getUint16(entry + 2, true);
       const length = view.getUint32(entry + 4, true);
       const start = dataTable + view.getUint32(entry + 12, true);
-      return [key, readValue(bytes, format, start, length)] as const;
+      const value = readValue(bytes, format, start, length);
+      budgetBytes -= key.length + 1 + length;
+      if (budgetBytes < 0) throw new SaveFormatError("PARAM.SFO entries overlap");
+      return [key, value] as const;
     }),
   );
 };
