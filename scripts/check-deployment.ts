@@ -62,8 +62,8 @@ const robotsMetaOf = (html: string): string | null =>
     .map((tag) => attributeOf(tag, /\scontent="([^"]*)"/i))
     .find((content) => content !== null) ?? null;
 
-// "none" is short for "noindex, nofollow".
-const BLOCKS_INDEXING = /\b(?:noindex|none)\b/i;
+// "none" is short for "noindex, nofollow"; as the value of max-image-preview it only hides large previews.
+const BLOCKS_INDEXING = /\b(?:noindex|(?<!max-image-preview:\s*)none)\b/i;
 
 const indexingProblems = (expected: Expected, served: Served): string[] => {
   const { headers, html } = served.startPage;

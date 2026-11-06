@@ -125,6 +125,13 @@ describe("findDeploymentProblems", () => {
     ]);
   });
 
+  it("does not read max-image-preview:none as a block on indexing", () => {
+    const html = `<html><head><meta name="robots" content="max-image-preview:none" />${PAGE}</head></html>`;
+    const headers = { ...SERVED.startPage.headers, "x-robots-tag": "max-image-preview: none" };
+    const served = { ...SERVED, startPage: { headers, html } };
+    expect(findDeploymentProblems(EXPECTED, served)).toEqual([]);
+  });
+
   it("treats Disallow: /* like Disallow: /", () => {
     const expected = { ...EXPECTED, robotsTxt: "User-agent: *\nDisallow: /*\n" };
     expect(findDeploymentProblems(expected, SERVED)).toEqual([
