@@ -370,30 +370,38 @@ test.describe("game language", () => {
   });
 });
 
+// Two scans per test: a WebKit axe scan of a whole screen takes 4 to 7 s at 1280 px (measured
+// 2026-11-06), so four in one test came close to the 30 s timeout.
 for (const colorScheme of ["light", "dark"] as const) {
   for (const width of [390, 1280]) {
-    test(`axe finds no violations at ${String(width)} px, ${colorScheme}`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme });
-      await page.setViewportSize({ width, height: 844 });
-      await page.goto("/");
-      // A stable state: the file inputs are disabled only while the store opens.
-      await expect(page.getByLabel("Wybierz obraz ISO lub fifa.db")).toBeEnabled();
-      await expectNoAxeViolations(page);
-      await loadDatabase(page);
-      await expectNoAxeViolations(page);
-      if (width < 960) {
-        await page.getByRole("button", { name: "Filtry" }).click();
-        await expandSections(page);
+    test.describe(`axe at ${String(width)} px, ${colorScheme}`, () => {
+      test.use({ colorScheme, viewport: { width, height: 844 } });
+
+      test("finds no violations on the start screen and the list", async ({ page }) => {
+        await page.goto("/");
+        // A stable state: the file inputs are disabled only while the store opens.
+        await expect(page.getByLabel("Wybierz obraz ISO lub fifa.db")).toBeEnabled();
         await expectNoAxeViolations(page);
-        await page.getByRole("button", { name: "Zamknij" }).click();
-        await page.getByRole("button", { name: /^Lionel Messi/u }).click();
-      } else {
-        await expandSections(page);
+        await loadDatabase(page);
         await expectNoAxeViolations(page);
-        await page.getByRole("button", { name: "Lionel Messi" }).click();
-      }
-      await expect(page.getByRole("dialog")).toBeVisible();
-      await expectNoAxeViolations(page);
+      });
+
+      test("finds no violations in the open filters and the card", async ({ page }) => {
+        await loadDatabase(page);
+        if (width < 960) {
+          await page.getByRole("button", { name: "Filtry" }).click();
+          await expandSections(page);
+          await expectNoAxeViolations(page);
+          await page.getByRole("button", { name: "Zamknij" }).click();
+          await page.getByRole("button", { name: /^Lionel Messi/u }).click();
+        } else {
+          await expandSections(page);
+          await expectNoAxeViolations(page);
+          await page.getByRole("button", { name: "Lionel Messi" }).click();
+        }
+        await expect(page.getByRole("dialog")).toBeVisible();
+        await expectNoAxeViolations(page);
+      });
     });
   }
 }
