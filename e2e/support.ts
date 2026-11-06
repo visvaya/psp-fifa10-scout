@@ -3,7 +3,7 @@
 import { AxeBuilder } from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
-import { SYNTHETIC_DB_PATH } from "../scripts/write-synthetic-db.ts";
+import { SYNTHETIC_DB_PATH, SYNTHETIC_SAVE_PATHS } from "../scripts/write-synthetic-db.ts";
 
 /** The phone the phone specs use. */
 export const PHONE = { viewport: { width: 390, height: 844 }, hasTouch: true } as const;
@@ -101,6 +101,26 @@ export const expandSections = async (page: Page) => {
   });
   const sections = await page.locator("details.filter-section").count();
   await expect(page.locator(".filter-section-body")).toHaveCount(sections);
+};
+
+/** The synthetic game with its career save, on the list. */
+export const loadCareer = async (page: Page) => {
+  await page.goto("/");
+  await pickGame(page, SYNTHETIC_DB_PATH);
+  await page.getByLabel("Wybierz DATA.BIN i PARAM.SFO").setInputFiles([...SYNTHETIC_SAVE_PATHS]);
+  await page.getByRole("button", { name: /^Pokaż zawodników/u }).click();
+};
+
+/** Neither the page nor the open dialog scrolls sideways. */
+export const expectNoHorizontalOverflow = async (page: Page) => {
+  const overflow = await page.evaluate(() => {
+    const body = document.querySelector(".dialog-body");
+    return [
+      (document.scrollingElement?.scrollWidth ?? 0) - window.innerWidth,
+      (body?.scrollWidth ?? 0) - (body?.clientWidth ?? 0),
+    ];
+  });
+  expect(overflow).toEqual([0, 0]);
 };
 
 export const expectNoAxeViolations = async (page: Page) => {

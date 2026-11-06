@@ -131,21 +131,18 @@ describe("career prices and wages", () => {
       overall: OVERALL,
       price: transferPrice(input()),
       wage: marketWage(input(), false),
-      wageMax: marketWage(input(), false),
+      storedWage: false,
     });
   });
 
-  it("prices a run-out contract at 0, its wage with and without the free-transfer factor", () => {
+  it("prices a contract that runs out this year at 0, its wage with the free-transfer factor", () => {
     const expired = input({ contractYearsLeft: 0 });
-    expect(byId(3)).toMatchObject({
-      price: 0,
-      wage: marketWage(expired, false),
-      wageMax: marketWage(expired, true),
-    });
+    expect(marketWage(expired, true)).toBeGreaterThan(marketWage(expired, false));
+    expect(byId(3)).toMatchObject({ price: 0, wage: marketWage(expired, true), storedWage: false });
   });
 
   it("keeps the stored wage of the user's squad", () => {
-    expect(byId(4)).toMatchObject({ wage: 1230, wageMax: null });
+    expect(byId(4)).toMatchObject({ wage: 1230, storedWage: true });
     expect(byId(4)?.price).toBe(transferPrice(input({ contractYearsLeft: 2, prestige: 16 })));
   });
 
@@ -153,8 +150,8 @@ describe("career prices and wages", () => {
     const free = input({ contractYearsLeft: 0, prestige: 2 * Math.floor(OVERALL / 5) });
     expect(byId(5)).toMatchObject({
       price: 0,
-      wage: marketWage(free, false),
-      wageMax: marketWage(free, true),
+      wage: marketWage(free, true),
+      storedWage: false,
     });
   });
 
@@ -184,14 +181,13 @@ describe("career prices and wages", () => {
     expect(player).toMatchObject({
       price: transferPrice(oneYear),
       wage: marketWage(oneYear, false),
-      wageMax: marketWage(oneYear, false),
     });
   });
 
   it("leaves players without a club or without a save unpriced", () => {
-    expect(byId(6)).toMatchObject({ price: null, wage: null, wageMax: null });
+    expect(byId(6)).toMatchObject({ price: null, wage: null });
     const base = buildPlayers(DB).find((player) => player.id === 1);
-    expect(base).toMatchObject({ price: null, wage: null, wageMax: null });
+    expect(base).toMatchObject({ price: null, wage: null });
   });
 });
 
@@ -292,7 +288,7 @@ describe.runIf(existsSync(realDbPath) && existsSync(realCareerPath))("real caree
     );
     const kept = stored.filter((entry) => {
       const player = players.get(Number(entry["playerid"]));
-      return player?.wage === roundMoney(as32(Number(entry["wage"]))) && player.wageMax === null;
+      return player?.wage === roundMoney(as32(Number(entry["wage"]))) && player.storedWage;
     });
     expect(stored.length).toBeGreaterThan(0);
     expect(kept).toHaveLength(stored.length);

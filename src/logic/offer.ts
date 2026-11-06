@@ -1,7 +1,8 @@
 // What a transfer offer needs to succeed, from the game's decision code (docs: negotiation spec, 4 of 4
 // stored offers reproduced): the fee the selling club accepts and the least wage the player signs for,
-// with the contract length he wants. No double offer and no bonus; the hard refusals (a thin squad,
-// rival clubs, a full squad of yours) are not checked here.
+// for the conditions chosen on the offer form (single or double offer, bonus, contract length; by default
+// a single offer, no bonus and the length he wants). The hard refusals (a thin squad, rival clubs, a full
+// squad of yours) are not checked here.
 import { careerManager, effectiveRows, seasonStartDate } from "../data/career-save.ts";
 import type { CareerSave } from "../data/career-save.ts";
 import { readTable } from "../data/ea-db.ts";
@@ -22,20 +23,38 @@ export interface OfferContext {
   readonly seasonEndYear: number;
 }
 
+/** The offer form's bonus percentages of the wage. */
+export const BONUS_PERCENTS = [0, 5, 10, 15] as const;
+
+/** The conditions picked on the offer form; null years mean the length the player wants. */
+export interface OfferChoice {
+  readonly double: boolean;
+  readonly bonusPercent: number;
+  readonly years: number | null;
+}
+
+export const DEFAULT_CHOICE: OfferChoice = { double: false, bonusPercent: 0, years: null };
+
 export interface OfferTerms {
   /** The least fee the club accepts; null when the contract has run out and only the player decides. */
   readonly fee: number | null;
-  /** The fee is above what the offer form allows (about 125% of the value). */
+  /** The fee is above what the first offer's limit allows (1.5 times the value). */
   readonly feeOverCap: boolean;
-  /** The contract length the player wants; 0 when any contract would outlast his career. */
+  /** The contract length he wants; 0 when any contract would outlast his career. */
+  readonly wantedYears: number;
+  /** The longest contract the form allows him: up to five years, none past the end of his career. */
+  readonly longestYears: number;
+  /** The contract length the wage is for. */
   readonly years: number;
   /** The least wage per match he signs for at that length; null when he will not sign. */
   readonly wage: number | null;
-  /** The wage is above what the offer form allows (about 120% of the market wage). */
+  /** The wage is above what the first offer's limit allows (1.5 times the market wage). */
   readonly wageOverCap: boolean;
+  /** The bonus per goal or clean sheet in euro, the chosen percentage of the wage; 0 without a wage. */
+  readonly bonus: number;
 }
 
-/** Live values of the game's tuning registry (RAM dump) and the offer form's observed limits. */
+/** Live values of the game's tuning registry (RAM dump) and the offer form's limits (handler 0x08893648). */
 const OFFER_TUNING = {
   listedDivider: 39,
   poachedDivider: 20,
@@ -48,8 +67,12 @@ const OFFER_TUNING = {
   lowIdentificationPoints: 2,
   /** England, France, Germany, Italy, Spain: a club there earns a point with any player. */
   bigLeagueCountryIds: [14, 18, 21, 27, 45],
-  feeCapShare: 1.25,
-  wageCapShare: 1.2,
+  doubleOfferPoints: 2,
+  /** The bonus is wage * percent / 100 euro and earns trunc(bonus * 20 / W) points. */
+  bonusMultiplier: 20,
+  /** The form allows up to this multiple of its base: the value or the market wage, or the last offer. */
+  capMultipleOfBase: 1.5,
+  maxContractYears: 5,
 } as const;
 
 /** The least fee the club accepts for a player of this value. */
@@ -71,13 +94,7 @@ const feeNeeded = (
       );
 };
 
-/** The contract length he wants (id % 5 + 1), no longer than his career has left. */
-const yearsWanted = (player: Player, endAge: number): number => {
-  const wanted = (player.id % 5) + 1;
-  return endAge + wanted > player.retirementAge ? player.retirementAge - endAge : wanted;
-};
-
-/** His points from everything but the wage, at the length he wants. */
+/** His points from everything but the wage, the contract length and the double offer. */
 const pointsBeforeWage = (player: Player, context: OfferContext): number => {
   const t = OFFER_TUNING;
   const country = context.countryId;
@@ -103,29 +120,68 @@ const pointsBeforeWage = (player: Player, context: OfferContext): number => {
 };
 
 /**
- * The least wage giving the wage term `needed` points: the term is trunc(15 (wage - W) / W), one less
- * below W. Above W it needs wage >= W (15 + needed) / 15; below W, strictly more than that.
+ * The points of a wage and its bonus against the market wage W: the wage term is trunc(15 (wage - W) / W),
+ * one less below W; the bonus (wage * percent / 100) earns trunc(bonus * 20 / W). Not decreasing in the wage.
  */
-const wageNeeded = (market: number, needed: number): number => {
+const wagePoints = (wage: number, market: number, bonusPercent: number): number => {
   const t = OFFER_TUNING;
-  const edge = (market * (t.wageDivider + needed)) / t.wageDivider;
-  if (needed > 0) return Math.ceil(edge);
-  return needed === 0 ? market : Math.max(0, Math.floor(edge) + 1);
+  return (
+    Math.trunc((t.wageDivider * (wage - market)) / market) -
+    (wage < market ? 1 : 0) +
+    Math.trunc((wage * bonusPercent * t.bonusMultiplier) / (100 * market))
+  );
+};
+
+/**
+ * The least whole wage whose wage and bonus terms give `needed` points. The wage term alone reaches
+ * them from W (15 + needed) / 15, and never from less than W when it is not above 0; the bonus only adds.
+ */
+const wageNeeded = (market: number, needed: number, bonusPercent: number): number => {
+  if (market <= 0) return 0;
+  const enough = (wage: number): boolean => wagePoints(wage, market, bonusPercent) >= needed;
+  let high = Math.max(
+    market,
+    Math.ceil((market * (OFFER_TUNING.wageDivider + needed)) / OFFER_TUNING.wageDivider),
+  );
+  let low = 0;
+  while (low < high) {
+    const middle = Math.floor((low + high) / 2);
+    if (enough(middle)) high = middle;
+    else low = middle + 1;
+  }
+  return low;
 };
 
 /** The terms of a successful offer, or null without a market wage (no club, no career). */
-export const offerTerms = (player: Player, context: OfferContext): OfferTerms | null => {
+export const offerTerms = (
+  player: Player,
+  context: OfferContext,
+  choice: OfferChoice = DEFAULT_CHOICE,
+): OfferTerms | null => {
   if (player.wage === null) return null;
+  const t = OFFER_TUNING;
   const value = player.price ?? 0;
   const fee = value === 0 ? null : feeNeeded(value, player.transferListed, context);
-  const years = Math.max(0, yearsWanted(player, context.seasonEndYear - player.birthYear));
-  const wage = years === 0 ? null : wageNeeded(player.wage, -pointsBeforeWage(player, context));
+  const endAge = context.seasonEndYear - player.birthYear;
+  const career = Math.max(0, player.retirementAge - endAge);
+  const wantedYears = Math.min(career, (player.id % 5) + 1);
+  const longestYears = Math.min(career, t.maxContractYears);
+  const years = choice.years ?? wantedYears;
+  const base =
+    pointsBeforeWage(player, context) +
+    (choice.double ? t.doubleOfferPoints : 0) -
+    Math.abs(years - wantedYears);
+  const wage =
+    years < 1 || years > career ? null : wageNeeded(player.wage, -base, choice.bonusPercent);
   return {
     fee,
-    feeOverCap: fee !== null && fee > value * OFFER_TUNING.feeCapShare,
+    feeOverCap: fee !== null && fee > value * t.capMultipleOfBase,
+    wantedYears,
+    longestYears,
     years,
     wage,
-    wageOverCap: wage !== null && wage > player.wage * OFFER_TUNING.wageCapShare,
+    wageOverCap: wage !== null && wage > player.wage * t.capMultipleOfBase,
+    bonus: wage === null ? 0 : Math.round((wage * choice.bonusPercent) / 100),
   };
 };
 
