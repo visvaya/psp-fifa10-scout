@@ -76,6 +76,7 @@ const MY_CLUB: readonly unknown[] = ["hide", "only"] satisfies MyClub[];
 const isMyClub = (value: unknown): value is MyClub => MY_CLUB.includes(value);
 
 const isFiniteNumber = (value: unknown): value is number => Number.isFinite(value);
+const isInteger = (value: unknown): value is number => Number.isInteger(value);
 
 const parseRange = (value: unknown): Range => {
   const { min, max } = recordOf(value);
@@ -331,9 +332,7 @@ const watchlistOf = (record: unknown): readonly WatchEntry[] => {
   return (Array.isArray(value) ? value : []).flatMap((item: unknown): readonly WatchEntry[] => {
     const { playerId, note, addedAt } = recordOf(item);
     if (
-      // Stryker disable next-line ConditionalExpression: Number.isInteger rejects a non-number too; this narrows the type.
-      typeof playerId !== "number" ||
-      !Number.isInteger(playerId) ||
+      !isInteger(playerId) ||
       typeof note !== "string" ||
       typeof addedAt !== "string" ||
       Number.isNaN(Date.parse(addedAt)) ||
