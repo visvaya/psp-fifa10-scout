@@ -171,13 +171,19 @@ export const activeRegistration = async <R extends RegistrationLike>(
       followed = worker;
       followed?.addEventListener("statechange", onState);
     };
-    const onState = () => {
-      if (followed?.state !== "redundant" || registration.active !== null) return;
-      const next = registration.installing ?? registration.waiting;
-      follow(next);
-      if (next === null) reject(new Error("The first service worker failed to install"));
+    // The browser reports a failed worker redundant before it leaves the registration: only a live,
+    // different worker is worth following; with none, the app was not stored.
+    const followNext = () => {
+      const next = [registration.installing, registration.waiting].find(
+        (worker) => worker !== null && worker !== followed && worker.state !== "redundant",
+      );
+      follow(next ?? null);
+      if (followed === null) reject(new Error("The first service worker failed to install"));
     };
-    if (registration.active === null) follow(registration.installing ?? registration.waiting);
+    const onState = () => {
+      if (followed?.state === "redundant" && registration.active === null) followNext();
+    };
+    if (registration.active === null) followNext();
     ready.then(() => {
       follow(null);
       resolve(registration);

@@ -249,9 +249,16 @@ describe("activeRegistration", () => {
   it("fails when the first worker cannot be stored, which ready would never say", async () => {
     const { registration, first, ready } = firstVisit();
     const active = activeRegistration(registration, ready);
-    registration.installing = null;
+    // The browser reports the worker redundant before it clears the registration's installing worker.
     first.moveTo("redundant");
     await expect(active).rejects.toThrow(/first service worker/u);
+    expect(first.listenerCount()).toBe(0);
+  });
+
+  it("fails at once when the first worker failed before it could be followed", async () => {
+    const { registration, first, ready } = firstVisit();
+    first.state = "redundant";
+    await expect(activeRegistration(registration, ready)).rejects.toThrow(/first service worker/u);
   });
 
   it("follows a newer worker that replaced the first one before it was active", async () => {
