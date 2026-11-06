@@ -108,16 +108,20 @@ const DB = parseEaDb(
 
 const row = (values: Readonly<Record<string, number | string>>): EaDbRow => Object.freeze(values);
 
+/** A euro career with no prestige and no staff upgrades. */
+const NO_UPGRADES = { currency: 0, prestige: 0, upgrade_fin: 0 };
+
 const SAVE: CareerSave = new Map([
   [
     "team_manager",
     [
-      row({ team_id: -1, firstname: "", surname: "", last_game_number: 0 }),
+      row({ team_id: -1, firstname: "", surname: "", last_game_number: 0, ...NO_UPGRADES }),
       row({
         team_id: 1873,
         firstname: "Nowy",
         surname: "Kariera",
         last_game_number: daysSince1582(2009, 7, 25) * 1024 + 3,
+        ...NO_UPGRADES,
       }),
     ],
   ],

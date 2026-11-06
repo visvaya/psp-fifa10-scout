@@ -130,6 +130,16 @@ export type CurrencyCode = 0 | 1 | 2;
 const isCurrencyCode = (code: number): code is CurrencyCode =>
   code === 0 || code === 1 || code === 2;
 
+const MANAGER_COLUMNS = [
+  "team_id",
+  "firstname",
+  "surname",
+  "last_game_number",
+  "currency",
+  "prestige",
+  "upgrade_fin",
+] as const;
+
 /**
  * The user team, manager name, currency, date of the last played game, prestige and the level of the
  * club's negotiator (upgrade_fin: the game's staff list names the negotiator for it, and its offer
@@ -149,8 +159,10 @@ export const careerManager = (
   const user = rowsOf(db, save, "team_manager").find((row) => row["team_id"] !== -1);
   // The profile and squads saves decrypt and parse like a career save, but have no user team.
   if (user === undefined) throw new SaveFormatError("Save has no user team", "not-career");
-  // A table without the column (test schemas) counts as euro.
-  const currency = Number(user["currency"] ?? 0);
+  if (!MANAGER_COLUMNS.every((column) => Object.hasOwn(user, column))) {
+    throw new SaveFormatError("Database team_manager lacks manager columns");
+  }
+  const currency = Number(user["currency"]);
   if (!isCurrencyCode(currency))
     throw new SaveFormatError(`Save has unknown currency ${String(currency)}`);
   return {
@@ -158,9 +170,8 @@ export const careerManager = (
     teamId: Number(user["team_id"]),
     managerName: `${String(user["firstname"])} ${String(user["surname"])}`.trim(),
     lastGameDate: gameDate(Number(user["last_game_number"])),
-    // Absent from test schemas: no prestige and no upgrades.
-    prestige: Number(user["prestige"] ?? 0),
-    negotiator: Number(user["upgrade_fin"] ?? 0),
+    prestige: Number(user["prestige"]),
+    negotiator: Number(user["upgrade_fin"]),
   };
 };
 

@@ -8,13 +8,19 @@ import type { ChunkSpec } from "./test-support/synthetic-career-save.ts";
 
 const SAVE_STRING = 0xc7000000;
 
-// team_id: 11 bits from -1, MSB first: raw 1874 (team 1873) is 0xEA40_0000, raw 0 (no team) is 0.
+// team_id: 11 bits from -1, MSB first: raw 1874 (team 1873) is 0xEA40_0000, raw 0 (no team) is 0;
+// currency, prestige and upgrade_fin follow in the same word, 0 in every record.
 const DB_BYTES = buildEaDb([
   {
     name: "team_manager",
     u32: ["last_game_number"],
     strings: ["firstname", "surname"],
-    bits: [{ name: "team_id", lo: -1, hi: 2046 }],
+    bits: [
+      { name: "team_id", lo: -1, hi: 2046 },
+      { name: "currency", lo: 0, hi: 2 },
+      { name: "prestige", lo: 0, hi: 10 },
+      { name: "upgrade_fin", lo: 0, hi: 7 },
+    ],
     rows: [{ u32: [0], strings: ["Ann", "Kariera"], area: [0, 0, 0, 0] }],
   },
   {
@@ -33,8 +39,8 @@ const DB_BYTES = buildEaDb([
   { name: "career_transfer_list", u32: ["playerid"], rows: [] },
 ]);
 const DB = parseEaDb(DB_BYTES);
-// Directory: 12-byte header, 5 pointers, then entries of 52, 36, 32 and 32 bytes.
-const DIR = { team_manager: 32, teamplayerlinks: 84, playerstats: 120, career_transfer_list: 152 };
+// Directory: 12-byte header, 5 pointers, then entries of 88, 36, 32 and 32 bytes.
+const DIR = { team_manager: 32, teamplayerlinks: 120, playerstats: 156, career_transfer_list: 188 };
 
 /** Offset of a string in the database pool, for references that point there. */
 const dbString = (text: string): number => {
@@ -99,11 +105,11 @@ const linksWith = (bitmap: readonly number[], records = LINKS.records) =>
 
 describe("parseCareerSave", () => {
   it("reads a hand-written chunk: tag, table index, block length, rows, directory offset", () => {
-    // Header (size 44), chunk: tag 4, table 1, length 16, 1 row, directory 84, record (1873, 12),
+    // Header (size 44), chunk: tag 4, table 1, length 16, 1 row, directory 120, record (1873, 12),
     // empty pool, 1-byte bitmap 0x03, padding.
     const bytes = Uint8Array.from([
       44, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 1, 0, 0, 0, 16, 0, 0, 0, 1, 0, 0,
-      0, 84, 0, 0, 0, 81, 7, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0,
+      0, 120, 0, 0, 0, 81, 7, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0,
     ]);
     expect(effectiveRows(DB, parseCareerSave(DB, bytes), "teamplayerlinks")).toEqual([
       { teamid: 1873, playerid: 12 },
@@ -171,7 +177,7 @@ describe("parseCareerSave", () => {
     expect(() => careerManager(DB, parse([]))).toThrow(/no user team/);
   });
 
-  it("reads the currency, euro for a table without the column, and rejects an unknown one", () => {
+  it("reads the currency and rejects an unknown one", () => {
     const user = parse([MANAGERS])
       .get("team_manager")
       ?.find((row) => row["team_id"] !== -1);
@@ -181,6 +187,18 @@ describe("parseCareerSave", () => {
     expect(withCurrency(2).currency).toBe(2);
     expect(() => withCurrency(3)).toThrow(/unknown currency 3/);
   });
+
+  it.each(["team_id", "currency", "upgrade_fin"])(
+    "rejects a team_manager table without %s",
+    (column) => {
+      const user = { team_id: 1873, firstname: "A", surname: "B", last_game_number: 0x9839807 };
+      const full = { ...user, currency: 0, prestige: 0, upgrade_fin: 0 };
+      const row = Object.fromEntries(Object.entries(full).filter(([key]) => key !== column));
+      expect(() => careerManager(DB, new Map([["team_manager", [row]]]))).toThrow(
+        /team_manager lacks manager columns/,
+      );
+    },
+  );
 
   it("reads a bitmap over several bytes and chunks that end at the end of the file", () => {
     const stats = { ...STATS_CLEAR, rows: 1, records: le32(7) };

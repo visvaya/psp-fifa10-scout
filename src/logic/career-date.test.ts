@@ -42,7 +42,17 @@ const save = (fixtures: readonly EaDbRow[]): CareerSave =>
   new Map([
     [
       "team_manager",
-      [row({ team_id: 1, firstname: "A", surname: "B", last_game_number: gameOn(2009, 10, 7) })],
+      [
+        row({
+          team_id: 1,
+          firstname: "A",
+          surname: "B",
+          last_game_number: gameOn(2009, 10, 7),
+          currency: 0,
+          prestige: 0,
+          upgrade_fin: 0,
+        }),
+      ],
     ],
     [
       "teamplayerlinks",

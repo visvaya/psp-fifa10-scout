@@ -85,6 +85,8 @@ const SAVE: CareerSave = new Map([
         surname: "B",
         last_game_number: daysSince1582(2009, 7, 25) * 1024,
         currency: 0,
+        prestige: 0,
+        upgrade_fin: 0,
       }),
     ],
   ],

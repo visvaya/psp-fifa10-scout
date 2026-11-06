@@ -263,6 +263,7 @@ describe("offerContextOf", () => {
             firstname: "A",
             surname: "B",
             last_game_number: 0,
+            currency: 0,
             prestige: 3,
             upgrade_fin: 2,
           },
