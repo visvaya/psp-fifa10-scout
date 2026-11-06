@@ -153,9 +153,12 @@ export const columnText = (
   column: SortKey,
   ratingCode: number | null,
 ): string | null => {
+  // The best peak is a rating badge with the position beside it: the width counts both.
+  if (column === "bestPeak" && player.bestPeak !== null && player.bestPeakName !== null)
+    return `${formatNumber(player.bestPeak)} ${player.bestPeakName}`;
   if (numberIn(player, column, ratingCode) !== null) return null;
   if (isTextColumn(column)) return String(cellText(player, column));
-  const field = isRangeKey(column) ? rangeValue(player, column) : null;
+  const field = isRangeKey(column) || column === "bestPeakGain" ? rangeValue(player, column) : null;
   if (field === null) return null;
   return column === "form" ? formatRating(field) : formatNumber(field);
 };
@@ -170,10 +173,10 @@ export const ColumnValue = (props: {
   const value = numberIn(player, column, ratingCode);
   if (value !== null) {
     if (column === "ratingGain") return <GainValue value={value} />;
-    return column === "bestPeak" && player.bestPeakCode !== null ? (
+    return column === "bestPeak" && player.bestPeakCode !== null && player.bestPeakName !== null ? (
       <>
         <AttributeValue value={value} />{" "}
-        <PositionName code={player.bestPeakCode} name={player.bestPeakName ?? ""} />
+        <PositionName code={player.bestPeakCode} name={player.bestPeakName} />
       </>
     ) : (
       <AttributeValue value={value} />

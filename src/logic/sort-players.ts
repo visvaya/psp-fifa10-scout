@@ -23,8 +23,6 @@ export const POTENTIAL_KEYS: ReadonlySet<SortKey> = new Set([
   "growth",
   "peak",
   "peakGain",
-  "bestPeak",
-  "bestPeakGain",
   "positionPeak",
 ]);
 

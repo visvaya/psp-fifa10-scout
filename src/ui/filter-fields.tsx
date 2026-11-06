@@ -260,7 +260,7 @@ export interface Choice<T> {
 export const CheckField = (props: {
   label: string;
   checked: boolean;
-  help?: string | undefined;
+  help: string;
   onChange: (checked: boolean) => void;
 }): JSX.Element => {
   const { describedBy, note } = useFieldHelp(props.help);

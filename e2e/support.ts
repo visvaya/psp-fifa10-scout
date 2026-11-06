@@ -39,6 +39,13 @@ export const readStored = async (key: string): Promise<unknown> =>
     });
   });
 
+/** The stored column choices as JSON, "{}" when there are none. */
+export const storedColumns = async (page: Page): Promise<string> => {
+  const stored = await page.evaluate(readStored, "preferences");
+  const value: unknown = Reflect.get(Object(stored), "value");
+  return JSON.stringify(Reflect.get(Object(value), "columns") ?? {});
+};
+
 /** Waits until the stored preferences include a position group: a reload before the IndexedDB write
  * commits would restore the previous filters (a fast CI runner reloads within that window). */
 export const expectStoredPositionGroup = async (page: Page, group: string) => {

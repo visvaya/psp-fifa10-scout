@@ -22,8 +22,6 @@ const RANGE_FIELDS = [
   "growth",
   "peak",
   "peakGain",
-  "bestPeak",
-  "bestPeakGain",
   "height",
   "weight",
   "weakFoot",
@@ -82,8 +80,6 @@ export const FLAG_KEYS: readonly FlagKey[] = [
 export const CAREER_RANGE_KEYS = [
   "peak",
   "peakGain",
-  "bestPeak",
-  "bestPeakGain",
   "form",
   "morale",
   ...SEASON_STAT_KEYS,
@@ -164,11 +160,16 @@ export const ratingGain = (player: Player, code: number): number | null => {
 
 type Predicate = (player: Player) => boolean;
 
-/** The peak fields and their best-position twins, which fill the same columns, ranges and sorts. */
+/**
+ * The peak fields and their best-position twins. The state stores only the first of each pair; the twin
+ * is what the ranges, the sort and the list columns read while peakAtBest is on.
+ */
 const PEAK_PAIRS = [
   ["peak", "bestPeak"],
   ["peakGain", "bestPeakGain"],
 ] as const;
+
+export type PeakTwin = (typeof PEAK_PAIRS)[number][1];
 
 /** The key a peak field has while peakAtBest is on or off (either twin may be given); others as they are. */
 export const peakField = <K extends string>(
@@ -184,7 +185,7 @@ export const peakAt = (player: Player, code: number): number | null =>
   player.peakByCode[code] ?? null;
 
 /** A player's value for a range filter: a field, or an attribute. */
-export const rangeValue = (player: Player, key: RangeKey): number | null =>
+export const rangeValue = (player: Player, key: RangeKey | PeakTwin): number | null =>
   isAttributeName(key) ? player.attributes[key] : player[key];
 
 const hasFlag = (player: Player, flag: Exclude<FlagKey, "onMyList">): boolean => {

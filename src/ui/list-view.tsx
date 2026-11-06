@@ -64,13 +64,12 @@ const SortControls = ({
       >
         {SORTABLE_KEYS.filter(
           (key) =>
-            peakField(key, state.filters.peakAtBest === true) === key &&
             (state.showPotential || !POTENTIAL_KEYS.has(key)) &&
             ((key !== "peak" && key !== "positionPeak") || state.myTeamId !== null) &&
             (!RATING_SORT_KEYS.has(key) || state.filters.positionRating !== undefined),
         ).map((key) => (
           <option key={key} value={key}>
-            {columnLabel(key, ratingName)}
+            {columnLabel(peakField(key, state.filters.peakAtBest === true), ratingName)}
           </option>
         ))}
       </select>
@@ -125,17 +124,23 @@ const useVisiblePlayers = (
   const listed = useWatchedIds(
     filters.flags?.onMyList === undefined ? NO_ENTRIES : state.watchlist,
   );
+  // The stored peak sort reads the best position's peak while peakAtBest is on; headers mark that key.
+  const atBest = filters.peakAtBest === true;
+  const shownSort = useMemo(
+    () => ({ key: peakField(sort.key, atBest), direction: sort.direction }),
+    [sort, atBest],
+  );
   const visible = useMemo(
     () =>
       sortPlayers(
         filterPlayers(players, effectiveFilters(filters, state.myTeamId, listed)),
-        sort.key,
-        sort.direction,
+        shownSort.key,
+        shownSort.direction,
         { ratingCode: filters.positionRating?.code, collator },
       ),
-    [players, filters, sort, state.myTeamId, listed, collator],
+    [players, filters, shownSort, state.myTeamId, listed, collator],
   );
-  return { visible, sort };
+  return { visible, sort: shownSort, atBest };
 };
 
 /**
@@ -144,12 +149,12 @@ const useVisiblePlayers = (
  */
 const useColumns = (state: ScoutState, players: readonly Player[], wide: boolean) => {
   const { showPotential, columns, myTeamId, sort } = state;
-  const { positionRating, ranges, peakAtBest } = state.filters;
+  const { positionRating, ranges } = state.filters;
   const priced = useMemo(() => players.some((player) => player.price !== null), [players]);
   const projected = useMemo(() => players.some((player) => player.peak !== null), [players]);
   return useMemo(() => {
     const ratingCode = positionRating?.code ?? null;
-    const layout = wide
+    const automatic = wide
       ? tableColumns({
           ratingCode,
           showPotential,
@@ -164,26 +169,13 @@ const useColumns = (state: ScoutState, players: readonly Player[], wide: boolean
           ranges,
           sortKey: sort.key,
         });
-    // The peak columns show the best position's while peakAtBest is on.
-    const automatic = layout.map((key) => peakField(key, peakAtBest === true));
     const effective = effectiveColumns(automatic, columns, {
       showPotential,
       ratingCode,
       career: myTeamId !== null,
     });
     return { columns: effective, automatic };
-  }, [
-    wide,
-    showPotential,
-    columns,
-    myTeamId,
-    sort.key,
-    positionRating,
-    ranges,
-    peakAtBest,
-    priced,
-    projected,
-  ]);
+  }, [wide, showPotential, columns, myTeamId, sort.key, positionRating, ranges, priced, projected]);
 };
 
 const FiltersDialogButton = ({ count, children }: { count: number; children: ReactNode }) => {
@@ -241,7 +233,11 @@ const ListResults = ({
   columns,
   dispatch,
 }: ListViewProps & { form: JSX.Element; columns: readonly SortKey[] }) => {
-  const { visible, sort } = useVisiblePlayers(players, state, collator);
+  const { visible, sort, atBest } = useVisiblePlayers(players, state, collator);
+  const shownColumns = useMemo(
+    () => columns.map((column) => peakField(column, atBest)),
+    [columns, atBest],
+  );
   const ratingCode = state.filters.positionRating?.code ?? null;
   const ratingName = ratingCode === null ? null : ratingAbbreviation(ratingCode, positionName);
   const List = wide ? PlayerTable : PlayerCards;
@@ -274,7 +270,7 @@ const ListResults = ({
           players={visible}
           allPlayers={players}
           sort={sort}
-          columns={columns}
+          columns={shownColumns}
           ratingCode={ratingCode}
           ratingName={ratingName}
           currency={state.career?.currency ?? null}

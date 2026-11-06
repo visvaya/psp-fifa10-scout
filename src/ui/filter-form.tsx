@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import type { Dispatch, JSX } from "react";
 import type { CurrencyCode } from "../data/career-save.ts";
-import { peakField } from "../logic/filter-players.ts";
 import type { FlagKey, ListKey, RangeKey } from "../logic/filter-players.ts";
 import { SEASON_STAT_KEYS, TRAIT_NAMES } from "../logic/players.ts";
 import type { Player, TraitName } from "../logic/players.ts";
@@ -25,7 +24,7 @@ import type { Choice } from "./filter-fields.tsx";
 import { PotentialSwitch } from "./filter-panel-controls.tsx";
 import { SettingsActions } from "./settings-actions.tsx";
 import type { Settings } from "./settings-actions.tsx";
-import { FIELD_HELP } from "./text-help.ts";
+import { FIELD_HELP, PEAK_AT_BEST_HELP } from "./text-help.ts";
 import { PositionRatingField } from "./position-rating-field.tsx";
 import {
   CLUB_STATUS_LABELS,
@@ -188,7 +187,7 @@ const controls = (
       grouped={GROUPED_RANGES.has(key)}
       decimal={key === "form"}
       help={FIELD_HELP[key]}
-      column={eye(peakField(key, filters.peakAtBest === true))}
+      column={eye(key)}
       onChange={(range) => {
         change({ ranges: { ...filters.ranges, [key]: range } });
       }}
@@ -237,7 +236,7 @@ const peakFields = ({ filters, change, range }: Kit) => [
     key="peakAtBest"
     label={TEXT.peakAtBest}
     checked={filters.peakAtBest === true}
-    help={FIELD_HELP.bestPeak}
+    help={PEAK_AT_BEST_HELP}
     onChange={(peakAtBest) => {
       change({ peakAtBest });
     }}

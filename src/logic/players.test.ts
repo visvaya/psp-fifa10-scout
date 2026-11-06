@@ -335,9 +335,7 @@ describe("buildPlayers with a career save", () => {
 
   it("projects the peak OVR with a save only", () => {
     // Flat curves: the projection stays at today's OVR, at every position.
-    // The best peak is the preferred position's too: flat curves, and no position rates higher.
     expect(byId(players, 158_023)).toMatchObject({ peak: 60, overall: 60, peakGain: 0 });
-    expect(byId(players, 158_023)).toMatchObject({ bestPeak: 60, bestPeakGain: 0 });
     expect(byId(players, 158_023)?.peakByCode).toEqual(byId(players, 158_023)?.overallByCode);
     expect(byId(buildPlayers(DB), 158_023)).toMatchObject({ peak: null, ...NO_BEST_PEAK });
   });

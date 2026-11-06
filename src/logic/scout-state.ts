@@ -276,11 +276,9 @@ const withPotential = (preferences: Preferences): Preferences => {
 /** Preferences whose sort fits the filters: by position rating only while a position is chosen. */
 const consistent = (preferences: Preferences): Preferences => {
   const shown = withPotential(preferences);
-  if (RATING_SORT_KEYS.has(shown.sort.key) && shown.filters.positionRating === undefined)
-    return { ...shown, sort: DEFAULT_SORT };
-  // The peak sorts follow the filters' mode: by the best position's while peakAtBest is on.
-  const key = peakField(shown.sort.key, shown.filters.peakAtBest === true);
-  return key === shown.sort.key ? shown : { ...shown, sort: { ...shown.sort, key } };
+  return RATING_SORT_KEYS.has(shown.sort.key) && shown.filters.positionRating === undefined
+    ? { ...shown, sort: DEFAULT_SORT }
+    : shown;
 };
 
 const isLoadAction = (action: ScoutAction): action is LoadAction => action.type.startsWith("load-");
@@ -417,11 +415,11 @@ const changes = (
       };
     case "potential-shown":
       return { ...state, ...consistent({ ...state, showPotential: action.shown }) };
-    case "sort-changed":
-      return {
-        ...state,
-        sort: { key: action.key, direction: nextDirection(state.sort, action.key) },
-      };
+    case "sort-changed": {
+      // A best-peak column sorts the stored peak: the list maps it back by the filters' mode.
+      const key = peakField(action.key, false);
+      return { ...state, sort: { key, direction: nextDirection(state.sort, key) } };
+    }
     case "preferences-restored":
       return withPreferences(state, action.preferences);
 
