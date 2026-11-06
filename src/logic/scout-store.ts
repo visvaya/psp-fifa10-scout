@@ -4,7 +4,6 @@
 // the game file's name) and languages 1 and 2 to 3 (empty for the position names they lack); any other
 // version or shape is ignored, and
 // unknown or malformed filter values are dropped one by one.
-import { GROUP_STAT_KEYS } from "./attribute-groups.ts";
 import type { GameLanguages, GameNames } from "./game-names.ts";
 import { FLAG_KEYS, LIST_FIELDS, RANGE_KEYS } from "./filter-players.ts";
 import type { ListKey, PositionRating, Range } from "./filter-players.ts";
@@ -12,7 +11,7 @@ import type { SaveFiles } from "./load-scout.ts";
 import { OVR_WEIGHTS } from "./overall-rating.ts";
 import { ATTRIBUTE_NAMES, SEASON_STAT_KEYS } from "./players.ts";
 import { POSITION_GROUPS, ratingCodeOf } from "./positions.ts";
-import { compactFilters, inRecordOrder } from "./scout-state.ts";
+import { compactFilters, DEFAULT_SORT, inRecordOrder } from "./scout-state.ts";
 import type { ClubStatus, MyClub, Preferences, ScoutFilters, ScoutSort } from "./scout-state.ts";
 import type { FilterSet } from "./saved-filters.ts";
 import type { SortKey } from "./sort-players.ts";
@@ -49,7 +48,7 @@ export interface StoredScout {
   readonly watchlist: readonly WatchEntry[];
 }
 
-/** The sort keys the screens offer; anything else in storage is dropped. */
+/** The sort keys the screens offer; anything else in storage falls back to the default sort. */
 export const SORTABLE_KEYS: readonly SortKey[] = [
   "name",
   "age",
@@ -80,7 +79,6 @@ export const SORTABLE_KEYS: readonly SortKey[] = [
   "ratingGain",
   "positionPeak",
   ...ATTRIBUTE_NAMES,
-  ...GROUP_STAT_KEYS,
 ];
 
 export const memoryBackend = (): StorageBackend => {
@@ -188,36 +186,36 @@ const parseFilters = (value: unknown): ScoutFilters => {
   };
 };
 
-const parseSort = (value: unknown): ScoutSort | null => {
+/** The stored sort, or the default for a key the app no longer offers (the filters around it still load). */
+const parseSort = (value: unknown): ScoutSort => {
   const { key, direction } = recordOf(value);
   const sortKey = SORTABLE_KEYS.find((sortable) => sortable === key);
   return sortKey === undefined || (direction !== "ascending" && direction !== "descending")
-    ? null
+    ? DEFAULT_SORT
     : { key: sortKey, direction };
 };
 
-/** The stored named filter sets with a name and a valid sort; others are dropped. */
+/** The stored named filter sets with a name; others are dropped. */
 const parseFilterSets = (value: unknown): readonly FilterSet[] => {
   const seen = new Set<string>();
   return (Array.isArray(value) ? value : []).flatMap((item: unknown): readonly FilterSet[] => {
-    const { name, filters } = recordOf(item);
-    const sort = parseSort(recordOf(item)["sort"]);
+    const { name, filters, sort } = recordOf(item);
     const trimmed = typeof name === "string" ? name.trim() : "";
     // Names are unique, as saving keeps them: of two sets with one name the first stays.
-    if (trimmed === "" || sort === null || seen.has(trimmed)) return [];
+    if (trimmed === "" || seen.has(trimmed)) return [];
     seen.add(trimmed);
-    return [{ name: trimmed, filters: compactFilters(parseFilters(filters)), sort }];
+    return [
+      { name: trimmed, filters: compactFilters(parseFilters(filters)), sort: parseSort(sort) },
+    ];
   });
 };
 
 const parsePreferences = (value: unknown): Preferences | null => {
   if (!isRecord(value) || !isRecord(value["filters"])) return null;
-  const sort = parseSort(value["sort"]);
-  if (sort === null) return null;
   const filterSets = parseFilterSets(value["filterSets"]);
   return {
     filters: compactFilters(parseFilters(value["filters"])),
-    sort,
+    sort: parseSort(value["sort"]),
     ...(filterSets.length === 0 ? {} : { filterSets }),
     showPotential: value["showPotential"] === true,
     ...(typeof value["gameLanguage"] === "string" || value["gameLanguage"] === null
