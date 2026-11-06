@@ -1186,6 +1186,12 @@ input[inputmode="numeric"] {
   min-width: 0;
 }
 
+.offer-controls {
+  display: grid;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
 .watchlist {
   display: grid;
   gap: var(--space-2);

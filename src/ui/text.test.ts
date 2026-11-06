@@ -47,11 +47,9 @@ describe("TEXT.resultCount", () => {
 });
 
 describe("TEXT.card money", () => {
-  it("labels one wage or a range in the save's currency as an estimate", () => {
-    expect(TEXT.card.wageEstimate(4500, 4500, 0)).toBe("4500 € (szacunek)");
-    expect(TEXT.card.wageEstimate(10_000, 13_000, 2)).toBe(
-      `${formatNumber(10_000)}–${formatNumber(13_000)} $ (szacunek)`,
-    );
+  it("labels a wage in the save's currency as an estimate", () => {
+    expect(TEXT.card.wageEstimate(4500, 0)).toBe("4500 € (szacunek)");
+    expect(TEXT.card.wageEstimate(10_000, 2)).toBe(`${formatNumber(10_000)} $ (szacunek)`);
   });
 
   it("shows money with the currency symbol", () => {

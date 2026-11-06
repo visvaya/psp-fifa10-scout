@@ -1,7 +1,6 @@
 import { useCallback, useState } from "react";
 import type { Dispatch, JSX, ReactNode } from "react";
 import type { CurrencyCode } from "../data/career-save.ts";
-import { offerTerms } from "../logic/offer.ts";
 import type { OfferContext } from "../logic/offer.ts";
 import type { AttributeName, Player } from "../logic/players.ts";
 import type { ScoutAction } from "../logic/scout-state.ts";
@@ -26,7 +25,8 @@ import {
   RANGE_LABELS,
   TEXT,
 } from "./text.ts";
-import { OFFER_TEXT } from "./text-offer.ts";
+import { Facts } from "./facts.tsx";
+import { OfferFacts } from "./offer-facts.tsx";
 
 const ATTRIBUTE_GROUPS: readonly (readonly [
   keyof typeof ATTRIBUTE_GROUP_LABELS,
@@ -42,17 +42,6 @@ const ATTRIBUTE_GROUPS: readonly (readonly [
   ["defending", ["marking", "tackling"]],
   ["goalkeeping", ["gkdiving", "gkpositioning", "handling", "reflexes"]],
 ];
-
-const Facts = ({ facts }: { facts: readonly (readonly [string, ReactNode])[] }) => (
-  <dl className="facts">
-    {facts.map(([label, value]) => (
-      <div key={label}>
-        <dt>{label}</dt>
-        <dd>{value}</dd>
-      </div>
-    ))}
-  </dl>
-);
 
 const optional = (value: number | string | null): ReactNode =>
   value === null ? TEXT.card.none : typeof value === "number" ? formatNumber(value) : value;
@@ -97,7 +86,7 @@ const profile = (
 
 /** Price and wage, career only: the user's squad shows its stored wage, others an estimate. */
 const money = (
-  { price, wage, wageMax }: Player,
+  { price, wage, storedWage }: Player,
   currency: CurrencyCode | null,
 ): readonly (readonly [string, ReactNode])[] =>
   price === null || wage === null || currency === null
@@ -105,11 +94,8 @@ const money = (
     : [
         [TEXT.card.price, TEXT.card.money(price, currency)],
         [
-          // A null wageMax: the wage stored in the user's own player's contract.
-          wageMax === null ? TEXT.card.contractWage : TEXT.card.wage,
-          wageMax === null
-            ? TEXT.card.money(wage, currency)
-            : TEXT.card.wageEstimate(wage, wageMax, currency),
+          storedWage ? TEXT.card.contractWage : TEXT.card.wage,
+          storedWage ? TEXT.card.money(wage, currency) : TEXT.card.wageEstimate(wage, currency),
         ],
       ];
 
@@ -204,36 +190,6 @@ const ChoiceRatings = (props: { player: Player; names: PositionNames }) => {
   );
 };
 
-/** What an offer needs to succeed (offer.ts), career only, for a player of another club. */
-const OfferFacts = (props: { player: Player; context: OfferContext; currency: CurrencyCode }) => {
-  const { player, context, currency } = props;
-  const terms = offerTerms(player, context);
-  if (terms === null) return null;
-  const { fee, wage, years } = terms;
-  return (
-    <section aria-labelledby="offer-title">
-      <h3 id="offer-title">{OFFER_TEXT.title}</h3>
-      <p className="help">{OFFER_TEXT.note}</p>
-      <Facts
-        facts={[
-          [OFFER_TEXT.fee, fee === null ? OFFER_TEXT.noFee : TEXT.card.money(fee, currency)],
-          [
-            OFFER_TEXT.wage,
-            wage === null
-              ? OFFER_TEXT.never
-              : OFFER_TEXT.wageValue(TEXT.card.money(wage, currency), TEXT.years(years)),
-          ],
-        ]}
-      />
-      {player.saleRefusal === null ? null : (
-        <p className="help">{OFFER_TEXT.refusals[player.saleRefusal]}</p>
-      )}
-      {terms.feeOverCap ? <p className="help">{OFFER_TEXT.feeOverCap}</p> : null}
-      {terms.wageOverCap ? <p className="help">{OFFER_TEXT.wageOverCap}</p> : null}
-    </section>
-  );
-};
-
 /** The season so far, career only. */
 const CareerFacts = ({ player }: { player: Player }) => (
   <section aria-labelledby="career-title">
@@ -304,9 +260,11 @@ export const PlayerCard = (props: {
       {showPotential && player.peak !== null ? (
         <p className="help">{TEXT.card.peakNote(player.potential, player.peak)}</p>
       ) : null}
-      {player.wageMax === null ? null : <p className="help">{TEXT.card.wageNote}</p>}
+      {player.wage === null || player.storedWage ? null : (
+        <p className="help">{TEXT.card.wageNote}</p>
+      )}
       {offer === null || currency === null ? null : (
-        <OfferFacts player={player} context={offer} currency={currency} />
+        <OfferFacts key={player.id} player={player} context={offer} currency={currency} />
       )}
       {career ? <CareerFacts player={player} /> : null}
       <section aria-labelledby="profile-title">
