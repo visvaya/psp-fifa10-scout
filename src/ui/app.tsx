@@ -15,6 +15,7 @@ import type { PositionNames } from "./position-name.tsx";
 import { StartScreen } from "./start-screen.tsx";
 import { TEXT } from "./text.ts";
 import { canCheck, UPDATE_CHECK_ID, useAppUpdate } from "./app-update.ts";
+import type { UpdatableRegistration } from "./app-update.ts";
 import { UpdatePrompt } from "./update-prompt.tsx";
 import { useMediaQuery } from "./use-media-query.ts";
 import { useScoutFiles } from "./use-scout-files.ts";
@@ -126,12 +127,13 @@ const StorageNotice = ({ failed }: { failed: boolean }) => (
   <output className="storage-notice">{failed ? <p>{TEXT.storageFailed}</p> : null}</output>
 );
 
-export const App = (): JSX.Element => {
+/** registering: the service worker's registration, null where none is made (main.tsx). */
+export const App = (props: { registering: Promise<UpdatableRegistration> | null }): JSX.Element => {
   const [state, dispatch] = useReducer(scoutReducer, initialScoutState);
   const files = useScoutFiles(dispatch);
   const wide = useMediaQuery(WIDE_QUERY);
   const { language, players, collator, positionNames } = useGameNames(state);
-  const update = useAppUpdate();
+  const update = useAppUpdate(props.registering);
   useStoredState(state, files);
   const { view, showPotential } = state;
 

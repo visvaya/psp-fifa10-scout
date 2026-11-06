@@ -196,11 +196,8 @@ const withUpdate = (registration: ReturnType<typeof makeRegistration>, update: (
 
 describe("isDismissible", () => {
   it("lets the user close a result with no action of its own", () => {
-    expect((["current", "unreachable", "failed"] as const).map(isDismissible)).toEqual([
-      true,
-      true,
-      true,
-    ]);
+    const results = ["current", "unreachable", "failed", "unregistered"] as const;
+    expect(results.map(isDismissible)).toEqual([true, true, true, true]);
     const kept = ["idle", "checking", "downloading", "waiting", "installing", "outdated"] as const;
     expect(kept.map(isDismissible)).toEqual([false, false, false, false, false, false]);
   });

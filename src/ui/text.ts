@@ -292,6 +292,7 @@ export const TEXT = {
     installing: "Instalowanie nowej wersji…",
     outdated: pl`Nowa wersja została zainstalowana w innym oknie. Wczytane dane gry, zapis kariery i filtry zostaną zachowane.`,
     failed: "Nie udało się pobrać nowej wersji. Spróbuj później.",
+    unregistered: pl`Nie udało się zapisać narzędzia do pracy bez internetu. Odśwież stronę, aby spróbować ponownie.`,
     checking: "Sprawdzanie aktualizacji…",
     downloading: "Pobieranie nowej wersji…",
     current: "Masz najnowszą wersję.",

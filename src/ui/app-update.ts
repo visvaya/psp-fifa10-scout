@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * - installing: the user asked for it, the page reloads once it has taken over;
  * - outdated: another window installed it, this page still runs the old code;
  * - failed: a new release could not be stored or did not take over;
+ * - unregistered: the service worker could not be registered, so the app does not work offline;
  * - checking, downloading, current, unreachable: a check the user asked for (checkForUpdate).
  */
 export type UpdateStatus =
@@ -16,6 +17,7 @@ export type UpdateStatus =
   | "installing"
   | "outdated"
   | "failed"
+  | "unregistered"
   | "checking"
   | "downloading"
   | "current"
@@ -164,9 +166,9 @@ const serverReachable = (): Promise<boolean> =>
 /** How long "up to date" stays before it goes by itself. */
 const CURRENT_SHOWN_MS = 5000;
 
-/** A result with no action of its own, which the user can close: up to date, unreachable, failed. */
+/** A result with no action of its own, which the user can close: up to date, unreachable, a failure. */
 export const isDismissible = (status: UpdateStatus): boolean =>
-  status === "current" || status === "unreachable" || status === "failed";
+  ["current", "unreachable", "failed", "unregistered"].includes(status);
 
 /**
  * Whether a check may start: not while one runs, and not while a release waits to be installed (its
@@ -206,16 +208,17 @@ const useExpiringCurrent = (
 
 /**
  * The update prompt's state and actions (React); `install` also serves "outdated" as a plain reload,
- * `check` looks for a new release on request once a worker is registered (`registered`).
+ * `check` looks for a new release on request once a worker is registered (`registered`). `registering`
+ * is the service worker's registration, null where none is made (development, an insecure page).
  */
-export const useAppUpdate = () => {
+export const useAppUpdate = (registering: Promise<UpdatableRegistration> | null) => {
   const [status, setStatus] = useState<UpdateStatus>("idle");
   const [registered, setRegistered] = useState(false);
   const registration = useRef<UpdatableRegistration | null>(null);
   const stopWatching = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    if (!("serviceWorker" in navigator)) return undefined;
+    if (registering === null) return undefined;
     let mounted = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const report = (next: UpdateStatus) => {
@@ -223,26 +226,23 @@ export const useAppUpdate = () => {
       if (next === "waiting") timer = setTimeout(() => setStatus(next), WAITING_SHOWN_AFTER_MS);
       else setStatus(next);
     };
-    // On a first visit the lookup can run before register() has made the registration (the
-    // specification does not order them); then the worker's readiness brings it.
-    navigator.serviceWorker
-      .getRegistration()
-      .then((found) => found ?? navigator.serviceWorker.ready)
-      .then(
-        (found) => {
-          if (!mounted) return;
-          registration.current = found;
-          setRegistered(true);
-          stopWatching.current = watchForUpdates(found, report);
-        },
-        () => undefined,
-      );
+    registering.then(
+      (found) => {
+        if (!mounted) return;
+        registration.current = found;
+        setRegistered(true);
+        stopWatching.current = watchForUpdates(found, report);
+      },
+      () => {
+        if (mounted) setStatus("unregistered");
+      },
+    );
     return () => {
       mounted = false;
       clearTimeout(timer);
       stopWatching.current?.();
     };
-  }, []);
+  }, [registering]);
 
   const install = useCallback(() => {
     if (status === "outdated") {
