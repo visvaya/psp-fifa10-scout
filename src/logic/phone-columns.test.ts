@@ -69,15 +69,4 @@ describe("phoneColumns", () => {
       }),
     ).toEqual(["overall"]);
   });
-
-  it("shows a group's average or spread as it does an attribute: ranged or sorted by", () => {
-    const base = { showPotential: false, ratingCode: null, ratingPeakSet: false };
-    expect(
-      phoneColumns({
-        ...base,
-        ranges: { mentalAverage: { min: 60 }, stamina: { min: 50 } },
-        sortKey: "goalkeepingSpread",
-      }),
-    ).toEqual(["overall", "mentalAverage", "stamina", "goalkeepingSpread"]);
-  });
 });

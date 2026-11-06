@@ -138,17 +138,6 @@ describe("filterPlayers", () => {
     expect(ids({ ranges: { dribbling: { max: 50 } } })).toEqual([1, 3, 4]);
   });
 
-  it("ranges a group's average and spread", () => {
-    // Messi: technique 57,8 (one 97, five 50) and a spread of 47; shooting 60 and 40; the rest 50 and 0.
-    expect(ids({ ranges: { techniqueAverage: { min: 57.8 } } })).toEqual([2]);
-    expect(ids({ ranges: { techniqueAverage: { min: 57.9 } } })).toEqual([]);
-    expect(ids({ ranges: { techniqueSpread: { min: 47 } } })).toEqual([2]);
-    expect(ids({ ranges: { shootingSpread: { max: 39 } } })).toEqual([1, 3, 4]);
-    expect(
-      ids({ ranges: { defendingAverage: { min: 50, max: 50 }, techniqueSpread: { min: 1 } } }),
-    ).toEqual([2]);
-  });
-
   it("ranges the price and the wage, never passing a player without them", () => {
     const players = [
       testPlayer({ id: 1, price: 0, wage: 0 }),
@@ -320,15 +309,5 @@ describe("rangedAttributes", () => {
     };
     expect(rangedAttributes(ranges)).toEqual(["dribbling", "finishing"]);
     expect(rangedAttributes(undefined)).toEqual([]);
-  });
-
-  it("includes the group averages and spreads", () => {
-    const ranges = {
-      mentalSpread: { min: 5 },
-      age: { max: 21 },
-      finishing: { max: 9 },
-      shootingAverage: {},
-    };
-    expect(rangedAttributes(ranges)).toEqual(["mentalSpread", "finishing"]);
   });
 });

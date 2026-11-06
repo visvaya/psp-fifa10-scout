@@ -1,7 +1,8 @@
 /** Every text the user reads, in one module, with the Polish number and plural helpers. */
 import type { CurrencyCode } from "../data/career-save.ts";
 import type { CareerSummary, LoadErrorKind, LoadPhase, LoadStage } from "../logic/load-scout.ts";
-import type { FlagKey, ListKey, RangeFields } from "../logic/filter-players.ts";
+import type { FlagKey, ListKey, RangeFields, RangeKey } from "../logic/filter-players.ts";
+import { isAttributeName } from "../logic/players.ts";
 import type { AttributeName } from "../logic/players.ts";
 import type { PositionGroup } from "../logic/positions.ts";
 import type { ClubStatus, MyClub, ScoutError } from "../logic/scout-state.ts";
@@ -143,6 +144,9 @@ export const RANGE_LABELS: Readonly<Record<RangeFields, string>> = {
   price: "Cena",
   wage: "Zarobki rynkowe (szacunek)",
 };
+
+export const rangeLabel = (key: RangeKey): string =>
+  isAttributeName(key) ? ATTRIBUTE_LABELS[key] : RANGE_LABELS[key];
 
 export const LIST_LABELS: Readonly<Record<ListKey, string>> = {
   positionGroup: "Pozycje",
@@ -323,7 +327,6 @@ export const TEXT = {
   clubStatus: "Zawodnicy",
   myClub: "Mój klub",
   addAttribute: "Dodaj atrybut",
-  attributeGroups: "Grupy atrybutów",
   chooseAttribute: "Wybierz atrybut",
   removeAttribute: (label: string): string => `Usuń atrybut: ${label}`,
   searchIn: (label: string): string => `Szukaj: ${label}`,
@@ -412,10 +415,6 @@ export const TEXT = {
     weakFoot: "Słabsza noga",
     starsOutOfFive: (stars: number): string => `${formatNumber(stars)} z 5 gwiazdek`,
     profile: "Profil",
-    /** The line under a group's name; the range with an en dash. */
-    groupSummary: (average: number, min: number, max: number, spread: number): string =>
-      pl`Średnia ${formatRating(average)}, zakres ${formatNumber(min)}–${formatNumber(max)} (rozrzut ${formatNumber(spread)})`,
-    unevenProfile: "Nierówny profil",
     internationalReputation: "Reputacja międzynarodowa",
     learningSpeed: "Szybkość nauki",
     yes: "tak",

@@ -11,20 +11,6 @@ export const SCOUT_CONFIG = {
   freeAgentTeamId: 111_259,
   /** Lowest value of each attribute colour band, as the game colours them; below average is low. */
   attributeBandMin: { high: 80, good: 70, average: 50 },
-  /**
-   * Spread of a group (strongest minus weakest attribute) from which the card calls the profile uneven,
-   * in attribute points: the 80th percentile (nearest rank) of the group's spreads in the fifa.db of the
-   * game, measured 2026-11-05 among the 1305 goalkeepers for the goalkeeping group and among the 11 740
-   * outfield players for the other five (13 045 players in all).
-   */
-  attributeGroupUnevenSpreadMin: {
-    physical: 27,
-    technique: 32,
-    shooting: 33,
-    mental: 20,
-    defending: 8,
-    goalkeeping: 13,
-  },
   /** Seasons ahead the peak OVR projection looks: from 16 years old past the oldest curve age. */
   peakProjectionYears: 20,
   /** Longest note on a player of the own watchlist, in characters. */
