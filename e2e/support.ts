@@ -8,28 +8,30 @@ import { SYNTHETIC_DB_PATH, SYNTHETIC_SAVE_PATHS } from "../scripts/write-synthe
 export { expect };
 
 // The preview serves the production headers (public/_headers): every journey must run without breaking
-// the security policy. The page reports what the browser blocks to the test process, so a report made
-// before a reload or a navigation still counts.
+// the security policy. The page reports what the browser blocks to the test process through the console,
+// so a report made before a reload or a navigation still counts. (An exposed function does the same but
+// made WebKit's axe journeys up to twice as slow, past the test timeout; measured 2026-11-06.)
+const BLOCKED_MARK = "e2e security policy blocked: ";
+
 export const test = base.extend<{ securityPolicy: undefined }>({
   securityPolicy: [
     async ({ page }, use, testInfo) => {
       const blocked: string[] = [];
-      await page.exposeFunction("reportBlocked", (entry: string) => {
-        blocked.push(entry);
+      page.on("console", (message) => {
+        const text = message.text();
+        if (text.startsWith(BLOCKED_MARK)) blocked.push(text.slice(BLOCKED_MARK.length));
       });
-      await page.addInitScript(() => {
+      await page.addInitScript((mark) => {
         document.addEventListener("securitypolicyviolation", (event) => {
           // WebKit reports the inline styles of a <select>'s own internal parts as blocked; the element
           // renders pixel for pixel the same with and without the policy (checked 2026-11-03).
           const webKitSelect =
             event.effectiveDirective === "style-src-attr" &&
             event.target instanceof HTMLSelectElement;
-          const report: unknown = Reflect.get(window, "reportBlocked");
-          if (!webKitSelect && typeof report === "function") {
-            void Reflect.apply(report, window, [`${event.effectiveDirective} ${event.blockedURI}`]);
-          }
+          // oxlint-disable-next-line no-console -- the console carries the report to the test process
+          if (!webKitSelect) console.warn(`${mark}${event.effectiveDirective} ${event.blockedURI}`);
         });
-      });
+      }, BLOCKED_MARK);
       await use(undefined);
       // A skipped test opened no page to check.
       if (testInfo.status !== "skipped") expect(blocked).toEqual([]);
