@@ -26,17 +26,17 @@ const BORN_1989_07_10 = daysSince1582(1989, 7, 10);
 const DB = parseEaDb(
   buildEaDb([
     table("leagues", [
-      { leagueid: 53, leaguename: "Spain Primera Division (1)", level: 1 },
-      { leagueid: 76, leaguename: "Rest of World", level: 4 },
-      { leagueid: 78, leaguename: "International", level: 5 },
-      { leagueid: 2028, leaguename: "World League", level: 7 },
+      { leagueid: 53, leaguename: "Spain Primera Division (1)", level: 1, leagueprestige: 5 },
+      { leagueid: 76, leaguename: "Rest of World", level: 4, leagueprestige: 5 },
+      { leagueid: 78, leaguename: "International", level: 5, leagueprestige: 5 },
+      { leagueid: 2028, leaguename: "World League", level: 7, leagueprestige: 5 },
     ]),
     table("teams", [
-      { teamid: 241, teamname: "FC Barcelona", overallrating: 84 },
-      { teamid: 1873, teamname: "Wisła Kraków", overallrating: 66 },
-      { teamid: 1369, teamname: "Argentina", overallrating: 83 },
-      { teamid: 9999, teamname: "All Stars", overallrating: 90 },
-      { teamid: 5000, teamname: "Unlisted", overallrating: 50 },
+      { teamid: 241, teamname: "FC Barcelona", overallrating: 84, internationalprestige: 5 },
+      { teamid: 1873, teamname: "Wisła Kraków", overallrating: 66, internationalprestige: 5 },
+      { teamid: 1369, teamname: "Argentina", overallrating: 83, internationalprestige: 5 },
+      { teamid: 9999, teamname: "All Stars", overallrating: 90, internationalprestige: 5 },
+      { teamid: 5000, teamname: "Unlisted", overallrating: 50, internationalprestige: 5 },
     ]),
     table("leagueteamlinks", [
       { leagueid: 53, teamid: 241 },

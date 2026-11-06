@@ -4,7 +4,7 @@ import { offerContextOf } from "./offer.ts";
 import type { OfferContext } from "./offer.ts";
 import { careerManager, parseCareerSave } from "../data/career-save.ts";
 import type { CurrencyCode } from "../data/career-save.ts";
-import { parseEaDb, readTable } from "../data/ea-db.ts";
+import { num, parseEaDb, readTable } from "../data/ea-db.ts";
 import type { EaDb } from "../data/ea-db.ts";
 import { MAX_IDX_BYTES, MAX_LOC_BYTES, readLocale } from "../data/game-locale.ts";
 import { readGameDatabase, readIsoLocales } from "../data/iso9660.ts";
@@ -112,7 +112,7 @@ const atStage = async <T>(stage: LoadStage, run: () => T | Promise<T>): Promise<
 
 const idsOf = (db: EaDb): NameIds => {
   const ids = (table: string, column: string) =>
-    readTable(db, table).map((row) => Number(row[column]));
+    readTable(db, table).map((row) => num(row, column));
   return {
     teams: ids("teams", "teamid"),
     leagues: ids("leagues", "leagueid"),

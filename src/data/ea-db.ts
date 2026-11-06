@@ -207,6 +207,13 @@ export const readTable = (db: EaDb, name: string): readonly EaDbRow[] => {
   return readRecords(db.view, table, db.stringAt);
 };
 
+/** A column of a row as a number; a missing or non-numeric column means a damaged file. */
+export const num = (row: EaDbRow, key: string): number => {
+  const value = Number(row[key]);
+  if (!Number.isFinite(value)) throw new SaveFormatError(`Column "${key}" is no number`);
+  return value;
+};
+
 /**
  * The records of `table` (`rowCount` from `recordsOffset`) in `view`, which the caller has
  * bounds-checked; `stringAt` resolves the value of a string field.

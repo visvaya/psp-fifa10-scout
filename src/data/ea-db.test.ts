@@ -1,9 +1,21 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { ageOn, birthdateToDate, parseEaDb, readTable } from "./ea-db.ts";
+import { ageOn, birthdateToDate, num, parseEaDb, readTable } from "./ea-db.ts";
 import { SaveFormatError } from "./save-format-error.ts";
 import { buildEaDb } from "./test-support/synthetic-ea-db.ts";
 import type { TableSpec } from "./test-support/synthetic-ea-db.ts";
+
+describe("num", () => {
+  it("reads a column as a number", () => {
+    expect(num({ playerid: 7, height: "181" }, "playerid")).toBe(7);
+    expect(num({ playerid: 7, height: "181" }, "height")).toBe(181);
+  });
+
+  it("throws a file error on a missing or non-numeric column", () => {
+    expect(() => num({ playerid: 7 }, "teamid")).toThrow(SaveFormatError);
+    expect(() => num({ name: "Brożek" }, "name")).toThrow(SaveFormatError);
+  });
+});
 
 // Bit area vector from the format notes: 0010001|100001|00101|0 with widths 7/6/5/1.
 const LINKS: TableSpec = {

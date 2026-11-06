@@ -5,7 +5,7 @@
 // squad of yours) are not checked here.
 import { careerManager, effectiveRows, seasonStartDate } from "../data/career-save.ts";
 import type { CareerSave } from "../data/career-save.ts";
-import { readTable } from "../data/ea-db.ts";
+import { num, readTable } from "../data/ea-db.ts";
 import type { EaDb } from "../data/ea-db.ts";
 import { teamsById } from "./placements.ts";
 import type { Player } from "./players.ts";
@@ -197,22 +197,22 @@ export const offerContextOf = (
   const { teamId, prestige, negotiator } = careerManager(db, save);
   const byId = new Map(players.map((player) => [player.id, player]));
   const ratings = effectiveRows(db, save, "teamplayerlinks")
-    .filter((link) => Number(link["teamid"]) === teamId)
+    .filter((link) => num(link, "teamid") === teamId)
     .flatMap((link) => {
-      const player = byId.get(Number(link["playerid"]));
-      const position = Number(link["position"]);
+      const player = byId.get(num(link, "playerid"));
+      const position = num(link, "position");
       if (player === undefined) return [];
       const code = position < BENCH_POSITION_FROM ? position : player.positionCode;
       return [player.overallByCode[code] ?? player.overall];
     });
   const total = ratings.reduce((sum, rating) => sum + rating, 0);
   const leagueId = teamsById(db, save).get(teamId)?.leagueId;
-  const league = readTable(db, "leagues").find((row) => Number(row["leagueid"]) === leagueId);
+  const league = readTable(db, "leagues").find((row) => num(row, "leagueid") === leagueId);
   return {
     prestige,
     negotiator,
     squadAverage: ratings.length === 0 ? 0 : Math.floor(total / ratings.length),
-    countryId: league?.["countryid"] === undefined ? null : Number(league["countryid"]),
+    countryId: league?.["countryid"] === undefined ? null : num(league, "countryid"),
     seasonEndYear: seasonStartDate(db, save).getUTCFullYear() + 1,
   };
 };

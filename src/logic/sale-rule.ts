@@ -5,7 +5,7 @@
 
 import { careerManager, seasonStartDate } from "../data/career-save.ts";
 import type { CareerSave } from "../data/career-save.ts";
-import { readTable } from "../data/ea-db.ts";
+import { num, readTable } from "../data/ea-db.ts";
 import type { EaDb } from "../data/ea-db.ts";
 import type { Placement } from "./placements.ts";
 
@@ -77,7 +77,7 @@ const rivalsOf = (db: EaDb, teamId: number): ReadonlySet<number> =>
   new Set(
     (db.tables.has("historicrivalries") ? readTable(db, "historicrivalries") : []).flatMap(
       (row) => {
-        const [first, second] = [Number(row["clubid1"]), Number(row["clubid2"])];
+        const [first, second] = [num(row, "clubid1"), num(row, "clubid2")];
         return first === teamId ? [second] : second === teamId ? [first] : [];
       },
     ),
@@ -94,14 +94,11 @@ export const saleVerdictOf = (
   placements: ReadonlyMap<number, Placement>,
 ): ((playerId: number) => SaleRefusal | "sells" | null) => {
   const preferred = new Map(
-    readTable(db, "players").map((row) => [
-      Number(row["playerid"]),
-      Number(row["preferredposition1"]),
-    ]),
+    readTable(db, "players").map((row) => [num(row, "playerid"), num(row, "preferredposition1")]),
   );
   // fifa.db's loan list is empty: only a save holds loans.
   const loans = save.get("career_loaned_list") ?? [];
-  const loaned = new Set(loans.map((row) => Number(row["playerid"])));
+  const loaned = new Set(loans.map((row) => num(row, "playerid")));
   const squads = squadsOf(
     [...placements].flatMap(([playerId, { club }]) =>
       club === undefined
@@ -120,16 +117,14 @@ export const saleVerdictOf = (
   const rivals = rivalsOf(db, teamId);
   // The user's own players on loan at another club: no offer to make for them either.
   const lentOut = new Set(
-    loans
-      .filter((row) => Number(row["oldteamid"]) === teamId)
-      .map((row) => Number(row["playerid"])),
+    loans.filter((row) => num(row, "oldteamid") === teamId).map((row) => num(row, "playerid")),
   );
   return (playerId) => {
     const club = placements.get(playerId)?.club;
     const squad = club === undefined ? undefined : squads.get(club.team.id);
     if (club === undefined || squad === undefined || club.team.id === teamId) return null;
     if (lentOut.has(playerId)) return null;
-    if (Number(club.link["yearcontractvalidtil"]) <= seasonYear) return "sells";
+    if (num(club.link, "yearcontractvalidtil") <= seasonYear) return "sells";
     const refusal = squadRefusal(squad, preferred.get(playerId) ?? -1, club.team.leaguePrestige);
     return refusal ?? (rivals.has(club.team.id) ? "rivals" : "sells");
   };

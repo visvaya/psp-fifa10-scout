@@ -20,8 +20,8 @@ const curve = (id: number, at21: number): Readonly<Record<string, number>> => ({
 
 const DB = parseEaDb(
   buildEaDb([
-    table("leagues", [{ leagueid: 1, leaguename: "League", level: 1 }]),
-    table("teams", [{ teamid: 1, teamname: "Club", overallrating: 60 }]),
+    table("leagues", [{ leagueid: 1, leaguename: "League", level: 1, leagueprestige: 5 }]),
+    table("teams", [{ teamid: 1, teamname: "Club", overallrating: 60, internationalprestige: 5 }]),
     table("leagueteamlinks", [{ leagueid: 1, teamid: 1 }]),
     table("teamplayerlinks", [
       { teamid: 1, playerid: 5, jerseynumber: 1, yearcontractvalidtil: 2012 },

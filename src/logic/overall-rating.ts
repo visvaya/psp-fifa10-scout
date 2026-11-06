@@ -9,7 +9,7 @@
 // ratings of a real career save exactly at the preferred position (the user squad 23 of 23).
 import type { CareerSave } from "../data/career-save.ts";
 import { effectiveRows } from "../data/career-save.ts";
-import { readTable } from "../data/ea-db.ts";
+import { num, readTable } from "../data/ea-db.ts";
 import type { EaDb } from "../data/ea-db.ts";
 import { SCOUT_CONFIG } from "./config.ts";
 import type { AttributeName, Attributes } from "./players.ts";
@@ -153,8 +153,8 @@ const AGED_ATTRIBUTE_MIN = 10;
 export const readCurves = (db: EaDb): Curves =>
   new Map(
     readTable(db, "curves").map((row) => [
-      Number(row["id"]),
-      CURVE_COLUMNS.map((column) => Number(row[column])),
+      num(row, "id"),
+      CURVE_COLUMNS.map((column) => num(row, column)),
     ]),
   );
 
@@ -162,8 +162,8 @@ export const readCurves = (db: EaDb): Curves =>
 export const potentialDeltas = (db: EaDb, save: CareerSave): ReadonlyMap<number, number> =>
   new Map(
     effectiveRows(db, save, "career_players_grown_attributes").map((row) => [
-      Number(row["playerid"]),
-      Number(row["potential_delta"]),
+      num(row, "playerid"),
+      num(row, "potential_delta"),
     ]),
   );
 
@@ -177,8 +177,12 @@ export const attributeGains = (
 ): ReadonlyMap<number, (name: AttributeName) => number> =>
   new Map(
     effectiveRows(db, save, "career_players_grown_attributes").map((row) => [
-      Number(row["playerid"]),
-      (name: AttributeName) => Number(row[`${name}_delta`] ?? 0),
+      num(row, "playerid"),
+      // A gain the save has no column for counts 0: real saves lack tacticalawareness_delta.
+      (name: AttributeName) => {
+        const column = `${name}_delta`;
+        return row[column] === undefined ? 0 : num(row, column);
+      },
     ]),
   );
 
