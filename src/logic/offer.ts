@@ -50,6 +50,8 @@ export interface OfferTerms {
   readonly wage: number | null;
   /** The wage is above what the first offer's limit allows (1.5 times the market wage). */
   readonly wageOverCap: boolean;
+  /** The bonus per goal or clean sheet in euro, the chosen percentage of the wage; 0 without a wage. */
+  readonly bonus: number;
 }
 
 /** Live values of the game's tuning registry (RAM dump) and the offer form's limits (handler 0x08893648). */
@@ -130,12 +132,17 @@ const wagePoints = (wage: number, market: number, bonusPercent: number): number 
   );
 };
 
-/** The least whole wage whose wage and bonus terms give `needed` points. */
+/**
+ * The least whole wage whose wage and bonus terms give `needed` points. The wage term alone reaches
+ * them from W (15 + needed) / 15, and never from less than W when it is not above 0; the bonus only adds.
+ */
 const wageNeeded = (market: number, needed: number, bonusPercent: number): number => {
   if (market <= 0) return 0;
   const enough = (wage: number): boolean => wagePoints(wage, market, bonusPercent) >= needed;
-  let high = market;
-  while (!enough(high)) high *= 2;
+  let high = Math.max(
+    market,
+    Math.ceil((market * (OFFER_TUNING.wageDivider + needed)) / OFFER_TUNING.wageDivider),
+  );
   let low = 0;
   while (low < high) {
     const middle = Math.floor((low + high) / 2);
@@ -174,6 +181,7 @@ export const offerTerms = (
     years,
     wage,
     wageOverCap: wage !== null && wage > player.wage * t.capMultipleOfBase,
+    bonus: wage === null ? 0 : Math.round((wage * choice.bonusPercent) / 100),
   };
 };
 

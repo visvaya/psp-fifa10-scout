@@ -76,8 +76,7 @@ export const OfferFacts = (props: {
   const [choice, setChoice] = useState<OfferChoice>(DEFAULT_CHOICE);
   const terms = offerTerms(player, context, choice);
   if (terms === null) return null;
-  const { fee, wage, years } = terms;
-  const bonus = wage === null ? 0 : Math.round((wage * choice.bonusPercent) / 100);
+  const { fee, wage, years, bonus } = terms;
   return (
     <section aria-labelledby="offer-title">
       <h3 id="offer-title">{OFFER_TEXT.title}</h3>
@@ -98,12 +97,12 @@ export const OfferFacts = (props: {
               : [[OFFER_TEXT.bonusAmount, TEXT.card.money(bonus, currency)] as const]),
           ]}
         />
+        {terms.feeOverCap ? <p className="help">{OFFER_TEXT.feeOverCap}</p> : null}
+        {terms.wageOverCap ? <p className="help">{OFFER_TEXT.wageOverCap}</p> : null}
       </div>
       {player.saleRefusal === null ? null : (
         <p className="help">{OFFER_TEXT.refusals[player.saleRefusal]}</p>
       )}
-      {terms.feeOverCap ? <p className="help">{OFFER_TEXT.feeOverCap}</p> : null}
-      {terms.wageOverCap ? <p className="help">{OFFER_TEXT.wageOverCap}</p> : null}
     </section>
   );
 };
