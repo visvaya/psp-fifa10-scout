@@ -1,8 +1,10 @@
-// Fails when a text file contains an emoji or an em dash (U+2014).
+// Fails when a text file contains an emoji, an em dash (U+2014), a control character or an absolute
+// local path.
 //
 // Usage: node scripts/check-text.ts [file ...]
 // Without arguments it scans every file Git would commit (tracked and untracked, not
-// ignored). scripts/git-hooks.ts applies the same rules to commit messages.
+// ignored). scripts/git-hooks.ts applies the same rules to staged files, and all but the path
+// rule to commit messages.
 //
 // Characters are built with String.fromCodePoint so this file passes its own check.
 import { execFileSync } from "node:child_process";
@@ -44,28 +46,51 @@ const controlMessage = (line: string): string | null => {
     : `control character U+${code.toString(16).toUpperCase().padStart(4, "0")}`;
 };
 
-/** Problems in one text, each as "label:line: reason". */
-export const findTextProblems = (text: string, label: string): string[] =>
-  text
-    .split("\n")
-    .flatMap((line, index) =>
-      [
-        EM_DASH.test(line) ? EM_DASH_MESSAGE : null,
-        EMOJI.test(line) ? "emoji" : null,
-        controlMessage(line),
-      ]
-        .filter((reason) => reason !== null)
-        .map((reason) => `${label}:${index + 1}: ${reason}`),
-    );
+// A drive letter not preceded by a word character (so neither a URL scheme nor a YAML key such as "e2e:\n"
+// in a string counts), or a home directory. A path like this names the author's machine and has no meaning
+// in a checkout elsewhere.
+const ABSOLUTE_PATH = /(?<!\w)[A-Za-z]:[\\/]|\/home\/|\/Users\//;
+const ABSOLUTE_PATH_MESSAGE = "absolute local path; use a relative path";
 
-export const findFileProblems = (file: string): string[] => {
+type LineCheck = (line: string) => string | null;
+
+const TEXT_CHECKS: readonly LineCheck[] = [
+  (line) => (EM_DASH.test(line) ? EM_DASH_MESSAGE : null),
+  (line) => (EMOJI.test(line) ? "emoji" : null),
+  controlMessage,
+];
+
+const FILE_CHECKS: readonly LineCheck[] = [
+  ...TEXT_CHECKS,
+  (line) => (ABSOLUTE_PATH.test(line) ? ABSOLUTE_PATH_MESSAGE : null),
+];
+
+const findProblems = (text: string, label: string, checks: readonly LineCheck[]): string[] =>
+  text.split("\n").flatMap((line, index) =>
+    checks
+      .map((check) => check(line))
+      .filter((reason) => reason !== null)
+      .map((reason) => `${label}:${index + 1}: ${reason}`),
+  );
+
+/** Problems in one text, such as a commit message, each as "label:line: reason". */
+export const findTextProblems = (text: string, label: string): string[] =>
+  findProblems(text, label, TEXT_CHECKS);
+
+/** Whether a file's content is scanned at all: binary files, the lockfile and the licence are not. */
+export const isScanned = (file: string): boolean => {
   const normalized = file.replaceAll("\\", "/");
-  const skipped =
-    SKIPPED_FILES.has(normalized) ||
-    BINARY_EXTENSIONS.has(path.extname(normalized).toLowerCase()) ||
-    !existsSync(file);
-  return skipped ? [] : findTextProblems(readFileSync(file, "utf8"), normalized);
+  return (
+    !SKIPPED_FILES.has(normalized) && !BINARY_EXTENSIONS.has(path.extname(normalized).toLowerCase())
+  );
 };
+
+/** Problems in the content of a scanned file: the text rules plus absolute local paths. */
+export const findContentProblems = (content: string, file: string): string[] =>
+  findProblems(content, file.replaceAll("\\", "/"), FILE_CHECKS);
+
+export const findFileProblems = (file: string): string[] =>
+  isScanned(file) && existsSync(file) ? findContentProblems(readFileSync(file, "utf8"), file) : [];
 
 const listFiles = (args: readonly string[]): readonly string[] =>
   args.length > 0

@@ -4,20 +4,17 @@
 //        node scripts/git-hooks.ts commit-msg <message-file>
 //
 // The commit format itself is checked by commitlint (commitlint.config.mjs); this file adds
-// what commitlint cannot express: commit identity, co-author and generated-by lines,
-// forbidden characters and absolute local paths.
+// what commitlint cannot express: commit identity, co-author and generated-by lines, and the
+// rules of check-text.ts (forbidden characters, absolute local paths) on the staged content.
 import { execFileSync, spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { findFileProblems, findTextProblems } from "./check-text.ts";
+import { findContentProblems, findTextProblems, isScanned } from "./check-text.ts";
 
 /** E-mail addresses allowed as author and committer when the checkout opts in. */
 const OWNER_EMAILS = ["84781703+visvaya@users.noreply.github.com"];
 
-const FORBIDDEN_MESSAGE_LINES = [/^co-authored-by:/im, /^\W*generated (?:with|by)\s/im];
-
-// Only source files: documentation may legitimately cite a path.
-const CODE_FILE = /\.(?:mjs|js|jsx|ts|tsx)$/;
-const ABSOLUTE_PATH = /["'`](?:[A-Za-z]:\\|\/home\/|\/Users\/)/;
+// A prefix such as "# " still counts: git keeps comment lines with -m and -F.
+const FORBIDDEN_MESSAGE_LINES = [/^\W*co-authored-by\s*:/im, /^\W*generated (?:with|by)\s/im];
 
 const fail = (message: string): never => {
   process.stderr.write(`\n[git hook] ${message}\n\n`);
@@ -53,17 +50,21 @@ export const commitMessageProblems = (raw: string): string[] => {
   ];
 };
 
-export const hasAbsolutePath = (file: string, content: string): boolean =>
-  CODE_FILE.test(file) && ABSOLUTE_PATH.test(content);
-
 /** The maintainer opts in per checkout (`git config hooks.requireOwnerIdentity true`), so a
- * contributor's own identity is not rejected in a fork. */
+ * contributor's own identity is not rejected in a fork. Only an unset key (exit status 1) means
+ * no; an invalid value stops the hook rather than turning the check off. */
 const ownerIdentityRequired = (): boolean => {
-  try {
-    return git(["config", "--bool", "--get", "hooks.requireOwnerIdentity"]) === "true";
-  } catch {
-    return false;
+  const result = spawnSync("git", ["config", "--bool", "--get", "hooks.requireOwnerIdentity"], {
+    encoding: "utf8",
+  });
+  if (result.status === 1) return false;
+  if (result.status !== 0) {
+    // A git that cannot start leaves no stderr, only the error.
+    fail(
+      `git config hooks.requireOwnerIdentity failed: ${String(result.error ?? result.stderr).trim()}`,
+    );
   }
+  return result.stdout.trim() === "true";
 };
 
 const checkIdentity = (): void => {
@@ -87,10 +88,11 @@ const preCommit = (): void => {
     .split("\0")
     .filter(Boolean);
   if (staged.length === 0) return;
-  const leaked = staged.filter((file) => hasAbsolutePath(file, stagedContent(file)));
-  if (leaked.length > 0) fail(`Absolute local paths found in:\n  ${leaked.join("\n  ")}`);
-  const textProblems = staged.flatMap(findFileProblems);
-  if (textProblems.length > 0) fail(`Forbidden characters found:\n${textProblems.join("\n")}`);
+  // The staged content, not the working tree: that is what the commit records.
+  const problems = staged
+    .filter(isScanned)
+    .flatMap((file) => findContentProblems(stagedContent(file), file));
+  if (problems.length > 0) fail(`Forbidden content found:\n${problems.join("\n")}`);
   if (runPnpm("verify:fast") !== 0) fail("pnpm verify:fast failed.");
 };
 

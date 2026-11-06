@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findFileProblems, findTextProblems } from "./check-text.ts";
+import { findContentProblems, findFileProblems, findTextProblems } from "./check-text.ts";
 
 const EM_DASH = String.fromCodePoint(0x2014);
 const EN_DASH = String.fromCodePoint(0x2013);
@@ -27,6 +27,28 @@ describe("findTextProblems", () => {
   it("accepts an en dash, a middle dot and text symbols", () => {
     const text = `a ${EN_DASH} b ${String.fromCodePoint(0xb7)} c ${String.fromCodePoint(0xa9, 0x2192)}`;
     expect(findTextProblems(text, "a.md")).toEqual([]);
+  });
+});
+
+// Built from pieces so this file passes its own check.
+const DRIVE = ["C", ":"].join("");
+const PATH_MESSAGE = "absolute local path; use a relative path";
+
+describe("findContentProblems", () => {
+  it.each([
+    ["a drive path with forward slashes", "a.ts", `const p = "${DRIVE}/data/x";`],
+    ["a path in a comment", "a.ts", `// see ${DRIVE}\\Projekty\\x`],
+    ["a path inside a longer string", "a.ts", `const arg = "dir=${DRIVE}\\x";`],
+    ["a path in a JSON file", "a.json", `{ "root": "${DRIVE}\\\\Projekty" }`],
+    ["a Linux home directory", "a.md", `see ${["", "home", "me"].join("/")}`],
+    ["a macOS home directory", "a.sh", `cd ${["", "Users", "me"].join("/")}`],
+  ])("reports %s", (_name, file, line) => {
+    expect(findContentProblems(`ok\n${line}`, file)).toEqual([`${file}:2: ${PATH_MESSAGE}`]);
+  });
+
+  it("accepts a URL, a colon between letters and a key before an escape", () => {
+    const text = "see https://example.com/a and a:b\nconst yaml = `e2e:\\n  run: x`;";
+    expect(findContentProblems(text, "a.ts")).toEqual([]);
   });
 });
 
