@@ -7,6 +7,7 @@ import { pickLocaleFiles, pickSaveFiles } from "../logic/load-scout.ts";
 import type { LoadRequest, SaveFiles, WorkerMessage, WorkerRequest } from "../logic/load-scout.ts";
 import { actionOf } from "../logic/scout-state.ts";
 import type { Preferences, ScoutAction } from "../logic/scout-state.ts";
+import type { WatchEntry } from "../logic/watchlist.ts";
 import { openScoutStore } from "../logic/scout-store.ts";
 import type { ScoutStore, StoredScout } from "../logic/scout-store.ts";
 import { detectBackend } from "./browser-store.ts";
@@ -26,10 +27,21 @@ type StoreRun = (opened: ScoutStore) => Promise<void>;
 
 const restore = (dispatch: Dispatch<ScoutAction>, stored: StoredScout) => {
   dispatch({ type: "languages-restored", languages: stored.languages });
+  dispatch({ type: "watchlist-restored", watchlist: stored.watchlist });
   if (stored.preferences !== null) {
     dispatch({ type: "preferences-restored", preferences: stored.preferences });
   }
 };
+
+/** What the app keeps in the store besides the game and the career save; each waits for the store. */
+const storeSaves = (withStore: (run: StoreRun) => void) => ({
+  savePreferences: (preferences: Preferences) =>
+    withStore(async (opened) => opened.savePreferences(preferences)),
+  saveLanguages: (languages: GameLanguages) =>
+    withStore(async (opened) => opened.saveLanguages(languages)),
+  saveWatchlist: (watchlist: readonly WatchEntry[]) =>
+    withStore(async (opened) => opened.saveWatchlist(watchlist)),
+});
 
 const createSession = (dispatch: Dispatch<ScoutAction>, onStorageFailed: () => void) => {
   /** The store once open; saves wait for it, so a game picked before it opens is still kept. */
@@ -99,10 +111,7 @@ const createSession = (dispatch: Dispatch<ScoutAction>, onStorageFailed: () => v
       saveMemory.forget();
       reload();
     },
-    savePreferences: (preferences: Preferences) =>
-      withStore(async (opened) => opened.savePreferences(preferences)),
-    saveLanguages: (languages: GameLanguages) =>
-      withStore(async (opened) => opened.saveLanguages(languages)),
+    ...storeSaves(withStore),
   };
 };
 
@@ -141,5 +150,6 @@ export const useScoutFiles = (dispatch: Dispatch<ScoutAction>) => {
     forgetSave: session.forgetSave,
     savePreferences: session.savePreferences,
     saveLanguages: session.saveLanguages,
+    saveWatchlist: session.saveWatchlist,
   };
 };

@@ -42,10 +42,19 @@ const useGameNames = (state: ScoutState) => {
   return { language, players, collator, positionNames };
 };
 
-/** Stores the preferences and the languages read, once the stored ones were restored. */
+/** Stores the preferences, the languages read and the watchlist, once the stored ones were restored. */
 const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFiles>) => {
-  const { ready, savePreferences, saveLanguages } = files;
-  const { filters, sort, showPotential, gameLanguage, filterSets, languages } = state;
+  const { ready, savePreferences, saveLanguages, saveWatchlist } = files;
+  const {
+    filters,
+    sort,
+    showPotential,
+    gameLanguage,
+    filterSets,
+    languages,
+    watchlist,
+    watchlistEdited,
+  } = state;
   useEffect(() => {
     // Only after the stored preferences were restored, so defaults never overwrite them.
     if (ready) {
@@ -62,6 +71,11 @@ const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFile
   useEffect(() => {
     if (ready) saveLanguages(languages);
   }, [ready, saveLanguages, languages]);
+
+  useEffect(() => {
+    // Only a list the user changed: one the store holds but the app cannot read stays as it is.
+    if (ready && watchlistEdited) saveWatchlist(watchlist);
+  }, [ready, saveWatchlist, watchlist, watchlistEdited]);
 };
 
 /**
@@ -105,6 +119,11 @@ const TopBar = (props: {
   );
 };
 
+/** A region that is always there, so a screen reader hears the notice when it appears. */
+const StorageNotice = ({ failed }: { failed: boolean }) => (
+  <output className="storage-notice">{failed ? <p>{TEXT.storageFailed}</p> : null}</output>
+);
+
 export const App = (): JSX.Element => {
   const [state, dispatch] = useReducer(scoutReducer, initialScoutState);
   const files = useScoutFiles(dispatch);
@@ -119,9 +138,7 @@ export const App = (): JSX.Element => {
     <div className="app">
       <TopBar view={players === null ? null : view} update={update} dispatch={dispatch} />
       <UpdatePrompt status={update.status} install={update.install} dismiss={update.dismiss} />
-      <output className="storage-notice">
-        {files.storageFailed ? <p>{TEXT.storageFailed}</p> : null}
-      </output>
+      <StorageNotice failed={files.storageFailed} />
       <main className="main">
         {view === "list" && players !== null ? (
           <ListView
@@ -157,6 +174,8 @@ export const App = (): JSX.Element => {
               : (state.career?.offer ?? null)
           }
           showPotential={showPotential}
+          watched={state.watchlist.find((entry) => entry.playerId === openPlayer.id)}
+          dispatch={dispatch}
           onClose={() => {
             dispatch({ type: "player-closed" });
           }}

@@ -1,5 +1,5 @@
-// The one load/save adapter: the extracted fifa.db, the career save and the filter and sort preferences, each stored
-// as { schemaVersion, value } in a key-value backend (IndexedDB in the browser, memory otherwise).
+// The one load/save adapter: the extracted fifa.db, the career save, the filter and sort preferences and the
+// own watchlist, each stored as { schemaVersion, value } in a key-value backend (IndexedDB in the browser, memory otherwise).
 // Nothing leaves the device. Preferences 2, 3 and 4 migrate to 5, a fifa.db 1 (bare bytes) to 2 (bytes and
 // the game file's name) and languages 1 and 2 to 3 (empty for the position names they lack); any other
 // version or shape is ignored, and
@@ -16,13 +16,21 @@ import { compactFilters, inRecordOrder } from "./scout-state.ts";
 import type { ClubStatus, MyClub, Preferences, ScoutFilters, ScoutSort } from "./scout-state.ts";
 import type { FilterSet } from "./saved-filters.ts";
 import type { SortKey } from "./sort-players.ts";
+import { clippedNote } from "./watchlist.ts";
+import type { WatchEntry } from "./watchlist.ts";
 
 /**
  * Per record, so a change to the preferences keeps the stored fifa.db. Preferences 2: clubStatus;
  * 3: ranges, lists and flags, showPotential; 4: sweeper, side midfield and wingers as groups. Game
  * database 2: the game file's name. Languages 2: position abbreviations; 3: full position names.
  */
-export const SCHEMA_VERSION = { gameDb: 2, preferences: 5, languages: 3, careerSave: 1 } as const;
+export const SCHEMA_VERSION = {
+  gameDb: 2,
+  preferences: 5,
+  languages: 3,
+  careerSave: 1,
+  watchlist: 1,
+} as const;
 
 export interface StorageBackend {
   readonly get: (key: string) => Promise<unknown>;
@@ -37,6 +45,8 @@ export interface StoredScout {
   readonly languages: GameLanguages;
   /** The last career save loaded, as picked, so the career comes back after the app restarts. */
   readonly careerSave: SaveFiles<Uint8Array> | null;
+  /** The own watchlist; empty when nothing valid is stored. */
+  readonly watchlist: readonly WatchEntry[];
 }
 
 /** The sort keys the screens offer; anything else in storage is dropped. */
@@ -338,6 +348,26 @@ const careerSaveOf = (record: unknown): SaveFiles<Uint8Array> | null => {
     : null;
 };
 
+/** The stored own watchlist: entries of a player id, a note (cut to the limit) and a date; others are dropped. */
+const watchlistOf = (record: unknown): readonly WatchEntry[] => {
+  const value = versioned(record, SCHEMA_VERSION.watchlist);
+  const seen = new Set<number>();
+  return (Array.isArray(value) ? value : []).flatMap((item: unknown): readonly WatchEntry[] => {
+    const { playerId, note, addedAt } = recordOf(item);
+    if (
+      typeof playerId !== "number" ||
+      !Number.isInteger(playerId) ||
+      typeof note !== "string" ||
+      typeof addedAt !== "string" ||
+      Number.isNaN(Date.parse(addedAt)) ||
+      seen.has(playerId)
+    )
+      return [];
+    seen.add(playerId);
+    return [{ playerId, note: clippedNote(note), addedAt }];
+  });
+};
+
 export const createScoutStore = (backend: StorageBackend) => ({
   load: async (): Promise<StoredScout> => {
     return {
@@ -345,6 +375,7 @@ export const createScoutStore = (backend: StorageBackend) => ({
       preferences: preferencesOf(await backend.get("preferences")),
       languages: parseLanguages(await backend.get("languages")),
       careerSave: careerSaveOf(await backend.get("careerSave")),
+      watchlist: watchlistOf(await backend.get("watchlist")),
     };
   },
   saveGameDb: async (gameDb: Uint8Array, name: string): Promise<void> =>
@@ -354,6 +385,8 @@ export const createScoutStore = (backend: StorageBackend) => ({
   /** null forgets the stored save. */
   saveCareerSave: async (save: SaveFiles<Uint8Array> | null): Promise<void> =>
     backend.set("careerSave", { schemaVersion: SCHEMA_VERSION.careerSave, value: save }),
+  saveWatchlist: async (watchlist: readonly WatchEntry[]): Promise<void> =>
+    backend.set("watchlist", { schemaVersion: SCHEMA_VERSION.watchlist, value: watchlist }),
   saveLanguages: async (languages: GameLanguages): Promise<void> =>
     backend.set("languages", { schemaVersion: SCHEMA_VERSION.languages, value: languages }),
 });
