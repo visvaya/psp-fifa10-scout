@@ -265,7 +265,9 @@ export const StartScreen = (props: StartScreenProps): JSX.Element => {
         <LanguageStep {...props} />
         <section className="step install-help" aria-labelledby="install-title">
           <h3 id="install-title">{TEXT.installHeading}</h3>
-          <p className="help">{TEXT.installHelp(props.offline)}</p>
+          <p className="help">
+            {props.offline ? `${TEXT.installOffline} ${TEXT.installSteps}` : TEXT.installSteps}
+          </p>
         </section>
       </section>
       <About />
