@@ -71,18 +71,24 @@ export const formatReport = (
   latest: ReadonlyMap<string, string>,
   missing: readonly string[],
 ): { readonly exitCode: number; readonly text: string } => {
-  const outdated = pins.filter((pin) =>
-    isNewerVersion(latest.get(pin.rule.name) ?? "", pin.pinned),
-  );
+  // A version format the check cannot read would otherwise pass as "not newer" forever.
+  const problemOf = (pin: PinnedTool, newest: string): string | null => {
+    if (parseVersion(newest) === undefined) return "cannot read the latest version";
+    return isNewerVersion(newest, pin.pinned) ? `OUTDATED, ${pin.rule.howToBump}` : null;
+  };
+  const statuses = pins.map((pin) => {
+    const newest = latest.get(pin.rule.name) ?? "unknown";
+    return { pin, newest, problem: problemOf(pin, newest) };
+  });
   const lines = [
-    ...pins.map((pin) => {
-      const newest = latest.get(pin.rule.name) ?? "unknown";
-      const status = outdated.includes(pin) ? `OUTDATED, ${pin.rule.howToBump}` : "ok";
-      return `${pin.rule.name}: pinned ${pin.pinned}, latest ${newest}: ${status}`;
-    }),
+    ...statuses.map(
+      ({ pin, newest, problem }) =>
+        `${pin.rule.name}: pinned ${pin.pinned}, latest ${newest}: ${problem ?? "ok"}`,
+    ),
     ...missing.map((name) => `${name}: pin not found in ${SECURITY_WORKFLOW}, update PIN_RULES`),
   ];
-  const exitCode = outdated.length > 0 || missing.length > 0 ? 1 : 0;
+  const failed = statuses.some(({ problem }) => problem !== null) || missing.length > 0;
+  const exitCode = failed ? 1 : 0;
   return { exitCode, text: `${lines.join("\n")}\n` };
 };
 
