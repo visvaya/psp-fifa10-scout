@@ -8,30 +8,28 @@ import { SYNTHETIC_DB_PATH, SYNTHETIC_SAVE_PATHS } from "../scripts/write-synthe
 export { expect };
 
 // The preview serves the production headers (public/_headers): every journey must run without breaking
-// the security policy. The page reports what the browser blocks to the test process through the console,
-// so a report made before a reload or a navigation still counts. (An exposed function does the same but
-// made WebKit's axe journeys up to twice as slow, past the test timeout; measured 2026-11-06.)
-const BLOCKED_MARK = "e2e security policy blocked: ";
-
+// the security policy. The page reports what the browser blocks to the test process, so a report made
+// before a reload or a navigation still counts.
 export const test = base.extend<{ securityPolicy: undefined }>({
   securityPolicy: [
     async ({ page }, use, testInfo) => {
       const blocked: string[] = [];
-      page.on("console", (message) => {
-        const text = message.text();
-        if (text.startsWith(BLOCKED_MARK)) blocked.push(text.slice(BLOCKED_MARK.length));
+      await page.exposeFunction("reportBlocked", (entry: string) => {
+        blocked.push(entry);
       });
-      await page.addInitScript((mark) => {
+      await page.addInitScript(() => {
         document.addEventListener("securitypolicyviolation", (event) => {
           // WebKit reports the inline styles of a <select>'s own internal parts as blocked; the element
           // renders pixel for pixel the same with and without the policy (checked 2026-11-03).
           const webKitSelect =
             event.effectiveDirective === "style-src-attr" &&
             event.target instanceof HTMLSelectElement;
-          // oxlint-disable-next-line no-console -- the console carries the report to the test process
-          if (!webKitSelect) console.warn(`${mark}${event.effectiveDirective} ${event.blockedURI}`);
+          const report: unknown = Reflect.get(window, "reportBlocked");
+          if (!webKitSelect && typeof report === "function") {
+            void Reflect.apply(report, window, [`${event.effectiveDirective} ${event.blockedURI}`]);
+          }
         });
-      }, BLOCKED_MARK);
+      });
       await use(undefined);
       // A skipped test opened no page to check.
       if (testInfo.status !== "skipped") expect(blocked).toEqual([]);
@@ -63,7 +61,6 @@ export const loadDatabase = async (page: Page) => {
 /**
  * A stored record, read in the page from the app's IndexedDB store. It fails rather than hangs when the
  * store cannot be opened, and never creates it: an empty database would stop the app's own upgrade.
- * (The page gets the function alone, so writeStored repeats the opening.)
  */
 export const readStored = async (key: string): Promise<unknown> =>
   new Promise((resolve, reject) => {
@@ -118,6 +115,8 @@ export const expectStoredSearchCleared = async (page: Page) => {
 /** Writes a record into the app's IndexedDB store, run in the page like `readStored`. */
 export const writeStored = async ([key, value]: readonly [string, unknown]): Promise<void> =>
   new Promise((resolve, reject) => {
+    // The same opening as readStored's: page.evaluate sends each function alone, so they cannot share it.
+    /* jscpd:ignore-start */
     const open = indexedDB.open("psp-fifa10-scout");
     open.addEventListener("error", () => {
       reject(open.error ?? new Error("the store did not open"));
@@ -129,6 +128,7 @@ export const writeStored = async ([key, value]: readonly [string, unknown]): Pro
       open.transaction?.abort();
       reject(new Error("the store is not created yet"));
     });
+    /* jscpd:ignore-end */
     open.addEventListener("success", () => {
       const write = open.result.transaction("kv", "readwrite");
       write.addEventListener("abort", () => {
@@ -194,6 +194,11 @@ export const expectNoAxeViolations = async (page: Page) => {
 
 /** The horizontal scroll of an element; runs in the page. */
 export const scrollLeftOf = (element: Element) => element.scrollLeft;
+
+/** Scrolls an element to its right end; runs in the page. */
+export const scrollToEnd = (element: Element) => {
+  element.scrollTo(element.scrollWidth, 0);
+};
 
 /** The first row's cell in the column whose heading starts with the text. */
 export const firstCellOf = async (page: Page, heading: string) => {

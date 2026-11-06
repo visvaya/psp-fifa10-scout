@@ -8,6 +8,7 @@ import {
   loadDatabase,
   PHONE,
   scrollLeftOf,
+  scrollToEnd,
   showPotential,
   test,
 } from "./support.ts";
@@ -150,10 +151,6 @@ test.describe("phone list with filters", () => {
     await expect(from).toHaveValue("20");
   });
 });
-
-const scrollToEnd = (element: Element) => {
-  element.scrollTo(element.scrollWidth, 0);
-};
 
 test.describe("phone columns", () => {
   test.use(PHONE);
