@@ -172,6 +172,13 @@ describe("parseEaDb", () => {
     expect(() => parseEaDb(bad)).toThrow(/record size of teamplayerlinks/);
   });
 
+  it("rejects a table without fields that claims rows", () => {
+    const bare = buildEaDb([{ name: "country", rows: [] }]);
+    expect(() => parseEaDb(patched(bare, blockOf(bare, 0), 0xffffffff))).toThrow(
+      /table country has no fields/,
+    );
+  });
+
   it("rejects a 32-bit field that is not byte aligned", () => {
     const bad = buildEaDb([
       {

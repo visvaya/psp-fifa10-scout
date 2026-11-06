@@ -93,6 +93,8 @@ const parseEntry = (
   const recordSize = word(2);
   const [ints, raws, strings, bits] = [word(3), word(4), word(5), word(6)];
   const fixed = ints + raws + strings;
+  // Rows of no bytes would let any row count pass the bounds checks of the database and the save.
+  if (fixed + bits === 0) throw new SaveFormatError(`Database table ${name} has no fields`);
   const rangesOffset = offset + ENTRY_HEAD_BYTES;
   const namesOffset = rangesOffset + 8 * bits;
   const end = namesOffset + 4 * (fixed + bits);
