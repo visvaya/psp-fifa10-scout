@@ -220,6 +220,13 @@ describe("filterPlayers", () => {
     expect(ids({ flags: { clubWillSell: false } })).toEqual([1, 2, 3]);
   });
 
+  it("finds the players on the user's own list, or those off it", () => {
+    const myListIds = new Set([2, 3]);
+    expect(ids({ flags: { onMyList: true }, myListIds })).toEqual([2, 3]);
+    expect(ids({ flags: { onMyList: false }, myListIds })).toEqual([1, 4]);
+    expect(ids({ flags: { onMyList: true } })).toEqual([]);
+  });
+
   // Without a stats row (null) a player never passes a range.
   it("keeps players by their league and cup games", () => {
     const games = [

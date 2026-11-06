@@ -113,6 +113,9 @@ export const useRows = (count: number, rowHeightRem: number) => {
   return { scrollRef, items, before, after };
 };
 
+/** The results' heading: it takes the focus a closed card cannot give back to a player no longer listed. */
+export const RESULTS_TITLE_ID = "results-title";
+
 /** A star before the name of a player on the game's shortlist, where a cut-off name cannot hide it. */
 export const ShortlistStar = ({ player }: { player: Player }) =>
   player.shortlisted ? (

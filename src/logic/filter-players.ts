@@ -69,6 +69,7 @@ export type FlagKey =
   | "loanListed"
   | "loaned"
   | "shortlisted"
+  | "onMyList"
   | "clubWillSell";
 export const FLAG_KEYS: readonly FlagKey[] = [
   ...TRAIT_NAMES,
@@ -77,6 +78,7 @@ export const FLAG_KEYS: readonly FlagKey[] = [
   "loanListed",
   "loaned",
   "shortlisted",
+  "onMyList",
   "clubWillSell",
 ];
 
@@ -120,6 +122,8 @@ export interface PlayerFilters {
   readonly excludeTeamId?: number;
   /** Keeps only the user's club (its players and the academy youth). */
   readonly onlyTeamId?: number;
+  /** The ids on the user's own watchlist, for the "onMyList" flag; without them nobody is on it. */
+  readonly myListIds?: ReadonlySet<number>;
 }
 
 export interface PositionRating extends Range {
@@ -170,7 +174,7 @@ export const rangeValue = (player: Player, key: RangeKey): number | null => {
   return isAttributeName(key) ? player.attributes[key] : player[key];
 };
 
-const hasFlag = (player: Player, flag: FlagKey): boolean => {
+const hasFlag = (player: Player, flag: Exclude<FlagKey, "onMyList">): boolean => {
   if (flag === "nationalTeam") return player.nationalTeamId !== null;
   if (flag === "shortlisted") return player.shortlisted;
   if (flag === "clubWillSell") return player.clubWillSell === true;
@@ -229,7 +233,10 @@ const predicates = (filters: PlayerFilters): readonly Predicate[] => {
       : [inRange(rating.peak, (player) => peakAt(player, rating.code))]),
     ...FLAG_KEYS.flatMap((flag) => {
       const wanted = filters.flags?.[flag];
-      return wanted === undefined ? [] : [(player: Player) => hasFlag(player, flag) === wanted];
+      if (wanted === undefined) return [];
+      return flag === "onMyList"
+        ? [(player: Player) => (filters.myListIds?.has(player.id) ?? false) === wanted]
+        : [(player: Player) => hasFlag(player, flag) === wanted];
     }),
     ...(filters.freeAgentsOnly === true ? [(player: Player) => player.freeAgent] : []),
     ...(filters.availableOnly === true ? [isAvailable] : []),

@@ -192,6 +192,7 @@ export const FLAG_LABELS: Readonly<Record<FlagKey, string>> = {
   loanListed: "Na liście do wypożyczenia",
   loaned: "Wypożyczony",
   shortlisted: pl`Na liście życzeń w grze`,
+  onMyList: pl`Na mojej liście`,
   clubWillSell: "Klub może go sprzedać",
 };
 
@@ -295,6 +296,7 @@ export const TEXT = {
     dismissMark: "×",
     reload: "Odśwież",
   },
+  storageFailed: pl`Nie udało się użyć pamięci przeglądarki. Narzędzie działa dalej, ale filtry i wczytane pliki mogą nie zostać zapamiętane. Po ponownym otwarciu wczytaj pliki jeszcze raz.`,
   noData: "Nie wczytano jeszcze bazy gry.",
   noMatches: "Żaden zawodnik nie spełnia filtrów.",
   filters: "Filtry",

@@ -19,6 +19,7 @@ import { FIELD_HELP } from "./text-help.ts";
 import { GROUP_STAT_PREFIXES } from "./text-range-labels.ts";
 import { OFFER_TEXT } from "./text-offer.ts";
 import { startDescription } from "./test-support/start-description.ts";
+import { WATCHLIST_TEXT } from "./text-watchlist.ts";
 import { tie } from "./typeset.ts";
 
 const stringsIn = (value: unknown): readonly string[] => {
@@ -47,6 +48,7 @@ const STRINGS = stringsIn([
   TEXT,
   FILTER_SETS_TEXT,
   OFFER_TEXT,
+  WATCHLIST_TEXT,
   FIELD_HELP,
   CODE_NAMES,
   descriptionStrings(),

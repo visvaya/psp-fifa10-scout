@@ -162,6 +162,7 @@ h3 {
 .button,
 .chip,
 select,
+textarea,
 input[type="text"],
 input[type="search"],
 input[type="number"],
@@ -204,8 +205,9 @@ input[inputmode="numeric"] {
   font-weight: 600;
 }
 
-/* New version prompt */
-.update-prompt {
+/* New version prompt and storage notice */
+.update-prompt,
+.storage-notice {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -215,11 +217,13 @@ input[inputmode="numeric"] {
   background: var(--color-surface);
 }
 
-.update-prompt:empty {
+.update-prompt:empty,
+.storage-notice:empty {
   display: none;
 }
 
-.update-prompt p {
+.update-prompt p,
+.storage-notice p {
   flex: 1 1 12rem;
   margin: 0;
 }
@@ -1238,7 +1242,29 @@ input[inputmode="numeric"] {
 }
 
 .field > select,
-.field > input {
+.field > input,
+.field > textarea {
   width: 100%;
   min-width: 0;
+}
+
+.watchlist {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.watchlist-answer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.watchlist-answer > p {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.watchlist .field {
+  justify-self: stretch;
 }

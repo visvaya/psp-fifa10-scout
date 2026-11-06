@@ -47,6 +47,37 @@ export const expectStoredPositionGroup = async (page: Page, group: string) => {
     .toMatchObject({ value: { filters: { lists: { positionGroup: [group] } } } });
 };
 
+/** Waits until the stored preferences have no search text: a reload before that restores the old search. */
+export const expectStoredSearchCleared = async (page: Page) => {
+  await expect
+    .poll(async () => {
+      const stored = await page.evaluate(readStored, "preferences");
+      return JSON.stringify(stored).includes('"text"');
+    })
+    .toBe(false);
+};
+
+/** Writes a record into the app's IndexedDB store, run in the page like `readStored`. */
+export const writeStored = async ([key, value]: readonly [string, unknown]): Promise<void> =>
+  new Promise((resolve) => {
+    const open = indexedDB.open("psp-fifa10-scout");
+    open.addEventListener("success", () => {
+      const write = open.result.transaction("kv", "readwrite");
+      write.objectStore("kv").put(value, key);
+      write.addEventListener("complete", () => {
+        open.result.close();
+        resolve();
+      });
+    });
+  });
+
+/** Waits until the stored watchlist holds a note, for the same reason as above. */
+export const expectStoredWatchNote = async (page: Page, note: string) => {
+  await expect
+    .poll(async () => page.evaluate(readStored, "watchlist"))
+    .toMatchObject({ value: [{ note }] });
+};
+
 /** The horizontal centre of an element, NaN when it is not shown. */
 export const centre = async (locator: Locator): Promise<number> => {
   const box = await locator.boundingBox();

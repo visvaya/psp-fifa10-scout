@@ -12,7 +12,8 @@ export default defineConfig({
   forbidOnly: CI,
   retries: 0,
   reporter: "list",
-  use: { baseURL: `http://localhost:${String(PORT)}` },
+  // A failed test keeps its trace, which CI uploads (a flaky test left no other evidence).
+  use: { baseURL: `http://localhost:${String(PORT)}`, trace: "retain-on-failure" },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "webkit", use: { ...devices["Desktop Safari"] } },

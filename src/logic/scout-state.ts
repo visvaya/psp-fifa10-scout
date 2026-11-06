@@ -18,6 +18,9 @@ import { POTENTIAL_KEYS } from "./sort-players.ts";
 import type { SortDirection, SortKey } from "./sort-players.ts";
 import { filterSetsAfter } from "./saved-filters.ts";
 import { withUndo } from "./undo.ts";
+import { effectiveFilters } from "./effective-filters.ts";
+import { isWatchlistAction, watchedIds, watchlistReducer } from "./watchlist.ts";
+import type { WatchEntry, WatchlistAction } from "./watchlist.ts";
 import type { UndoAction, UndoStep } from "./undo.ts";
 import type { FilterSet, FilterSetAction } from "./saved-filters.ts";
 
@@ -89,6 +92,10 @@ export interface ScoutState extends Preferences {
   readonly openPlayerId: number | null;
   /** The names of each game language read so far. */
   readonly languages: GameLanguages;
+  /** The user's own watchlist, kept apart from the preferences and from undo. */
+  readonly watchlist: readonly WatchEntry[];
+  /** The user changed the list since it was restored; only then is it saved. */
+  readonly watchlistEdited: boolean;
 }
 
 type LoadAction =
@@ -127,6 +134,7 @@ export type ScoutAction =
   | { readonly type: "sort-changed"; readonly key: SortKey }
   | { readonly type: "preferences-restored"; readonly preferences: Preferences }
   | FilterSetAction
+  | WatchlistAction
   | { readonly type: "player-opened"; readonly id: number }
   | { readonly type: "player-closed" };
 
@@ -146,6 +154,8 @@ export const initialScoutState: ScoutState = {
   sort: DEFAULT_SORT,
   showPotential: false,
   languages: {},
+  watchlist: [],
+  watchlistEdited: false,
 };
 
 /** Keys whose first click sorts ascending (text, age, position, contract); numbers start high. */
@@ -378,7 +388,10 @@ type ResetAction = Extract<ScoutAction, { readonly type: keyof typeof RESETS }>;
 
 const isResetAction = (action: ScoutAction): action is ResetAction => action.type in RESETS;
 
-const changes = (state: ScoutState, action: Exclude<ScoutAction, UndoAction>): ScoutState => {
+const changes = (
+  state: ScoutState,
+  action: Exclude<ScoutAction, UndoAction | WatchlistAction>,
+): ScoutState => {
   if (isLoadAction(action)) return loadReducer(state, action);
   if (isFilterSetAction(action)) return withFilterSets(state, action);
   if (isResetAction(action)) return { ...state, ...RESETS[action.type] };
@@ -423,7 +436,9 @@ const changes = (state: ScoutState, action: Exclude<ScoutAction, UndoAction>): S
 };
 
 /** The state after an action, with undo for the user's changes. */
-export const scoutReducer = withUndo(changes);
+export const scoutReducer = withUndo((state, action) =>
+  isWatchlistAction(action) ? watchlistReducer(state, action) : changes(state, action),
+);
 
 /** The stored game is loading and nothing shows yet: the list skeleton stands in for it. */
 export const isRestoring = ({ loading, players }: ScoutState): boolean =>
@@ -447,22 +462,6 @@ export const activeLanguage = (
   return gameLanguage !== null && gameLanguage in languages ? gameLanguage : null;
 };
 
-/** The filters filterPlayers takes. */
-export const effectiveFilters = (
-  { myClub, clubStatus, ...filters }: ScoutFilters,
-  myTeamId: number | null,
-): PlayerFilters => ({
-  ...filters,
-  ...(clubStatus === "free-agents" && myTeamId !== null
-    ? { freeAgentsOnly: true }
-    : { availableOnly: true }),
-  ...(myClub === undefined || myTeamId === null
-    ? {}
-    : myClub === "hide"
-      ? { excludeTeamId: myTeamId }
-      : { onlyTeamId: myTeamId }),
-});
-
 export type AttributeBand = "high" | "good" | "average" | "low";
 
 /** The FIFA colour band of an attribute or potential value. */
@@ -477,4 +476,7 @@ export const attributeBand = (value: number): AttributeBand => {
 export const listedCount = (state: ScoutState): number =>
   state.players === null
     ? 0
-    : filterPlayers(state.players, effectiveFilters(state.filters, state.myTeamId)).length;
+    : filterPlayers(
+        state.players,
+        effectiveFilters(state.filters, state.myTeamId, watchedIds(state.watchlist)),
+      ).length;

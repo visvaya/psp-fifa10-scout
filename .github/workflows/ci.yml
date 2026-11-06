@@ -86,6 +86,13 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:e2e
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: playwright-traces
+          path: test-results
+          if-no-files-found: ignore
+          retention-days: 7
 
   # Publishes the build verify tested to Cloudflare Workers, after both gates, from main only. Off while the
   # repository has no CLOUDFLARE_ACCOUNT_ID variable (the job is then skipped); on, a missing or invalid
