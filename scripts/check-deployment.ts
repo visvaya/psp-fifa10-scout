@@ -55,23 +55,33 @@ export const headersForAllPaths = (text: string): Record<string, string> => {
 const attributeOf = (html: string, pattern: RegExp): string | null =>
   pattern.exec(html)?.[1] ?? null;
 
+/** The content of the robots meta tag, whatever the order of its attributes. */
+const robotsMetaOf = (html: string): string | null =>
+  (html.match(/<meta\s[^>]*>/gi) ?? [])
+    .filter((tag) => /\sname="robots"/i.test(tag))
+    .map((tag) => attributeOf(tag, /\scontent="([^"]*)"/i))
+    .find((content) => content !== null) ?? null;
+
+// "none" is short for "noindex, nofollow".
+const BLOCKS_INDEXING = /\b(?:noindex|none)\b/i;
+
 const indexingProblems = (expected: Expected, served: Served): string[] => {
   const { headers, html } = served.startPage;
   const robotsHeader = headers["x-robots-tag"] ?? "";
-  const robotsMeta = attributeOf(html, /<meta\s+name="robots"\s+content="([^"]*)"/i) ?? "";
+  const robotsMeta = robotsMetaOf(html) ?? "";
   const canonical = attributeOf(html, /<link\s+rel="canonical"\s+href="([^"]*)"/i);
   return [
-    ...(/noindex/i.test(robotsHeader)
+    ...(BLOCKS_INDEXING.test(robotsHeader)
       ? [`start page X-Robots-Tag ${robotsHeader} blocks indexing`]
       : []),
-    ...(/noindex/i.test(robotsMeta)
+    ...(BLOCKS_INDEXING.test(robotsMeta)
       ? [`start page meta robots ${robotsMeta} blocks indexing`]
       : []),
     ...(canonical === expected.siteUrl
       ? []
       : [`canonical ${canonical ?? "(missing)"}, expected ${expected.siteUrl}`]),
-    // One group for every crawler; a bare "Disallow: /" shuts the whole site.
-    ...(/^\s*disallow:\s*\/\s*$/im.test(expected.robotsTxt)
+    // One group for every crawler; a bare "Disallow: /" or "Disallow: /*" shuts the whole site.
+    ...(/^\s*disallow:\s*\/\*?\s*$/im.test(expected.robotsTxt)
       ? ["robots.txt disallows the whole site"]
       : []),
     ...(expected.sitemapXml.includes(`<loc>${expected.siteUrl}</loc>`)
