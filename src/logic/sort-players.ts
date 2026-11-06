@@ -1,6 +1,7 @@
 // Player ordering by any scalar summary field or attribute; missing values go last either way,
-// and ties fall back to the name, then the id (nameOrder), so the order is total. Every key is
-// turned into a number first: text by its rank in the given collation (Polish by default), the name by nameOrder.
+// and ties fall back to the name, then the id (nameOrder), so the order is total. Every value is
+// turned into its rank among the distinct values first: text in the given collation (Polish by
+// default), numbers by size, the name by nameOrder.
 import { peakAt, ratingGain } from "./filter-players.ts";
 import { isAttributeName, nameCollator } from "./players.ts";
 import type { AttributeName, Player } from "./players.ts";
@@ -59,21 +60,20 @@ const valueOf = (player: Player, key: SortKey, ratingCode: number | undefined): 
     return player.overallByCode[ratingCode ?? player.positionCode] ?? null;
   if (key === "ratingGain") return ratingCode === undefined ? null : ratingGain(player, ratingCode);
   if (key === "positionPeak") return ratingCode === undefined ? null : peakAt(player, ratingCode);
-  // The packed sort key needs whole numbers: the rating with one decimal goes in tenths.
-  if (key === "form") return player.form === null ? null : Math.round(player.form * 10);
   return isAttributeName(key) ? player.attributes[key] : player[key];
 };
 
-/** The values as numbers (null stays null), text replaced by its rank among the distinct values. */
-const numericValues = (
+/** Each value replaced by its rank among the distinct values (null stays null), so it stays below the count. */
+const rankedValues = (
   values: readonly Scalar[],
   collator: Intl.Collator,
 ): readonly (number | null)[] => {
-  const texts = [...new Set(values.filter((value) => typeof value === "string"))];
-  const rank = new Map(texts.toSorted(collator.compare).map((text, index) => [text, index]));
-  return values.map((value) =>
-    value === null ? null : typeof value === "string" ? (rank.get(value) ?? 0) : Number(value),
-  );
+  // One key gives values of one type: text compares in the collation, numbers and booleans by size.
+  const compare = (a: Scalar, b: Scalar) =>
+    typeof a === "string" && typeof b === "string" ? collator.compare(a, b) : Number(a) - Number(b);
+  const distinct = [...new Set(values.filter((value) => value !== null))].toSorted(compare);
+  const rank = new Map(distinct.map((value, index) => [value, index]));
+  return values.map((value) => (value === null ? null : (rank.get(value) ?? 0)));
 };
 
 export const sortPlayers = (
@@ -91,7 +91,7 @@ export const sortPlayers = (
   } = {},
 ): readonly Player[] => {
   const sign = direction === "ascending" ? 1 : -1;
-  const values = numericValues(
+  const values = rankedValues(
     players.map((player) => valueOf(player, key, ratingCode)),
     collator,
   );
@@ -100,8 +100,8 @@ export const sortPlayers = (
   // Missing values sort after every present one, whatever the direction.
   const [lowest, missing] = [Math.min(0, ...present), Math.max(0, ...present) + 1];
   // One integer per player, (value, nameOrder, index), sorted natively: the slow laptop needs that
-  // for 13 000 players within the 30 ms budget. The largest key (ids near 4e5 times two counts near
-  // 1.3e4) stays far below 2^53.
+  // for 13 000 players within the 30 ms budget. Ranks stay below the count, so the largest key
+  // (ids near 4e5 times two counts near 1.3e4, about 7e13) stays far below 2^53 for any field.
   const count = players.length;
   const scale = Math.max(0, ...players.map((player) => player.nameOrder)) + 1;
   const keys = Float64Array.from(
