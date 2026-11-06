@@ -9,15 +9,16 @@
 // URLs are relative to the worker, which sits next to index.html, so one build works at the site root and
 // under a sub-path (Vite `base: "./"`).
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const SERVICE_WORKER_FILE = "sw.js";
 const START_PAGE_FILE = "index.html";
+const HEADERS_FILE = "_headers";
 // Host rules the host reads and never serves (a file the server answers with 404 fails every install), and
 // the worker itself, which the browser fetches on its own.
 const NOT_PRECACHED_FILES = new Set([
-  "_headers",
+  HEADERS_FILE,
   "_redirects",
   ".assetsignore",
   SERVICE_WORKER_FILE,
@@ -62,14 +63,19 @@ export const precacheOf = (
       sha256: file.sha256,
     }));
 
-/** The release's cache, named after the kept files, so two releases never share one. */
-export const cacheIdOf = (precache: readonly PrecacheEntry[]): string =>
-  sha256Hex(JSON.stringify(precache)).slice(0, CACHE_ID_LENGTH_CHARS);
+/**
+ * The release's cache, named after the kept files and the host's headers file, so two releases never share
+ * one. The stored copies keep the headers they were served with, so a release that changes only the
+ * headers needs a new cache too.
+ */
+export const cacheIdOf = (precache: readonly PrecacheEntry[], headersSha256: string): string =>
+  sha256Hex(JSON.stringify({ precache, headersSha256 })).slice(0, CACHE_ID_LENGTH_CHARS);
 
 /** The worker of one release: the template with the release written into its placeholder. */
 export const renderServiceWorker = (
   template: string,
   precache: readonly PrecacheEntry[],
+  headersSha256: string,
 ): string => {
   const parts = template.split(RELEASE_PLACEHOLDER);
   if (parts.length !== 2) {
@@ -77,7 +83,12 @@ export const renderServiceWorker = (
       `the worker's source must name ${RELEASE_PLACEHOLDER} exactly once, found ${String(parts.length - 1)}`,
     );
   }
-  const release = { cachePrefix: CACHE_PREFIX, cacheId: cacheIdOf(precache), precache };
+  const release = {
+    cachePrefix: CACHE_PREFIX,
+    cacheId: cacheIdOf(precache, headersSha256),
+    headersSha256,
+    precache,
+  };
   return parts.join(JSON.stringify(release, null, 2));
 };
 
@@ -99,18 +110,18 @@ export const precacheOfDirectory = (distDir: string): PrecacheEntry[] =>
   );
 
 const main = (distDir: string): number => {
-  if (!existsSync(path.join(distDir, START_PAGE_FILE))) {
-    console.error(
-      `write-service-worker: no ${START_PAGE_FILE} in ${distDir}; run the bundler first.`,
-    );
+  const missing = [START_PAGE_FILE, HEADERS_FILE].find(
+    (file) => !existsSync(path.join(distDir, file)),
+  );
+  if (missing !== undefined) {
+    console.error(`write-service-worker: no ${missing} in ${distDir}; run the bundler first.`);
     return 1;
   }
-  // Left over from an earlier run on the same directory.
-  rmSync(path.join(distDir, SERVICE_WORKER_FILE), { force: true });
   const precache = precacheOfDirectory(distDir);
+  const headersSha256 = sha256Hex(readFileSync(path.join(distDir, HEADERS_FILE)));
   writeFileSync(
     path.join(distDir, SERVICE_WORKER_FILE),
-    renderServiceWorker(readTemplate(), precache),
+    renderServiceWorker(readTemplate(), precache, headersSha256),
   );
   console.log(`write-service-worker: ${String(precache.length)} files kept for offline use`);
   return 0;
