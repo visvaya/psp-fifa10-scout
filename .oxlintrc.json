@@ -58,6 +58,12 @@
     "typescript/switch-exhaustiveness-check": "error",
     "typescript/consistent-type-imports": "error",
     "typescript/no-deprecated": "error",
+    "typescript/only-throw-error": "error",
+    "typescript/prefer-promise-reject-errors": "error",
+    "typescript/use-unknown-in-catch-callback-variable": "error",
+    // Catches `export *` and `export * as ns` barrels only; a barrel of named re-exports
+    // (`export { a } from`) passes, and no oxlint rule covers it.
+    "oxc/no-barrel-file": ["error", { "threshold": 0 }],
 
     "import/no-cycle": "error",
     "import/no-default-export": "error",
@@ -90,27 +96,117 @@
             "patterns": [
               {
                 "group": ["**/ui/**", "react", "react-dom", "react-dom/*"],
-                "message": "Logic and data layers stay free of UI and framework code."
+                "message": "Logic and data layers stay free of UI and framework code: keep it in src/ui and pass the result in as a parameter."
+              },
+              {
+                "group": [
+                  "node:*",
+                  "assert",
+                  "buffer",
+                  "child_process",
+                  "crypto",
+                  "events",
+                  "fs",
+                  "fs/*",
+                  "http",
+                  "https",
+                  "module",
+                  "net",
+                  "os",
+                  "path",
+                  "path/*",
+                  "perf_hooks",
+                  "process",
+                  "stream",
+                  "stream/*",
+                  "timers",
+                  "timers/*",
+                  "url",
+                  "util",
+                  "worker_threads",
+                  "zlib"
+                ],
+                "message": "Logic and data layers run in the browser: pass Node I/O in as a parameter from scripts/ or a test."
               }
             ]
           }
         ],
         "no-restricted-globals": [
           "error",
-          { "name": "window", "message": "Logic and data layers must not depend on the browser." },
+          {
+            "name": "window",
+            "message": "Logic and data layers must not depend on the browser: pass the value in as a parameter."
+          },
           {
             "name": "document",
-            "message": "Logic and data layers must not depend on the browser."
+            "message": "Logic and data layers must not depend on the browser: pass the value in as a parameter."
           },
           {
             "name": "navigator",
-            "message": "Logic and data layers must not depend on the browser."
+            "message": "Logic and data layers must not depend on the browser: pass the value in as a parameter."
           },
-          { "name": "localStorage", "message": "Persistence goes through the storage adapter." }
+          {
+            "name": "self",
+            "message": "Logic and data layers must not depend on the browser: pass the value in as a parameter."
+          },
+          {
+            "name": "globalThis",
+            "message": "Logic and data layers must not depend on the browser: pass the value in as a parameter."
+          },
+          {
+            "name": "postMessage",
+            "message": "Logic and data layers must not depend on the browser: pass the value in as a parameter."
+          },
+          {
+            "name": "localStorage",
+            "message": "Persistence goes through the storage adapter: pass load and save in as parameters."
+          },
+          {
+            "name": "sessionStorage",
+            "message": "Persistence goes through the storage adapter: pass load and save in as parameters."
+          },
+          {
+            "name": "indexedDB",
+            "message": "Persistence goes through the storage adapter: pass load and save in as parameters."
+          },
+          {
+            "name": "fetch",
+            "message": "I/O stays outside logic and data: pass it in as a parameter (a function such as (url) => Promise<Response>)."
+          },
+          {
+            "name": "XMLHttpRequest",
+            "message": "I/O stays outside logic and data: pass it in as a parameter (a function such as (url) => Promise<Response>)."
+          },
+          {
+            "name": "setTimeout",
+            "message": "Timers are effects: schedule in the UI or pass a scheduler in as a parameter."
+          },
+          {
+            "name": "setInterval",
+            "message": "Timers are effects: schedule in the UI or pass a scheduler in as a parameter."
+          },
+          {
+            "name": "performance",
+            "message": "The clock is an input: pass the time in as a parameter."
+          }
         ],
         "no-restricted-properties": [
           "error",
-          { "object": "Math", "property": "random", "message": "Use the seeded RNG." }
+          { "object": "Math", "property": "random", "message": "Use the seeded RNG." },
+          {
+            "object": "Date",
+            "property": "now",
+            "message": "The clock is an input: pass the time in as a parameter."
+          },
+          {
+            "object": "crypto",
+            "property": "getRandomValues",
+            "message": "Randomness is an input: use the seeded RNG or pass the bytes in as a parameter."
+          },
+          {
+            "property": "arrayBuffer",
+            "message": "Reading a File, Blob or Response is I/O: read it in the UI and pass the bytes in as a parameter."
+          }
         ]
       }
     },
@@ -123,7 +219,133 @@
             "patterns": [
               {
                 "group": ["**/ui/**", "**/logic/**", "react", "react-dom", "react-dom/*"],
-                "message": "The data layer does not import logic or UI."
+                "message": "The data layer does not import logic or UI: move the shared code into src/data or pass the result in as a parameter."
+              },
+              {
+                "group": [
+                  "node:*",
+                  "assert",
+                  "buffer",
+                  "child_process",
+                  "crypto",
+                  "events",
+                  "fs",
+                  "fs/*",
+                  "http",
+                  "https",
+                  "module",
+                  "net",
+                  "os",
+                  "path",
+                  "path/*",
+                  "perf_hooks",
+                  "process",
+                  "stream",
+                  "stream/*",
+                  "timers",
+                  "timers/*",
+                  "url",
+                  "util",
+                  "worker_threads",
+                  "zlib"
+                ],
+                "message": "Logic and data layers run in the browser: pass Node I/O in as a parameter from scripts/ or a test."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    // The two tests that time themselves with performance.now() may read the clock; every other
+    // restricted global stays forbidden in them.
+    {
+      "files": ["src/logic/players.test.ts", "src/data/iso9660.test.ts"],
+      "rules": {
+        "no-restricted-globals": [
+          "error",
+          {
+            "name": "window",
+            "message": "Logic and data layers must not depend on the browser: pass the value in as a parameter."
+          },
+          {
+            "name": "document",
+            "message": "Logic and data layers must not depend on the browser: pass the value in as a parameter."
+          },
+          {
+            "name": "navigator",
+            "message": "Logic and data layers must not depend on the browser: pass the value in as a parameter."
+          },
+          {
+            "name": "self",
+            "message": "Logic and data layers must not depend on the browser: pass the value in as a parameter."
+          },
+          {
+            "name": "globalThis",
+            "message": "Logic and data layers must not depend on the browser: pass the value in as a parameter."
+          },
+          {
+            "name": "postMessage",
+            "message": "Logic and data layers must not depend on the browser: pass the value in as a parameter."
+          },
+          {
+            "name": "localStorage",
+            "message": "Persistence goes through the storage adapter: pass load and save in as parameters."
+          },
+          {
+            "name": "sessionStorage",
+            "message": "Persistence goes through the storage adapter: pass load and save in as parameters."
+          },
+          {
+            "name": "indexedDB",
+            "message": "Persistence goes through the storage adapter: pass load and save in as parameters."
+          },
+          {
+            "name": "fetch",
+            "message": "I/O stays outside logic and data: pass it in as a parameter (a function such as (url) => Promise<Response>)."
+          },
+          {
+            "name": "XMLHttpRequest",
+            "message": "I/O stays outside logic and data: pass it in as a parameter (a function such as (url) => Promise<Response>)."
+          },
+          {
+            "name": "setTimeout",
+            "message": "Timers are effects: schedule in the UI or pass a scheduler in as a parameter."
+          },
+          {
+            "name": "setInterval",
+            "message": "Timers are effects: schedule in the UI or pass a scheduler in as a parameter."
+          }
+        ]
+      }
+    },
+    // Tests under logic/ and data/ read fixtures from disk (node:fs, node:path, node:crypto), so their
+    // import rules leave out the Node group; the UI and layer groups stay.
+    {
+      "files": ["src/logic/**/*.test.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["**/ui/**", "react", "react-dom", "react-dom/*"],
+                "message": "Logic and data layers stay free of UI and framework code: keep it in src/ui and pass the result in as a parameter."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/data/**/*.test.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["**/ui/**", "**/logic/**", "react", "react-dom", "react-dom/*"],
+                "message": "The data layer does not import logic or UI: move the shared code into src/data or pass the result in as a parameter."
               }
             ]
           }

@@ -14,6 +14,7 @@ describe("num", () => {
   it("throws a file error on a missing or non-numeric column", () => {
     expect(() => num({ playerid: 7 }, "teamid")).toThrow(SaveFormatError);
     expect(() => num({ name: "Brożek" }, "name")).toThrow(SaveFormatError);
+    expect(() => num({ name: "Brożek" }, "name")).toThrow('Column "name" is no number');
   });
 
   it("throws a file error on a blank text column instead of reading 0", () => {
@@ -148,7 +149,12 @@ describe("parseEaDb", () => {
   });
 
   it("rejects a truncated header or table list", () => {
-    expect(() => parseEaDb(new Uint8Array(11))).toThrow(/too short/);
+    expect(() => parseEaDb(new Uint8Array(11))).toThrow(
+      expect.objectContaining({
+        message: "Database file is too short",
+        kind: "wrong-file",
+      }),
+    );
     expect(() => parseEaDb(new Uint8Array(12))).toThrow(/table list is out of range/);
     expect(() => parseEaDb(patched(SAMPLE, 8, 0x10000000))).toThrow(/table list is out of range/);
     expect(() => parseEaDb(SAMPLE.subarray(0, 40))).toThrow(SaveFormatError);

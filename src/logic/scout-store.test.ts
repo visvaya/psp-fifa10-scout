@@ -86,6 +86,7 @@ describe("scout store", () => {
         set,
         { name: "", filters: {}, sort: DEFAULT_SORT },
         { name: " Perełki ", filters: {}, sort: DEFAULT_SORT },
+        { name: 5, filters: {}, sort: DEFAULT_SORT },
       ],
     };
     const loaded = await loadPreferences({ schemaVersion: SCHEMA_VERSION.preferences, value });
@@ -129,7 +130,7 @@ describe("scout store", () => {
       schemaVersion: SCHEMA_VERSION.languages,
       value: {
         pol_pl: good,
-        cze_cz: { teams: { 1: 5 }, leagues: {}, countries: {}, positions: {} },
+        cze_cz: { teams: { 1: 5 }, leagues: {}, countries: {}, positions: {}, positionNames: {} },
         ger_de: { teams: {}, leagues: {}, countries: {}, positions: { 0: 1 } },
         hun_hu: { teams: {}, leagues: {} },
         eng_us: "junk",
@@ -137,6 +138,8 @@ describe("scout store", () => {
     });
     expect((await createScoutStore(backend).load()).languages).toEqual({ pol_pl: good });
     await backend.set("languages", { schemaVersion: 99, value: { pol_pl: good } });
+    expect((await createScoutStore(backend).load()).languages).toEqual({});
+    await backend.set("languages", { schemaVersion: "1", value: { pol_pl: good } });
     expect((await createScoutStore(backend).load()).languages).toEqual({});
   });
 
@@ -291,6 +294,7 @@ describe("scout store", () => {
       positionRating: { code: 5, min: 60 },
     });
     expect((await rating({ code: 1.5 }))?.filters).toEqual({});
+    expect((await rating({ code: -1, min: 1 }))?.filters).toEqual({});
     expect((await rating(5))?.filters).toEqual({});
     expect(await loadPreferences({ schemaVersion: 3, value })).toEqual({
       filters: {

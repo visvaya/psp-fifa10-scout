@@ -62,6 +62,7 @@ const watchlistAfter = (
       return watchedPlayer(list, action.id, action.addedAt);
     case "watch-removed":
       return unwatchedPlayer(list, action.id);
+    // Stryker disable next-line StringLiteral: the case falls through to default, so its label changes nothing.
     case "watch-note-changed":
     default:
       return notedPlayer(list, action.id, action.note);

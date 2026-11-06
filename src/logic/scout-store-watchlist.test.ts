@@ -45,7 +45,7 @@ describe("stored watchlist", () => {
     ["a fractional player id", { ...stored, playerId: 1.5 }],
     ["a text player id", { ...stored, playerId: "7" }],
     ["a note that is not text", { ...stored, note: 3 }],
-    ["a date that is not text", { ...stored, addedAt: 20_261_105 }],
+    ["a date that is not text", { ...stored, addedAt: 2026 }],
     ["a date that is not a date", { ...stored, addedAt: "yesterday" }],
     ["not a record", "7"],
     ["null", null],

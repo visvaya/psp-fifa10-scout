@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { RANGE_KEYS } from "./filter-players.ts";
-import { ratingValueOf, SORTABLE_KEYS, sortPlayers } from "./sort-players.ts";
+import { nextDirection, ratingValueOf, SORTABLE_KEYS, sortPlayers } from "./sort-players.ts";
 import type { SortDirection, SortKey } from "./sort-players.ts";
 import { attributes, testPlayer } from "./test-support/player-fixtures.ts";
 
+// Data rows, alike by nature. jscpd:ignore-start
 const PLAYERS = [
   testPlayer({
     id: 5,
@@ -38,6 +39,7 @@ const PLAYERS = [
     attributes: attributes(70),
   }),
 ];
+// jscpd:ignore-end
 
 const ids = (key: SortKey, direction: SortDirection): readonly number[] =>
   sortPlayers(PLAYERS, key, direction).map((player) => player.id);
@@ -174,6 +176,13 @@ describe("sortPlayers", () => {
   it("leaves the input untouched", () => {
     sortPlayers(PLAYERS, "age", "ascending");
     expect(PLAYERS.map((player) => player.id)).toEqual([5, 2, 1, 3]);
+  });
+});
+
+describe("nextDirection", () => {
+  it("turns the sorted key round, either way", () => {
+    expect(nextDirection({ key: "age", direction: "ascending" }, "age")).toBe("descending");
+    expect(nextDirection({ key: "age", direction: "descending" }, "age")).toBe("ascending");
   });
 });
 

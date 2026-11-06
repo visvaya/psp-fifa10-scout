@@ -12,29 +12,33 @@ const listing = (playerid: number, isLoan: number, sold: number): EaDbRow => ({
   sold,
 });
 
-describe("transferMarketOf", () => {
-  // The list keeps the window's sold rows: only unsold ones are still on offer.
-  const market = transferMarketOf(
+// Markets are built inside each test, not when the file loads, so mutation testing sees the code run.
+// The list keeps the window's sold rows: only unsold ones are still on offer.
+const windowMarket = () =>
+  transferMarketOf(
     [listing(1, 0, 0), listing(2, 0, 1), listing(3, 1, 0), listing(4, 1, 1)],
     [{ playerid: 4, oldteamid: 241 }],
   );
 
+const oneListingMarket = () =>
+  transferMarketOf([listing(1, 0, 0)], [{ playerid: 4, oldteamid: 241 }]);
+
+describe("transferMarketOf", () => {
   it("lists unsold players for a transfer or for a loan apart", () => {
-    expect([...market.listed]).toEqual([1]);
-    expect([...market.loanListed]).toEqual([3]);
+    expect([...windowMarket().listed]).toEqual([1]);
+    expect([...windowMarket().loanListed]).toEqual([3]);
   });
 
   it("keeps the club each player on loan belongs to", () => {
-    expect([...market.loanedFrom]).toEqual([[4, 241]]);
+    expect([...windowMarket().loanedFrom]).toEqual([[4, 241]]);
   });
 });
 
 describe("marketFields", () => {
-  const market = transferMarketOf([listing(1, 0, 0)], [{ playerid: 4, oldteamid: 241 }]);
   const teams = new Map([[241, { name: "FC Barcelona" }]]);
 
   it("names the club a player on loan comes from", () => {
-    expect(marketFields(market, teams, 4)).toEqual({
+    expect(marketFields(oneListingMarket(), teams, 4)).toEqual({
       transferListed: false,
       loanListed: false,
       loanedFromId: 241,
@@ -43,7 +47,7 @@ describe("marketFields", () => {
   });
 
   it("leaves the loan empty for a player at his own club", () => {
-    expect(marketFields(market, teams, 1)).toEqual({
+    expect(marketFields(oneListingMarket(), teams, 1)).toEqual({
       transferListed: true,
       loanListed: false,
       loanedFromId: null,

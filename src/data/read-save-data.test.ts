@@ -61,13 +61,23 @@ describe("readSaveData", () => {
     ]);
     const paramsOnly = buildParamSfo([{ key: "SAVEDATA_PARAMS", value: new Uint8Array(128) }]);
     for (const sfo of [fileListOnly, paramsOnly, buildParamSfo([{ key: "TITLE", value: "x" }])]) {
-      expect(() => readSaveData(PLAIN, sfo)).toThrow(/does not describe a save/);
+      expect(() => readSaveData(PLAIN, sfo)).toThrow(
+        expect.objectContaining({
+          message: "PARAM.SFO does not describe a save",
+          kind: "wrong-file",
+        }),
+      );
     }
   });
 
   it("rejects an encrypted save whose PARAM.SFO does not list DATA.BIN", () => {
     const sfo = withParams(0x41, buildFileList("OTHER.BIN", new Uint8Array(16)));
-    expect(() => readSaveData(encryptedSave().dataBin, sfo)).toThrow(/lists no DATA.BIN/);
+    expect(() => readSaveData(encryptedSave().dataBin, sfo)).toThrow(
+      expect.objectContaining({
+        message: "PARAM.SFO lists no DATA.BIN",
+        kind: "wrong-file",
+      }),
+    );
     expect(() => readSaveData(encryptedSave().dataBin, sfo)).toThrow(SaveFormatError);
   });
 });

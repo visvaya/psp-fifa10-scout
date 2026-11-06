@@ -54,20 +54,42 @@ describe("parseLoc", () => {
     ]);
   });
 
+  // A file that is no locale file at all is the wrong file; a broken string inside one is damage.
   it.each([
-    ["a wrong magic", patched(HAND_LOC, 0, 0), "Not a locale file"],
-    ["a section outside the file", patched(HAND_LOC, 16, 0x1000), "does not describe"],
-    ["a section cut short", LOCL_AT_END, "does not describe"],
-    ["a missing LOCL tag", patched(HAND_LOC, 0x14, 0), "does not describe"],
-    ["more offsets than the file holds", patched(HAND_LOC, 0x20, 8), "does not describe"],
-    ["a string offset outside the file", patched(HAND_LOC, 0x24, 0x500), "out of range"],
-    ["a string without its NUL", HAND_LOC.subarray(0, HAND_LOC.length - 4), "out of range"],
-    ["a string cut in a character", HAND_LOC.subarray(0, HAND_LOC.length - 3), "out of range"],
-    ["a truncated header", HAND_LOC.subarray(0, 19), "too short"],
-    ["a header without its section", HAND_LOC.subarray(0, 20), "does not describe"],
-  ])("rejects %s", (_name, bytes, message) => {
+    ["a wrong magic", patched(HAND_LOC, 0, 0), "Not a locale file", "wrong-file"],
+    [
+      "a section outside the file",
+      patched(HAND_LOC, 16, 0x1000),
+      "does not describe",
+      "wrong-file",
+    ],
+    ["a section cut short", LOCL_AT_END, "does not describe", "wrong-file"],
+    ["a missing LOCL tag", patched(HAND_LOC, 0x14, 0), "does not describe", "wrong-file"],
+    [
+      "more offsets than the file holds",
+      patched(HAND_LOC, 0x20, 8),
+      "does not describe",
+      "wrong-file",
+    ],
+    ["a string offset outside the file", patched(HAND_LOC, 0x24, 0x500), "out of range", "damaged"],
+    [
+      "a string without its NUL",
+      HAND_LOC.subarray(0, HAND_LOC.length - 4),
+      "out of range",
+      "damaged",
+    ],
+    [
+      "a string cut in a character",
+      HAND_LOC.subarray(0, HAND_LOC.length - 3),
+      "out of range",
+      "damaged",
+    ],
+    ["a truncated header", HAND_LOC.subarray(0, 19), "too short", "wrong-file"],
+    ["a header without its section", HAND_LOC.subarray(0, 20), "does not describe", "wrong-file"],
+  ])("rejects %s", (_name, bytes, message, kind) => {
     expect(() => parseLoc(bytes)).toThrow(SaveFormatError);
     expect(() => parseLoc(bytes)).toThrow(message);
+    expect(() => parseLoc(bytes)).toThrow(expect.objectContaining({ kind }));
   });
 
   it("reads tables that end exactly at the file end", () => {
@@ -110,7 +132,9 @@ describe("parseLoc", () => {
   });
 
   it("rejects a file over the size cap without reading it", () => {
-    expect(() => parseLoc(new Uint8Array(5 * 1024 * 1024))).toThrow("too large");
+    expect(() => parseLoc(new Uint8Array(5 * 1024 * 1024))).toThrow(
+      expect.objectContaining({ message: "Locale file is too large", kind: "wrong-file" }),
+    );
   });
 });
 
@@ -124,11 +148,17 @@ describe("parseStringIdx", () => {
 
   it.each([
     ["a wrong magic", patched(HAND_IDX, 0, 1), "Not a string index file"],
-    ["more entries than the file holds", patched(HAND_IDX, 4, 3), "does not describe"],
-    ["a truncated header", HAND_IDX.subarray(0, 7), "too short"],
-  ])("rejects %s", (_name, bytes, message) => {
+    [
+      "more entries than the file holds",
+      patched(HAND_IDX, 4, 3),
+      "String index file does not describe its entries",
+    ],
+    ["a truncated header", HAND_IDX.subarray(0, 7), "Locale file is too short"],
+  ])("rejects %s as the wrong file", (_name, bytes, message) => {
     expect(() => parseStringIdx(bytes)).toThrow(SaveFormatError);
-    expect(() => parseStringIdx(bytes)).toThrow(message);
+    expect(() => parseStringIdx(bytes)).toThrow(
+      expect.objectContaining({ message, kind: "wrong-file" }),
+    );
   });
 
   it("reads an index without entries", () => {
@@ -149,7 +179,10 @@ describe("readLocale", () => {
 
   it("rejects an index that points past the strings", () => {
     expect(() => readLocale(buildLoc(["a"]), buildStringIdx([[1, 1]]))).toThrow(
-      "does not describe",
+      expect.objectContaining({
+        message: "String index does not describe this locale file",
+        kind: "wrong-file",
+      }),
     );
   });
 });

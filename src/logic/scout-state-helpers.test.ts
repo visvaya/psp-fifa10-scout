@@ -2,7 +2,7 @@
 // bands and the facet options.
 import { describe, expect, it } from "vitest";
 import { facetOptions } from "./facets.ts";
-import { activeFilters, attributeBand } from "./scout-state.ts";
+import { activeFilters, attributeBand, compactFilters } from "./scout-state.ts";
 import { testPlayer } from "./test-support/player-fixtures.ts";
 
 describe("activeFilters", () => {
@@ -23,6 +23,36 @@ describe("activeFilters", () => {
         flags: { selfish: false, transferListed: undefined },
       }),
     ).toEqual(["text", "lists.leagueId", "flags.selfish", "clubStatus", "myClub"]);
+  });
+});
+
+// Strict equality: a key left with an undefined value would linger in state and storage.
+describe("compactFilters", () => {
+  it("leaves no key behind for a filter that narrows nothing", () => {
+    expect(
+      compactFilters({
+        text: " ",
+        ranges: { potential: {} },
+        lists: { clubId: [] },
+        excludedLists: { clubId: true },
+        flags: { selfish: undefined },
+        clubStatus: "available",
+        myClub: undefined,
+      }),
+    ).toStrictEqual({});
+  });
+
+  it("keeps each filter that narrows the list", () => {
+    const active = {
+      text: "a",
+      ranges: { age: { min: 18 } },
+      lists: { leagueId: [1] },
+      excludedLists: { leagueId: true },
+      flags: { selfish: false },
+      clubStatus: "free-agents",
+      myClub: "hide",
+    } as const;
+    expect(compactFilters(active)).toStrictEqual(active);
   });
 });
 

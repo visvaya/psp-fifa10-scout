@@ -14,7 +14,7 @@ import {
   buildScoutLocale,
   SCOUT_USER_TEAM_ID,
 } from "./test-support/scout-db.ts";
-import { table } from "./test-support/player-fixtures.ts";
+import { playerRow, table } from "./test-support/player-fixtures.ts";
 
 /** A whole file as the worker passes it. */
 const source = (bytes: Uint8Array): FileSource => ({
@@ -147,6 +147,55 @@ describe("loadScout", () => {
       loadScout({ game: gameOf(buildScoutDb([grown])), save }, () => undefined),
     ).rejects.toEqual(expect.objectContaining({ error: { stage: "save", kind: "damaged" } }));
   });
+
+  it("names the stage and kind in the failure and keeps the file error as its cause", async () => {
+    const bare = buildScoutDb().subarray(0, 40);
+    const failure: unknown = await loadScout({ game: gameOf(bare) }, () => undefined).catch(
+      (error: unknown) => error,
+    );
+    expect(failure).toMatchObject({
+      name: "LoadFailure",
+      message: "Load failed at game: damaged",
+      error: { stage: "game", kind: "damaged" },
+    });
+    expect(failure instanceof Error ? failure.cause : null).toMatchObject({
+      name: "SaveFormatError",
+      kind: "damaged",
+    });
+  });
+
+  it("blames the game when its players cannot be read without a save", async () => {
+    const players = table("players", [playerRow({ playerid: 7, dribbling: "x" })]);
+    await expect(
+      loadScout({ game: gameOf(buildScoutDb([players])) }, () => undefined),
+    ).rejects.toEqual(expect.objectContaining({ error: { stage: "game", kind: "damaged" } }));
+  });
+
+  it("blames the game when a language of its disc image is broken", async () => {
+    const { idx } = buildScoutLocale();
+    const locale = "PSP_GAME/USRDIR/data/gui/locale";
+    const iso = buildIso([
+      {
+        path: "PSP_GAME/PARAM.SFO",
+        bytes: buildParamSfo([{ key: "DISC_ID", value: "ULES01328" }]),
+      },
+      { path: "PSP_GAME/USRDIR/data/cmn/fifa.db", bytes: buildScoutDb() },
+      { path: `${locale}/string.idx`, bytes: idx },
+      { path: `${locale}/pol_pl.loc`, bytes: new Uint8Array(32) },
+    ]);
+    await expect(loadScout({ game: gameOf(iso) }, () => undefined)).rejects.toEqual(
+      expect.objectContaining({ error: { stage: "game", kind: "wrong-file" } }),
+    );
+  });
+
+  it("blames the save when it has no user team", async () => {
+    const noManager = { name: "team_manager", u32: ["team_id"], rows: [] };
+    const { dataBin, paramSfo } = buildPlainSave();
+    const save = { dataBin: source(dataBin), paramSfo: source(paramSfo) };
+    await expect(
+      loadScout({ game: gameOf(buildScoutDb([noManager])), save }, () => undefined),
+    ).rejects.toEqual(expect.objectContaining({ error: { stage: "save", kind: "not-career" } }));
+  });
 });
 
 /** A file one byte over `maxBytes` whose contents are never read. */
@@ -180,6 +229,14 @@ describe("loadScout size caps", () => {
       loadScout({ game: gameOf(buildScoutDb()), locale }, () => undefined),
     ).rejects.toEqual(expect.objectContaining({ error: { stage: "locale", kind: "wrong-file" } }));
     expect(read).not.toHaveBeenCalled();
+  });
+
+  it("reads a file exactly at its cap", async () => {
+    const { loc, idx } = buildScoutLocale();
+    const atCap = { size: MAX_LOC_BYTES, bytes: () => Promise.resolve(loc.slice()) };
+    const locale = { code: "pol_pl", loc: atCap, idx: source(idx) };
+    const result = await loadScout({ game: gameOf(buildScoutDb()), locale }, () => undefined);
+    expect(Object.keys(result.languages)).toEqual(["pol_pl"]);
   });
 });
 
@@ -219,6 +276,7 @@ describe("pickSaveFiles", () => {
 
   it("returns null when one of them is missing", () => {
     expect(pickSaveFiles([file("DATA.BIN")])).toBeNull();
+    expect(pickSaveFiles([file("PARAM.SFO")])).toBeNull();
   });
 });
 
