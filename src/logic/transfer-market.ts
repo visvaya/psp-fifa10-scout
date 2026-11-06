@@ -2,6 +2,7 @@
 // the player already moved), so only unsold rows are on offer; is_loan splits a transfer listing from
 // a loan one. career_loaned_list holds each player on loan with his parent club, while his team link
 // points at the club he plays for (32 of 32 in the owner's 2011-04-06 save).
+import { num } from "../data/ea-db.ts";
 import type { EaDbRow } from "../data/ea-db.ts";
 
 export interface TransferMarket {
@@ -12,8 +13,6 @@ export interface TransferMarket {
   /** The parent club of each player on loan. */
   readonly loanedFrom: ReadonlyMap<number, number>;
 }
-
-const num = (row: EaDbRow, key: string): number => Number(row[key]);
 
 export const transferMarketOf = (
   transferList: readonly EaDbRow[],

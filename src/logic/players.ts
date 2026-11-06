@@ -2,7 +2,7 @@
 // and nationality, and with a career save also the save's links, date and season stats.
 import { careerManager, effectiveRows, seasonStartDate } from "../data/career-save.ts";
 import type { CareerSave } from "../data/career-save.ts";
-import { ageOn, birthdateToDate, readTable } from "../data/ea-db.ts";
+import { ageOn, birthdateToDate, num, readTable } from "../data/ea-db.ts";
 import type { EaDb, EaDbRow } from "../data/ea-db.ts";
 import { SaveFormatError } from "../data/save-format-error.ts";
 import { bestPeakFields } from "./best-peak.ts";
@@ -256,8 +256,6 @@ interface Rating {
   /** The peak OVR at each position code; empty without a save, as nothing ages. */
   readonly peakByCode: readonly number[];
 }
-
-const num = (row: EaDbRow, key: string): number => Number(row[key]);
 
 /** Polish alphabetical order: the default of every text sort. */
 export const nameCollator = new Intl.Collator("pl");

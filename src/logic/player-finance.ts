@@ -2,6 +2,7 @@
 // and his contract. The user's squad keeps the wages stored in the save.
 import { careerManager, effectiveRows, seasonStartDate } from "../data/career-save.ts";
 import type { CareerSave } from "../data/career-save.ts";
+import { num } from "../data/ea-db.ts";
 import type { EaDb, EaDbRow } from "../data/ea-db.ts";
 import { SCOUT_CONFIG } from "./config.ts";
 import { exchangeRate, marketWage, roundMoney, transferPrice } from "./transfer-price.ts";
@@ -30,8 +31,6 @@ export interface FinanceInput {
 
 /** The game's "_overall+5": the OVR the price formula projects. */
 const PROJECTION_YEARS = 5;
-
-const num = (row: EaDbRow, key: string): number => Number(row[key]);
 
 /** A float32 stored as its u32 bits. */
 const float32 = (bits: number): number => {

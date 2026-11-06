@@ -1,10 +1,11 @@
-// Loading the user's files into player summaries: the pure part of the worker protocol. The worker
-// calls loadScout and posts what it reports; the UI never parses files on its own thread.
+// Loading the user's files into player summaries, and the worker protocol. The worker turns each picked
+// file into a narrow capability (its size and a reader), calls loadScout and posts what it reports;
+// loadScout decides what to read, within the size caps, and the UI never parses files on its own thread.
 import { offerContextOf } from "./offer.ts";
 import type { OfferContext } from "./offer.ts";
 import { careerManager, parseCareerSave } from "../data/career-save.ts";
 import type { CurrencyCode } from "../data/career-save.ts";
-import { parseEaDb, readTable } from "../data/ea-db.ts";
+import { num, parseEaDb, readTable } from "../data/ea-db.ts";
 import type { EaDb } from "../data/ea-db.ts";
 import { MAX_IDX_BYTES, MAX_LOC_BYTES, readLocale } from "../data/game-locale.ts";
 import { readGameDatabase, readIsoLocales } from "../data/iso9660.ts";
@@ -44,6 +45,19 @@ export interface LoadRequest {
   readonly game: Blob;
   readonly save?: SaveFiles<Blob>;
   readonly locale?: LocaleFiles<Blob>;
+}
+
+/** A whole user file: its size, and its contents read only when called. */
+export interface FileSource {
+  readonly size: number;
+  readonly bytes: () => Promise<Uint8Array>;
+}
+
+/** What loadScout reads: the game by byte ranges, the save and language files whole. */
+export interface LoadInput {
+  readonly game: { readonly size: number; readonly read: ReadRange };
+  readonly save?: SaveFiles<FileSource>;
+  readonly locale?: LocaleFiles<FileSource>;
 }
 
 /** What a career save holds, so the user can tell which save was loaded. */
@@ -86,9 +100,9 @@ export const classifyLoadError = (stage: LoadStage, error: unknown): LoadError =
 };
 
 /** The contents of a user file, checking its size before reading it. */
-const bytesOf = async (blob: Blob, maxBytes: number): Promise<Uint8Array> => {
-  if (blob.size > maxBytes) throw new SaveFormatError("File is too large", "wrong-file");
-  return new Uint8Array(await blob.arrayBuffer());
+const bytesOf = async (file: FileSource, maxBytes: number): Promise<Uint8Array> => {
+  if (file.size > maxBytes) throw new SaveFormatError("File is too large", "wrong-file");
+  return file.bytes();
 };
 
 /** A load that failed, with what went wrong in user terms. */
@@ -112,7 +126,7 @@ const atStage = async <T>(stage: LoadStage, run: () => T | Promise<T>): Promise<
 
 const idsOf = (db: EaDb): NameIds => {
   const ids = (table: string, column: string) =>
-    readTable(db, table).map((row) => Number(row[column]));
+    readTable(db, table).map((row) => num(row, column));
   return {
     teams: ids("teams", "teamid"),
     leagues: ids("leagues", "leagueid"),
@@ -121,12 +135,8 @@ const idsOf = (db: EaDb): NameIds => {
 };
 
 /** The names of the disc image's languages, or of the attached file. */
-const readLanguages = async (
-  db: EaDb,
-  read: ReadRange,
-  { game, locale }: LoadRequest,
-): Promise<GameLanguages> => {
-  const ids = idsOf(db);
+const readLanguages = async (db: EaDb, { game, locale }: LoadInput): Promise<GameLanguages> => {
+  const ids = await atStage("game", () => idsOf(db));
   if (locale !== undefined) {
     return atStage("locale", async () => {
       const table = readLocale(
@@ -137,7 +147,7 @@ const readLanguages = async (
     });
   }
   return atStage("game", async () => {
-    const files = await readIsoLocales(read, game.size);
+    const files = await readIsoLocales(game.read, game.size);
     if (files === null) return {};
     const { cgexport } = files;
     return Object.fromEntries(
@@ -157,22 +167,21 @@ const readLanguages = async (
 
 /** Reads the game database, its languages and the optional save; throws LoadFailure. */
 export const loadScout = async (
-  request: LoadRequest,
+  input: LoadInput,
   onPhase: (phase: LoadPhase) => void,
 ): Promise<LoadResult> => {
   onPhase("game");
-  const { game, save } = request;
-  const read: ReadRange = async (offset, length) =>
-    bytesOf(game.slice(offset, offset + length), length);
-  const gameDb = await atStage("game", () => readGameDatabase(read, game.size));
+  const { game, save } = input;
+  const gameDb = await atStage("game", () => readGameDatabase(game.read, game.size));
   const db = await atStage("game", () => parseEaDb(gameDb));
   const names = {
-    languages: await readLanguages(db, read, request),
-    attachedLanguage: request.locale?.code ?? null,
+    languages: await readLanguages(db, input),
+    attachedLanguage: input.locale?.code ?? null,
   };
   if (save === undefined) {
     onPhase("players");
-    return { players: buildPlayers(db), myTeamId: null, career: null, gameDb, ...names };
+    const players = await atStage("game", () => buildPlayers(db));
+    return { players, myTeamId: null, career: null, gameDb, ...names };
   }
   onPhase("save");
   const career = await atStage("save", async () =>
@@ -188,18 +197,15 @@ export const loadScout = async (
     careerManager(db, career),
   );
   onPhase("players");
-  const players = buildPlayers(db, career);
+  const { players, offer } = await atStage("save", () => {
+    const built = buildPlayers(db, career);
+    return { players: built, offer: offerContextOf(db, career, built) };
+  });
   const clubName = players.find((player) => player.clubId === teamId)?.clubName ?? null;
   return {
     players,
     myTeamId: teamId,
-    career: {
-      managerName,
-      clubName,
-      lastGameDate,
-      currency,
-      offer: offerContextOf(db, career, players),
-    },
+    career: { managerName, clubName, lastGameDate, currency, offer },
     gameDb,
     ...names,
   };

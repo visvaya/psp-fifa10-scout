@@ -13,6 +13,7 @@ import { baseOverall, byPositionCode } from "./overall-rating.ts";
 import {
   attributes,
   flatCurves,
+  grownRow,
   NO_STATS,
   playerRow,
   table,
@@ -26,17 +27,17 @@ const BORN_1989_07_10 = daysSince1582(1989, 7, 10);
 const DB = parseEaDb(
   buildEaDb([
     table("leagues", [
-      { leagueid: 53, leaguename: "Spain Primera Division (1)", level: 1 },
-      { leagueid: 76, leaguename: "Rest of World", level: 4 },
-      { leagueid: 78, leaguename: "International", level: 5 },
-      { leagueid: 2028, leaguename: "World League", level: 7 },
+      { leagueid: 53, leaguename: "Spain Primera Division (1)", level: 1, leagueprestige: 5 },
+      { leagueid: 76, leaguename: "Rest of World", level: 4, leagueprestige: 5 },
+      { leagueid: 78, leaguename: "International", level: 5, leagueprestige: 5 },
+      { leagueid: 2028, leaguename: "World League", level: 7, leagueprestige: 5 },
     ]),
     table("teams", [
-      { teamid: 241, teamname: "FC Barcelona", overallrating: 84 },
-      { teamid: 1873, teamname: "Wisła Kraków", overallrating: 66 },
-      { teamid: 1369, teamname: "Argentina", overallrating: 83 },
-      { teamid: 9999, teamname: "All Stars", overallrating: 90 },
-      { teamid: 5000, teamname: "Unlisted", overallrating: 50 },
+      { teamid: 241, teamname: "FC Barcelona", overallrating: 84, internationalprestige: 5 },
+      { teamid: 1873, teamname: "Wisła Kraków", overallrating: 66, internationalprestige: 5 },
+      { teamid: 1369, teamname: "Argentina", overallrating: 83, internationalprestige: 5 },
+      { teamid: 9999, teamname: "All Stars", overallrating: 90, internationalprestige: 5 },
+      { teamid: 5000, teamname: "Unlisted", overallrating: 50, internationalprestige: 5 },
     ]),
     table("leagueteamlinks", [
       { leagueid: 53, teamid: 241 },
@@ -138,7 +139,7 @@ const SAVE: CareerSave = new Map([
   ["career_transfer_list", [row({ playerid: 400_003, is_loan: 0, sold: 0 })]],
   // 400_004: a scouted junior on the shortlist, not signed and in no team.
   ["career_shortlist", [158_023, 400_004].map((playerid) => row({ playerid, shortlist_dummy: 0 }))],
-  ["career_players_grown_attributes", [row({ playerid: 7, potential_delta: -25 })]],
+  ["career_players_grown_attributes", [row(grownRow(7, { potential_delta: -25 }))]],
   ["career_extra_user_team_info", []],
   [
     "playerstats",
@@ -321,10 +322,7 @@ describe("buildPlayers with a career save", () => {
   it("adds the attribute gains the save records", () => {
     const grown: CareerSave = new Map([
       ...SAVE,
-      [
-        "career_players_grown_attributes",
-        [row({ playerid: 158_023, potential_delta: 0, finishing_delta: 10 })],
-      ],
+      ["career_players_grown_attributes", [row(grownRow(158_023, { finishing_delta: 10 }))]],
     ]);
     const before = byId(players, 158_023);
     const after = byId(buildPlayers(DB, grown), 158_023);
@@ -390,6 +388,13 @@ const timed = <T>(label: string, run: () => T): T => {
   return result;
 };
 
+/** Sorts with a timing line; the result must hold every input player once. */
+const timedSort = (label: string, ...args: Parameters<typeof sortPlayers>): void => {
+  const sorted = timed(label, () => sortPlayers(...args));
+  const ids = new Set(sorted.map((player) => player.id));
+  expect([sorted.length, ids.size]).toEqual([args[0].length, args[0].length]);
+};
+
 describe.runIf(existsSync(realDbPath))("real fifa.db", () => {
   it("builds every linked player", () => {
     const players = timed("buildPlayers", () => buildPlayers(realDb()));
@@ -412,22 +417,20 @@ describe.runIf(existsSync(realDbPath))("real fifa.db", () => {
         flags: { injuryprone: false, technicaldribbler: true },
       }),
     );
-    timed("sortPlayers all by name", () => sortPlayers(players, "name", "ascending"));
-    timed("sortPlayers all by age", () => sortPlayers(players, "age", "descending"));
-    timed("filter + sort by position rating", () =>
-      sortPlayers(
-        filterPlayers(players, { positionRating: { code: 3, min: 50 }, availableOnly: true }),
-        "positionRating",
-        "descending",
-        { ratingCode: 3 },
-      ),
+    timedSort("sortPlayers all by name", players, "name", "ascending");
+    timedSort("sortPlayers all by age", players, "age", "descending");
+    timedSort(
+      "filter + sort by position rating",
+      filterPlayers(players, { positionRating: { code: 3, min: 50 }, availableOnly: true }),
+      "positionRating",
+      "descending",
+      { ratingCode: 3 },
     );
-    timed("filter + sort", () =>
-      sortPlayers(
-        filterPlayers(players, { ranges: { potential: { min: 60 } }, flags: { selfish: false } }),
-        "clubName",
-        "ascending",
-      ),
+    timedSort(
+      "filter + sort",
+      filterPlayers(players, { ranges: { potential: { min: 60 } }, flags: { selfish: false } }),
+      "clubName",
+      "ascending",
     );
     expect(filtered.length).toBeGreaterThan(0);
   });
@@ -437,5 +440,6 @@ describe.runIf(existsSync(realDbPath))("real fifa.db", () => {
     const players = buildPlayers(db, parseCareerSave(db, readFileSync(realCareerPath)));
     expect(players.filter((player) => player.clubName === "Wisła Kraków")).toHaveLength(23);
     expect(players.filter((player) => player.youth)).toHaveLength(3);
+    timedSort("sortPlayers career by price", players, "price", "descending");
   });
 });

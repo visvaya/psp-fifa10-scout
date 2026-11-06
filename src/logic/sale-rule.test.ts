@@ -67,7 +67,7 @@ describe("saleVerdictOf (through buildPlayers)", () => {
     expect(of(save, 158_023)).toBe(true);
     const wide = buildPlayers(db, save)
       .filter((player) => player.clubId === 241 && player.positionCode === 15)
-      .map((player) => ({ playerid: player.id }));
+      .map((player) => ({ playerid: player.id, oldteamid: 10 }));
     const lent = new Map([...save, ["career_loaned_list", wide]]);
     expect(of(lent, 158_023)).toBe(false);
     expect(refusal(lent, 158_023)).toBe("position");

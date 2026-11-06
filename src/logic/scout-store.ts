@@ -6,17 +6,16 @@
 // unknown or malformed filter values and column overrides are dropped one by one (a record without the
 // columns loads as none, so they needed no new version).
 import type { GameLanguages, GameNames } from "./game-names.ts";
-import { FLAG_KEYS, LIST_FIELDS, RANGE_KEYS } from "./filter-players.ts";
+import { bounded, FLAG_KEYS, LIST_FIELDS, RANGE_KEYS } from "./filter-players.ts";
 import type { ListKey, PositionRating, Range } from "./filter-players.ts";
 import type { SaveFiles } from "./load-scout.ts";
 import { OVR_WEIGHTS } from "./overall-rating.ts";
-import { ATTRIBUTE_NAMES, SEASON_STAT_KEYS } from "./players.ts";
 import { POSITION_GROUPS, ratingCodeOf } from "./positions.ts";
 import { compactFilters, DEFAULT_SORT, inRecordOrder } from "./scout-state.ts";
 import type { ClubStatus, MyClub, Preferences, ScoutFilters, ScoutSort } from "./scout-state.ts";
 import type { ColumnPreference } from "./column-preference.ts";
 import type { FilterSet } from "./saved-filters.ts";
-import type { SortKey } from "./sort-players.ts";
+import { SORTABLE_KEYS } from "./sort-players.ts";
 import { clippedNote } from "./watchlist.ts";
 import type { WatchEntry } from "./watchlist.ts";
 
@@ -49,39 +48,6 @@ export interface StoredScout {
   /** The own watchlist; empty when nothing valid is stored. */
   readonly watchlist: readonly WatchEntry[];
 }
-
-/** The sort keys the screens offer; anything else in storage falls back to the default sort. */
-export const SORTABLE_KEYS: readonly SortKey[] = [
-  "name",
-  "age",
-  "positionCode",
-  "clubName",
-  "leagueName",
-  "nationalityName",
-  "contractEndYear",
-  "potential",
-  "overall",
-  "growth",
-  "peak",
-  "peakGain",
-  "height",
-  "weight",
-  "weakFoot",
-  "internationalReputation",
-  "learningSpeed",
-  "retirementAge",
-  "clubRating",
-  "form",
-  "morale",
-  ...SEASON_STAT_KEYS,
-  "injuryDays",
-  "price",
-  "wage",
-  "positionRating",
-  "ratingGain",
-  "positionPeak",
-  ...ATTRIBUTE_NAMES,
-];
 
 export const memoryBackend = (): StorageBackend => {
   const values = new Map<string, unknown>();
@@ -122,7 +88,7 @@ const parseRange = (value: unknown): Range => {
 /** A range of a position rating (its gain or peak), undefined when it sets no bound. */
 const parseRatingRange = (value: unknown): Range | undefined => {
   const range = parseRange(value);
-  return Object.keys(range).length === 0 ? undefined : range;
+  return bounded(range) ? range : undefined;
 };
 
 /**

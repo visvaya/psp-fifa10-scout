@@ -145,6 +145,8 @@ describe("scoutReducer loading", () => {
     const polish = scoutReducer(known, { type: "language-chosen", language: "pol_pl" });
     expect(activeLanguage(polish, ["cs-CZ"])).toBe("pol_pl");
     expect(activeLanguage({ ...polish, languages: {} }, ["pl"])).toBeNull();
+    // A stored name of an Object method is no language.
+    expect(activeLanguage({ ...polish, gameLanguage: "constructor" }, ["pl"])).toBeNull();
   });
 
   it("switches views", () => {

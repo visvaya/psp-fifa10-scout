@@ -2,6 +2,7 @@
 // yes / no / any choice. Each takes its value and reports a new one; the form maps them to filters.
 import { useId, useLayoutEffect, useReducer, useRef, useState } from "react";
 import type { JSX, ReactNode } from "react";
+import { bounded } from "../logic/filter-players.ts";
 import type { Range } from "../logic/filter-players.ts";
 import { searchKey } from "../logic/players.ts";
 import { ColumnEye } from "./column-eye.tsx";
@@ -225,7 +226,7 @@ export const RangeField = (props: {
       <FieldLegend
         labelId={labelId}
         label={props.label}
-        filtering={range.min !== undefined || range.max !== undefined}
+        filtering={bounded(range)}
         column={props.column}
         onClear={() => {
           props.onChange({});

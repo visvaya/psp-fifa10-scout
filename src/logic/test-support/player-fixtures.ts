@@ -8,6 +8,22 @@ import type { CareerSummary } from "../load-scout.ts";
 
 type Row = Readonly<Record<string, number | string>>;
 
+/**
+ * A career_players_grown_attributes row as real saves have it: potential_delta and every attribute's
+ * delta column but tacticalawareness_delta, 0 unless `deltas` (keyed by column) gives one.
+ */
+export const grownRow = (playerid: number, deltas: Readonly<Record<string, number>> = {}): Row => ({
+  playerid,
+  potential_delta: 0,
+  ...Object.fromEntries(
+    ATTRIBUTE_NAMES.filter((name) => name !== "tacticalawareness").map((name) => [
+      `${name}_delta`,
+      0,
+    ]),
+  ),
+  ...deltas,
+});
+
 /** Days since 1582-10-14, the epoch of fifa.db's birthdates and of the game's dates. */
 export const daysSince1582 = (year: number, month: number, day: number): number =>
   (Date.UTC(year, month - 1, day) - Date.UTC(1582, 9, 14)) / 86_400_000;

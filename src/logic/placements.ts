@@ -1,11 +1,9 @@
 // Where each player plays: his club (with its league and his contract link) and his national team.
 import { effectiveRows } from "../data/career-save.ts";
 import type { CareerSave } from "../data/career-save.ts";
-import { readTable } from "../data/ea-db.ts";
+import { num, readTable } from "../data/ea-db.ts";
 import type { EaDb, EaDbRow } from "../data/ea-db.ts";
 import { SCOUT_CONFIG } from "./config.ts";
-
-const num = (row: EaDbRow, key: string): number => Number(row[key]);
 
 interface Team {
   readonly id: number;

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { sortPlayers } from "./sort-players.ts";
+import { RANGE_KEYS } from "./filter-players.ts";
+import { SORTABLE_KEYS, sortPlayers } from "./sort-players.ts";
 import type { SortDirection, SortKey } from "./sort-players.ts";
 import { attributes, testPlayer } from "./test-support/player-fixtures.ts";
 
@@ -138,8 +139,36 @@ describe("sortPlayers", () => {
     expect(order()).toEqual(sortPlayers(rated, "name", "ascending").map((player) => player.id));
   });
 
+  // Prices reach 1e8: a key that packed the raw value with the name order and index passed 2^53.
+  it("keeps every player of a full database sorted by a large price, missing prices last", () => {
+    const priced = Array.from({ length: 13_000 }, (_, index) =>
+      testPlayer({
+        id: index,
+        nameOrder: (index * 7919) % 13_000,
+        price: index % 10 === 0 ? null : ((index * 104_729) % 100_000) * 1000,
+      }),
+    );
+    for (const direction of ["ascending", "descending"] as const) {
+      const sorted = sortPlayers(priced, "price", direction);
+      expect(new Set(sorted.map((player) => player.id)).size).toBe(priced.length);
+      const prices = sorted.map((player) => player.price);
+      const present = prices.filter((price) => price !== null);
+      expect(prices.slice(present.length).every((price) => price === null)).toBe(true);
+      const sign = direction === "ascending" ? 1 : -1;
+      expect(
+        present.every(
+          (price, index) => index === 0 || sign * (price - (present[index - 1] ?? 0)) >= 0,
+        ),
+      ).toBe(true);
+    }
+  });
+
   it("sorts by an attribute", () => {
     expect(ids("dribbling", "descending")).toEqual([2, 3, 5, 1]);
+  });
+
+  it("offers every range field as a sort key", () => {
+    expect(RANGE_KEYS.filter((key) => !SORTABLE_KEYS.includes(key))).toEqual([]);
   });
 
   it("leaves the input untouched", () => {

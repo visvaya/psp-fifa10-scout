@@ -4,8 +4,7 @@ import type { ColumnPreference } from "./column-preference.ts";
 import { CAREER_RANGE_KEYS } from "./filter-players.ts";
 import type { AttributeName } from "./players.ts";
 import { inRecordOrder } from "./scout-state.ts";
-import { SORTABLE_KEYS } from "./scout-store.ts";
-import { POTENTIAL_KEYS, RATING_SORT_KEYS } from "./sort-players.ts";
+import { POTENTIAL_KEYS, RATING_SORT_KEYS, SORTABLE_KEYS } from "./sort-players.ts";
 import type { SortKey } from "./sort-players.ts";
 
 // The ratings follow the position, before the wide text columns, so they show without scrolling sideways.
