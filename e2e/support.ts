@@ -12,7 +12,7 @@ export { expect };
 // before a reload or a navigation still counts.
 export const test = base.extend<{ securityPolicy: undefined }>({
   securityPolicy: [
-    async ({ page }, use, testInfo) => {
+    async ({ page, javaScriptEnabled }, use, testInfo) => {
       const blocked: string[] = [];
       await page.exposeFunction("reportBlocked", (entry: string) => {
         blocked.push(entry);
@@ -32,7 +32,13 @@ export const test = base.extend<{ securityPolicy: undefined }>({
       });
       await use(undefined);
       // A skipped test opened no page to check.
-      if (testInfo.status !== "skipped") expect(blocked).toEqual([]);
+      if (testInfo.status === "skipped") return;
+      // A frame later the reports of the test's last action have reached the test process. A closed page,
+      // or one without scripts (no frames run, and no report is sent), has nothing left to report.
+      if (javaScriptEnabled && !page.isClosed()) {
+        await page.evaluate(async () => new Promise(requestAnimationFrame));
+      }
+      expect(blocked).toEqual([]);
     },
     { auto: true },
   ],
