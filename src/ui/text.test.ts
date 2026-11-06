@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { formatNumber, formatRating, plural, TEXT } from "./text.ts";
+import { OFFER_TEXT } from "./text-offer.ts";
 
 const LAT = { one: "rok", few: "lata", many: "lat" } as const;
 
@@ -47,14 +48,24 @@ describe("TEXT.resultCount", () => {
 });
 
 describe("TEXT.card money", () => {
-  it("labels one wage or a range in the save's currency as an estimate", () => {
-    expect(TEXT.card.wageEstimate(4500, 4500, 0)).toBe("4500 € (szacunek)");
-    expect(TEXT.card.wageEstimate(10_000, 13_000, 2)).toBe(
-      `${formatNumber(10_000)}–${formatNumber(13_000)} $ (szacunek)`,
-    );
+  it("labels a wage in the save's currency as an estimate", () => {
+    expect(TEXT.card.wageEstimate(4500, 0)).toBe("4500 € (szacunek)");
+    expect(TEXT.card.wageEstimate(10_000, 2)).toBe(`${formatNumber(10_000)} $ (szacunek)`);
   });
 
   it("shows money with the currency symbol", () => {
     expect(TEXT.card.money(33_000_000, 1)).toBe(`${formatNumber(33_000_000)} £`);
+  });
+});
+
+describe("OFFER_TEXT options", () => {
+  it("names a bonus by its share of the wage", () => {
+    expect(OFFER_TEXT.bonusOption(0)).toBe("0% zarobków");
+    expect(OFFER_TEXT.bonusOption(15)).toBe("15% zarobków");
+  });
+
+  it("marks the contract length the player wants", () => {
+    expect(OFFER_TEXT.lengthOption("4 lata", true)).toBe("4 lata, tyle chce zawodnik");
+    expect(OFFER_TEXT.lengthOption("3 lata", false)).toBe("3 lata");
   });
 });

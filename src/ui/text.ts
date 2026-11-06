@@ -437,11 +437,11 @@ export const TEXT = {
     wage: "Zarobki rynkowe",
     contractWage: pl`Zarobki z kontraktu`,
     shortlisted: pl`Na twojej liście życzeń w grze`,
-    wageNote: `Na mecz, wzorem gry. Po wygaśnięciu kontraktu gra może doliczyć 30% (wolny transfer).`,
+    wageNote: pl`Na mecz, wzorem gry. Przy wygasłym kontrakcie (też w tym roku) z doliczonymi 30% (wolny transfer).`,
     money: (amount: number, currency: CurrencyCode): string =>
       `${formatNumber(amount)}${NBSP}${CURRENCY_SYMBOLS[currency]}`,
-    wageEstimate: (low: number, high: number, currency: CurrencyCode): string =>
-      `${low === high ? formatNumber(low) : `${formatNumber(low)}–${formatNumber(high)}`}${NBSP}${CURRENCY_SYMBOLS[currency]}${NBSP}(szacunek)`,
+    wageEstimate: (wage: number, currency: CurrencyCode): string =>
+      `${formatNumber(wage)}${NBSP}${CURRENCY_SYMBOLS[currency]}${NBSP}(szacunek)`,
     none: "brak",
   },
 } as const;

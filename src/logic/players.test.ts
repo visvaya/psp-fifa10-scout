@@ -218,7 +218,7 @@ describe("buildPlayers from fifa.db", () => {
       saleRefusal: null,
       price: null,
       wage: null,
-      wageMax: null,
+      storedWage: false,
     });
     // jscpd:ignore-end
   });

@@ -152,7 +152,7 @@ export const testPlayer = (overrides: Partial<Player> = {}): Player => {
     saleRefusal: null,
     price: null,
     wage: null,
-    wageMax: null,
+    storedWage: false,
     ...overrides,
   };
   return { ...player, searchName: searchKey(player.name) };

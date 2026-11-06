@@ -1,6 +1,14 @@
 import { expect, test } from "@playwright/test";
-import { SYNTHETIC_DB_PATH, SYNTHETIC_SAVE_PATHS } from "../scripts/write-synthetic-db.ts";
-import { cardValue, expectCount, guardSecurityPolicy, loadDatabase, pickGame } from "./support.ts";
+import {
+  cardValue,
+  expectCount,
+  expectNoAxeViolations,
+  expectNoHorizontalOverflow,
+  guardSecurityPolicy,
+  loadCareer,
+  loadDatabase,
+  PHONE,
+} from "./support.ts";
 
 guardSecurityPolicy();
 
@@ -52,17 +60,14 @@ test.describe("offer on the card", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
   // The synthetic manager has no prestige or upgrades: an unlisted player costs 1.5 times his value,
-  // above the offer form's limit. The user's own player gets no offer.
+  // exactly the offer form's limit. The user's own player gets no offer.
   test("shows what an offer needs for another club's player only", async ({ page }) => {
-    await page.goto("/");
-    await pickGame(page, SYNTHETIC_DB_PATH);
-    await page.getByLabel("Wybierz DATA.BIN i PARAM.SFO").setInputFiles([...SYNTHETIC_SAVE_PATHS]);
-    await page.getByRole("button", { name: /^Pokaż zawodników/u }).click();
+    await loadCareer(page);
     await page.getByRole("button", { name: /^Lionel Messi/u }).click();
     const card = page.getByRole("dialog", { name: "Lionel Messi" });
     await expect(cardValue(card, "Klub przyjmie od")).toHaveText("22 500 000 €");
     await expect(cardValue(card, "Zawodnik podpisze od")).toContainText("kontrakt 4 lata");
-    await expect(card.getByText(/^Kwota przekracza limit formularza oferty/u)).toBeVisible();
+    await expect(card.getByText(/^Kwota przekracza limit formularza/u)).toBeHidden();
     // Barcelona has 21 players and enough wide midfielders to sell him.
     await expect(cardValue(card, "Klub może go sprzedać")).toHaveText("tak");
     await expect(card.getByText(/^Klub odmówi sprzedaży/u)).toBeHidden();
@@ -85,5 +90,41 @@ test.describe("offer on the card", () => {
     // No season row in the save: no rows of "brak" for it.
     await expect(cardValue(own, "Średnia ocena (KR)")).toHaveCount(0);
     await expect(cardValue(own, "Na liście transferowej")).toHaveText("nie");
+  });
+
+  // Each choice moves the player's points, so the least wage changes at once; a new card starts over.
+  test("recalculates the result for a double offer, a bonus and a contract length", async ({
+    page,
+  }) => {
+    await page.setViewportSize(PHONE.viewport);
+    await loadCareer(page);
+    await page.getByRole("button", { name: /^Lionel Messi/u }).click();
+    const card = page.getByRole("dialog", { name: "Lionel Messi" });
+    const wage = cardValue(card, "Zawodnik podpisze od");
+    const first = await wage.innerText();
+    await expect(wage).toContainText("kontrakt 4 lata");
+    const length = card.getByLabel("Długość kontraktu");
+    await expect(length.locator("option:checked")).toHaveText(/^4\slata,\style\schce\szawodnik$/u);
+    await expect(card.getByText(/kosztuje\s2\sz/u)).toBeHidden();
+
+    await card.getByLabel("Podwójna oferta").check();
+    await expect(card.getByText(/kosztuje\s2\sz/u)).toBeVisible();
+    await expect(wage).not.toHaveText(first);
+    await card.getByLabel("Podwójna oferta").uncheck();
+    await expect(wage).toHaveText(first);
+
+    await card.getByLabel("Premia za bramkę lub czyste konto").selectOption("15");
+    await expect(wage).not.toHaveText(first);
+    await expect(cardValue(card, "Premia")).toBeVisible();
+    await length.selectOption("1");
+    await expect(wage).toContainText("kontrakt 1 rok");
+
+    await expectNoHorizontalOverflow(page);
+    await expectNoAxeViolations(page);
+
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: /^Lionel Messi/u }).click();
+    const again = page.getByRole("dialog", { name: "Lionel Messi" });
+    await expect(cardValue(again, "Zawodnik podpisze od")).toHaveText(first);
   });
 });

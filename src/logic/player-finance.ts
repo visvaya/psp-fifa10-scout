@@ -10,14 +10,14 @@ import type { PriceInput } from "./transfer-price.ts";
 export interface Finance {
   /** The asking price; 0 when the contract has run out. */
   readonly price: number | null;
-  /** The market wage per match from the game's formula, or the stored wage of the user's squad. */
+  /** The market wage per match from the game's formula, with the free-transfer factor once the
+   * contract has run out, or the stored wage of the user's squad. */
   readonly wage: number | null;
-  /** The formula's wage with the free-transfer factor when the contract has run out, else the wage;
-   * null for a stored wage. */
-  readonly wageMax: number | null;
+  /** The wage is the one stored in the contract of the user's player, not the market wage. */
+  readonly storedWage: boolean;
 }
 
-export const NO_FINANCE: Finance = { price: null, wage: null, wageMax: null };
+export const NO_FINANCE: Finance = { price: null, wage: null, storedWage: false };
 
 export interface FinanceInput {
   readonly row: EaDbRow;
@@ -80,9 +80,9 @@ export const financeOf = (db: EaDb, save: CareerSave): ((input: FinanceInput) =>
       exchangeRate: rate,
     };
     const stored = num(link, "teamid") === userTeamId ? storedWages.get(id) : undefined;
-    const wage = marketWage(input, false);
-    if (stored !== undefined) return { price: transferPrice(input), wage: stored, wageMax: null };
-    const wageMax = input.contractYearsLeft <= 0 ? marketWage(input, true) : wage;
-    return { price: transferPrice(input), wage, wageMax };
+    const price = transferPrice(input);
+    return stored === undefined
+      ? { price, wage: marketWage(input, input.contractYearsLeft <= 0), storedWage: false }
+      : { price, wage: stored, storedWage: true };
   };
 };
