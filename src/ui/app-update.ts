@@ -117,33 +117,72 @@ export const watchForUpdates = (
 };
 
 /**
- * Asks the waiting release to take over and reloads the page once it has; false when no release waits.
- * Followed by the worker's own state rather than the page's controller: a page loaded past the worker (a
- * forced reload) has no controller to change, and is reloaded all the same. The caller stops its watcher
- * first; a release that does not take over starts it again (watchAgain), so a later one is still reported.
+ * Asks the waiting release to take over and reloads the page once it has. Followed by the worker's own
+ * state rather than the page's controller: a page loaded past the worker (a forced reload) has no
+ * controller to change, and is reloaded all the same. The caller stops its watcher first; when no release
+ * waits, or one does not take over, this reports the failure and starts the watcher again (watchAgain), so
+ * a later release is still reported. Returns the means to stop what it follows, the release or the new
+ * watcher: once stopped, it neither reloads, reports nor watches again.
  */
 export const installUpdate = (
   registration: RegistrationLike,
   report: (status: UpdateStatus) => void,
   reload: () => void,
-  watchAgain: () => void,
-): boolean => {
+  watchAgain: () => () => void,
+): (() => void) => {
   const waiting = registration.waiting;
-  if (waiting === null) return false;
+  if (waiting === null) {
+    report("failed");
+    return watchAgain();
+  }
   const onState = () => {
     if (waiting.state !== "activated" && waiting.state !== "redundant") return;
     waiting.removeEventListener("statechange", onState);
     if (waiting.state === "activated") return reload();
     report("failed");
-    watchAgain();
+    stop = watchAgain();
+  };
+  let stop = () => {
+    waiting.removeEventListener("statechange", onState);
   };
   waiting.addEventListener("statechange", onState);
   report("installing");
   // A service worker's postMessage takes no target origin; the rule knows only window.postMessage.
   // oxlint-disable-next-line unicorn/require-post-message-target-origin
   waiting.postMessage(TAKE_OVER_MESSAGE);
-  return true;
+  return () => {
+    stop();
+  };
 };
+
+/**
+ * The registration once its first worker is active (`ready`). That worker can fail to install (its files
+ * could not be stored), which `ready` never reports: then this fails, unless a newer worker replaced it,
+ * which is followed instead.
+ */
+export const activeRegistration = async <R extends RegistrationLike>(
+  registration: R,
+  ready: Promise<unknown>,
+): Promise<R> =>
+  new Promise((resolve, reject) => {
+    let followed: WorkerLike | null = null;
+    const follow = (worker: WorkerLike | null) => {
+      followed?.removeEventListener("statechange", onState);
+      followed = worker;
+      followed?.addEventListener("statechange", onState);
+    };
+    const onState = () => {
+      if (followed?.state !== "redundant" || registration.active !== null) return;
+      const next = registration.installing ?? registration.waiting;
+      follow(next);
+      if (next === null) reject(new Error("The first service worker failed to install"));
+    };
+    if (registration.active === null) follow(registration.installing ?? registration.waiting);
+    ready.then(() => {
+      follow(null);
+      resolve(registration);
+    }, reject);
+  });
 
 const reloadPage = () => {
   window.location.reload();
@@ -216,6 +255,7 @@ export const useAppUpdate = (registering: Promise<UpdatableRegistration> | null)
   const [status, setStatus] = useState<UpdateStatus>("idle");
   const [worker, setWorker] = useState<"pending" | "active" | "failed">("pending");
   const registration = useRef<UpdatableRegistration | null>(null);
+  /** Stops the watcher, and the install in progress once there is one. */
   const stopWatching = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -253,14 +293,12 @@ export const useAppUpdate = (registering: Promise<UpdatableRegistration> | null)
     // from another window.
     stopWatching.current?.();
     const found = registration.current;
+    if (found === null) return setStatus("failed");
+    // The effect's cleanup stops the install too: an unmounted page neither reloads, reports nor watches.
     // A release found after a failed take-over shows at once: the first launch's flash is long past.
-    const watchAgain = () => {
-      if (found !== null) stopWatching.current = watchForUpdates(found, setStatus);
-    };
-    if (found !== null && installUpdate(found, setStatus, reloadPage, watchAgain)) return;
-    // No release waits, or none could be asked: the watcher still looks for the next one.
-    setStatus("failed");
-    watchAgain();
+    stopWatching.current = installUpdate(found, setStatus, reloadPage, () =>
+      watchForUpdates(found, setStatus),
+    );
   }, [status]);
 
   const check = useCallback(() => {
