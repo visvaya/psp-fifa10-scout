@@ -1,14 +1,17 @@
-import { useSyncExternalStore } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
-/** Whether a CSS media query matches, following changes. */
-export const useMediaQuery = (query: string): boolean =>
-  useSyncExternalStore(
-    (onChange) => {
+/** Whether a CSS media query matches, following changes; subscribed again only when the query changes. */
+export const useMediaQuery = (query: string): boolean => {
+  const subscribe = useCallback(
+    (onChange: () => void) => {
       const list = globalThis.matchMedia(query);
       list.addEventListener("change", onChange);
       return () => {
         list.removeEventListener("change", onChange);
       };
     },
-    () => globalThis.matchMedia(query).matches,
+    [query],
   );
+  const getSnapshot = useCallback(() => globalThis.matchMedia(query).matches, [query]);
+  return useSyncExternalStore(subscribe, getSnapshot);
+};
