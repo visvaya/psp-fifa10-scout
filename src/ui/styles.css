@@ -325,7 +325,7 @@ input[inputmode="numeric"] {
   font-weight: 600;
 }
 
-.start > .button {
+.start-files > .button {
   margin-top: var(--space-4);
 }
 
@@ -338,6 +338,64 @@ input[inputmode="numeric"] {
   .install-help {
     display: none;
   }
+}
+
+/* The description of the tool (index.html), under the file steps. */
+.about {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-line);
+}
+
+.about h3 {
+  margin-top: var(--space-3);
+}
+
+.about p,
+.about ul {
+  margin: 0;
+}
+
+.about ul {
+  padding-left: var(--space-6);
+}
+
+.about figure {
+  margin: 0;
+}
+
+.about img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+}
+
+.about .phone-shot {
+  max-width: 16rem;
+}
+
+.about figcaption {
+  margin-top: var(--space-1);
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+}
+
+.about details {
+  border-bottom: 1px solid var(--color-line);
+  padding: var(--space-2) 0;
+}
+
+.about summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.about details p {
+  margin-top: var(--space-2);
 }
 
 /* List layout */

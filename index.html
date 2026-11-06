@@ -31,6 +31,136 @@
             <div class="skeleton skeleton-step" aria-hidden="true"></div>
             <div class="skeleton skeleton-step" aria-hidden="true"></div>
             <div class="skeleton skeleton-step" aria-hidden="true"></div>
+            <section id="about" class="about" aria-labelledby="about-title">
+              <h2 id="about-title">O narzędziu</h2>
+              <p>
+                PSP FIFA 10 Scout to wyszukiwarka zawodników do trybu menedżera FIFA 10 na PSP,
+                także w emulatorze PPSSPP. Czyta bazę zawodników z twojej gry i zapis kariery,
+                a potem pozwala filtrować i porównywać zawodników, żeby znaleźć tych, których warto
+                kupić.
+              </p>
+
+              <h3>Co robi</h3>
+              <ul>
+                <li>
+                  Filtruje po pozycji, lidze, klubie, narodowości, wieku, ocenie (OVR), potencjale,
+                  atrybutach, kontrakcie i cechach, a wyniki sortuje. Z zapisem kariery dochodzą
+                  filtry po formie, morale, kontuzjach, liście transferowej, cenie i zarobkach.
+                </li>
+                <li>Liczy OVR zawodnika wzorem gry, także na innych pozycjach.</li>
+                <li>
+                  Pokazuje kartę zawodnika: profil, klub, kontrakt oraz OVR na pozycjach. Zapis
+                  kariery dodaje formę, morale, kontuzje, listę transferową, cenę oraz zarobki.
+                </li>
+                <li>Domyślnie ukrywa potencjał; jeden przełącznik go pokazuje.</li>
+                <li>Pokazuje nazwy klubów, lig i krajów w wybranym języku gry.</li>
+                <li>
+                  Instaluje się jak aplikacja na telefonie i komputerze, a po pierwszej wizycie
+                  działa bez internetu.
+                </li>
+              </ul>
+
+              <h3>Jakie pliki i skąd</h3>
+              <ul>
+                <li>
+                  Baza zawodników: obraz ISO gry (z folderu z grami PPSSPP albo własny obraz płyty)
+                  albo plik <code>fifa.db</code> wyciągnięty z gry. Z obrazu narzędzie czyta tylko
+                  bazę, pliki języków i identyfikator gry.
+                </li>
+                <li>
+                  Zapis kariery (opcjonalnie): pliki <code>DATA.BIN</code> i <code>PARAM.SFO</code>
+                  z folderu <code>PSP/SAVEDATA/ULES01328…</code> w folderze PPSSPP albo na karcie
+                  pamięci PSP. Wybierz oba naraz.
+                </li>
+                <li>
+                  Nazwy w innym języku (opcjonalnie): każdy język z obrazu ISO albo plik
+                  <code>.loc</code> razem z <code>string.idx</code>.
+                </li>
+                <li>
+                  Wersja gry: tylko FIFA 10, wydanie europejskie <code>ULES01328</code> (inne
+                  wydania nie są obsługiwane).
+                </li>
+              </ul>
+
+              <h3>Prywatność</h3>
+              <p>
+                Pliki nie opuszczają urządzenia. Baza i zapis są przetwarzane w przeglądarce, nic
+                nie jest wysyłane na serwer. Wczytana gra i ustawienia zostają w pamięci
+                przeglądarki na tym urządzeniu. Narzędzie nie zawiera danych gry: wymaga plików
+                z twojej własnej kopii.
+              </p>
+
+              <h3>Jak to wygląda</h3>
+              <figure>
+                <img
+                  src="/screenshots/list-wide.webp"
+                  width="1280"
+                  height="800"
+                  loading="lazy"
+                  alt="Tabela zawodników z panelem filtrów po lewej: zaznaczone pozycje środkowy i ofensywny pomocnik, 12 wyników posortowanych według OVR."
+                />
+                <figcaption>Lista z filtrem pozycji (przykładowe dane)</figcaption>
+              </figure>
+              <figure>
+                <img
+                  src="/screenshots/card-wide.webp"
+                  width="1280"
+                  height="800"
+                  loading="lazy"
+                  alt="Karta zawodnika nad listą: pozycja, wiek, klub, kontrakt, profil z gwiazdkami i OVR na pozycjach."
+                />
+                <figcaption>Karta zawodnika (przykładowe dane)</figcaption>
+              </figure>
+              <figure class="phone-shot">
+                <img
+                  src="/screenshots/list-phone.webp"
+                  width="780"
+                  height="1688"
+                  loading="lazy"
+                  alt="Lista zawodników na telefonie: przycisk filtrów, sortowanie według OVR i wiersze z nazwiskiem, pozycją, wiekiem, klubem i oceną."
+                />
+                <figcaption>Lista na telefonie (przykładowe dane)</figcaption>
+              </figure>
+
+              <h3>Najczęstsze pytania</h3>
+              <details>
+                <summary>Czy potrzebny jest zapis kariery?</summary>
+                <p>
+                  Nie. Sama baza wystarcza do wyszukiwania i porównywania zawodników. Zapis dodaje
+                  formę, morale, kontuzje, listę transferową, cenę i zarobki oraz filtry po nich.
+                </p>
+              </details>
+              <details>
+                <summary>Skąd wziąć plik ISO?</summary>
+                <p>
+                  Z własnej kopii gry, którą już masz w PPSSPP. Narzędzie nie udostępnia gier ani
+                  danych z gier.
+                </p>
+              </details>
+              <details>
+                <summary>Czy działa na telefonie?</summary>
+                <p>
+                  Tak, w przeglądarce telefonu, także zainstalowane jako aplikacja. Na iPhonie pliki
+                  wybiera się z aplikacji Pliki.
+                </p>
+              </details>
+              <details>
+                <summary>Czy to oficjalne narzędzie?</summary>
+                <p>
+                  Nie. To projekt fanowski. Kod źródłowy jest otwarty (GPL-3.0-or-later) i leży w <a
+                    href="https://github.com/visvaya/psp-fifa10-scout"
+                    >repozytorium na GitHubie</a
+                  >.
+                </p>
+              </details>
+
+              <p class="help">
+                Projekt nieoficjalny: nie jest związany z Electronic Arts, FIFA ani Sony, nie jest
+                przez nie wspierany ani sponsorowany. FIFA 10 i PlayStation Portable są znakami
+                towarowymi ich właścicieli i występują tu tylko po to, by opisać, z czym narzędzie
+                współpracuje.
+              </p>
+            </section>
           </div>
         </main>
       </div>

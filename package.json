@@ -25,6 +25,7 @@
     "check:size": "node scripts/check-size.ts",
     "check:playwright-image": "node scripts/check-playwright-image.ts",
     "make:icons": "node scripts/make-icons.ts",
+    "make:screenshots": "node scripts/make-screenshots.ts",
     "check:duplicates": "jscpd . --ignore-identifiers --ignore-literals",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",

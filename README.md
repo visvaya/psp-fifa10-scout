@@ -12,10 +12,12 @@ every change merged into `main` is published there after the checks pass. The in
 What it does today:
 
 - Reads the player database (`fifa.db`) straight from your disc image (ISO), or from a `fifa.db`
-  file you extracted yourself. Only the database is read from the image, not the whole file.
+  file you extracted yourself. From the image it reads only the database, the language files and
+  the game's identifier.
 - Optionally reads a manager-mode career save (`DATA.BIN` and `PARAM.SFO`): decrypts it, verifies
   its checksum and shows the current state of the career, such as clubs, contracts, form, morale,
-  injuries, the transfer list and the youth players generated during the career.
+  injuries, the transfer list and the youth players generated during the career, and the price and
+  wages of each player.
 - Shows club, league and country names in any language of the game: every language found in your
   ISO, or one `.loc` file you attach with its `string.idx`.
 - Computes each player's overall rating (OVR) with the game's own formula, also at any other
@@ -23,13 +25,11 @@ What it does today:
 - Filters by position, league, club, nationality, preferred foot, body type and development type;
   by ranges of age, OVR, potential, height, weight, attributes, contract end, form, morale and more;
   and by traits. Results can be sorted, and each player has a detail card.
-- Hides potential by default, because the game does not show it; one switch reveals it.
+- Hides potential by default; one switch reveals it.
 - Installs as an app on a phone or a PC and works offline after the first visit. On an iPhone, pick
   the files in the Files app.
 
-Not yet available: transfer price and wage estimates.
-
-Supported game version: FIFA 10, European release `ULES01328`. Other releases may differ.
+Supported game version: FIFA 10, European release `ULES01328`. Other releases are not supported.
 
 ## Your files, not ours
 
@@ -53,6 +53,7 @@ pnpm dev       # development server
 pnpm build && pnpm preview   # production build, including the offline service worker
 pnpm verify    # the full gate CI runs: format, text rules, typecheck, lint, tests, duplicates, dead code, build, size
 pnpm test:e2e  # browser tests (Chromium and WebKit, with axe), on a synthetic database
+pnpm make:screenshots  # after pnpm build: retakes the sample screenshots of the start page (public/screenshots)
 ```
 
 Deployment: the `deploy` job in `.github/workflows/ci.yml` publishes the tested build to Cloudflare
@@ -61,7 +62,9 @@ Workers (configuration in `deploy/`, response headers in `public/_headers`), the
 
 Source layout: `src/data` reads files (ISO, database, save decryption), `src/logic` holds the pure
 player model, filters and ratings, and `src/ui` the React interface, with every user-facing text in
-`src/ui/text.ts`.
+`src/ui/text.ts` and its `text-*.ts` parts. The one exception is the description of the tool on the
+start page: it is static HTML in `index.html` (so it reads without running a script), and the app
+moves that node onto the start screen.
 
 Contributing: [CONTRIBUTING.md](CONTRIBUTING.md). Security reports: [SECURITY.md](SECURITY.md).
 

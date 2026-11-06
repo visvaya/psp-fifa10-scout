@@ -7,6 +7,10 @@ import type { CareerSummary } from "../load-scout.ts";
 
 type Row = Readonly<Record<string, number | string>>;
 
+/** Days since 1582-10-14, the epoch of fifa.db's birthdates and of the game's dates. */
+export const daysSince1582 = (year: number, month: number, day: number): number =>
+  (Date.UTC(year, month - 1, day) - Date.UTC(1582, 9, 14)) / 86_400_000;
+
 /** A table whose numeric columns are u32 words and whose text columns are strings. */
 export const table = (name: string, rows: readonly Row[]): TableSpec => {
   const columns = [...new Set(rows.flatMap((row) => Object.keys(row)))];
