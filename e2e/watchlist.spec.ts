@@ -1,20 +1,17 @@
-import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import {
+  expect,
   expectCount,
   expectNoAxeViolations,
   expectNoHorizontalOverflow,
-  expectStoredPositionGroup,
+  expectStored,
   expectStoredSearchCleared,
-  expectStoredWatchNote,
-  guardSecurityPolicy,
   loadDatabase,
   PHONE,
   readStored,
+  test,
   writeStored,
 } from "./support.ts";
-
-guardSecurityPolicy();
 
 /** Finds the one player and opens his card. */
 const openBrozek = async (page: Page) => {
@@ -42,7 +39,7 @@ test.describe("own watchlist", () => {
     await expect(note).toHaveAttribute("maxlength", "500");
     await expectNoAxeViolations(page);
     // Not a reload before the write commits, which would restore the previous list.
-    await expectStoredWatchNote(page, NOTE);
+    await expectStored(page, "watchlist", { value: [{ note: NOTE }] });
     await page.keyboard.press("Escape");
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("");
     await expectStoredSearchCleared(page);
@@ -117,7 +114,9 @@ test.describe("own watchlist, focus and store", () => {
     await expectCount(page, "62 zawodników");
     // The preferences are stored after the start; a write of the list would be stored before them.
     await page.getByRole("checkbox", { name: "Bramkarz" }).check();
-    await expectStoredPositionGroup(page, "goalkeeper");
+    await expectStored(page, "preferences", {
+      value: { filters: { lists: { positionGroup: ["goalkeeper"] } } },
+    });
     expect(await page.evaluate(readStored, "watchlist")).toEqual(foreign);
   });
 });

@@ -1,20 +1,20 @@
 // The eye beside a filter shows or hides its column, in the wide table and in the phone rows.
-import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import {
   expandSections,
+  expect,
   expectNoAxeViolations,
   expectNoHorizontalOverflow,
-  guardSecurityPolicy,
+  expectStored,
+  firstCellOf,
   loadDatabase,
   PHONE,
   readStored,
-  storedColumns,
   resetSettings,
+  storedColumns,
+  test,
   writeStored,
 } from "./support.ts";
-
-guardSecurityPolicy();
 
 /** The eye of a column, named after its filter. */
 const eyeOf = (page: Page, label: string) =>
@@ -42,11 +42,7 @@ test.describe("wide screen", () => {
     await expect(height).toBeVisible();
     await expect(eyeOf(page, "Wzrost (cm)")).toHaveAttribute("aria-pressed", "true");
     // The first player's height is in the new column, found by its heading.
-    const headings = await page.locator("thead th").allTextContents();
-    const index = headings.findIndex((text) => text.startsWith("Wzrost"));
-    expect(index).toBeGreaterThan(0);
-    const first = page.locator("tbody tr[aria-rowindex]").first();
-    await expect(first.locator("th, td").nth(index)).toHaveText(/^\d+$/u);
+    await expect(await firstCellOf(page, "Wzrost")).toHaveText(/^\d+$/u);
   });
 
   test("keeps the choice after a reload, and Resetuj brings the columns back", async ({ page }) => {
@@ -54,9 +50,7 @@ test.describe("wide screen", () => {
     const age = page.getByRole("columnheader", { name: /^Wiek/u });
     await eyeOf(page, "Wiek").click();
     await expect(age).toBeHidden();
-    await expect
-      .poll(async () => page.evaluate(readStored, "preferences"))
-      .toMatchObject({ value: { columns: { age: "hidden" } } });
+    await expectStored(page, "preferences", { value: { columns: { age: "hidden" } } });
     await page.reload();
     await expect(page.getByRole("table")).toBeVisible();
     await expect(age).toBeHidden();
@@ -75,9 +69,7 @@ test.describe("rating width", () => {
     await loadDatabase(page);
     await expandSections(page);
     await eyeOf(page, "Wiek").click();
-    await expect
-      .poll(async () => page.evaluate(readStored, "preferences"))
-      .toMatchObject({ value: { columns: { age: "hidden" } } });
+    await expectStored(page, "preferences", { value: { columns: { age: "hidden" } } });
     // Every rating column hidden, as a user can choose with the eyes.
     const stored: unknown = await page.evaluate(readStored, "preferences");
     const value: unknown = Reflect.get(Object(stored), "value");

@@ -1,17 +1,15 @@
-import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { buildFileList, buildParamSfo } from "../src/data/test-support/synthetic-save.ts";
 import { SYNTHETIC_SAVE_PATHS } from "../scripts/write-synthetic-db.ts";
 import {
   cardValue,
+  expect,
   expectCount,
-  expectStoredPositionGroup,
-  guardSecurityPolicy,
+  expectStored,
   loadCareer,
   readStored,
+  test,
 } from "./support.ts";
-
-guardSecurityPolicy();
 
 /** An encrypted save whose DATA.BIN was copied only in part: its length is no whole cipher block. */
 const cutSave = () => {
@@ -217,7 +215,9 @@ test.describe("bad career save", () => {
     await expect(page.getByRole("columnheader", { name: /^Cena \(€\)/u })).toBeVisible();
     // A filter stored after the bad pick: the store has also taken whatever the bad pick wrote.
     await page.getByRole("checkbox", { name: "Bramkarz" }).check();
-    await expectStoredPositionGroup(page, "goalkeeper");
+    await expectStored(page, "preferences", {
+      value: { filters: { lists: { positionGroup: ["goalkeeper"] } } },
+    });
     expect(await storesCareerSave(page)).toBe(true);
     await page.reload();
     await expect(page.getByRole("table")).toBeVisible();

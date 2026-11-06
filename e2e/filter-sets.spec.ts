@@ -1,7 +1,4 @@
-import { expect, test } from "@playwright/test";
-import { expectCount, guardSecurityPolicy, loadDatabase, resetSettings } from "./support.ts";
-
-guardSecurityPolicy();
+import { expect, expectCount, expectStored, loadDatabase, resetSettings, test } from "./support.ts";
 
 test.describe("filter sets", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
@@ -18,7 +15,8 @@ test.describe("filter sets", () => {
     await page.getByLabel("Nazwa zestawu").fill("Bramkarze");
     await page.getByRole("button", { name: "Zapisz bieżące filtry" }).click();
     await resetSettings(page);
-    await expectCount(page, "62 zawodników");
+    await expectCount(page, "62 zawodników");
+    await expectStored(page, "preferences", { value: { filterSets: [{ name: "Bramkarze" }] } });
     await page.reload();
     await page.getByText("Zapisane zestawy", { exact: true }).click();
     await page.getByRole("button", { name: "Wczytaj zestaw „Bramkarze”" }).click();

@@ -1,21 +1,18 @@
 // The labels over the phone rows' numbers: sorting by them, and showing a focused one.
-import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import {
+  expect,
   fadeStart,
   filterByAttributes,
-  guardSecurityPolicy,
   loadDatabase,
   PHONE,
+  scrollLeftOf,
   showPotential,
+  test,
 } from "./support.ts";
-
-guardSecurityPolicy();
 
 /** Filters by acceleration and sprint speed, which adds their two columns. */
 const filterBySpeed = async (page: Page) => filterByAttributes(page, "Przyspieszenie", "Szybkość");
-
-const scrollLeftOf = (element: Element) => element.scrollLeft;
 
 test.describe("phone column labels", () => {
   test.use(PHONE);
@@ -121,8 +118,8 @@ test.describe("phone label focus on narrow screens", () => {
         return (box?.x ?? Infinity) + (box?.width ?? 0);
       })
       .toBeLessThanOrEqual(page.viewportSize()?.width ?? 0);
-    await expect
-      .poll(async () => list.evaluate(scrollLeftOf))
-      .toBe(await header.evaluate(scrollLeftOf));
+    const scrolled = await list.evaluate(scrollLeftOf);
+    expect(scrolled).toBeGreaterThan(0);
+    await expect.poll(async () => header.evaluate(scrollLeftOf)).toBe(scrolled);
   });
 });

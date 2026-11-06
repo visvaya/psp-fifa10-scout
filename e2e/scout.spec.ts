@@ -1,4 +1,3 @@
-import { expect, test } from "@playwright/test";
 import path from "node:path";
 import {
   SYNTHETIC_DB_PATH,
@@ -7,17 +6,16 @@ import {
 } from "../scripts/write-synthetic-db.ts";
 import {
   expandSections,
+  expect,
   expectCount,
   expectNoAxeViolations,
-  expectStoredPositionGroup,
-  guardSecurityPolicy,
+  expectStored,
   headerWidths,
+  loadCareer,
   loadDatabase,
   pickGame,
-  readStored,
+  test,
 } from "./support.ts";
-
-guardSecurityPolicy();
 
 /** The right edge of a box. */
 const rightOfBox = (box: { x: number; width: number } | null) =>
@@ -76,7 +74,9 @@ test.describe("stored state", () => {
   test("keeps the game database and filters after a reload", async ({ page }) => {
     await loadDatabase(page);
     await page.getByRole("checkbox", { name: "Bramkarz" }).check();
-    await expectStoredPositionGroup(page, "goalkeeper");
+    await expectStored(page, "preferences", {
+      value: { filters: { lists: { positionGroup: ["goalkeeper"] } } },
+    });
     await page.reload();
     // The restore is too fast to catch its skeleton reliably; the stored game opens the list directly.
     await expect(page.getByRole("checkbox", { name: "Bramkarz" })).toBeChecked();
@@ -231,12 +231,14 @@ test.describe("career save", () => {
       "Kariera: Anna Kariera, Wisła Kraków, ostatni mecz 8 sierpnia 2009",
     );
     await expect(summary).toBeVisible();
+    await expectStored(page, "careerSave", { value: expect.anything() });
     await page.reload();
     await expect(page.getByRole("table")).toBeVisible();
     await page.getByRole("button", { name: "Pliki" }).click();
     await expect(summary).toBeVisible();
     await page.getByRole("button", { name: "Usuń zapis kariery" }).click();
     await expect(summary).toBeHidden();
+    await expectStored(page, "careerSave", { value: null });
     await page.reload();
     await expect(page.getByRole("table")).toBeVisible();
     await page.getByRole("button", { name: "Pliki" }).click();
@@ -245,10 +247,7 @@ test.describe("career save", () => {
 
   // Wisła Kraków, the career's club, has Paweł Brożek and 20 of the 60 generated players.
   test("shows only my club or hides it", async ({ page }) => {
-    await page.goto("/");
-    await pickGame(page, SYNTHETIC_DB_PATH);
-    await page.getByLabel("Wybierz DATA.BIN i PARAM.SFO").setInputFiles([...SYNTHETIC_SAVE_PATHS]);
-    await page.getByRole("button", { name: /^Pokaż zawodników/u }).click();
+    await loadCareer(page);
     await page.getByText("Klub i kontrakt").click();
     await expect(page.getByRole("radio", { name: "wszyscy zawodnicy" })).toBeChecked();
     await page.getByRole("radio", { name: "tylko zawodnicy mojego klubu" }).check();
@@ -344,12 +343,10 @@ test.describe("game language", () => {
     await expect(page.getByRole("checkbox", { name: "Polska" })).toBeVisible();
     await expect(page.getByRole("checkbox", { name: "Liga BBVA (Hiszpania)" })).toBeVisible();
     await expectNoAxeViolations(page);
-    await expect
-      .poll(async () => page.evaluate(readStored, "preferences"))
-      .toMatchObject({ value: { gameLanguage: "pol_pl" } });
-    await expect
-      .poll(async () => page.evaluate(readStored, "languages"))
-      .toMatchObject({ value: { pol_pl: { countries: { 52: "Argentyna" } } } });
+    await expectStored(page, "preferences", { value: { gameLanguage: "pol_pl" } });
+    await expectStored(page, "languages", {
+      value: { pol_pl: { countries: { 52: "Argentyna" } } },
+    });
     await page.reload();
     await page.getByText("Klub i kontrakt").click();
     await expect(page.getByRole("checkbox", { name: "Argentyna" })).toBeVisible();
@@ -373,30 +370,38 @@ test.describe("game language", () => {
   });
 });
 
+// Two scans per test: a WebKit axe scan of a whole screen takes 4 to 7 s at 1280 px (measured
+// 2026-11-06), so four in one test came close to the 30 s timeout.
 for (const colorScheme of ["light", "dark"] as const) {
   for (const width of [390, 1280]) {
-    test(`axe finds no violations at ${String(width)} px, ${colorScheme}`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme });
-      await page.setViewportSize({ width, height: 844 });
-      await page.goto("/");
-      // A stable state: the file inputs are disabled only while the store opens.
-      await expect(page.getByLabel("Wybierz obraz ISO lub fifa.db")).toBeEnabled();
-      await expectNoAxeViolations(page);
-      await loadDatabase(page);
-      await expectNoAxeViolations(page);
-      if (width < 960) {
-        await page.getByRole("button", { name: "Filtry" }).click();
-        await expandSections(page);
+    test.describe(`axe at ${String(width)} px, ${colorScheme}`, () => {
+      test.use({ colorScheme, viewport: { width, height: 844 } });
+
+      test("finds no violations on the start screen and the list", async ({ page }) => {
+        await page.goto("/");
+        // A stable state: the file inputs are disabled only while the store opens.
+        await expect(page.getByLabel("Wybierz obraz ISO lub fifa.db")).toBeEnabled();
         await expectNoAxeViolations(page);
-        await page.getByRole("button", { name: "Zamknij" }).click();
-        await page.getByRole("button", { name: /^Lionel Messi/u }).click();
-      } else {
-        await expandSections(page);
+        await loadDatabase(page);
         await expectNoAxeViolations(page);
-        await page.getByRole("button", { name: "Lionel Messi" }).click();
-      }
-      await expect(page.getByRole("dialog")).toBeVisible();
-      await expectNoAxeViolations(page);
+      });
+
+      test("finds no violations in the open filters and the card", async ({ page }) => {
+        await loadDatabase(page);
+        if (width < 960) {
+          await page.getByRole("button", { name: "Filtry" }).click();
+          await expandSections(page);
+          await expectNoAxeViolations(page);
+          await page.getByRole("button", { name: "Zamknij" }).click();
+          await page.getByRole("button", { name: /^Lionel Messi/u }).click();
+        } else {
+          await expandSections(page);
+          await expectNoAxeViolations(page);
+          await page.getByRole("button", { name: "Lionel Messi" }).click();
+        }
+        await expect(page.getByRole("dialog")).toBeVisible();
+        await expectNoAxeViolations(page);
+      });
     });
   }
 }

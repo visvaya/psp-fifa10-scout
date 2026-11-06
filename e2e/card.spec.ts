@@ -1,16 +1,14 @@
-import { expect, test } from "@playwright/test";
 import {
   cardValue,
+  expect,
   expectCount,
   expectNoAxeViolations,
   expectNoHorizontalOverflow,
-  guardSecurityPolicy,
   loadCareer,
   loadDatabase,
   PHONE,
+  test,
 } from "./support.ts";
-
-guardSecurityPolicy();
 
 test.describe("player card", () => {
   test.use({ viewport: { width: 1280, height: 800 } });

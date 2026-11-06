@@ -1,8 +1,5 @@
 // One field's filter cleared at once, the others kept.
-import { expect, test } from "@playwright/test";
-import { expectCount, guardSecurityPolicy, loadDatabase } from "./support.ts";
-
-guardSecurityPolicy();
+import { expect, expectCount, loadDatabase, test } from "./support.ts";
 
 test.describe("clearing one field", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
@@ -63,7 +60,7 @@ test.describe("clear button under the header", () => {
       const top = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
       return {
         under: box.top < headerBox.bottom && box.bottom > headerBox.top,
-        headerOnTop: top?.closest(".dialog-header") !== null,
+        headerOnTop: top !== null && top.closest(".dialog-header") !== null,
       };
     });
     expect(result).toEqual({ under: true, headerOnTop: true });

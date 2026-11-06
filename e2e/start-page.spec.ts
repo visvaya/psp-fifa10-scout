@@ -1,13 +1,10 @@
-import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { expectNoAxeViolations, guardSecurityPolicy, loadDatabase, PHONE } from "./support.ts";
+import { expect, expectNoAxeViolations, loadDatabase, PHONE, test } from "./support.ts";
 
 /**
  * The description of the tool and its sample screenshots on the start screen (index.html holds the text;
  * the app moves it onto the start screen).
  */
-
-guardSecurityPolicy();
 
 const ABOUT_HEADING = "O narzędziu";
 const SCREENSHOTS = 3;
@@ -65,6 +62,9 @@ test.describe("start screen", () => {
     await page.evaluate(async () => {
       await navigator.serviceWorker.ready;
     });
+    // The worker takes no page it did not load: after a reload the screenshots go through it.
+    await page.reload();
+    expect(await page.evaluate(() => navigator.serviceWorker.controller !== null)).toBe(true);
     await loadScreenshots(page);
     const stored = await page.evaluate(storedUrls);
     expect(stored.some((url) => url.endsWith("/"))).toBe(true);

@@ -1,17 +1,27 @@
-import { expect, test } from "@playwright/test";
-import { SYNTHETIC_DB_PATH, SYNTHETIC_SAVE_PATHS } from "../scripts/write-synthetic-db.ts";
+import type { Page } from "@playwright/test";
 import {
   centre,
+  expect,
   fadeStart,
   filterByAttributes,
-  guardSecurityPolicy,
+  loadCareer,
   loadDatabase,
   PHONE,
-  pickGame,
+  scrollLeftOf,
+  scrollToEnd,
   showPotential,
+  test,
 } from "./support.ts";
 
-guardSecurityPolicy();
+/**
+ * Waits two animation frames, so the list's ResizeObserver has measured the columns just added: before
+ * that an absent data-more says nothing.
+ */
+const layoutSettled = async (page: Page) =>
+  page.evaluate(async () => {
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+  });
 
 test.describe("phone", () => {
   test.use(PHONE);
@@ -56,6 +66,7 @@ test.describe("phone", () => {
     const labels = page.locator(".player-rows-header .column-label");
     await expect(labels).toHaveText(["OVR", "POT"]);
     // Both fit: no shadow tells of further columns.
+    await layoutSettled(page);
     await expect(page.locator(".phone-list")).not.toHaveAttribute("data-more");
     const numbers = page.locator(".player-row").first().locator(".rating");
     const [labelCentres, numberCentres] = await Promise.all([
@@ -140,11 +151,6 @@ test.describe("phone list with filters", () => {
     await expect(from).toHaveValue("20");
   });
 });
-
-const scrollToEnd = (element: Element) => {
-  element.scrollTo(element.scrollWidth, 0);
-};
-const scrollLeftOf = (element: Element) => element.scrollLeft;
 
 test.describe("phone columns", () => {
   test.use(PHONE);
@@ -341,10 +347,7 @@ test.describe("career prices on a phone", () => {
 
   // A price runs to millions, wider than its label: the column fits the longest amount in full.
   test("shows whole prices and wages in their columns", async ({ page }) => {
-    await page.goto("/");
-    await pickGame(page, SYNTHETIC_DB_PATH);
-    await page.getByLabel("Wybierz DATA.BIN i PARAM.SFO").setInputFiles([...SYNTHETIC_SAVE_PATHS]);
-    await page.getByRole("button", { name: /^Pokaż zawodników/u }).click();
+    await loadCareer(page);
     // The most expensive player first: his amount is the longest.
     const showsWhole = async (sortBy: string, amount: RegExp) => {
       await page.getByLabel("Sortuj według").selectOption({ label: sortBy });
@@ -360,10 +363,7 @@ test.describe("career prices on a phone", () => {
 
   // Prices run to nine digits: the fields group them as they are typed and give them the row.
   test("groups the digits of a price as it is typed, keeping the caret", async ({ page }) => {
-    await page.goto("/");
-    await pickGame(page, SYNTHETIC_DB_PATH);
-    await page.getByLabel("Wybierz DATA.BIN i PARAM.SFO").setInputFiles([...SYNTHETIC_SAVE_PATHS]);
-    await page.getByRole("button", { name: /^Pokaż zawodników/u }).click();
+    await loadCareer(page);
     await page.getByRole("button", { name: "Filtry" }).click();
     const dialog = page.getByRole("dialog", { name: "Filtry" });
     await dialog.getByText("Kariera", { exact: true }).click();
@@ -434,6 +434,7 @@ test.describe("phone edge fade", () => {
     await showPotential(page);
     const frame = page.locator(".phone-list");
     await expect(page.locator(".player-rows-header .column-label")).toHaveCount(2);
+    await layoutSettled(page);
     await expect(frame).not.toHaveAttribute("data-more");
     const [name, first] = await Promise.all([
       page.locator(".player-row-text").first().boundingBox(),

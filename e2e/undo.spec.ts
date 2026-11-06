@@ -1,8 +1,5 @@
 // Taking back the last changes of the filters and the sort, one at a time, and resetting them all.
-import { expect, test } from "@playwright/test";
-import { expectCount, guardSecurityPolicy, loadDatabase, resetSettings } from "./support.ts";
-
-guardSecurityPolicy();
+import { expect, expectCount, loadDatabase, resetSettings, test } from "./support.ts";
 
 test.describe("undo", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
