@@ -10,6 +10,8 @@ export type ColumnAction = {
   readonly type: "column-shown";
   readonly key: SortKey;
   readonly shown: boolean;
+  /** The column is in the automatic choice: a change that agrees with it is no choice, so it is dropped. */
+  readonly automatic: boolean;
 };
 
 export const isColumnAction = (action: ScoutAction): action is ColumnAction =>
@@ -18,5 +20,9 @@ export const isColumnAction = (action: ScoutAction): action is ColumnAction =>
 export const columnReducer = (state: ScoutState, action: ColumnAction): ScoutState => {
   // Moved to the end, so a column turned on again follows the ones turned on since.
   const { [action.key]: _was, ...others } = state.columns ?? {};
-  return { ...state, columns: { ...others, [action.key]: action.shown ? "shown" : "hidden" } };
+  const choice = action.shown ? "shown" : "hidden";
+  return {
+    ...state,
+    columns: action.shown === action.automatic ? others : { ...others, [action.key]: choice },
+  };
 };

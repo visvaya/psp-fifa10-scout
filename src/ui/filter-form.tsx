@@ -46,11 +46,13 @@ interface FilterFormProps {
   readonly myTeamId: number | null;
   readonly showPotential: boolean;
   /** The settings "Cofnij" and "Resetuj" act on. */
-  readonly settings: Pick<ScoutState, "filters" | "sort" | "showPotential" | "undo">;
+  readonly settings: Pick<ScoutState, "filters" | "sort" | "showPotential" | "columns" | "undo">;
   /** The career's currency, shown with the price and the wage; null without a career. */
   readonly currency: CurrencyCode | null;
   /** The columns the list shows: each filter's eye is open while its column is among them. */
   readonly columns: readonly SortKey[];
+  /** The columns shown without the user's choice, which an eye's change that agrees with it undoes. */
+  readonly automaticColumns: readonly SortKey[];
   readonly dispatch: Dispatch<ScoutAction>;
 }
 
@@ -58,14 +60,23 @@ type Change = (filters: FilterChange) => void;
 
 /** The eyes of the filters, open for the columns the list shows. */
 const columnEye =
-  (columns: readonly SortKey[], dispatch: Dispatch<ScoutAction>): Eye =>
+  (
+    columns: readonly SortKey[],
+    automatic: readonly SortKey[],
+    dispatch: Dispatch<ScoutAction>,
+  ): Eye =>
   (key) => {
     if (key === undefined) return undefined;
     const visible = columns.includes(key);
     return {
       visible,
       onToggle: () => {
-        dispatch({ type: "column-shown", key, shown: !visible });
+        dispatch({
+          type: "column-shown",
+          key,
+          shown: !visible,
+          automatic: automatic.includes(key),
+        });
       },
     };
   };
@@ -331,6 +342,7 @@ export const FilterForm = ({
   settings,
   currency,
   columns,
+  automaticColumns,
   dispatch,
 }: FilterFormProps): JSX.Element => {
   const facets = useMemo(
@@ -340,7 +352,7 @@ export const FilterForm = ({
   const change: Change = (next) => {
     dispatch({ type: "filters-changed", filters: next });
   };
-  const eye = columnEye(columns, dispatch);
+  const eye = columnEye(columns, automaticColumns, dispatch);
   const kit: Kit = {
     ...controls(filters, change, currency, eye),
     filters,

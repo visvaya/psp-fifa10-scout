@@ -138,8 +138,8 @@ const useVisiblePlayers = (
 };
 
 /**
- * The columns both the list and the filters' eyes go by: the layout's automatic ones with the user's
- * choice applied. Prices and peaks exist only in a career.
+ * The columns both the list and the filters' eyes go by: the layout's automatic ones, and those with the
+ * user's choice applied. Prices and peaks exist only in a career.
  */
 const useColumns = (state: ScoutState, players: readonly Player[], wide: boolean) => {
   const { showPotential, columns, myTeamId, sort } = state;
@@ -163,11 +163,12 @@ const useColumns = (state: ScoutState, players: readonly Player[], wide: boolean
           ranges,
           sortKey: sort.key,
         });
-    return effectiveColumns(automatic, columns, {
+    const effective = effectiveColumns(automatic, columns, {
       showPotential,
       ratingCode,
       career: myTeamId !== null,
     });
+    return { columns: effective, automatic };
   }, [wide, showPotential, columns, myTeamId, sort.key, positionRating, ranges, priced, projected]);
 };
 
@@ -272,7 +273,7 @@ const ListResults = ({
 
 export const ListView = (props: ListViewProps): JSX.Element => {
   const { state, players, collator, positionName, wide, dispatch } = props;
-  const columns = useColumns(state, players, wide);
+  const { columns, automatic } = useColumns(state, players, wide);
   const form = (
     <>
       <FilterSets sets={state.filterSets ?? []} dispatch={dispatch} />
@@ -286,6 +287,7 @@ export const ListView = (props: ListViewProps): JSX.Element => {
         settings={state}
         currency={state.career?.currency ?? null}
         columns={columns}
+        automaticColumns={automatic}
         dispatch={dispatch}
       />
     </>

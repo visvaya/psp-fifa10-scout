@@ -7,11 +7,12 @@ import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
 import { ConfirmQuestion } from "./confirm-question.tsx";
 import { TEXT } from "./text.ts";
 
-type Settings = Pick<ScoutState, "filters" | "sort" | "showPotential" | "undo">;
+type Settings = Pick<ScoutState, "filters" | "sort" | "showPotential" | "columns" | "undo">;
 
 /** Something differs from the defaults the reset brings back. */
-const resettable = ({ filters, sort, showPotential }: Settings): boolean =>
+const resettable = ({ filters, sort, showPotential, columns }: Settings): boolean =>
   activeFilters(filters).length > 0 ||
+  Object.keys(columns ?? {}).length > 0 ||
   sort.key !== DEFAULT_SORT.key ||
   sort.direction !== DEFAULT_SORT.direction ||
   showPotential;

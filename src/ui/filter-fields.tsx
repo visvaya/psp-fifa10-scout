@@ -37,7 +37,7 @@ const FieldLegend = (props: {
 }) => (
   <legend className="field-legend">
     <span id={props.labelId}>{props.label}</span>
-    {props.column === undefined ? null : <ColumnEye label={props.label} {...props.column} />}
+    <ColumnEye label={props.label} column={props.column} />
     {props.filtering ? (
       <button
         type="button"

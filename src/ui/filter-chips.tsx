@@ -11,7 +11,7 @@ import { TEXT } from "./text.ts";
 export const FilterChips = (props: {
   filters: ScoutFilters;
   /** The settings "Cofnij" and "Resetuj" beside the chips act on (owner, 2026-11-05). */
-  settings: Pick<ScoutState, "filters" | "sort" | "showPotential" | "undo">;
+  settings: Pick<ScoutState, "filters" | "sort" | "showPotential" | "columns" | "undo">;
   /** The loaded players, for the names of the chosen leagues, clubs and countries. */
   players: readonly Player[];
   positionName: (code: number) => string;

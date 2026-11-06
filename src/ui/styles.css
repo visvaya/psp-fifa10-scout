@@ -995,6 +995,15 @@ input[inputmode="numeric"] {
   align-self: center;
 }
 
+/* Beside the eye the clear button starts at the eye's edge: two touch targets never overlap. */
+.column-eye {
+  margin-inline-end: 0;
+}
+
+.column-eye + .field-clear {
+  margin-inline-start: 0;
+}
+
 .column-eye[aria-pressed="true"] {
   color: var(--color-ink);
 }

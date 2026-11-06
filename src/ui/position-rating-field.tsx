@@ -5,8 +5,7 @@ import type { JSX } from "react";
 import type { PositionRating } from "../logic/filter-players.ts";
 import { RATING_CHOICES } from "../logic/positions.ts";
 import type { FilterChange } from "../logic/scout-state.ts";
-import type { SortKey } from "../logic/sort-players.ts";
-import type { ColumnToggle } from "./column-eye.tsx";
+import type { Eye } from "./column-eye.tsx";
 import { numberOrUndefined, RangeField } from "./filter-fields.tsx";
 import { ratingAbbreviation, ratingChoiceName } from "./position-name.tsx";
 import { RATING_PEAK_HELP } from "./text-help.ts";
@@ -18,7 +17,7 @@ const RatingRanges = (props: {
   /** The position's abbreviation in the game language. */
   abbreviation: string;
   peakShown: boolean;
-  eye: (key: SortKey) => ColumnToggle | undefined;
+  eye: Eye;
   change: (filters: FilterChange) => void;
 }) => {
   const { rating, abbreviation, eye, change } = props;
@@ -83,7 +82,7 @@ export const PositionRatingField = (props: {
   /** The peak range: a career is loaded and potential shown. */
   peakShown: boolean;
   /** The eye of a column of the position rating; undefined for one without. */
-  eye: (key: SortKey) => ColumnToggle | undefined;
+  eye: Eye;
   change: (filters: FilterChange) => void;
 }): JSX.Element => {
   const { rating, positionName, eye, change } = props;

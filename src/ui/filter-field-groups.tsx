@@ -21,9 +21,7 @@ export const ContractField = (props: {
     <div className="field">
       <div className="field-legend">
         <label htmlFor={id}>{TEXT.contractEndsBy}</label>
-        {props.column === undefined ? null : (
-          <ColumnEye label={TEXT.contractEndsBy} {...props.column} />
-        )}
+        <ColumnEye label={TEXT.contractEndsBy} column={props.column} />
       </div>
       <select
         id={id}

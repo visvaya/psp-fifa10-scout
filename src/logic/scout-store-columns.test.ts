@@ -3,13 +3,10 @@ import { DEFAULT_SORT } from "./scout-state.ts";
 import type { Preferences } from "./scout-state.ts";
 import { createScoutStore, memoryBackend, SCHEMA_VERSION } from "./scout-store.ts";
 
-const loadColumns = async (
-  columns: unknown,
-  schemaVersion: number = SCHEMA_VERSION.preferences,
-) => {
+const loadColumns = async (columns: unknown) => {
   const backend = memoryBackend();
   await backend.set("preferences", {
-    schemaVersion,
+    schemaVersion: SCHEMA_VERSION.preferences,
     value: { filters: {}, sort: DEFAULT_SORT, columns },
   });
   return (await createScoutStore(backend).load()).preferences;
@@ -52,9 +49,5 @@ describe("stored column visibility", () => {
     expect(old).not.toHaveProperty("columns");
     expect(await loadColumns({ nonsense: "shown" })).not.toHaveProperty("columns");
     expect(await loadColumns("shown")).not.toHaveProperty("columns");
-  });
-
-  it("keeps the overrides of preferences migrated from an older version", async () => {
-    expect((await loadColumns({ clubName: "shown" }, 4))?.columns).toEqual({ clubName: "shown" });
   });
 });

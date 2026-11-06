@@ -14,7 +14,7 @@ import { defaultLanguage } from "./game-names.ts";
 import type { GameLanguages } from "./game-names.ts";
 import type { CareerSummary, LoadError, LoadPhase, WorkerMessage } from "./load-scout.ts";
 import type { Player } from "./players.ts";
-import { POTENTIAL_KEYS, RATING_SORT_KEYS } from "./sort-players.ts";
+import { nextDirection, POTENTIAL_KEYS, RATING_SORT_KEYS } from "./sort-players.ts";
 import type { SortDirection, SortKey } from "./sort-players.ts";
 import { filterSetsAfter } from "./saved-filters.ts";
 import { withUndo } from "./undo.ts";
@@ -133,7 +133,7 @@ export type ScoutAction =
   | { readonly type: "filter-removed"; readonly id: FilterId }
   | { readonly type: "potential-shown"; readonly shown: boolean }
   | { readonly type: "filters-reset" }
-  /** Filters, sort and the potential switch back to their defaults; files, language and sets kept. */
+  /** Filters, sort, columns and the potential switch back to their defaults; files, language and sets kept. */
   | { readonly type: "settings-reset" }
   | { readonly type: "sort-changed"; readonly key: SortKey }
   | { readonly type: "preferences-restored"; readonly preferences: Preferences }
@@ -162,17 +162,6 @@ export const initialScoutState: ScoutState = {
   watchlist: [],
   watchlistEdited: false,
 };
-
-/** Keys whose first click sorts ascending (text, age, position, contract); numbers start high. */
-const ASCENDING_FIRST = new Set<SortKey>([
-  "name",
-  "age",
-  "positionCode",
-  "clubName",
-  "leagueName",
-  "nationalityName",
-  "contractEndYear",
-]);
 
 /** The known keys in the order the record holds them: the order filters were added orders the columns. */
 export const inRecordOrder = <K extends PropertyKey>(keys: readonly K[], record: object): K[] => {
@@ -337,11 +326,6 @@ const withFilterSets = (state: ScoutState, action: FilterSetAction): ScoutState 
 const isFilterSetAction = (action: ScoutAction): action is FilterSetAction =>
   action.type.startsWith("filter-set-");
 
-const nextDirection = (sort: ScoutSort, key: SortKey): SortDirection => {
-  if (sort.key === key) return sort.direction === "ascending" ? "descending" : "ascending";
-  return ASCENDING_FIRST.has(key) ? "ascending" : "descending";
-};
-
 const loadReducer = (state: ScoutState, action: LoadAction): ScoutState => {
   if (action.type === "load-started") {
     const { requestId, restored, gameName } = action;
@@ -387,13 +371,19 @@ type ResetAction = Extract<ScoutAction, { readonly type: keyof typeof RESETS }>;
 
 const isResetAction = (action: ScoutAction): action is ResetAction => action.type in RESETS;
 
+/** The state after a reset; "Resetuj" also brings the columns back to the automatic choice. */
+const resetState = (state: ScoutState, type: ResetAction["type"]): ScoutState => {
+  const { columns: _columns, ...kept } = state;
+  return { ...(type === "settings-reset" ? kept : state), ...RESETS[type] };
+};
+
 const changes = (
   state: ScoutState,
   action: Exclude<ScoutAction, UndoAction | WatchlistAction | ColumnAction>,
 ): ScoutState => {
   if (isLoadAction(action)) return loadReducer(state, action);
   if (isFilterSetAction(action)) return withFilterSets(state, action);
-  if (isResetAction(action)) return { ...state, ...RESETS[action.type] };
+  if (isResetAction(action)) return resetState(state, action.type);
   switch (action.type) {
     case "files-incomplete":
       return { ...state, error: { stage: action.stage, kind: "missing-file" } };

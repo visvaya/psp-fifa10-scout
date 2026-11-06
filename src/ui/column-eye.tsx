@@ -21,15 +21,19 @@ const EyeIcon = ({ crossed }: { crossed: boolean }) => (
   </svg>
 );
 
-/** A toggle named after the filter, pressed while its column shows. */
-export const ColumnEye = (props: { label: string } & ColumnToggle): JSX.Element => (
-  <button
-    type="button"
-    className="column-eye"
-    aria-label={TEXT.columnToggleLabel(props.label)}
-    aria-pressed={props.visible}
-    onClick={props.onToggle}
-  >
-    <EyeIcon crossed={!props.visible} />
-  </button>
-);
+/** A toggle named after the filter, pressed while its column shows; nothing for a filter without one. */
+export const ColumnEye = (props: {
+  label: string;
+  column: ColumnToggle | undefined;
+}): JSX.Element | null =>
+  props.column === undefined ? null : (
+    <button
+      type="button"
+      className="column-eye"
+      aria-label={TEXT.columnToggleLabel(props.label)}
+      aria-pressed={props.column.visible}
+      onClick={props.column.onToggle}
+    >
+      <EyeIcon crossed={!props.column.visible} />
+    </button>
+  );
