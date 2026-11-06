@@ -172,6 +172,13 @@ describe("parseEaDb", () => {
     expect(() => parseEaDb(bad)).toThrow(/record size of teamplayerlinks/);
   });
 
+  it("rejects a table without fields that claims rows", () => {
+    const bare = buildEaDb([{ name: "country", rows: [] }]);
+    expect(() => parseEaDb(patched(bare, blockOf(bare, 0), 0xffffffff))).toThrow(
+      /table country has no fields/,
+    );
+  });
+
   it("rejects a 32-bit field that is not byte aligned", () => {
     const bad = buildEaDb([
       {
@@ -237,6 +244,57 @@ describe("readTable", () => {
     expect(() => readTable(parseEaDb(offset), "people")).toThrow(/out of range/);
     const length = patched(SAMPLE, surname, SAMPLE.length - 2);
     expect(() => readTable(parseEaDb(length), "people")).toThrow(/string is out of range/);
+  });
+});
+
+describe("string budget", () => {
+  // Records of one string field point into a run of 4s, where every u16 reads as length 0x0404.
+  const RUN_LENGTH = 0x404;
+  const ROWS = 300;
+  const base = buildEaDb([
+    {
+      name: "names",
+      strings: ["name"],
+      rows: Array.from({ length: ROWS }, () => ({ strings: [""], area: [] })),
+    },
+  ]);
+  const withRefs = (ref: (row: number) => number): Uint8Array => {
+    const bytes = new Uint8Array(base.length + 2 + RUN_LENGTH + ROWS).fill(4);
+    bytes.set(base);
+    const view = new DataView(bytes.buffer);
+    const records = blockOf(bytes, 0) + 8;
+    Array.from({ length: ROWS }, (_, row) => view.setUint32(records + 4 * row, ref(row), true));
+    return bytes;
+  };
+
+  it("decodes a string shared by every record once", () => {
+    const rows = readTable(parseEaDb(withRefs(() => base.length)), "names");
+    expect(rows).toHaveLength(ROWS);
+    expect(new Set(rows.map((row) => row["name"]))).toEqual(
+      new Set([String.fromCharCode(4).repeat(RUN_LENGTH)]),
+    );
+  });
+
+  it("bounds the decoded text to the file size", () => {
+    const overlapping = parseEaDb(withRefs((row) => base.length + row));
+    expect(() => readTable(overlapping, "names")).toThrow(/strings overlap/);
+  });
+
+  it("bounds the text decoded by all tables of one database together", () => {
+    // Tables a and b each point their one string at the run, one byte apart: each fits the file
+    // alone, both together do not.
+    const pair = buildEaDb(
+      ["a", "b"].map((name) => ({ name, strings: ["s"], rows: [{ strings: [""], area: [] }] })),
+    );
+    const bytes = new Uint8Array(pair.length + 2 + RUN_LENGTH + 1).fill(4);
+    bytes.set(pair);
+    const view = new DataView(bytes.buffer);
+    [0, 1].forEach((index) => view.setUint32(blockOf(bytes, index) + 8, pair.length + index, true));
+    expect(readTable(parseEaDb(bytes), "a")).toHaveLength(1);
+    expect(readTable(parseEaDb(bytes), "b")).toHaveLength(1);
+    const db = parseEaDb(bytes);
+    readTable(db, "a");
+    expect(() => readTable(db, "b")).toThrow(/strings overlap/);
   });
 });
 

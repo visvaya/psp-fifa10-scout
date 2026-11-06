@@ -1,5 +1,7 @@
-import { describe, expect, it } from "vitest";
-import { teamKey, textKey } from "../data/game-locale.ts";
+import { describe, expect, it, vi } from "vitest";
+import { MAX_IDX_BYTES, MAX_LOC_BYTES, teamKey, textKey } from "../data/game-locale.ts";
+import { MAX_SFO_BYTES } from "../data/param-sfo.ts";
+import { MAX_DATA_BIN_BYTES } from "../data/read-save-data.ts";
 import { buildLocale } from "../data/test-support/synthetic-locale.ts";
 import { SaveFormatError } from "../data/save-format-error.ts";
 import { buildIso } from "../data/test-support/synthetic-iso.ts";
@@ -111,21 +113,55 @@ describe("loadScout", () => {
   });
 });
 
-describe("classifyLoadError", () => {
+/** A file one byte over `maxBytes` whose contents are never read. */
+const oversized = (maxBytes: number) => {
+  const file = blob(new Uint8Array(maxBytes + 1));
+  return { file, read: vi.spyOn(file, "arrayBuffer") };
+};
+
+describe("loadScout size caps", () => {
   it.each([
-    ["Disc image is not FIFA 10 ULES01328: found X", "wrong-game"],
-    ["Save hash does not match PARAM.SFO: wrong game or damaged file", "wrong-game"],
-    ["Not an ISO 9660 disc image", "wrong-file"],
-    ["Not a FIFA 10 disc image or database file", "wrong-file"],
-    ["PARAM.SFO is too short", "wrong-file"],
-    ["PARAM.SFO does not describe a save", "wrong-file"],
-    ["Save holds players twice", "damaged"],
-    // The profile and squads saves load as saves but have no career.
-    ["Save has no user team", "not-career"],
-  ])("%s is %s", (message, kind) => {
-    expect(classifyLoadError("save", new SaveFormatError(message))).toEqual({
-      stage: "save",
-      kind,
+    ["DATA.BIN", "dataBin", MAX_DATA_BIN_BYTES],
+    ["PARAM.SFO", "paramSfo", MAX_SFO_BYTES],
+  ] as const)("rejects a %s over its cap without reading it", async (_name, key, maxBytes) => {
+    const { file, read } = oversized(maxBytes);
+    const plain = buildPlainSave();
+    const save = { dataBin: blob(plain.dataBin), paramSfo: blob(plain.paramSfo), [key]: file };
+    await expect(loadScout({ game: blob(buildScoutDb()), save }, () => undefined)).rejects.toEqual(
+      expect.objectContaining({ error: { stage: "save", kind: "wrong-file" } }),
+    );
+    expect(read).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["loc", MAX_LOC_BYTES],
+    ["idx", MAX_IDX_BYTES],
+  ] as const)("rejects an attached .%s over its cap without reading it", async (key, maxBytes) => {
+    const { file, read } = oversized(maxBytes);
+    const { loc, idx } = buildScoutLocale();
+    const locale = { code: "pol_pl", loc: blob(loc), idx: blob(idx), [key]: file };
+    await expect(
+      loadScout({ game: blob(buildScoutDb()), locale }, () => undefined),
+    ).rejects.toEqual(expect.objectContaining({ error: { stage: "locale", kind: "wrong-file" } }));
+    expect(read).not.toHaveBeenCalled();
+  });
+});
+
+describe("classifyLoadError", () => {
+  it.each(["wrong-game", "wrong-file", "not-career", "damaged"] as const)(
+    "takes the kind %s from the file error",
+    (kind) => {
+      expect(classifyLoadError("save", new SaveFormatError("x", kind))).toEqual({
+        stage: "save",
+        kind,
+      });
+    },
+  );
+
+  it("calls a file error without a kind damaged", () => {
+    expect(classifyLoadError("game", new SaveFormatError("x"))).toEqual({
+      stage: "game",
+      kind: "damaged",
     });
   });
 

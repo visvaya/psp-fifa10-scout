@@ -28,47 +28,63 @@ const tagAt = (bytes: Uint8Array, offset: number): string =>
   new TextDecoder("latin1").decode(bytes.subarray(offset, offset + 4));
 
 const checkSize = (bytes: Uint8Array, maxBytes: number, minBytes: number): void => {
-  if (bytes.length > maxBytes) throw new SaveFormatError("Locale file is too large");
-  if (bytes.length < minBytes) throw new SaveFormatError("Locale file is too short");
+  if (bytes.length > maxBytes) throw new SaveFormatError("Locale file is too large", "wrong-file");
+  if (bytes.length < minBytes) throw new SaveFormatError("Locale file is too short", "wrong-file");
 };
 
-const readString = (bytes: Uint8Array, start: number): string => {
+/**
+ * Reads the NUL-terminated strings of `bytes` by start offset, each offset once. Strings that do not
+ * overlap cannot add up to more than the file, so scanning more than its size means overlapping
+ * offsets and throws (the game's .loc files scan at most 97% of their size).
+ */
+const stringReader = (bytes: Uint8Array): ((start: number) => string) => {
   const view = viewOf(bytes);
-  let end = start;
-  // A zero code unit reads zero in either byte order.
-  while (end + 1 < bytes.length && view.getUint16(end) !== 0) end += 2;
-  if (end + 1 >= bytes.length) throw new SaveFormatError("Locale string is out of range");
-  return new TextDecoder("utf-16le").decode(bytes.subarray(start, end));
+  const decoded = new Map<number, string>();
+  let budgetBytes = bytes.length;
+  return (start) => {
+    const known = decoded.get(start);
+    if (known !== undefined) return known;
+    let end = start;
+    // A zero code unit reads zero in either byte order.
+    while (end + 1 < bytes.length && view.getUint16(end) !== 0) end += 2;
+    if (end + 1 >= bytes.length) throw new SaveFormatError("Locale string is out of range");
+    budgetBytes -= end + 2 - start;
+    if (budgetBytes < 0) throw new SaveFormatError("Locale strings overlap");
+    const text = new TextDecoder("utf-16le").decode(bytes.subarray(start, end));
+    decoded.set(start, text);
+    return text;
+  };
 };
 
 /** The strings of a .loc file in index order. Throws SaveFormatError on a malformed file. */
 export const parseLoc = (bytes: Uint8Array): readonly string[] => {
   checkSize(bytes, MAX_LOC_BYTES, 20);
   const view = viewOf(bytes);
-  if (tagAt(bytes, 0) !== "LOCH") throw new SaveFormatError("Not a locale file");
+  if (tagAt(bytes, 0) !== "LOCH") throw new SaveFormatError("Not a locale file", "wrong-file");
   const section = view.getUint32(16, true);
   if (section + LOCL_HEAD_BYTES > bytes.length || tagAt(bytes, section) !== "LOCL") {
-    throw new SaveFormatError("Locale file does not describe its strings");
+    throw new SaveFormatError("Locale file does not describe its strings", "wrong-file");
   }
   const count = view.getUint32(section + 12, true);
   const table = section + LOCL_HEAD_BYTES;
   if (table + count * 4 > bytes.length) {
-    throw new SaveFormatError("Locale file does not describe its strings");
+    throw new SaveFormatError("Locale file does not describe its strings", "wrong-file");
   }
-  return Array.from({ length: count }, (_, index) => {
-    const start = section + view.getUint32(table + index * 4, true);
-    return readString(bytes, start);
-  });
+  const stringAt = stringReader(bytes);
+  return Array.from({ length: count }, (_, index) =>
+    stringAt(section + view.getUint32(table + index * 4, true)),
+  );
 };
 
 /** The (key, string index) pairs of a string.idx file. Throws SaveFormatError on a malformed file. */
 export const parseStringIdx = (bytes: Uint8Array): readonly (readonly [number, number])[] => {
   checkSize(bytes, MAX_IDX_BYTES, 8);
   const view = viewOf(bytes);
-  if (view.getUint32(0, true) !== IDX_MAGIC) throw new SaveFormatError("Not a string index file");
+  if (view.getUint32(0, true) !== IDX_MAGIC)
+    throw new SaveFormatError("Not a string index file", "wrong-file");
   const count = view.getUint32(4, true);
   if (8 + count * 8 > bytes.length) {
-    throw new SaveFormatError("String index file does not describe its entries");
+    throw new SaveFormatError("String index file does not describe its entries", "wrong-file");
   }
   return Array.from({ length: count }, (_, index) => [
     view.getUint32(8 + index * 8, true),
@@ -83,7 +99,7 @@ export const readLocale = (loc: Uint8Array, idx: Uint8Array): ReadonlyMap<number
     parseStringIdx(idx).map(([key, index]) => {
       const text = strings[index];
       if (text === undefined) {
-        throw new SaveFormatError("String index does not describe this locale file");
+        throw new SaveFormatError("String index does not describe this locale file", "wrong-file");
       }
       return [key, text.trim()];
     }),

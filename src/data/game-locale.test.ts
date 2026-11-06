@@ -79,6 +79,31 @@ describe("parseLoc", () => {
     expect(parseLoc(one)).toEqual(["佌䱃$"]);
   });
 
+  describe("string budget", () => {
+    // 99 empty strings, then one of 2000 characters; the offsets are then pointed into that one.
+    const loc = buildLoc([...Array.from({ length: 99 }, () => ""), "x".repeat(2000)]);
+    const table = 0x14 + 16;
+    const last = new DataView(loc.buffer).getUint32(table + 99 * 4, true);
+    const withOffsets = (offset: (index: number) => number): Uint8Array => {
+      const copy = loc.slice();
+      const view = new DataView(copy.buffer);
+      Array.from({ length: 100 }, (_, index) =>
+        view.setUint32(table + index * 4, offset(index), true),
+      );
+      return copy;
+    };
+
+    it("reads a string shared by every offset once", () => {
+      expect(new Set(parseLoc(withOffsets(() => last)))).toEqual(new Set(["x".repeat(2000)]));
+    });
+
+    it("bounds the scanned text to the file size", () => {
+      expect(() => parseLoc(withOffsets((index) => last + 2 * index))).toThrow(
+        "Locale strings overlap",
+      );
+    });
+  });
+
   it("checks the size cap at its limit", () => {
     expect(() => parseLoc(new Uint8Array(MAX_LOC_BYTES))).toThrow("Not a locale file");
     expect(() => parseStringIdx(new Uint8Array(MAX_IDX_BYTES))).toThrow("Not a string index");

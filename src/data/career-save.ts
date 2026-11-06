@@ -5,7 +5,7 @@
 // fifa.db rows left unmarked plus the chunk's rows: a full bitmap replaces the table, a partial one
 // replaces or drops single rows, an empty one with rows adds them (a new season's rtsg). The save is
 // untrusted input.
-import { birthdateToDate, readRecords, readString, readTable } from "./ea-db.ts";
+import { birthdateToDate, readRecords, readTable, stringReader } from "./ea-db.ts";
 import type { EaDb, EaDbRow, EaDbTable } from "./ea-db.ts";
 import { SaveFormatError } from "./save-format-error.ts";
 
@@ -63,13 +63,15 @@ const parseChunk = (
   }
   const marked = rowBits(view, bitmapOffset, table.rowCount);
   if (rowCount === 0 && !marked.includes(true)) return { rows: null, end };
-  const pool = new DataView(view.buffer, view.byteOffset + poolOffset, poolLength);
+  const poolString = stringReader(
+    new DataView(view.buffer, view.byteOffset + poolOffset, poolLength),
+  );
   const stringAt = (ref: number): string => {
-    if (ref < SAVE_STRING_BASE) return readString(db.view, ref);
+    if (ref < SAVE_STRING_BASE) return db.stringAt(ref);
     if (ref - SAVE_STRING_BASE >= poolLength) {
       throw new SaveFormatError(`Save string reference is out of range in ${table.name}`);
     }
-    return readString(pool, ref - SAVE_STRING_BASE);
+    return poolString(ref - SAVE_STRING_BASE);
   };
   const records = { ...table, rowCount, recordsOffset: offset + CHUNK_HEAD_BYTES };
   const kept = marked.includes(false)
@@ -106,7 +108,7 @@ export const parseCareerSave = (db: EaDb, bytes: Uint8Array): CareerSave => {
     seen.add(table.name);
     const { rows, end } = parseChunk(db, view, offset, table);
     if (rows !== null) replaced.set(table.name, rows);
-    offset = (end + 3) & ~3;
+    offset = Math.ceil(end / 4) * 4;
   }
   return replaced;
 };
@@ -127,6 +129,16 @@ export type CurrencyCode = 0 | 1 | 2;
 const isCurrencyCode = (code: number): code is CurrencyCode =>
   code === 0 || code === 1 || code === 2;
 
+const MANAGER_COLUMNS = [
+  "team_id",
+  "firstname",
+  "surname",
+  "last_game_number",
+  "currency",
+  "prestige",
+  "upgrade_fin",
+] as const;
+
 /**
  * The user team, manager name, currency, date of the last played game, prestige and the level of the
  * club's negotiator (upgrade_fin: the game's staff list names the negotiator for it, and its offer
@@ -144,9 +156,12 @@ export const careerManager = (
   negotiator: number;
 } => {
   const user = rowsOf(db, save, "team_manager").find((row) => row["team_id"] !== -1);
-  if (user === undefined) throw new SaveFormatError("Save has no user team");
-  // A table without the column (test schemas) counts as euro.
-  const currency = Number(user["currency"] ?? 0);
+  // The profile and squads saves decrypt and parse like a career save, but have no user team.
+  if (user === undefined) throw new SaveFormatError("Save has no user team", "not-career");
+  if (!MANAGER_COLUMNS.every((column) => Object.hasOwn(user, column))) {
+    throw new SaveFormatError("Database team_manager lacks manager columns");
+  }
+  const currency = Number(user["currency"]);
   if (!isCurrencyCode(currency))
     throw new SaveFormatError(`Save has unknown currency ${String(currency)}`);
   return {
@@ -154,9 +169,8 @@ export const careerManager = (
     teamId: Number(user["team_id"]),
     managerName: `${String(user["firstname"])} ${String(user["surname"])}`.trim(),
     lastGameDate: gameDate(Number(user["last_game_number"])),
-    // Absent from test schemas: no prestige and no upgrades.
-    prestige: Number(user["prestige"] ?? 0),
-    negotiator: Number(user["upgrade_fin"] ?? 0),
+    prestige: Number(user["prestige"]),
+    negotiator: Number(user["upgrade_fin"]),
   };
 };
 
@@ -165,6 +179,9 @@ export const careerManager = (
  * ages players to this day for the whole season (docs: career OVR date research), not to today.
  */
 export const seasonStartDate = (db: EaDb, save: CareerSave): Date => {
-  const games = (save.get("fixtures") ?? []).map((row) => Number(row["game_number"]));
-  return games.length === 0 ? careerManager(db, save).lastGameDate : gameDate(Math.min(...games));
+  const fixtures = save.get("fixtures") ?? [];
+  if (fixtures.length === 0) return careerManager(db, save).lastGameDate;
+  const first = fixtures.reduce((min, row) => Math.min(min, Number(row["game_number"])), Infinity);
+  if (!Number.isFinite(first)) throw new SaveFormatError("Save fixtures lack game_number");
+  return gameDate(first);
 };

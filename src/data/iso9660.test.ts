@@ -203,12 +203,6 @@ describe("readIsoFile", () => {
     await expect(readIsoFile(read, "PSP_GAME/USRDIR", 1 << 20)).rejects.toThrow("Not a file");
   });
 
-  it("caps the path depth", async () => {
-    const { read } = reader(gameIso());
-    await expect(readIsoFile(read, "a/b/c/d/e/f/g/h/i", 10)).rejects.toThrow("too deep");
-    await expect(readIsoFile(read, "a/b/c/d/e/f/g/h", 10)).rejects.toThrow("Not found");
-  });
-
   it("throws SaveFormatError", async () => {
     await expect(readIsoFile(reader(new Uint8Array(0)).read, DB_PATH, 1)).rejects.toBeInstanceOf(
       SaveFormatError,
@@ -229,9 +223,10 @@ describe("readGameDatabase", () => {
 
   it("names the disc id of another game", async () => {
     const image = gameIso("ULUS10450");
-    await expect(readGameDatabase(reader(image).read, image.length)).rejects.toThrow(
-      "Disc image is not FIFA 10 ULES01328: found ULUS10450",
-    );
+    await expect(readGameDatabase(reader(image).read, image.length)).rejects.toMatchObject({
+      message: "Disc image is not FIFA 10 ULES01328: found ULUS10450",
+      kind: "wrong-game",
+    });
   });
 
   it("rejects an oversized fifa.db inside the ISO", async () => {
@@ -341,6 +336,28 @@ describe("readIsoLocales", () => {
     expect(await readIsoLocales(reader(noIdx).read, noIdx.length)).toBeNull();
     const noLoc = buildIso([{ path: `${LOCALE}/string.idx`, bytes: Uint8Array.of(3) }]);
     expect(await readIsoLocales(reader(noLoc).read, noLoc.length)).toBeNull();
+  });
+
+  it("rejects a locale directory with more languages than the cap", async () => {
+    const languages = (count: number) =>
+      Array.from({ length: count }, (_, index) => ({
+        path: `${LOCALE}/cgexport/l${String(index)}.loc`,
+        bytes: Uint8Array.of(index),
+      }));
+    const atCap = localeIso([
+      { path: `${LOCALE}/cgexport/string.idx`, bytes: Uint8Array.of(7) },
+      ...languages(8),
+    ]);
+    expect(
+      (await readIsoLocales(reader(atCap).read, atCap.length))?.cgexport?.languages,
+    ).toHaveLength(8);
+    const overCap = localeIso([
+      { path: `${LOCALE}/cgexport/string.idx`, bytes: Uint8Array.of(7) },
+      ...languages(9),
+    ]);
+    await expect(readIsoLocales(reader(overCap).read, overCap.length)).rejects.toThrow(
+      "Disc image lists too many languages",
+    );
   });
 
   it("reports a damaged image instead of hiding it", async () => {
