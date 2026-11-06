@@ -63,6 +63,19 @@ describe("formatReport", () => {
     expect(report.text).toContain("gitleaks: pinned 8.30.1, latest 8.31.0: OUTDATED");
   });
 
+  it("fails when the latest version cannot be read, rather than calling the pin current", () => {
+    const latest = new Map([
+      ["gitleaks", "8.30.1"],
+      ["actionlint", "1.7.12"],
+      ["zizmor", "1.33"],
+    ]);
+    const report = formatReport(pins, latest, []);
+    expect(report.exitCode).toBe(1);
+    expect(report.text).toContain(
+      "zizmor: pinned 1.30.1, latest 1.33: cannot read the latest version",
+    );
+  });
+
   it("fails on a missing pin", () => {
     expect(formatReport([], new Map(), ["zizmor"]).exitCode).toBe(1);
   });
