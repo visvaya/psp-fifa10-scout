@@ -174,7 +174,9 @@ describe("parseCareerSave", () => {
   });
 
   it("rejects a manager table without a user team", () => {
-    expect(() => careerManager(DB, parse([]))).toThrow(/no user team/);
+    expect(() => careerManager(DB, parse([]))).toThrow(
+      expect.objectContaining({ message: "Save has no user team", kind: "not-career" }),
+    );
   });
 
   it("reads the currency and rejects an unknown one", () => {

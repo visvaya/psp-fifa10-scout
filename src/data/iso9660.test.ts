@@ -223,9 +223,10 @@ describe("readGameDatabase", () => {
 
   it("names the disc id of another game", async () => {
     const image = gameIso("ULUS10450");
-    await expect(readGameDatabase(reader(image).read, image.length)).rejects.toThrow(
-      "Disc image is not FIFA 10 ULES01328: found ULUS10450",
-    );
+    await expect(readGameDatabase(reader(image).read, image.length)).rejects.toMatchObject({
+      message: "Disc image is not FIFA 10 ULES01328: found ULUS10450",
+      kind: "wrong-game",
+    });
   });
 
   it("rejects an oversized fifa.db inside the ISO", async () => {

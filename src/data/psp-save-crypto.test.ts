@@ -53,7 +53,9 @@ describe("save crypto, mode 5", () => {
 
   it("rejects another game's key", () => {
     const otherKey = syntheticBytes(16, 1);
-    expect(() => decryptSaveData(file, otherKey, hexToBytes(KNOWN.hash))).toThrow(/hash/);
+    expect(() => decryptSaveData(file, otherKey, hexToBytes(KNOWN.hash))).toThrow(
+      expect.objectContaining({ kind: "wrong-game" }),
+    );
   });
 
   it("rejects lengths that are not whole blocks or hold no body", () => {
