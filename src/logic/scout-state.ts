@@ -378,8 +378,14 @@ type ResetAction = Extract<ScoutAction, { readonly type: keyof typeof RESETS }>;
 
 const isResetAction = (action: ScoutAction): action is ResetAction => action.type in RESETS;
 
-/** The state after a reset; "Resetuj" also brings the columns back to the automatic choice. */
-const resetState = (state: ScoutState, type: ResetAction["type"]): ScoutState => {
+/**
+ * The state after a reset; "Resetuj" also brings the columns back to the automatic choice. The settings
+ * alone are enough for it, so canResetSettings (settings-reset.ts) asks the reset itself.
+ */
+export const resetState = <S extends Pick<ScoutState, "columns">>(
+  state: S,
+  type: ResetAction["type"],
+) => {
   const { columns: _columns, ...kept } = state;
   return { ...(type === "settings-reset" ? kept : state), ...RESETS[type] };
 };

@@ -3,6 +3,7 @@ import { effectiveColumns } from "./columns.ts";
 import { phoneColumns } from "./phone-columns.ts";
 import { DEFAULT_SORT, initialScoutState, scoutReducer } from "./scout-state.ts";
 import type { ScoutAction, ScoutState } from "./scout-state.ts";
+import { canResetSettings } from "./settings-reset.ts";
 import type { SortKey } from "./sort-players.ts";
 
 const run = (actions: readonly ScoutAction[], from: ScoutState = initialScoutState): ScoutState =>
@@ -104,5 +105,28 @@ describe("column visibility", () => {
     expect(run([{ type: "preferences-restored", preferences: base }], set).columns).toEqual({
       weight: "shown",
     });
+  });
+});
+
+describe("canResetSettings", () => {
+  it("is false while every setting is at its default, an empty filter included", () => {
+    expect(canResetSettings(initialScoutState)).toBe(false);
+    expect(canResetSettings(run([{ type: "filters-changed", filters: { text: " " } }]))).toBe(
+      false,
+    );
+  });
+
+  it("is true once any setting the reset brings back differs, and false after the reset", () => {
+    const changed: readonly ScoutAction[] = [
+      { type: "filters-changed", filters: { text: "Lewandowski" } },
+      turn("weight", true),
+      { type: "sort-changed", key: "age" },
+      { type: "sort-changed", key: "overall" },
+      { type: "potential-shown", shown: true },
+    ];
+    for (const action of changed) expect(canResetSettings(run([action]))).toBe(true);
+    const all = run(changed);
+    expect(canResetSettings(all)).toBe(true);
+    expect(canResetSettings(run([{ type: "settings-reset" }], all))).toBe(false);
   });
 });
