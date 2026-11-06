@@ -373,6 +373,9 @@ export const TEXT = {
   /** The same at the start of a part of the phone row's line, where an ordinary space would collapse. */
   rowMetaPartSeparator: `${NBSP}·${NBSP}`,
   shortlistedMark: "★",
+  /** A list cell without a value, and its name for screen readers. */
+  missingMark: "–",
+  missingValue: "brak danych",
   shortlisted: pl`na liście życzeń w grze`,
   anyOption: "Dowolna",
   min: "od",

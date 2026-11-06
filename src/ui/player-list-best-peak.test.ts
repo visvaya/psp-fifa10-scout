@@ -15,9 +15,9 @@ describe("the best peak columns", () => {
     expect(columnText(player, "bestPeakGain", null)).toBe("12");
   });
 
-  it("has no text without a career", () => {
-    expect(columnText(testPlayer(), "bestPeak", null)).toBeNull();
-    expect(columnText(testPlayer(), "bestPeakGain", null)).toBeNull();
+  it("marks both as missing without a career", () => {
+    expect(columnText(testPlayer(), "bestPeak", null)).toBe("–");
+    expect(columnText(testPlayer(), "bestPeakGain", null)).toBe("–");
   });
 
   it("is named for the best peak", () => {

@@ -2,7 +2,7 @@
 // screens; the phone rows (player-rows.tsx) share its columns, values and virtual rows.
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import type { CSSProperties, Dispatch, JSX, ReactNode } from "react";
+import type { CSSProperties, Dispatch, JSX } from "react";
 import { isRangeKey, rangeValue } from "../logic/filter-players.ts";
 import { isAttributeName } from "../logic/players.ts";
 import type { CurrencyCode } from "../data/career-save.ts";
@@ -150,20 +150,20 @@ export const clubText = (player: Player): string =>
       ? TEXT.noContract
       : TEXT.freeAgent);
 
-const cellText = (player: Player, key: TextColumn): string | number => {
+const cellText = (player: Player, key: TextColumn): string | number | null => {
   if (key === "positionCode") return player.positionName;
   if (key === "clubName") return clubText(player);
-  if (key === "price") return player.price === null ? "" : formatNumber(player.price);
-  return player[key] ?? "";
+  if (key === "price") return player.price === null ? null : formatNumber(player.price);
+  return player[key];
 };
 
-/** A text cell; the position in the colour of its line. */
-const cellContent = (player: Player, key: TextColumn): ReactNode =>
-  key === "positionCode" ? (
-    <PositionName code={player.positionCode} name={player.positionName} />
-  ) : (
-    cellText(player, key)
-  );
+/** A cell without a value: a dash, named for screen readers. */
+const MissingValue = () => (
+  <span className="missing-value">
+    <span aria-hidden="true">{TEXT.missingMark}</span>
+    <span className="visually-hidden">{TEXT.missingValue}</span>
+  </span>
+);
 
 /** The rating a column shows with its colour band, or null for a text column. */
 const ratingIn = (player: Player, column: SortKey, ratingCode: number | null): number | null => {
@@ -182,18 +182,29 @@ const numberIn = (player: Player, column: SortKey, ratingCode: number | null): n
     ? ratingValueOf(player, column, ratingCode)
     : ratingIn(player, column, ratingCode);
 
-/** A column's text as ColumnValue shows it, or null for a rating or the gain, drawn as badges. */
-export const columnText = (
-  player: Player,
-  column: SortKey,
-  ratingCode: number | null,
-): string | null => {
-  if (numberIn(player, column, ratingCode) !== null) return null;
-  if (isTextColumn(column)) return String(cellText(player, column));
+/** A column's text when it has no badge, or null when the player has no value for it. */
+const valueText = (player: Player, column: SortKey): string | null => {
+  if (isTextColumn(column)) {
+    const text = cellText(player, column);
+    return text === null ? null : String(text);
+  }
   const field = isRangeKey(column) || column === "bestPeakGain" ? rangeValue(player, column) : null;
   if (field === null) return null;
   return column === "form" ? formatRating(field) : formatNumber(field);
 };
+
+/**
+ * A column's text as ColumnValue shows it, the dash of a missing value included, or null for a rating
+ * or the gain, drawn as badges.
+ */
+export const columnText = (
+  player: Player,
+  column: SortKey,
+  ratingCode: number | null,
+): string | null =>
+  numberIn(player, column, ratingCode) === null
+    ? (valueText(player, column) ?? TEXT.missingMark)
+    : null;
 
 /** A column's value: a rating with its colour band, the gain with its sign, a number, or the text. */
 export const ColumnValue = (props: {
@@ -214,9 +225,10 @@ export const ColumnValue = (props: {
       <AttributeValue value={value} />
     );
   }
-  return isTextColumn(column)
-    ? cellContent(player, column)
-    : columnText(player, column, ratingCode);
+  // The position in the colour of its line.
+  if (column === "positionCode")
+    return <PositionName code={player.positionCode} name={player.positionName} />;
+  return valueText(player, column) ?? <MissingValue />;
 };
 
 const isNumberColumn = (column: SortKey): boolean => column !== "name" && !column.endsWith("Name");
