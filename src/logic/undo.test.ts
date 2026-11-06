@@ -96,6 +96,26 @@ describe("undo across loads", () => {
     );
     expect(loaded.undo).toEqual([]);
   });
+
+  it("keeps the steps when a superseded load finishes", () => {
+    const loading = run([goalkeepers, { type: "load-started", requestId: 2 }]);
+    const stale = run(
+      [
+        {
+          type: "load-succeeded",
+          requestId: 1,
+          players: [],
+          myTeamId: null,
+          career: null,
+          languages: {},
+          attachedLanguage: null,
+        },
+      ],
+      loading,
+    );
+    expect(stale).toBe(loading);
+    expect(stale.undo).toHaveLength(1);
+  });
 });
 
 // "Resetuj": everything the user set but the files, the names' language and the saved sets.

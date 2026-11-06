@@ -67,7 +67,12 @@ describe("parseParamSfo", () => {
 
   it("rejects files that are too short or lack the PSF magic", () => {
     expect(() => parseParamSfo(new Uint8Array(19))).toThrow(/too short/);
-    expect(() => parseParamSfo(new Uint8Array(20))).toThrow(/Not a PARAM.SFO/);
+    expect(() => parseParamSfo(new Uint8Array(20))).toThrow(
+      expect.objectContaining({
+        message: "Not a PARAM.SFO file",
+        kind: "wrong-file",
+      }),
+    );
   });
 
   it("accepts an index that ends exactly at the end of the file", () => {

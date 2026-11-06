@@ -362,6 +362,7 @@ const loadReducer = (state: ScoutState, action: LoadAction): ScoutState => {
         view: loading.restored ? "list" : state.view,
         openPlayerId: null,
       };
+    // Stryker disable next-line StringLiteral: the case falls through to default, so its label changes nothing.
     case "load-failed":
     default:
       return { ...state, loading: null, error: action.error };
@@ -431,6 +432,7 @@ const changes = (
 
     case "player-opened":
       return { ...state, openPlayerId: action.id };
+    // Stryker disable next-line StringLiteral: the case falls through to default, so its label changes nothing.
     case "player-closed":
     default:
       return { ...state, openPlayerId: null };

@@ -7,8 +7,11 @@ import { buildPlainSave, buildScoutDb } from "./test-support/scout-db.ts";
 // The save keeps league games apart from the domestic cup and the European cups (cup0..cup3).
 describe("cup stats", () => {
   const db = parseEaDb(buildScoutDb());
-  const players = buildPlayers(db, parseCareerSave(db, buildPlainSave().dataBin));
-  const byId = (id: number) => players.find((player) => player.id === id);
+  // Built inside each test, not when the file loads, so mutation testing sees the code run per test.
+  const byId = (id: number) =>
+    buildPlayers(db, parseCareerSave(db, buildPlainSave().dataBin)).find(
+      (player) => player.id === id,
+    );
 
   it("sums the cup columns apart from the league", () => {
     expect(byId(158_023)).toMatchObject({

@@ -73,14 +73,28 @@ describe("readIsoFile", () => {
     expect(await readIsoFile(reader(image).read, "readme", 10)).toEqual(Uint8Array.of(9));
   });
 
+  const NOT_ISO = "Not an ISO 9660 disc image";
+  // No ISO at all is the wrong file; an ISO in a block size the reader cannot handle is unsupported.
   it.each([
-    ["an image without CD001", 0x8001, 0x58, "Not an ISO 9660"],
-    ["a volume descriptor that is not primary", 0x8000, 2, "Not an ISO 9660"],
-    ["a block size other than 2048", 0x8000 + 129, 0x04, "block size"],
-  ])("rejects %s", async (_, offset, value, message) => {
+    ["an image without CD001", 0x8001, 0x58, { message: NOT_ISO, kind: "wrong-file" }],
+    [
+      "a volume descriptor that is not primary",
+      0x8000,
+      2,
+      { message: NOT_ISO, kind: "wrong-file" },
+    ],
+    [
+      "a block size other than 2048",
+      0x8000 + 129,
+      0x04,
+      { message: "Unsupported ISO 9660 block size", kind: "damaged" },
+    ],
+  ])("rejects %s", async (_, offset, value, expected) => {
     const image = gameIso();
     image[offset] = value;
-    await expect(readIsoFile(reader(image).read, DB_PATH, 1 << 20)).rejects.toThrow(message);
+    await expect(readIsoFile(reader(image).read, DB_PATH, 1 << 20)).rejects.toThrow(
+      expect.objectContaining(expected),
+    );
   });
 
   it("rejects a truncated image", async () => {
@@ -183,7 +197,12 @@ describe("readIsoFile", () => {
 
   it("rejects a file larger than the limit before reading it", async () => {
     const { read, bytesRead } = reader(gameIso());
-    await expect(readIsoFile(read, DB_PATH, database.length - 1)).rejects.toThrow("too large");
+    await expect(readIsoFile(read, DB_PATH, database.length - 1)).rejects.toThrow(
+      expect.objectContaining({
+        message: "Disc image file is too large",
+        kind: "wrong-file",
+      }),
+    );
     expect(bytesRead()).toBe(6 * SECTOR); // PVD and five directories, no file data
     expect(await readIsoFile(read, DB_PATH, database.length)).toEqual(database);
   });
@@ -200,7 +219,12 @@ describe("readIsoFile", () => {
       "Not found in the disc image: PSP_GAME/NOPE",
     );
     await expect(readIsoFile(read, "PSP_GAME/PARAM.SFO/X", 10)).rejects.toThrow("Not found");
-    await expect(readIsoFile(read, "PSP_GAME/USRDIR", 1 << 20)).rejects.toThrow("Not a file");
+    await expect(readIsoFile(read, "PSP_GAME/USRDIR", 1 << 20)).rejects.toThrow(
+      expect.objectContaining({
+        message: "Not a file in the disc image: PSP_GAME/USRDIR",
+        kind: "wrong-file",
+      }),
+    );
   });
 
   it("throws SaveFormatError", async () => {
@@ -268,7 +292,10 @@ describe("readGameDatabase", () => {
     const huge = new Uint8Array(16 * 1024 * 1024 + 1);
     huge[4] = 4;
     await expect(readGameDatabase(reader(huge).read, huge.length)).rejects.toThrow(
-      "Database file is too large",
+      expect.objectContaining({
+        message: "Database file is too large",
+        kind: "wrong-file",
+      }),
     );
   });
 

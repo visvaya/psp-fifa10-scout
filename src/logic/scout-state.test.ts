@@ -12,7 +12,9 @@ import type { FilterId, ScoutState } from "./scout-state.ts";
 import { TEST_CAREER, testPlayer } from "./test-support/player-fixtures.ts";
 
 const PLAYERS = [testPlayer({ id: 1 }), testPlayer({ id: 2, clubId: 7 })];
-const loading = scoutReducer(initialScoutState, { type: "load-started", requestId: 1 });
+// A function, not a constant: state built when the file loads hides the reducer from mutation testing.
+const loadingState = (): ScoutState =>
+  scoutReducer(initialScoutState, { type: "load-started", requestId: 1 });
 
 const SUCCEEDED = {
   type: "load-succeeded",
@@ -24,7 +26,7 @@ const SUCCEEDED = {
   attachedLanguage: null,
 } as const;
 
-const loaded = (myTeamId: number | null = null, from: ScoutState = loading): ScoutState =>
+const loaded = (myTeamId: number | null = null, from: ScoutState = loadingState()): ScoutState =>
   scoutReducer(from, { ...SUCCEEDED, myTeamId });
 
 const NAMES = {
@@ -53,23 +55,27 @@ describe("scoutReducer loading", () => {
       },
       flags: { clubWillSell: true, transferListed: true, loanListed: true, loaned: false },
     } as const;
-    expect(loaded(null, { ...loading, filters }).filters).toEqual({
+    expect(loaded(null, { ...loadingState(), filters }).filters).toEqual({
       text: "a",
       ranges: { age: { max: 21 } },
     });
-    expect(loaded(5, { ...loading, filters }).filters).toEqual(filters);
-    const byPeak = { ...loading, sort: { key: "peak", direction: "descending" } } as const;
+    expect(loaded(5, { ...loadingState(), filters }).filters).toEqual(filters);
+    const byPeak = { ...loadingState(), sort: { key: "peak", direction: "descending" } } as const;
     expect(loaded(null, byPeak).sort).toEqual(DEFAULT_SORT);
     expect(loaded(5, byPeak).sort).toEqual(byPeak.sort);
     for (const key of ["cupAppearances", "peakGain"] as const) {
-      expect(loaded(null, { ...loading, sort: { key, direction: "ascending" } }).sort).toEqual(
-        DEFAULT_SORT,
-      );
+      expect(
+        loaded(null, { ...loadingState(), sort: { key, direction: "ascending" } }).sort,
+      ).toEqual(DEFAULT_SORT);
     }
   });
 
   it("tracks the phase of the current load and stays on the start view after a picked file", () => {
-    const reading = scoutReducer(loading, { type: "load-phase", requestId: 1, phase: "save" });
+    const reading = scoutReducer(loadingState(), {
+      type: "load-phase",
+      requestId: 1,
+      phase: "save",
+    });
     expect(reading.loading).toEqual({ requestId: 1, phase: "save", restored: false });
     expect(loaded(5)).toMatchObject({
       players: PLAYERS,
@@ -78,11 +84,11 @@ describe("scoutReducer loading", () => {
       view: "start",
     });
     const career = TEST_CAREER;
-    expect(scoutReducer(loading, { ...SUCCEEDED, myTeamId: 5, career }).career).toBe(career);
+    expect(scoutReducer(loadingState(), { ...SUCCEEDED, myTeamId: 5, career }).career).toBe(career);
   });
 
   it("ignores phases and results of a superseded load", () => {
-    const newer = scoutReducer(loading, { type: "load-started", requestId: 2 });
+    const newer = scoutReducer(loadingState(), { type: "load-started", requestId: 2 });
     for (const action of [
       { type: "load-phase", requestId: 1, phase: "players" },
       SUCCEEDED,
@@ -100,7 +106,7 @@ describe("scoutReducer loading", () => {
   });
 
   it("clears an old error when a new load starts", () => {
-    const failed = scoutReducer(loading, {
+    const failed = scoutReducer(loadingState(), {
       type: "load-failed",
       requestId: 1,
       error: { stage: "game", kind: "damaged" },
@@ -116,7 +122,7 @@ describe("scoutReducer loading", () => {
   });
 
   it("adds the languages of a load and of the store to those known", () => {
-    const restored = scoutReducer(loading, {
+    const restored = scoutReducer(loadingState(), {
       type: "languages-restored",
       languages: { eng_us: NAMES },
     });

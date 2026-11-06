@@ -331,6 +331,7 @@ const watchlistOf = (record: unknown): readonly WatchEntry[] => {
   return (Array.isArray(value) ? value : []).flatMap((item: unknown): readonly WatchEntry[] => {
     const { playerId, note, addedAt } = recordOf(item);
     if (
+      // Stryker disable next-line ConditionalExpression: Number.isInteger rejects a non-number too; this narrows the type.
       typeof playerId !== "number" ||
       !Number.isInteger(playerId) ||
       typeof note !== "string" ||
