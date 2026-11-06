@@ -1,5 +1,7 @@
-import { describe, expect, it } from "vitest";
-import { teamKey, textKey } from "../data/game-locale.ts";
+import { describe, expect, it, vi } from "vitest";
+import { MAX_LOC_BYTES, teamKey, textKey } from "../data/game-locale.ts";
+import { MAX_SFO_BYTES } from "../data/param-sfo.ts";
+import { MAX_DATA_BIN_BYTES } from "../data/read-save-data.ts";
 import { buildLocale } from "../data/test-support/synthetic-locale.ts";
 import { SaveFormatError } from "../data/save-format-error.ts";
 import { buildIso } from "../data/test-support/synthetic-iso.ts";
@@ -108,6 +110,36 @@ describe("loadScout", () => {
     await expect(
       loadScout({ game: blob(buildScoutDb()), save: bad }, () => undefined),
     ).rejects.toEqual(expect.objectContaining({ error: { stage: "save", kind: "wrong-file" } }));
+  });
+});
+
+/** A file one byte over `maxBytes` whose contents are never read. */
+const oversized = (maxBytes: number) => {
+  const file = blob(new Uint8Array(maxBytes + 1));
+  return { file, read: vi.spyOn(file, "arrayBuffer") };
+};
+
+describe("loadScout size caps", () => {
+  it.each([
+    ["DATA.BIN", "dataBin", MAX_DATA_BIN_BYTES],
+    ["PARAM.SFO", "paramSfo", MAX_SFO_BYTES],
+  ] as const)("rejects a %s over its cap without reading it", async (_name, key, maxBytes) => {
+    const { file, read } = oversized(maxBytes);
+    const plain = buildPlainSave();
+    const save = { dataBin: blob(plain.dataBin), paramSfo: blob(plain.paramSfo), [key]: file };
+    await expect(loadScout({ game: blob(buildScoutDb()), save }, () => undefined)).rejects.toEqual(
+      expect.objectContaining({ error: { stage: "save", kind: "wrong-file" } }),
+    );
+    expect(read).not.toHaveBeenCalled();
+  });
+
+  it("rejects an attached language file over its cap without reading it", async () => {
+    const { file, read } = oversized(MAX_LOC_BYTES);
+    const locale = { code: "pol_pl", loc: file, idx: blob(buildScoutLocale().idx) };
+    await expect(
+      loadScout({ game: blob(buildScoutDb()), locale }, () => undefined),
+    ).rejects.toEqual(expect.objectContaining({ error: { stage: "locale", kind: "wrong-file" } }));
+    expect(read).not.toHaveBeenCalled();
   });
 });
 

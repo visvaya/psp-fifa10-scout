@@ -4,7 +4,7 @@
 // records (length, extent sector at 2, data length at 10, flags at 25, name length at 32, name at 33)
 // that never cross a sector boundary; a zero length byte pads to the next sector.
 import { MAX_IDX_BYTES, MAX_LOC_BYTES } from "./game-locale.ts";
-import { parseParamSfo } from "./param-sfo.ts";
+import { MAX_SFO_BYTES, parseParamSfo } from "./param-sfo.ts";
 import { SaveFormatError } from "./save-format-error.ts";
 
 /** Reads `length` bytes at `offset` of the user's file (a `File` slice in the browser). */
@@ -15,7 +15,6 @@ const PVD_OFFSET = 16 * SECTOR_BYTES;
 const RECORD_HEAD_BYTES = 33;
 const FLAG_DIRECTORY = 0x02;
 const MAX_DIRECTORY_BYTES = 1024 * 1024;
-const MAX_SFO_BYTES = 64 * 1024;
 const MAX_DATABASE_BYTES = 16 * 1024 * 1024;
 /** Languages of one locale directory; the game has 4. */
 const MAX_LANGUAGES = 32;

@@ -3,6 +3,8 @@
 // 16-byte index entries (key offset u16, format u16, length u32, max length u32, data offset u32).
 import { SaveFormatError } from "./save-format-error.ts";
 
+/** Real PARAM.SFO files of the game and its saves are about 5 KB. */
+export const MAX_SFO_BYTES = 64 * 1024;
 const MAGIC = 0x46535000; // "\0PSF" read as a little-endian u32
 const HEADER_BYTES = 20;
 const ENTRY_BYTES = 16;

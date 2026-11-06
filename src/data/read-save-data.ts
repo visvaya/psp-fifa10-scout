@@ -11,6 +11,9 @@ export const FIFA10 = {
   saveKey: hexToBytes("f0c7f22683e651c8cec54e343241504b"),
 } as const;
 
+/** Real DATA.BIN files of the game are up to 542 KB. */
+export const MAX_DATA_BIN_BYTES = 8 * 1024 * 1024;
+
 /** First byte of SAVEDATA_PARAMS: 0 for a save PPSSPP wrote without encryption, 0x41 for mode 5. */
 const CRYPT_FLAG_NONE = 0x00;
 const CRYPT_FLAG_MODE5 = 0x41;

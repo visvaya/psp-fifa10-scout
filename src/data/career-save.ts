@@ -109,7 +109,7 @@ export const parseCareerSave = (db: EaDb, bytes: Uint8Array): CareerSave => {
     seen.add(table.name);
     const { rows, end } = parseChunk(db, view, offset, table);
     if (rows !== null) replaced.set(table.name, rows);
-    offset = (end + 3) & ~3;
+    offset = Math.ceil(end / 4) * 4;
   }
   return replaced;
 };
