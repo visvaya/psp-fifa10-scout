@@ -8,7 +8,7 @@ import path from "node:path";
 import { gzipSync } from "node:zlib";
 import { precacheOfDirectory, SCREENSHOT_DIRECTORY } from "./write-service-worker.ts";
 
-export interface BuildSizes {
+interface BuildSizes {
   readonly jsGzipBytes: number;
   readonly cssGzipBytes: number;
   readonly serviceWorkerBytes: number;
@@ -21,7 +21,7 @@ export interface BuildSizes {
 // proportion. Measured then: JS gzip 115 021, CSS gzip 3 031, worker 10 569, precache 398 276 bytes. A
 // change that crosses one needs a decision on the cause, not a higher number. The screenshots' ceiling was
 // set on 2026-11-05 about 20 % over the three files then (184 896 bytes in total).
-export const SIZE_BUDGETS: BuildSizes = {
+const SIZE_BUDGETS: BuildSizes = {
   jsGzipBytes: 160 * 1024,
   cssGzipBytes: 8 * 1024,
   serviceWorkerBytes: 16 * 1024,

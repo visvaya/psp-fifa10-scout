@@ -57,9 +57,8 @@ export const isNewerVersion = (candidate: string, current: string): boolean => {
 
 export const extractPins = (
   workflow: string,
-  rules: readonly PinRule[] = PIN_RULES,
 ): { readonly pins: readonly PinnedTool[]; readonly missing: readonly string[] } => {
-  const found = rules.map((rule) => ({ rule, pinned: rule.pattern.exec(workflow)?.[1] }));
+  const found = PIN_RULES.map((rule) => ({ rule, pinned: rule.pattern.exec(workflow)?.[1] }));
   return {
     pins: found.flatMap(({ rule, pinned }) => (pinned === undefined ? [] : [{ rule, pinned }])),
     missing: found.filter(({ pinned }) => pinned === undefined).map(({ rule }) => rule.name),
