@@ -390,6 +390,13 @@ const timed = <T>(label: string, run: () => T): T => {
   return result;
 };
 
+/** Sorts with a timing line; the result must hold every input player once. */
+const timedSort = (label: string, ...args: Parameters<typeof sortPlayers>): void => {
+  const sorted = timed(label, () => sortPlayers(...args));
+  const ids = new Set(sorted.map((player) => player.id));
+  expect([sorted.length, ids.size]).toEqual([args[0].length, args[0].length]);
+};
+
 describe.runIf(existsSync(realDbPath))("real fifa.db", () => {
   it("builds every linked player", () => {
     const players = timed("buildPlayers", () => buildPlayers(realDb()));
@@ -412,22 +419,20 @@ describe.runIf(existsSync(realDbPath))("real fifa.db", () => {
         flags: { injuryprone: false, technicaldribbler: true },
       }),
     );
-    timed("sortPlayers all by name", () => sortPlayers(players, "name", "ascending"));
-    timed("sortPlayers all by age", () => sortPlayers(players, "age", "descending"));
-    timed("filter + sort by position rating", () =>
-      sortPlayers(
-        filterPlayers(players, { positionRating: { code: 3, min: 50 }, availableOnly: true }),
-        "positionRating",
-        "descending",
-        { ratingCode: 3 },
-      ),
+    timedSort("sortPlayers all by name", players, "name", "ascending");
+    timedSort("sortPlayers all by age", players, "age", "descending");
+    timedSort(
+      "filter + sort by position rating",
+      filterPlayers(players, { positionRating: { code: 3, min: 50 }, availableOnly: true }),
+      "positionRating",
+      "descending",
+      { ratingCode: 3 },
     );
-    timed("filter + sort", () =>
-      sortPlayers(
-        filterPlayers(players, { ranges: { potential: { min: 60 } }, flags: { selfish: false } }),
-        "clubName",
-        "ascending",
-      ),
+    timedSort(
+      "filter + sort",
+      filterPlayers(players, { ranges: { potential: { min: 60 } }, flags: { selfish: false } }),
+      "clubName",
+      "ascending",
     );
     expect(filtered.length).toBeGreaterThan(0);
   });
@@ -437,5 +442,6 @@ describe.runIf(existsSync(realDbPath))("real fifa.db", () => {
     const players = buildPlayers(db, parseCareerSave(db, readFileSync(realCareerPath)));
     expect(players.filter((player) => player.clubName === "Wisła Kraków")).toHaveLength(23);
     expect(players.filter((player) => player.youth)).toHaveLength(3);
+    timedSort("sortPlayers career by price", players, "price", "descending");
   });
 });
