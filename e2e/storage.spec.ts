@@ -3,7 +3,7 @@ import { guardSecurityPolicy, loadDatabase } from "./support.ts";
 
 guardSecurityPolicy();
 
-type Damage = "open" | "read" | "write";
+type Damage = "open" | "read" | "write" | "abort";
 
 /** What each kind of damage does to IndexedDB, as the page sees it. */
 const DAMAGES: readonly (readonly [Damage, string])[] = [
@@ -11,6 +11,8 @@ const DAMAGES: readonly (readonly [Damage, string])[] = [
   ["read", "cannot be read"],
   // The store opens and reads, so only the saves fail, as when the disk is full.
   ["write", "cannot be written"],
+  // Every put succeeds, then its transaction aborts before it commits.
+  ["abort", "cannot be committed"],
 ];
 
 for (const [damage, title] of DAMAGES) {
@@ -20,6 +22,20 @@ for (const [damage, title] of DAMAGES) {
     await page.addInitScript((kind: Damage) => {
       // oxlint-disable-next-line typescript/unbound-method -- called below with the database as this
       const { transaction } = IDBDatabase.prototype;
+      if (kind === "abort") {
+        // oxlint-disable-next-line typescript/unbound-method -- called below with the store as this
+        const { put } = IDBObjectStore.prototype;
+        IDBObjectStore.prototype.put = function (
+          this: IDBObjectStore,
+          ...args: Parameters<IDBObjectStore["put"]>
+        ) {
+          const request = put.apply(this, args);
+          request.addEventListener("success", () => {
+            this.transaction.abort();
+          });
+          return request;
+        };
+      }
       if (kind === "open") {
         IDBFactory.prototype.open = () => {
           throw new DOMException("The store is damaged", "UnknownError");

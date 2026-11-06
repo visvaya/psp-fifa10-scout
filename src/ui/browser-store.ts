@@ -30,9 +30,20 @@ const indexedDbBackend = (db: IDBDatabase): StorageBackend => ({
     const value: unknown = await settle(db.transaction(STORE).objectStore(STORE).get(key));
     return value;
   },
-  set: async (key, value) => {
-    await settle(db.transaction(STORE, "readwrite").objectStore(STORE).put(value, key));
-  },
+  // Saved once the transaction commits: a request can succeed and the transaction still abort.
+  set: async (key, value) =>
+    new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE, "readwrite");
+      const fail = () => {
+        reject(transaction.error ?? new DOMException("The save was aborted", "AbortError"));
+      };
+      transaction.addEventListener("complete", () => {
+        resolve();
+      });
+      transaction.addEventListener("abort", fail);
+      transaction.addEventListener("error", fail);
+      transaction.objectStore(STORE).put(value, key);
+    }),
 });
 
 export const detectBackend = async (onOpenFailed: () => void): Promise<StorageBackend> => {
