@@ -28,17 +28,9 @@ const RatingRanges = (props: {
         range={rating}
         column={eye("positionRating")}
         onChange={(range) => {
-          // The bounds are replaced whole, so clearing the range clears both.
-          const { code, gain, peak } = rating;
-          change({
-            positionRating: {
-              code,
-              ...(gain === undefined ? {} : { gain }),
-              ...(peak === undefined ? {} : { peak }),
-              ...(rating.bestOnly === true ? { bestOnly: true } : {}),
-              ...range,
-            },
-          });
+          // The bounds are replaced whole, so clearing the range clears both; every other field stays.
+          const { min: _min, max: _max, ...kept } = rating;
+          change({ positionRating: { ...kept, ...range } });
         }}
       />
       <label className="check">

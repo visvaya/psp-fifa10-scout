@@ -87,12 +87,25 @@ export const nextDirection = (
   return ASCENDING_FIRST.has(key) ? "ascending" : "descending";
 };
 
-const valueOf = (player: Player, key: SortKey, ratingCode: number | undefined): Scalar => {
-  if (key === "name") return player.nameOrder;
+/**
+ * A position key's value, for the sort and the list alike: the OVR at the chosen position (the preferred
+ * one without a choice), and the gain and the peak there, none without a choice.
+ */
+export const ratingValueOf = (
+  player: Player,
+  key: "positionRating" | "ratingGain" | "positionPeak",
+  ratingCode: number | null,
+): number | null => {
   if (key === "positionRating")
     return player.overallByCode[ratingCode ?? player.positionCode] ?? null;
-  if (key === "ratingGain") return ratingCode === undefined ? null : ratingGain(player, ratingCode);
-  if (key === "positionPeak") return ratingCode === undefined ? null : peakAt(player, ratingCode);
+  if (ratingCode === null) return null;
+  return key === "ratingGain" ? ratingGain(player, ratingCode) : peakAt(player, ratingCode);
+};
+
+const valueOf = (player: Player, key: SortKey, ratingCode: number | undefined): Scalar => {
+  if (key === "name") return player.nameOrder;
+  if (key === "positionRating" || key === "ratingGain" || key === "positionPeak")
+    return ratingValueOf(player, key, ratingCode ?? null);
   return isAttributeName(key) ? player.attributes[key] : player[key];
 };
 

@@ -1,7 +1,38 @@
 import { expect, test } from "@playwright/test";
-import { cardValue, expectCount, guardSecurityPolicy, loadCareer } from "./support.ts";
+import type { Page } from "@playwright/test";
+import { buildFileList, buildParamSfo } from "../src/data/test-support/synthetic-save.ts";
+import { SYNTHETIC_SAVE_PATHS } from "../scripts/write-synthetic-db.ts";
+import {
+  cardValue,
+  expectCount,
+  expectStoredPositionGroup,
+  guardSecurityPolicy,
+  loadCareer,
+  readStored,
+} from "./support.ts";
 
 guardSecurityPolicy();
+
+/** An encrypted save whose DATA.BIN was copied only in part: its length is no whole cipher block. */
+const cutSave = () => {
+  const params = new Uint8Array(128);
+  params[0] = 0x41;
+  const paramSfo = buildParamSfo([
+    { key: "SAVEDATA_FILE_LIST", value: buildFileList("DATA.BIN", new Uint8Array(16)) },
+    { key: "SAVEDATA_PARAMS", value: params },
+  ]);
+  return [
+    { name: "DATA.BIN", mimeType: "application/octet-stream", buffer: Buffer.alloc(100) },
+    { name: "PARAM.SFO", mimeType: "application/octet-stream", buffer: Buffer.from(paramSfo) },
+  ];
+};
+
+/** Whether the store holds a career save, not none and not an erased one. */
+const storesCareerSave = async (page: Page): Promise<boolean> => {
+  const stored = await page.evaluate(readStored, "careerSave");
+  const value: unknown = Reflect.get(Object(stored), "value");
+  return value !== null && value !== undefined;
+};
 
 test.describe("career", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
@@ -159,5 +190,38 @@ test.describe("peak at a chosen position", () => {
     await expect(peakRange).toHaveCount(0);
     await expect(page.getByText("Żaden zawodnik nie spełnia filtrów.")).toHaveCount(0);
     await expect(page.getByRole("columnheader", { name: /^OVR RB\/LB/u })).toBeVisible();
+  });
+});
+
+test.describe("bad career save", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  test("explains a missing or damaged save and keeps the career loaded and stored before", async ({
+    page,
+  }) => {
+    await loadCareer(page);
+    await expect.poll(async () => storesCareerSave(page)).toBe(true);
+    await page.getByRole("button", { name: "Pliki" }).click();
+    const summary = page.getByText(/^Kariera: Anna Kariera/u);
+    await expect(summary).toBeVisible();
+    const saveInput = page.getByLabel("Wybierz DATA.BIN i PARAM.SFO");
+    const alert = page.getByRole("alert");
+    await saveInput.setInputFiles(SYNTHETIC_SAVE_PATHS[0]);
+    await expect(alert).toContainText("Wybierz oba pliki naraz");
+    await saveInput.setInputFiles(cutSave());
+    await expect(alert).toContainText("Plik jest uszkodzony albo niepełny");
+    // The career loaded before stays, and the list opens with every player and the career's prices.
+    await expect(summary).toBeVisible();
+    await page.getByRole("button", { name: "Pokaż zawodników (62)" }).click();
+    await expectCount(page, "62 zawodników");
+    await expect(page.getByRole("columnheader", { name: /^Cena \(€\)/u })).toBeVisible();
+    // A filter stored after the bad pick: the store has also taken whatever the bad pick wrote.
+    await page.getByRole("checkbox", { name: "Bramkarz" }).check();
+    await expectStoredPositionGroup(page, "goalkeeper");
+    expect(await storesCareerSave(page)).toBe(true);
+    await page.reload();
+    await expect(page.getByRole("table")).toBeVisible();
+    await page.getByRole("button", { name: "Pliki" }).click();
+    await expect(summary).toBeVisible();
   });
 });

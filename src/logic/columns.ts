@@ -28,6 +28,20 @@ const TABLE_ATTRIBUTES: readonly AttributeName[] = [
 /** The values only a career has, which an override cannot show without one. */
 const CAREER_KEYS: ReadonlySet<SortKey> = new Set([...CAREER_RANGE_KEYS, "positionPeak"]);
 
+/** What decides which keys have values to show or sort by. */
+export interface KeyContext {
+  readonly showPotential: boolean;
+  /** The position of the position rating filter; null without that filter. */
+  readonly ratingCode: number | null;
+  readonly career: boolean;
+}
+
+/** The potential's values need "show potential", the position rating's a chosen position, a career's a save. */
+export const isKeyAvailable = (key: SortKey, context: KeyContext): boolean =>
+  (context.showPotential || !POTENTIAL_KEYS.has(key)) &&
+  (context.ratingCode !== null || !RATING_SORT_KEYS.has(key)) &&
+  (context.career || !CAREER_KEYS.has(key));
+
 /** The wide table's columns before the user's choice, the name first. */
 export const tableColumns = (options: {
   /** The position of the position rating filter; null without that filter. */
@@ -61,12 +75,7 @@ export const tableColumns = (options: {
 export const effectiveColumns = (
   automatic: readonly SortKey[],
   overrides: ColumnPreference | undefined,
-  context: {
-    readonly showPotential: boolean;
-    /** The position of the position rating filter; null without that filter. */
-    readonly ratingCode: number | null;
-    readonly career: boolean;
-  },
+  context: KeyContext,
 ): readonly SortKey[] => {
   const chosen = overrides ?? {};
   const shown = inRecordOrder(SORTABLE_KEYS, chosen).filter(
@@ -75,10 +84,5 @@ export const effectiveColumns = (
   return [
     ...automatic.filter((key) => key === "name" || chosen[key] !== "hidden"),
     ...shown,
-  ].filter(
-    (key) =>
-      (context.showPotential || !POTENTIAL_KEYS.has(key)) &&
-      (context.ratingCode !== null || !RATING_SORT_KEYS.has(key)) &&
-      (context.career || !CAREER_KEYS.has(key)),
-  );
+  ].filter((key) => isKeyAvailable(key, context));
 };

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  checkSetName,
   filterSetsAfter,
   renamedSet,
   savedSet,
@@ -13,6 +14,24 @@ const set = (name: string, min = 70): FilterSet => ({
   name,
   filters: { ranges: { overall: { min } } },
   sort: BY_AGE,
+});
+
+describe("checkSetName", () => {
+  const sets = [set("A"), set("B")];
+
+  it("gives the trimmed name when no set has it", () => {
+    expect(checkSetName(sets, " C ")).toEqual({ ok: true, name: "C" });
+  });
+
+  it("refuses an empty name, and a name a set has", () => {
+    expect(checkSetName(sets, "   ")).toEqual({ ok: false, error: "empty" });
+    expect(checkSetName(sets, " B")).toEqual({ ok: false, error: "taken" });
+  });
+
+  it("lets a renamed set keep its own name, not take another set's", () => {
+    expect(checkSetName(sets, "A ", "A")).toEqual({ ok: true, name: "A" });
+    expect(checkSetName(sets, "B", "A")).toEqual({ ok: false, error: "taken" });
+  });
 });
 
 describe("savedSet", () => {

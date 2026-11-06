@@ -856,6 +856,7 @@ input[inputmode="numeric"] {
   outline-offset: -2px;
 }
 
+/* The marks mirror TEXT.sortMark (text.ts), which the phone labels' widths are measured with. */
 :is(.column-label, .name-label)[data-sort="descending"]::after {
   content: " ▼";
   content: " ▼" / "";
@@ -1126,6 +1127,7 @@ input[inputmode="numeric"] {
 
 .filter-set-name {
   flex: 1 1 100%;
+  margin: 0;
   font-weight: 600;
   overflow-wrap: anywhere;
 }

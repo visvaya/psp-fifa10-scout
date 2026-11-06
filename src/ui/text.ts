@@ -286,12 +286,15 @@ export const TEXT = {
   localeHelp: pl`Pliki leżą w obrazie ISO w PSP_GAME/USRDIR/data/gui/locale, np. pol_pl.loc. Zaznacz plik języka razem ze string.idx z tego samego folderu.`,
   resultCount: (value: number): string => count(value, PLAYERS),
   installHeading: "Aplikacja na ekranie początkowym",
-  installHelp: pl`Po pierwszym otwarciu narzędzie działa też bez internetu. iPhone: w Safari wybierz Udostępnij, potem Do ekranu początkowego. Chrome i Edge: menu przeglądarki, potem Zainstaluj aplikację.`,
+  /** Left out once the app could not be stored for offline use. */
+  installOffline: pl`Po pierwszym otwarciu narzędzie działa też bez internetu.`,
+  installSteps: pl`iPhone: w Safari wybierz Udostępnij, potem Do ekranu początkowego. Chrome i Edge: menu przeglądarki, potem Zainstaluj aplikację.`,
   update: {
     waiting: pl`Dostępna jest nowa wersja. Wczytane dane gry, zapis kariery i filtry zostaną zachowane.`,
     installing: "Instalowanie nowej wersji…",
     outdated: pl`Nowa wersja została zainstalowana w innym oknie. Wczytane dane gry, zapis kariery i filtry zostaną zachowane.`,
     failed: "Nie udało się pobrać nowej wersji. Spróbuj później.",
+    unregistered: pl`Nie udało się zapisać narzędzia do pracy bez internetu. Odśwież stronę, aby spróbować ponownie.`,
     checking: "Sprawdzanie aktualizacji…",
     downloading: "Pobieranie nowej wersji…",
     current: "Masz najnowszą wersję.",

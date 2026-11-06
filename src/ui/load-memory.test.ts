@@ -92,9 +92,70 @@ describe("createSaveMemory", () => {
     await settled();
     expect(writes).toEqual([null]);
   });
+
+  it("keeps the stored save when a newly picked save fails, and offers it for the next load", async () => {
+    const { writes, withStore, settled } = recordingStore();
+    const memory = createSaveMemory(withStore);
+    const stored = save(1);
+    memory.restored(stored);
+    memory.picked(save(2));
+    memory.started(1);
+    memory.finished({ type: "failed", requestId: 1, error: { stage: "save", kind: "damaged" } });
+    await settled();
+    expect(writes).toEqual([]);
+    expect(memory.kept().save).toBe(stored);
+  });
+
+  it("does not erase the store when a newly picked save fails", async () => {
+    const { writes, withStore, settled } = recordingStore();
+    const memory = createSaveMemory(withStore);
+    memory.picked(save(2));
+    memory.started(1);
+    memory.finished({ type: "failed", requestId: 1, error: { stage: "save", kind: "damaged" } });
+    await settled();
+    expect(writes).toEqual([]);
+  });
+
+  it("offers no save once the stored save itself fails", () => {
+    const { withStore } = recordingStore();
+    const memory = createSaveMemory(withStore);
+    memory.restored(save(1));
+    memory.started(1);
+    memory.finished({ type: "failed", requestId: 1, error: { stage: "save", kind: "damaged" } });
+    expect(memory.kept()).toEqual({});
+  });
+
+  it("offers the save of the latest successful load, and none once it is forgotten", () => {
+    const { withStore } = recordingStore();
+    const memory = createSaveMemory(withStore);
+    const picked = save(1);
+    memory.picked(picked);
+    memory.started(1);
+    memory.finished(done(1));
+    expect(memory.kept().save).toBe(picked);
+    memory.forget();
+    expect(memory.kept()).toEqual({});
+  });
 });
 
 describe("createGameMemory", () => {
+  it("keeps a load that failed on the save as the game to reload", () => {
+    const { withStore } = recordingStore();
+    const memory = createGameMemory(withStore);
+    const source = new Blob(["a"]);
+    memory.started(1, { source, started: { gameName: "a.iso" } });
+    memory.finished({ type: "failed", requestId: 1, error: { stage: "save", kind: "damaged" } });
+    expect(memory.reload()).toEqual({ source, started: { gameName: "a.iso" } });
+  });
+
+  it("does not reload a game that failed itself", () => {
+    const { withStore } = recordingStore();
+    const memory = createGameMemory(withStore);
+    memory.started(1, { source: new Blob(["a"]), started: {} });
+    memory.finished({ type: "failed", requestId: 1, error: { stage: "game", kind: "wrong-file" } });
+    expect(memory.reload()).toBeNull();
+  });
+
   it("ignores a superseded load: it neither becomes the game to reload nor goes to the store", async () => {
     const { writes, withStore, settled } = recordingStore();
     const memory = createGameMemory(withStore);

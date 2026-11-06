@@ -9,13 +9,32 @@ export interface FilterSet {
   readonly sort: ScoutSort;
 }
 
+export type SetNameCheck =
+  | { readonly ok: true; readonly name: string }
+  | { readonly ok: false; readonly error: "empty" | "taken" };
+
+/** A set's name, trimmed: not empty, and not another set's (the renamed set, `from`, keeps its own). */
+export const checkSetName = (
+  sets: readonly FilterSet[],
+  name: string,
+  from?: string,
+): SetNameCheck => {
+  const trimmed = name.trim();
+  if (trimmed === "") return { ok: false, error: "empty" };
+  return sets.some((each) => each.name === trimmed && each.name !== from)
+    ? { ok: false, error: "taken" }
+    : { ok: true, name: trimmed };
+};
+
 /** The sets with this one saved under its trimmed name: in place of a set of that name, else last. */
 export const savedSet = (sets: readonly FilterSet[], set: FilterSet): readonly FilterSet[] => {
+  const check = checkSetName(sets, set.name);
+  if (!check.ok && check.error === "empty") return sets;
   const named = { ...set, name: set.name.trim() };
-  if (named.name === "") return sets;
-  return sets.some((each) => each.name === named.name)
-    ? sets.map((each) => (each.name === named.name ? named : each))
-    : [...sets, named];
+  // A taken name is no error here: saving under it overwrites that set.
+  return check.ok
+    ? [...sets, named]
+    : sets.map((each) => (each.name === named.name ? named : each));
 };
 
 /** The sets with one renamed in its place; an empty name or another set's name changes nothing. */
@@ -24,9 +43,9 @@ export const renamedSet = (
   from: string,
   to: string,
 ): readonly FilterSet[] => {
-  const name = to.trim();
-  if (name === "" || sets.some((each) => each.name === name && each.name !== from)) return sets;
-  return sets.map((each) => (each.name === from ? { ...each, name } : each));
+  const check = checkSetName(sets, to, from);
+  if (!check.ok) return sets;
+  return sets.map((each) => (each.name === from ? { ...each, name: check.name } : each));
 };
 
 export const withoutSet = (sets: readonly FilterSet[], name: string): readonly FilterSet[] =>

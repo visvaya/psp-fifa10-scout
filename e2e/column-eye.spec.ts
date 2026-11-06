@@ -11,6 +11,7 @@ import {
   readStored,
   storedColumns,
   resetSettings,
+  writeStored,
 } from "./support.ts";
 
 guardSecurityPolicy();
@@ -64,6 +65,50 @@ test.describe("wide screen", () => {
     await resetSettings(page);
     await expect(age).toBeVisible();
     await expect(eyeOf(page, "Wiek")).toHaveAttribute("aria-pressed", "true");
+  });
+});
+
+test.describe("rating width", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  test("measures a rating column shown after the table was drawn without one", async ({ page }) => {
+    await loadDatabase(page);
+    await expandSections(page);
+    await eyeOf(page, "Wiek").click();
+    await expect
+      .poll(async () => page.evaluate(readStored, "preferences"))
+      .toMatchObject({ value: { columns: { age: "hidden" } } });
+    // Every rating column hidden, as a user can choose with the eyes.
+    const stored: unknown = await page.evaluate(readStored, "preferences");
+    const value: unknown = Reflect.get(Object(stored), "value");
+    const ratings = [
+      "overall",
+      "sprintspeed",
+      "dribbling",
+      "shortpassing",
+      "finishing",
+      "tackling",
+    ];
+    const columns = Object.fromEntries([...ratings, "reactions"].map((key) => [key, "hidden"]));
+    const preferences = Object.assign({}, stored, { value: Object.assign({}, value, { columns }) });
+    await page.evaluate(writeStored, ["preferences", preferences] as const);
+    await page.reload();
+    await expect(page.locator("table.players.measured")).toBeVisible();
+    await expect(page.locator("tbody .rating")).toHaveCount(0);
+    // A badge wider than any label: only a measured rating makes its column wide enough.
+    await page.evaluate(() => {
+      const sheet = document.styleSheets[document.styleSheets.length - 1];
+      sheet?.insertRule("table.players .rating { min-width: 8rem; }", sheet.cssRules.length);
+    });
+    await expandSections(page);
+    await eyeOf(page, "OVR").click();
+    const header = page.getByRole("columnheader", { name: /^OVR/u });
+    const badge = page.locator("tbody tr[aria-rowindex] .rating").first();
+    await expect(badge).toBeVisible();
+    const [headerBox, badgeBox] = await Promise.all([header.boundingBox(), badge.boundingBox()]);
+    expect(headerBox?.width ?? 0).toBeGreaterThanOrEqual(
+      badgeBox?.width ?? Number.POSITIVE_INFINITY,
+    );
   });
 });
 

@@ -2,20 +2,13 @@
 // panel. "Resetuj" asks first (owner, 2026-11-05) and names what it keeps.
 import { useEffect, useRef, useState } from "react";
 import type { Dispatch, JSX } from "react";
-import { activeFilters, DEFAULT_SORT } from "../logic/scout-state.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
+import { canResetSettings } from "../logic/settings-reset.ts";
+import type { ResetSettings } from "../logic/settings-reset.ts";
 import { ConfirmQuestion } from "./confirm-question.tsx";
 import { TEXT } from "./text.ts";
 
-export type Settings = Pick<ScoutState, "filters" | "sort" | "showPotential" | "columns" | "undo">;
-
-/** Something differs from the defaults the reset brings back. */
-const resettable = ({ filters, sort, showPotential, columns }: Settings): boolean =>
-  activeFilters(filters).length > 0 ||
-  Object.keys(columns ?? {}).length > 0 ||
-  sort.key !== DEFAULT_SORT.key ||
-  sort.direction !== DEFAULT_SORT.direction ||
-  showPotential;
+export type Settings = ResetSettings & Pick<ScoutState, "undo">;
 
 export const SettingsActions = (props: {
   settings: Settings;
@@ -63,7 +56,7 @@ export const SettingsActions = (props: {
         ref={reset}
         type="button"
         className="button"
-        disabled={!resettable(settings)}
+        disabled={!canResetSettings(settings)}
         onClick={() => {
           setMode("asking");
         }}
