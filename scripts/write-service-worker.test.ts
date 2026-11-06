@@ -167,9 +167,8 @@ describe("the release written into the worker", () => {
 
   it("names its cache after the host headers too, so a release that changes only them is another release", () => {
     const precache = precacheFor(RELEASE_A);
-    const [before, after] = ["DENY", "SAMEORIGIN"].map((value) =>
-      sha256Hex(`/*\n  X-Frame-Options: ${value}\n`),
-    );
+    const before = sha256Hex("/*\n  X-Frame-Options: DENY\n");
+    const after = sha256Hex("/*\n  X-Frame-Options: SAMEORIGIN\n");
     expect(cacheIdOf(precache, before)).not.toBe(cacheIdOf(precache, after));
     expect(renderServiceWorker(TEMPLATE, precache, before)).not.toBe(
       renderServiceWorker(TEMPLATE, precache, after),
