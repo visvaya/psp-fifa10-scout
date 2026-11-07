@@ -72,16 +72,6 @@ const BROWSER_AND_IO_GLOBALS = [
   ),
 ];
 
-// Rules switched on with no options, one name per line of `names`. A template string rather than an
-// array, so the long lists do not read as copies of each other to the duplication check.
-const errors = (prefix: string, names: string) =>
-  Object.fromEntries(
-    names
-      .trim()
-      .split(/\s+/)
-      .map((name) => [`${prefix}${name}`, "error" as const]),
-  );
-
 type ImportPattern = typeof NO_NODE_MODULES;
 
 const importPatterns = (...patterns: ImportPattern[]): ["error", { patterns: ImportPattern[] }] => [
@@ -102,91 +92,19 @@ export default defineConfig({
     perf: "error",
   },
   rules: {
-    ...errors(
-      "",
-      `
-      prefer-const
-      no-var
-      eqeqeq
-      no-console
-      no-alert
-      no-eval
-      no-new-func
-      no-script-url
-    `,
-    ),
-    ...errors(
-      "unicorn/",
-      `
-      no-array-reverse
-      no-array-sort
-      throw-new-error
-    `,
-    ),
-    ...errors(
-      "typescript/",
-      `
-      no-floating-promises
-      no-misused-promises
-      await-thenable
-      require-await
-      return-await
-      no-implied-eval
-      no-unnecessary-type-assertion
-      no-unnecessary-condition
-      no-non-null-assertion
-      no-explicit-any
-      no-unsafe-argument
-      no-unsafe-assignment
-      no-unsafe-call
-      no-unsafe-member-access
-      no-unsafe-return
-      prefer-nullish-coalescing
-      prefer-readonly
-      restrict-template-expressions
-      strict-boolean-expressions
-      switch-exhaustiveness-check
-      consistent-type-imports
-      no-deprecated
-      only-throw-error
-      prefer-promise-reject-errors
-      use-unknown-in-catch-callback-variable
-    `,
-    ),
-    ...errors(
-      "import/",
-      `
-      no-cycle
-      no-default-export
-      no-duplicates
-      no-namespace
-      no-self-import
-    `,
-    ),
-    ...errors(
-      "react/",
-      `
-      rules-of-hooks
-      exhaustive-deps
-      no-danger
-      jsx-no-script-url
-      jsx-no-useless-fragment
-      no-array-index-key
-      jsx-no-literals
-    `,
-    ),
-    ...errors(
-      "vitest/",
-      `
-      no-focused-tests
-      no-disabled-tests
-      no-conditional-expect
-      no-identical-title
-    `,
-    ),
-
     "no-param-reassign": ["error", { props: true }],
+    "prefer-const": "error",
+    "no-var": "error",
+    eqeqeq: "error",
+    "no-console": "error",
+    "no-alert": "error",
+    "no-eval": "error",
+    "no-new-func": "error",
+    "no-script-url": "error",
+    "unicorn/no-array-reverse": "error",
+    "unicorn/no-array-sort": "error",
     "unicorn/filename-case": ["error", { case: "kebabCase" }],
+    "unicorn/throw-new-error": "error",
 
     "max-depth": ["error", 3],
     "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }],
@@ -195,11 +113,57 @@ export default defineConfig({
     complexity: ["error", 15],
     "max-params": ["error", 4],
 
+    /* Rule names, alike by nature. jscpd:ignore-start */
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/await-thenable": "error",
+    "typescript/require-await": "error",
+    "typescript/return-await": "error",
+    "typescript/no-implied-eval": "error",
+    "typescript/no-unnecessary-type-assertion": "error",
+    "typescript/no-unnecessary-condition": "error",
+    "typescript/no-non-null-assertion": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-unsafe-argument": "error",
+    "typescript/no-unsafe-assignment": "error",
+    "typescript/no-unsafe-call": "error",
+    "typescript/no-unsafe-member-access": "error",
+    "typescript/no-unsafe-return": "error",
+    "typescript/prefer-nullish-coalescing": "error",
+    "typescript/prefer-readonly": "error",
+    "typescript/restrict-template-expressions": "error",
+    "typescript/strict-boolean-expressions": "error",
+    "typescript/switch-exhaustiveness-check": "error",
+    "typescript/consistent-type-imports": "error",
+    "typescript/no-deprecated": "error",
+    "typescript/only-throw-error": "error",
+    "typescript/prefer-promise-reject-errors": "error",
+    "typescript/use-unknown-in-catch-callback-variable": "error",
     // Catches `export *` and `export * as ns` barrels only; a barrel of named re-exports
     // (`export { a } from`) passes, and no oxlint rule covers it.
     "oxc/no-barrel-file": ["error", { threshold: 0 }],
+
+    "import/no-cycle": "error",
+    "import/no-default-export": "error",
+    "import/no-duplicates": "error",
+    "import/no-namespace": "error",
+    "import/no-self-import": "error",
     "import/no-unassigned-import": ["error", { allow: ["**/*.css"] }],
+
     "react/react-in-jsx-scope": "off",
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "error",
+    "react/no-danger": "error",
+    "react/jsx-no-script-url": "error",
+    "react/jsx-no-useless-fragment": "error",
+    "react/no-array-index-key": "error",
+    "react/jsx-no-literals": "error",
+
+    "vitest/no-focused-tests": "error",
+    "vitest/no-disabled-tests": "error",
+    "vitest/no-conditional-expect": "error",
+    "vitest/no-identical-title": "error",
+    /* jscpd:ignore-end */
   },
   overrides: [
     {

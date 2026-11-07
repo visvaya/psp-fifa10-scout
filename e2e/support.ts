@@ -236,9 +236,9 @@ export const filterByAttributes = async (page: Page, ...labels: readonly string[
 
 /** Phone: shows the potential through the filter dialog. */
 export const showPotential = async (page: Page) => {
-  await page.getByRole("button", { name: "Filtry" }).click();
-  await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
-  await page.getByRole("button", { name: "Zamknij" }).click();
+  const dialog = await openFilters(page);
+  await dialog.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
+  await dialog.getByRole("button", { name: "Zamknij" }).click();
 };
 
 /**
