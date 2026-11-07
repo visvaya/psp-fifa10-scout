@@ -1,6 +1,7 @@
 // One immutable summary per player: fifa.db's players joined with their club, league, national team
 // and nationality, and with a career save also the save's links, date and season stats.
 import {
+  careerLoans,
   careerManager,
   careerShortlist,
   effectiveRows,
@@ -27,7 +28,7 @@ import {
 import { careerLinks, placementsOf, teamFields, teamsById } from "./placements.ts";
 import type { Placement } from "./placements.ts";
 import { financeOf, NO_FINANCE } from "./player-finance.ts";
-import { saleVerdictOf } from "./sale-rule.ts";
+import { saleFields, saleVerdictOf } from "./sale-rule.ts";
 import type { SaleRefusal } from "./sale-rule.ts";
 import type { Finance, FinanceInput } from "./player-finance.ts";
 import { positionOf } from "./positions.ts";
@@ -228,6 +229,8 @@ export interface Player extends Finance, SeasonStats {
   /** The club he is on loan from (career only); null when he plays for his own club. */
   readonly loanedFromId: number | null;
   readonly loanedFromName: string | null;
+  /** The parent club's teams.overallrating; null when he is not on loan or the club has no team row. */
+  readonly loanedFromRating: number | null;
   /**
    * In a career, whether his club may sell him to the user at all (sale-rule.ts); null without a club or
    * career, or in the user's club.
@@ -245,7 +248,7 @@ interface Context {
   readonly countries: ReadonlyMap<number, string>;
   readonly stats: ReadonlyMap<number, EaDbRow>;
   readonly market: TransferMarket;
-  readonly teams: ReadonlyMap<number, { readonly name: string }>;
+  readonly teams: ReturnType<typeof teamsById>;
   readonly shortlist: ReadonlySet<number>;
   readonly academy: ReadonlySet<number>;
   /** Career only. */
@@ -273,12 +276,6 @@ export const nameCollator = new Intl.Collator("pl");
 /** Text without case and diacritics (ł included, which has no decomposition), for search. */
 export const searchKey = (text: string): string =>
   text.normalize("NFD").replaceAll(/\p{M}/gu, "").replaceAll(/ł/giu, "l").toLowerCase();
-
-/** The sale fields from the game's verdict on an offer for the player. */
-const saleFields = (verdict: SaleRefusal | "sells" | null) => ({
-  clubWillSell: verdict === null ? null : verdict === "sells",
-  saleRefusal: verdict === null || verdict === "sells" ? null : verdict,
-});
 
 /** A column of the save's stats row; null without the row or the column. */
 const statOf = (stats: EaDbRow | undefined, key: string): number | null =>
@@ -358,7 +355,7 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
     overallByCode,
     peakByCode,
     attributes,
-    ...teamFields(context.placements.get(id) ?? {}),
+    ...teamFields(context.placements.get(id) ?? {}, context.market.loanedFrom.has(id)),
     nationalityId,
     nationalityName: context.countries.get(nationalityId) ?? null,
     form: ratingOf(stats),
@@ -461,6 +458,7 @@ export const buildPlayers = (db: EaDb, save?: CareerSave): readonly Player[] => 
   const academy = save === undefined ? [] : effectiveRows(db, save, "career_youth_accademy");
   // Without a career there is no shortlist.
   const shortlist = save === undefined ? [] : careerShortlist(db, save);
+  const market = transferMarketOf(transferList, save === undefined ? [] : careerLoans(db, save));
   const context: Context = {
     referenceDate:
       save === undefined
@@ -471,8 +469,7 @@ export const buildPlayers = (db: EaDb, save?: CareerSave): readonly Player[] => 
       readTable(db, "country").map((row) => [num(row, "countryid"), String(row["countryname"])]),
     ),
     stats: new Map(stats.map((row) => [num(row, "playerid"), row])),
-    // fifa.db's loan list is empty: only a save holds loans.
-    market: transferMarketOf(transferList, save?.get("career_loaned_list") ?? []),
+    market,
     teams,
     shortlist: new Set(shortlist.map((row) => num(row, "playerid"))),
     academy: new Set(academy.map((row) => num(row, "playerid"))),
@@ -483,7 +480,7 @@ export const buildPlayers = (db: EaDb, save?: CareerSave): readonly Player[] => 
     ),
     rate: rater(db, save),
     formationCodes: save === undefined ? [] : userFormationCodes(db, save),
-    finance: save === undefined ? null : financeOf(db, save),
+    finance: save === undefined ? null : financeOf(db, save, market.loanedFrom),
     saleVerdict: save === undefined ? null : saleVerdictOf(db, save, placements),
   };
   // The game keeps generated players out of the leagues until it places them (overall-rating.md, F2).

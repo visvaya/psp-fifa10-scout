@@ -74,10 +74,12 @@ describe("saleVerdictOf (through buildPlayers)", () => {
     expect(of(save, 8)).toBeNull();
     // Brożek plays for the user's club: no offer to make.
     expect(of(save, 7)).toBeNull();
-    // A contract that has run out (2009, the season's first year) skips the refusal.
+    // A contract that has run out (2009, the season's first year) skips the refusal; a loaned
+    // player's contract is unknown.
     const runOut = buildPlayers(db, lent).filter(
       (player) =>
         player.clubId !== null &&
+        player.loanedFromId === null &&
         player.clubId !== SCOUT_USER_TEAM_ID &&
         (player.contractEndYear ?? 0) <= 2009,
     );

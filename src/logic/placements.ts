@@ -79,7 +79,8 @@ const NO_CLUB = {
   jerseyNumber: null,
 } as const;
 
-export const teamFields = ({ club, national }: Placement) => ({
+/** The club fields; a loaned player's link holds no contract end (2005 or a renewal year). */
+export const teamFields = ({ club, national }: Placement, onLoan: boolean) => ({
   ...(club === undefined
     ? NO_CLUB
     : {
@@ -88,7 +89,7 @@ export const teamFields = ({ club, national }: Placement) => ({
         clubRating: club.team.rating,
         leagueId: club.team.leagueId,
         leagueName: club.team.leagueName,
-        contractEndYear: num(club.link, "yearcontractvalidtil"),
+        contractEndYear: onLoan ? null : num(club.link, "yearcontractvalidtil"),
         jerseyNumber: num(club.link, "jerseynumber"),
       }),
   nationalTeamId: national?.id ?? null,

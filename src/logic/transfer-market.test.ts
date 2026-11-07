@@ -35,7 +35,7 @@ describe("transferMarketOf", () => {
 });
 
 describe("marketFields", () => {
-  const teams = new Map([[241, { name: "FC Barcelona" }]]);
+  const teams = new Map([[241, { name: "FC Barcelona", rating: 84 }]]);
 
   it("names the club a player on loan comes from", () => {
     expect(marketFields(oneListingMarket(), teams, 4)).toEqual({
@@ -43,6 +43,7 @@ describe("marketFields", () => {
       loanListed: false,
       loanedFromId: 241,
       loanedFromName: "FC Barcelona",
+      loanedFromRating: 84,
     });
   });
 
@@ -52,12 +53,17 @@ describe("marketFields", () => {
       loanListed: false,
       loanedFromId: null,
       loanedFromName: null,
+      loanedFromRating: null,
     });
   });
 
   it("keeps the id when the parent club has no team row", () => {
     const lent = transferMarketOf([], [{ playerid: 5, oldteamid: 9 }]);
-    expect(marketFields(lent, teams, 5)).toMatchObject({ loanedFromId: 9, loanedFromName: null });
+    expect(marketFields(lent, teams, 5)).toMatchObject({
+      loanedFromId: 9,
+      loanedFromName: null,
+      loanedFromRating: null,
+    });
   });
 });
 

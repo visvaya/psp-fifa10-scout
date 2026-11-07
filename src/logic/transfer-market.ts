@@ -30,17 +30,19 @@ export const transferMarketOf = (
   };
 };
 
-/** A player's fields from the market; the parent club's name from `teams`, null when unknown. */
+/** A player's fields from the market; the parent club's name and rating from `teams`, null when unknown. */
 export const marketFields = (
   market: TransferMarket,
-  teams: ReadonlyMap<number, { readonly name: string }>,
+  teams: ReadonlyMap<number, { readonly name: string; readonly rating: number }>,
   playerId: number,
 ) => {
   const parent = market.loanedFrom.get(playerId);
+  const team = parent === undefined ? undefined : teams.get(parent);
   return {
     transferListed: market.listed.has(playerId),
     loanListed: market.loanListed.has(playerId),
     loanedFromId: parent ?? null,
-    loanedFromName: parent === undefined ? null : (teams.get(parent)?.name ?? null),
+    loanedFromName: team?.name ?? null,
+    loanedFromRating: team?.rating ?? null,
   };
 };

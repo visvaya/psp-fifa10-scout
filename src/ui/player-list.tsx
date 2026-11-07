@@ -158,7 +158,7 @@ const cellText = (player: Player, key: TextColumn): string | number | null => {
 };
 
 /** A cell without a value: a dash, named for screen readers. */
-const MissingValue = () => (
+export const MissingValue = () => (
   <span className="missing-value">
     <span aria-hidden="true">{TEXT.missingMark}</span>
     <span className="visually-hidden">{TEXT.missingValue}</span>

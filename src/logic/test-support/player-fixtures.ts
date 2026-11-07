@@ -187,6 +187,7 @@ export const testPlayer = (overrides: Partial<Player> = {}): Player => {
     loanListed: false,
     loanedFromId: null,
     loanedFromName: null,
+    loanedFromRating: null,
     shortlisted: false,
     clubWillSell: null,
     saleRefusal: null,
