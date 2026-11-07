@@ -131,7 +131,7 @@ export const sortPlayers = (
   direction: SortDirection,
   {
     ratingCode,
-    collator = nameCollator,
+    collator = nameCollator(),
   }: {
     /** The position code of positionRating; the preferred position without one. */
     readonly ratingCode?: number | undefined;

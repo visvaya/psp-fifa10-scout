@@ -15,6 +15,7 @@ import { SaveFormatError } from "../data/save-format-error.ts";
 import { bestPeakFields } from "./best-peak.ts";
 import type { BestPeakKey } from "./best-peak.ts";
 import { SCOUT_CONFIG } from "./config.ts";
+import { lazy } from "./lazy.ts";
 import {
   attributeGains,
   baseOverall,
@@ -264,8 +265,8 @@ interface Rating {
   readonly peakByCode: readonly number[];
 }
 
-/** Polish alphabetical order: the default of every text sort. */
-export const nameCollator = new Intl.Collator("pl");
+/** Polish alphabetical order: the default of every text sort. Made on first use (lazy.ts). */
+export const nameCollator = lazy(() => new Intl.Collator("pl"));
 
 /** Text without case and diacritics (ł included, which has no decomposition), for search. */
 export const searchKey = (text: string): string =>
@@ -369,7 +370,7 @@ const summary = (row: EaDbRow, context: Context): Summary => {
 /** Each summary frozen with its nameOrder; the order is computed once so sorts stay numeric. */
 export const withNameOrder = (
   players: readonly Omit<Player, "nameOrder">[],
-  collator: Intl.Collator = nameCollator,
+  collator: Intl.Collator = nameCollator(),
 ): readonly Player[] => {
   const order = new Map(
     players

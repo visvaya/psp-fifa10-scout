@@ -31,9 +31,14 @@ const WIDE_QUERY = "(min-width: 60rem)";
 const useGameNames = (state: ScoutState) => {
   const language = activeLanguage(state, navigator.languages);
   const names = language === null ? null : (state.languages[language] ?? null);
-  const collator = useMemo(() => collatorFor(language), [language]);
+  // Made once there are players: building a collator loads its locale data, a long task at start.
+  const listed = state.players !== null;
+  const collator = useMemo(() => (listed ? collatorFor(language) : null), [listed, language]);
   const players = useMemo(
-    () => (state.players === null ? null : localizePlayers(state.players, names, collator)),
+    () =>
+      state.players === null || collator === null
+        ? null
+        : localizePlayers(state.players, names, collator),
     [state.players, names, collator],
   );
   const positionNames = useMemo(
@@ -164,7 +169,7 @@ export const App = (props: { registering: Promise<UpdatableRegistration> | null 
       <UpdatePrompt status={update.status} install={update.install} dismiss={update.dismiss} />
       <StorageNotice failed={files.storageFailed} />
       <main className="main">
-        {view === "list" && players !== null ? (
+        {view === "list" && players !== null && collator !== null ? (
           <ListView
             state={state}
             players={players}

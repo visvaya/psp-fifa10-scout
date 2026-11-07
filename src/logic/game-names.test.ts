@@ -178,7 +178,7 @@ describe("localizePlayers", () => {
       [1, 0],
       [2, 1],
     ]);
-    expect(localizePlayers(players, null, nameCollator)).toBe(players);
+    expect(localizePlayers(players, null, nameCollator())).toBe(players);
   });
 });
 
@@ -203,7 +203,7 @@ describe("languages", () => {
     const words = ["Ch", "H", "Ł", "M"];
     expect(words.toSorted(collatorFor("cze_cz").compare)).toEqual(["H", "Ch", "Ł", "M"]);
     expect(words.toSorted(collatorFor(null).compare)).toEqual(["Ch", "H", "Ł", "M"]);
-    expect(collatorFor(null)).toBe(nameCollator);
-    expect(collatorFor("ger_de")).toBe(nameCollator);
+    expect(collatorFor(null)).toBe(nameCollator());
+    expect(collatorFor("ger_de")).toBe(nameCollator());
   });
 });

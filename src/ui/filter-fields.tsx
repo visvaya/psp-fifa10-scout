@@ -10,7 +10,7 @@ import { FieldHelp, OptionalHelp } from "./field-help.tsx";
 import type { ColumnToggle } from "./column-eye.tsx";
 import { caretAfterDigits, editGrouped } from "./grouped-number.ts";
 import { decimalText } from "./decimal-text.ts";
-import { DECIMAL_SEPARATOR, formatNumber, TEXT } from "./text.ts";
+import { decimalSeparator, formatNumber, TEXT } from "./text.ts";
 
 /**
  * A field's name, with its explanation, the eye of its column and a button that clears the field while it
@@ -140,7 +140,7 @@ const GroupedInput = (props: {
 };
 
 const decimalShown = (value: number | undefined): string =>
-  value === undefined ? "" : String(value).replace(".", DECIMAL_SEPARATOR);
+  value === undefined ? "" : String(value).replace(".", decimalSeparator());
 
 /**
  * A decimal typed with the interface language's separator, which replaces a typed dot or comma at once
@@ -162,7 +162,7 @@ const DecimalInput = (props: {
   });
   if (props.value !== seen) {
     setSeen(props.value);
-    if (decimalText(text, DECIMAL_SEPARATOR).value !== props.value)
+    if (decimalText(text, decimalSeparator()).value !== props.value)
       setText(decimalShown(props.value));
   }
   return (
@@ -173,11 +173,11 @@ const DecimalInput = (props: {
       value={text}
       onChange={(event) => {
         const { value, selectionStart } = event.currentTarget;
-        const typed = decimalText(value, DECIMAL_SEPARATOR);
+        const typed = decimalText(value, decimalSeparator());
         // The text before the caret, normalized alone, ends where the caret belongs.
         caret.current = decimalText(
           value.slice(0, selectionStart ?? value.length),
-          DECIMAL_SEPARATOR,
+          decimalSeparator(),
         ).text.length;
         setText(typed.text);
         props.onChange(typed.value);

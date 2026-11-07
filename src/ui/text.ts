@@ -4,6 +4,7 @@ import type { CareerSummary, LoadErrorKind, LoadPhase, LoadStage } from "../logi
 import type { FlagKey, ListKey, PeakTwin, RangeFields, RangeKey } from "../logic/filter-players.ts";
 import { isAttributeName } from "../logic/players.ts";
 import type { PositionGroup } from "../logic/positions.ts";
+import { lazy } from "../logic/lazy.ts";
 import type { ScoutError } from "../logic/scout-state.ts";
 import { ATTRIBUTE_LABELS } from "./text-attributes.ts";
 import { NBSP, pl } from "./typeset.ts";
@@ -17,28 +18,32 @@ export interface PluralForms {
   readonly many: string;
 }
 
-const pluralRules = new Intl.PluralRules("pl");
-const numberFormat = new Intl.NumberFormat("pl-PL");
+// Each Intl object is made on first use (lazy.ts): building one loads locale data.
+const pluralRules = lazy(() => new Intl.PluralRules("pl"));
+const numberFormat = lazy(() => new Intl.NumberFormat("pl-PL"));
 
 /** The decimal separator of the interface language (a comma in Polish), for typed decimals. */
-export const DECIMAL_SEPARATOR =
-  numberFormat.formatToParts(1.5).find((part) => part.type === "decimal")?.value ?? ",";
+export const decimalSeparator = lazy(
+  () =>
+    numberFormat()
+      .formatToParts(1.5)
+      .find((part) => part.type === "decimal")?.value ?? ",",
+);
 
 /** The Polish noun form for an integer count: 1 rok, 2–4 lata, 5–21 lat, 22–24 lata. */
 export const plural = (count: number, forms: PluralForms): string => {
-  const category = pluralRules.select(count);
+  const category = pluralRules().select(count);
   return category === "one" ? forms.one : category === "few" ? forms.few : forms.many;
 };
 
-export const formatNumber = (value: number): string => numberFormat.format(value);
+export const formatNumber = (value: number): string => numberFormat().format(value);
 
-const ratingFormat = new Intl.NumberFormat("pl-PL", {
-  minimumFractionDigits: 1,
-  maximumFractionDigits: 1,
-});
+const ratingFormat = lazy(
+  () => new Intl.NumberFormat("pl-PL", { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+);
 
 /** A match rating with one decimal, as the game's stats screen shows it: 6,9 and 7,0. */
-export const formatRating = (value: number): string => ratingFormat.format(value);
+export const formatRating = (value: number): string => ratingFormat().format(value);
 
 const MINUS = "−";
 
@@ -51,10 +56,12 @@ const signed = (value: number): string =>
       : formatNumber(0);
 
 /** Game dates are calendar days, stored as UTC midnight. */
-const dateFormat = new Intl.DateTimeFormat("pl", { dateStyle: "long", timeZone: "UTC" });
+const dateFormat = lazy(
+  () => new Intl.DateTimeFormat("pl", { dateStyle: "long", timeZone: "UTC" }),
+);
 
 /** A game date the Polish way: "8 sierpnia 2009". */
-const formatDate = (date: Date): string => dateFormat.format(date);
+const formatDate = (date: Date): string => dateFormat().format(date);
 
 const count = (value: number, forms: PluralForms): string =>
   `${formatNumber(value)}${NBSP}${plural(value, forms)}`;

@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { formatNumber, formatRating, plural, TEXT } from "./text.ts";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { decimalSeparator, formatNumber, formatRating, plural, TEXT } from "./text.ts";
 import { OFFER_TEXT } from "./text-offer.ts";
 
 const LAT = { one: "rok", few: "lata", many: "lat" } as const;
@@ -73,5 +73,25 @@ describe("OFFER_TEXT options", () => {
   it("marks the contract length the player wants", () => {
     expect(OFFER_TEXT.lengthOption("4 lata", true)).toBe("4 lata, tyle chce zawodnik");
     expect(OFFER_TEXT.lengthOption("3 lata", false)).toBe("3 lata");
+  });
+});
+
+describe("the number and date formats", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  // Building an Intl object loads its locale data: a long task at the start of a slow phone.
+  it("are made on first use, not while the module loads", async () => {
+    const spies = (["DateTimeFormat", "NumberFormat", "PluralRules"] as const).map((name) =>
+      vi.spyOn(Intl, name),
+    );
+    vi.resetModules();
+    await import("./text.ts");
+    for (const spy of spies) expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("type decimals with the Polish comma", () => {
+    expect(decimalSeparator()).toBe(",");
   });
 });

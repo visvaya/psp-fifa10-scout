@@ -114,10 +114,10 @@ const renamed = (players: readonly Player[], names: GameNames | null): readonly 
 export const localizePlayers = (
   players: readonly Player[],
   names: GameNames | null,
-  collator: Intl.Collator = nameCollator,
+  collator: Intl.Collator = nameCollator(),
 ): readonly Player[] => {
   const result = renamed(players, names);
-  return collator === nameCollator ? result : withNameOrder(result, collator);
+  return collator === nameCollator() ? result : withNameOrder(result, collator);
 };
 
 export const languageLabel = (code: string): string => LANGUAGES[code]?.label ?? code;
@@ -150,5 +150,5 @@ export const activeLanguage = (
 /** Text order for a language; the fifa.db names and unknown languages keep the Polish order. */
 export const collatorFor = (code: string | null): Intl.Collator => {
   const locale = code === null ? undefined : LANGUAGES[code]?.locale;
-  return locale === undefined ? nameCollator : new Intl.Collator(locale);
+  return locale === undefined ? nameCollator() : new Intl.Collator(locale);
 };
