@@ -95,8 +95,8 @@ describe("buildPlayers' club stars", () => {
 // Game data never enters the repository. FIFA_DB_PATH points at a local fifa.db and
 // PSP_TEAM_STARS_REFERENCE at the stars research script's table for it (teamid | name | ... | stars in the
 // seventh column); PSP_TEAM_STARS_SAVE (plain DATA.BIN) and PSP_TEAM_STARS_SAVE_REFERENCE at a career save
-// and the script's table for it. The script ages the squad to the last game date, the tool to the season's
-// first match day as everywhere else, so in a career a club near a threshold can differ by half a star.
+// and the script's table for it, aged to the season's first match day as the tool ages it (the script's own
+// default, the last game date, moves clubs near a threshold by half a star).
 const realDbPath = process.env["FIFA_DB_PATH"] ?? "";
 const referencePath = process.env["PSP_TEAM_STARS_REFERENCE"] ?? "";
 const savePath = process.env["PSP_TEAM_STARS_SAVE"] ?? "";
@@ -132,16 +132,13 @@ describe.runIf(existsSync(realDbPath) && existsSync(referencePath))("real team s
   });
 
   it.runIf(existsSync(savePath) && existsSync(saveReferencePath))(
-    "stays within half a star of it for every club in a career save",
+    "agrees for every club in a career save but the one known OVR exception",
     () => {
       const db = parseEaDb(readFileSync(realDbPath));
       const players = buildPlayers(db, parseCareerSave(db, readFileSync(savePath)));
-      const apart = disagreements(players, referenceStars(saveReferencePath));
-      process.stdout.write(`clubs off by half a star: ${String(apart.length)}
-`);
-      expect(
-        apart.filter(([, stars, reference]) => Math.abs((stars ?? 0) - (reference ?? 0)) > 0.5),
-      ).toEqual([]);
+      // PSV (247): one 36-year-old player rates 74 here and 75 in the script, which puts the squad's
+      // mean on the other side of 78. An OVR-model difference, not investigated.
+      expect(disagreements(players, referenceStars(saveReferencePath))).toEqual([[247, 4, 4.5]]);
     },
   );
 });

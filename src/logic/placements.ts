@@ -47,8 +47,12 @@ export const teamsById = (db: EaDb, save?: CareerSave): ReadonlyMap<number, Team
       const leaguePrestige = num(league, "leagueprestige");
       const clubPrestige = num(row, "internationalprestige");
       const prestige = leaguePrestige + clubPrestige;
-      const team = { id, name, leagueId, leagueName, level, rating, prestige, leaguePrestige };
-      return [[id, { ...team, clubPrestige }]];
+      return [
+        [
+          id,
+          { id, name, leagueId, leagueName, level, rating, prestige, leaguePrestige, clubPrestige },
+        ],
+      ];
     }),
   );
 };
