@@ -5,7 +5,6 @@ import {
   bounded,
   CAREER_FLAG_KEYS,
   CAREER_RANGE_KEYS,
-  filterPlayers,
   FLAG_KEYS,
   isRangeKey,
   LIST_FIELDS,
@@ -25,11 +24,13 @@ import { filterSetsAfter } from "./saved-filters.ts";
 import { withUndo } from "./undo.ts";
 import { columnReducer, isColumnAction } from "./column-preference.ts";
 import type { ColumnAction, ColumnPreference } from "./column-preference.ts";
-import { effectiveFilters } from "./effective-filters.ts";
-import { isWatchlistAction, watchedIds, watchlistReducer } from "./watchlist.ts";
+import { isWatchlistAction, watchlistReducer } from "./watchlist.ts";
 import type { WatchEntry, WatchlistAction } from "./watchlist.ts";
 import type { UndoAction, UndoStep } from "./undo.ts";
 import type { FilterSet, FilterSetAction } from "./saved-filters.ts";
+import type { TieRule } from "./best-peak.ts";
+import { tieOrderAfter, tieOrderChosen, tiesBroken } from "./tie-order.ts";
+import type { TieOrderAction } from "./tie-order.ts";
 
 /** The user's club in the list: unset shows it with everyone, "hide" leaves it out, "only" keeps it alone. */
 export type MyClub = "hide" | "only";
@@ -70,6 +71,8 @@ export interface Preferences {
   readonly filterSets?: readonly FilterSet[];
   /** A view setting, kept out of the filters, the sets and undo; unset as none. */
   readonly columns?: ColumnPreference;
+  /** The order of the best peak tie rules (tie-order.ts); unset as the default. */
+  readonly tieOrder?: readonly TieRule[];
 }
 
 export type ScoutError =
@@ -107,6 +110,8 @@ export interface ScoutState extends Preferences {
 
 /** Null goes back to the career's currency. */
 type CurrencyAction = { readonly type: "currency-chosen"; readonly currency: CurrencyCode | null };
+/** The actions of the view settings with a reducer of their own. */
+type ViewAction = CurrencyAction | TieOrderAction;
 
 type LoadAction =
   | {
@@ -135,7 +140,7 @@ export type ScoutAction =
   | { readonly type: "files-incomplete"; readonly stage: "save" | "locale" }
   | { readonly type: "languages-restored"; readonly languages: GameLanguages }
   | { readonly type: "language-chosen"; readonly language: string | null }
-  | CurrencyAction
+  | ViewAction
   | { readonly type: "view-changed"; readonly view: ScoutState["view"] }
   | { readonly type: "filters-changed"; readonly filters: FilterChange }
   | { readonly type: "filter-removed"; readonly id: FilterId }
@@ -291,12 +296,14 @@ const isLoadAction = (action: ScoutAction): action is LoadAction => action.type.
 
 /** The stored preferences over the state, made consistent; after a game without a career, without what needs one. */
 const withPreferences = (state: ScoutState, preferences: Preferences): ScoutState => {
-  const { filters, sort, showPotential, gameLanguage, filterSets, columns, currency } = preferences;
+  const { filters, sort, showPotential, gameLanguage, filterSets, columns, currency, tieOrder } =
+    preferences;
   const restored = { filters: compactFilters(filters), sort };
   const fitted =
     state.players !== null && state.myTeamId === null ? withoutCareer(restored) : restored;
+  const next = tieOrder === undefined ? state : tieOrderChosen(state, tieOrder);
   return {
-    ...state,
+    ...next,
     ...consistent({ ...fitted, showPotential }),
     ...(gameLanguage === undefined ? {} : { gameLanguage }),
     ...(filterSets === undefined ? {} : { filterSets }),
@@ -362,7 +369,8 @@ const loadReducer = (state: ScoutState, action: LoadAction): ScoutState => {
     case "load-succeeded":
       return {
         ...state,
-        players: action.players,
+        // The load breaks the ties in the default order.
+        players: state.tieOrder === undefined ? action.players : tiesBroken(action, state.tieOrder),
         myTeamId: action.myTeamId,
         career: action.career,
         curves: action.curves,
@@ -392,24 +400,25 @@ type ResetAction = Extract<ScoutAction, { readonly type: keyof typeof RESETS }>;
 const isResetAction = (action: ScoutAction): action is ResetAction => action.type in RESETS;
 
 /**
- * The state after a reset; "Resetuj" also brings the columns back to the automatic choice. The settings
- * alone are enough for it, so canResetSettings (settings-reset.ts) asks the reset itself.
+ * The state after a reset; "Resetuj" also brings the columns back to the automatic choice and the best
+ * peak tie rules to their default order. The settings alone are enough for it, so canResetSettings
+ * (settings-reset.ts) asks the reset itself.
  */
-export const resetState = <S extends Pick<ScoutState, "columns">>(
+export const resetState = <S extends Pick<ScoutState, "columns" | "tieOrder">>(
   state: S,
   type: ResetAction["type"],
 ) => {
-  const { columns: _columns, ...kept } = state;
+  const { columns: _columns, tieOrder: _tieOrder, ...kept } = state;
   return { ...(type === "settings-reset" ? kept : state), ...RESETS[type] };
 };
 
 const changes = (
   state: ScoutState,
-  action: Exclude<ScoutAction, UndoAction | WatchlistAction | ColumnAction | CurrencyAction>,
+  action: Exclude<ScoutAction, UndoAction | WatchlistAction | ColumnAction | ViewAction>,
 ): ScoutState => {
   if (isLoadAction(action)) return loadReducer(state, action);
   if (isFilterSetAction(action)) return withFilterSets(state, action);
-  if (isResetAction(action)) return resetState(state, action.type);
+  if (isResetAction(action)) return tieOrderAfter(state, resetState(state, action.type));
   switch (action.type) {
     case "files-incomplete":
       return { ...state, error: { stage: action.stage, kind: "missing-file" } };
@@ -455,6 +464,7 @@ const changes = (
 export const scoutReducer = withUndo((state, action) => {
   if (isWatchlistAction(action)) return watchlistReducer(state, action);
   if (action.type === "currency-chosen") return currencyChosen(state, action.currency);
+  if (action.type === "tie-order-chosen") return tieOrderChosen(state, action.order);
   const next = isColumnAction(action) ? columnReducer(state, action) : changes(state, action);
   return withShownCurrency(state, next);
 });
@@ -471,12 +481,3 @@ export const actionOf = (message: WorkerMessage): ScoutAction => {
   const { gameDb: _gameDb, ...result } = message.result;
   return { type: "load-succeeded", requestId, ...result };
 };
-
-/** How many players the list shows with the current filters, for the start screen's button. */
-export const listedCount = (state: ScoutState): number =>
-  state.players === null
-    ? 0
-    : filterPlayers(
-        state.players,
-        effectiveFilters(state.filters, state.myTeamId, watchedIds(state.watchlist)),
-      ).length;

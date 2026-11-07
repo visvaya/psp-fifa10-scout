@@ -34,34 +34,79 @@ const narrowed = (codes: readonly number[], keep: (code: number) => boolean) => 
 };
 
 /**
- * The code among tied ones (owner's rule, 2026-11-07): those in the user's formation, if any; then the
- * central ones with a weak foot of 4 or 5 stars, else those on the side of the better foot, if any;
- * then the preferred position if it remains, else the first code.
+ * The rules a tie goes by, in the default order (owner's rule, 2026-11-07): the positions of the user's
+ * formation; with a weak foot of 4 or 5 stars, the central ones; those on the side of the better foot;
+ * the preferred position. The user may reorder them; the first code in the game's order comes last.
  */
-const tiedCode = (
-  tied: readonly number[],
-  player: PeakInput,
-  formationCodes: readonly number[],
-): number => {
-  const candidates = narrowed(tied, (code) => formationCodes.includes(code));
-  const central = candidates.filter((code) => sideOf(code) === "central");
-  const remaining =
-    player.weakFoot >= SCOUT_CONFIG.centralWeakFootStarsMin && central.length > 0
-      ? central
-      : narrowed(candidates, (code) => sideOf(code) === player.preferredFoot);
-  return remaining.includes(player.positionCode) ? player.positionCode : Math.min(...remaining);
+export const TIE_RULES = [
+  "formation",
+  "weakFootCentre",
+  "betterFootSide",
+  "preferredPosition",
+] as const;
+
+export type TieRule = (typeof TIE_RULES)[number];
+
+/** The codes each rule keeps, of a player in a formation. */
+const KEEPS: Readonly<
+  Record<
+    TieRule,
+    (player: PeakInput, formationCodes: readonly number[]) => (code: number) => boolean
+  >
+> = {
+  formation: (_player, formationCodes) => (code) => formationCodes.includes(code),
+  weakFootCentre: (player) => (code) =>
+    player.weakFoot >= SCOUT_CONFIG.centralWeakFootStarsMin && sideOf(code) === "central",
+  betterFootSide: (player) => (code) => sideOf(code) === player.preferredFoot,
+  preferredPosition: (player) => (code) => code === player.positionCode,
+};
+
+/**
+ * An order of the rules from stored data: unknown and repeated entries dropped, missing rules added in
+ * the default order.
+ */
+export const tieOrderOf = (value: unknown): readonly TieRule[] => {
+  const known = (Array.isArray(value) ? value : []).filter((item: unknown): item is TieRule =>
+    TIE_RULES.some((rule) => rule === item),
+  );
+  return [...new Set([...known, ...TIE_RULES])];
+};
+
+export const isDefaultOrder = (order: readonly TieRule[]): boolean =>
+  order.every((rule, index) => rule === TIE_RULES[index]);
+
+/** The order with `rule` moved one place up (-1) or down (1); unchanged at either end. */
+export const movedRule = (
+  order: readonly TieRule[],
+  rule: TieRule,
+  by: -1 | 1,
+): readonly TieRule[] => {
+  const from = order.indexOf(rule);
+  const to = from + by;
+  if (from < 0 || to < 0 || to >= order.length) return order;
+  const moved = order.filter((each) => each !== rule);
+  return [...moved.slice(0, to), rule, ...moved.slice(to)];
 };
 
 /**
  * The best peak with its position code and short name, and its gain over the OVR at that same position.
- * A tie goes by the user's formation (its starting eleven's codes) and the player's feet; all null
- * without peaks (no career).
+ * A tie goes by the rules in `order` (TIE_RULES), over the user's formation (its starting eleven's
+ * codes) and the player's feet, then by the first code; all null without peaks (no career).
  */
-export const bestPeakFields = (player: PeakInput, formationCodes: readonly number[]) => {
+export const bestPeakFields = (
+  player: PeakInput,
+  formationCodes: readonly number[],
+  order: readonly TieRule[] = TIE_RULES,
+) => {
   const { peakByCode, overallByCode } = player;
   if (peakByCode.length === 0) return NO_BEST_PEAK;
   const bestPeak = Math.max(...peakByCode);
-  const code = tiedCode(codesAtPeak(peakByCode, bestPeak), player, formationCodes);
+  const code = Math.min(
+    ...order.reduce(
+      (codes, rule) => narrowed(codes, KEEPS[rule](player, formationCodes)),
+      codesAtPeak(peakByCode, bestPeak),
+    ),
+  );
   return {
     bestPeak,
     bestPeakCode: code,

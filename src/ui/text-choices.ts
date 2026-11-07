@@ -1,5 +1,6 @@
-// The options of the filters chosen one of a few (radio buttons), as the form and the chips name them; a
-// part of the UI texts beside text.ts.
+// The options of the filters chosen one of a few (radio buttons), as the form and the chips name them,
+// and the rules of a best peak tie; a part of the UI texts beside text.ts.
+import type { TieRule } from "../logic/best-peak.ts";
 import type { ClubStatus, ListMembership } from "../logic/filter-players.ts";
 import type { MyClub } from "../logic/scout-state.ts";
 import { pl } from "./typeset.ts";
@@ -24,4 +25,12 @@ export const LIST_MEMBERSHIP_LABELS: Readonly<Record<"any" | ListMembership, str
   tool: pl`w narzędziu`,
   both: pl`w obu`,
   none: pl`na żadnej`,
+};
+
+/** The rules that break a best peak tie, in the list that orders them. */
+export const TIE_RULE_LABELS: Readonly<Record<TieRule, string>> = {
+  formation: pl`pozycje z formacji twojego klubu (z zapisu kariery)`,
+  weakFootCentre: pl`środek przy słabszej nodze na 4 lub 5 gwiazdek`,
+  betterFootSide: pl`strona lepszej nogi`,
+  preferredPosition: pl`pozycja preferowana`,
 };

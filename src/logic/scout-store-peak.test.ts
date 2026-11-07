@@ -28,3 +28,29 @@ describe("stored peak at the best position", () => {
     expect(loaded?.sort).toEqual(DEFAULT_SORT);
   });
 });
+
+/** The order of the tie rules loaded from stored preferences that hold `tieOrder`. */
+const loadOrder = async (tieOrder: unknown) => {
+  const backend = memoryBackend();
+  await backend.set("preferences", {
+    schemaVersion: SCHEMA_VERSION.preferences,
+    value: { filters: {}, sort: DEFAULT_SORT, showPotential: true, tieOrder },
+  });
+  return (await createScoutStore(backend).load()).preferences?.tieOrder;
+};
+
+describe("stored order of the best peak tie rules", () => {
+  it("restores the order, unknown and repeated rules dropped and missing ones added", async () => {
+    expect(await loadOrder(["betterFootSide", "x", "betterFootSide", "formation"])).toEqual([
+      "betterFootSide",
+      "formation",
+      "weakFootCentre",
+      "preferredPosition",
+    ]);
+  });
+
+  it("leaves the order unset when the record has none", async () => {
+    expect(await loadOrder(undefined)).toBeUndefined();
+    expect(await loadOrder("formation")).toBeUndefined();
+  });
+});

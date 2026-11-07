@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { bestPeakFields } from "./best-peak.ts";
-import type { PeakInput } from "./best-peak.ts";
+import { bestPeakFields, movedRule, TIE_RULES, tieOrderOf } from "./best-peak.ts";
+import type { PeakInput, TieRule } from "./best-peak.ts";
 import { FOUR_FOUR_TWO } from "./test-support/player-fixtures.ts";
 
 /** A peak per position code 0..31, with the given codes raised. */
@@ -18,17 +18,22 @@ const CENTRE_BACKS = [4, 5, 6];
 
 type Tie = Partial<Omit<PeakInput, "peakByCode" | "overallByCode">> & {
   readonly formationCodes?: readonly number[];
+  readonly order?: readonly TieRule[];
 };
 
-/** The best peak of a right-footed striker, weak foot 3 stars, with no formation unless `tie` says. */
+/**
+ * The best peak of a right-footed striker, weak foot 3 stars, with no formation and the default order
+ * of the tie rules unless `tie` says.
+ */
 const fields = (
   peakByCode: readonly number[],
   overallByCode: readonly number[],
-  { formationCodes = [], ...tie }: Tie = {},
+  { formationCodes = [], order, ...tie }: Tie = {},
 ) =>
   bestPeakFields(
     { peakByCode, overallByCode, positionCode: 30, preferredFoot: "right", weakFoot: 3, ...tie },
     formationCodes,
+    order,
   );
 
 /** The best peak code of a tie at `codes`. */
@@ -120,5 +125,64 @@ describe("the best peak position on a tie", () => {
   it("takes the first code left when nothing else decides", () => {
     expect(chosen([5, 6])).toBe(5);
     expect(chosen(FORWARDS, { weakFoot: 4, positionCode: 17 })).toBe(27);
+  });
+});
+
+/** The rules first, the others after them in the default order. */
+const order = (...rules: readonly TieRule[]): readonly TieRule[] => tieOrderOf(rules);
+
+describe("the best peak position with the user's order of the tie rules", () => {
+  it("goes by the default order when given it", () => {
+    expect(chosen(FORWARDS, { formationCodes: FOUR_FOUR_TWO, order: TIE_RULES })).toBe(29);
+  });
+
+  it("takes the preferred position over the formation when it comes first", () => {
+    // ST (30) is not in the 4-4-2; first in the order, the preferred position wins.
+    expect(chosen(FORWARDS, { formationCodes: FOUR_FOUR_TWO })).toBe(29);
+    expect(
+      chosen(FORWARDS, { formationCodes: FOUR_FOUR_TWO, order: order("preferredPosition") }),
+    ).toBe(30);
+  });
+
+  it("takes the side of the better foot over the centre when it comes first", () => {
+    expect(chosen(CENTRE_BACKS, { weakFoot: 4 })).toBe(5);
+    expect(chosen(CENTRE_BACKS, { weakFoot: 4, order: order("betterFootSide") })).toBe(4);
+  });
+
+  it("takes the better foot over the formation when it comes first", () => {
+    // Left-footed, with only the right forwards in the formation.
+    const tie = { formationCodes: [26, 27], preferredFoot: "left" as const, positionCode: 17 };
+    expect(chosen(FORWARDS, tie)).toBe(26);
+    expect(chosen(FORWARDS, { ...tie, order: order("betterFootSide") })).toBe(28);
+  });
+});
+
+describe("the order of the tie rules", () => {
+  it("drops unknown and repeated rules and adds the missing ones in the default order", () => {
+    expect(tieOrderOf(["preferredPosition", "nope", "preferredPosition", 3])).toEqual([
+      "preferredPosition",
+      "formation",
+      "weakFootCentre",
+      "betterFootSide",
+    ]);
+    expect(tieOrderOf("formation")).toEqual(TIE_RULES);
+    expect(tieOrderOf(undefined)).toEqual(TIE_RULES);
+  });
+
+  it("moves a rule up or down by one, and not past either end", () => {
+    expect(movedRule(TIE_RULES, "weakFootCentre", -1)).toEqual([
+      "weakFootCentre",
+      "formation",
+      "betterFootSide",
+      "preferredPosition",
+    ]);
+    expect(movedRule(TIE_RULES, "weakFootCentre", 1)).toEqual([
+      "formation",
+      "betterFootSide",
+      "weakFootCentre",
+      "preferredPosition",
+    ]);
+    expect(movedRule(TIE_RULES, "formation", -1)).toEqual(TIE_RULES);
+    expect(movedRule(TIE_RULES, "preferredPosition", 1)).toEqual(TIE_RULES);
   });
 });

@@ -7,6 +7,7 @@ import { SEASON_STAT_KEYS, TRAIT_NAMES } from "../logic/players.ts";
 import type { Player, TraitName } from "../logic/players.ts";
 import { POSITION_GROUPS } from "../logic/positions.ts";
 import type { SortKey } from "../logic/sort-players.ts";
+import type { TieRule } from "../logic/best-peak.ts";
 import { curveSparklines } from "../logic/curve-sparkline.ts";
 import { facetOptions } from "../logic/facets.ts";
 import type { FacetOption } from "../logic/facets.ts";
@@ -16,6 +17,7 @@ import type { FilterChange, MyClub, ScoutAction, ScoutFilters } from "../logic/s
 import { CurveSparkline } from "./curve-sparkline.tsx";
 import { CheckField, ChoiceField, FlagField, RangeField, Section } from "./filter-fields.tsx";
 import { AttributeRanges, ContractField } from "./filter-field-groups.tsx";
+import { columnEye } from "./column-eye.tsx";
 import type { Eye } from "./column-eye.tsx";
 import { OptionalHelp } from "./field-help.tsx";
 import { codeName } from "./text-code-names.ts";
@@ -26,6 +28,7 @@ import { SettingsActions } from "./settings-actions.tsx";
 import type { Settings } from "./settings-actions.tsx";
 import { FIELD_HELP, HELP_TEXT } from "./text-help.ts";
 import { PositionRatingField } from "./position-rating-field.tsx";
+import { TieOrderField } from "./tie-order-field.tsx";
 import {
   FILTER_SECTION_LABELS,
   FLAG_LABELS,
@@ -54,33 +57,12 @@ interface FilterFormProps {
   readonly columns: readonly SortKey[];
   /** The columns shown without the user's choice, which an eye's change that agrees with it undoes. */
   readonly automaticColumns: readonly SortKey[];
+  /** The order of the rules that break a best peak tie. */
+  readonly tieOrder: readonly TieRule[];
   readonly dispatch: Dispatch<ScoutAction>;
 }
 
 type Change = (filters: FilterChange) => void;
-
-/** The eyes of the filters, open for the columns the list shows. */
-const columnEye =
-  (
-    columns: readonly SortKey[],
-    automatic: readonly SortKey[],
-    dispatch: Dispatch<ScoutAction>,
-  ): Eye =>
-  (key) => {
-    if (key === undefined) return undefined;
-    const visible = columns.includes(key);
-    return {
-      visible,
-      onToggle: () => {
-        dispatch({
-          type: "column-shown",
-          key,
-          shown: !visible,
-          automatic: automatic.includes(key),
-        });
-      },
-    };
-  };
 
 /** The list column of each list filter whose value it shows. */
 const LIST_COLUMNS: Readonly<Partial<Record<ListKey, SortKey>>> = {
@@ -271,10 +253,15 @@ type Kit = ReturnType<typeof controls> & {
   readonly eye: Eye;
   readonly positionName: (code: number) => string;
   readonly sparkline: ReturnType<typeof curveSparklines>;
+  readonly tieOrder: readonly TieRule[];
+  readonly dispatch: Dispatch<ScoutAction>;
 };
 
-/** The peak OVR, with the choice of counting it at the best position, and the growth left to it. */
-const peakFields = ({ filters, change, range }: Kit) => [
+/**
+ * The peak OVR, with the choice of counting it at the best position and the order of the rules that
+ * break a tie there, and the growth left to it.
+ */
+const peakFields = ({ filters, change, range, tieOrder, dispatch }: Kit) => [
   range("peak"),
   <CheckField
     key="peakAtBest"
@@ -285,6 +272,7 @@ const peakFields = ({ filters, change, range }: Kit) => [
       change({ peakAtBest });
     }}
   />,
+  <TieOrderField key="tieOrder" order={tieOrder} dispatch={dispatch} />,
   range("peakGain"),
 ];
 
@@ -398,6 +386,7 @@ export const FilterForm = ({
   currency,
   columns,
   automaticColumns,
+  tieOrder,
   dispatch,
 }: FilterFormProps): JSX.Element => {
   const facets = useMemo(
@@ -417,6 +406,8 @@ export const FilterForm = ({
     eye,
     positionName,
     sparkline,
+    tieOrder,
+    dispatch,
   };
   return (
     <form className="filter-form" onSubmit={(event) => event.preventDefault()}>

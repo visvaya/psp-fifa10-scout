@@ -1,5 +1,6 @@
 // The eye beside a filter's name: it shows the filter's column in the list, or hides it.
-import type { JSX } from "react";
+import type { Dispatch, JSX } from "react";
+import type { ScoutAction } from "../logic/scout-state.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 import { TEXT } from "./text.ts";
 
@@ -11,6 +12,29 @@ export interface ColumnToggle {
 
 /** The eye of a filter's column; undefined for a filter without one. */
 export type Eye = (key: SortKey | undefined) => ColumnToggle | undefined;
+
+/** The eyes of the filters, open for the columns the list shows. */
+export const columnEye =
+  (
+    columns: readonly SortKey[],
+    automatic: readonly SortKey[],
+    dispatch: Dispatch<ScoutAction>,
+  ): Eye =>
+  (key) => {
+    if (key === undefined) return undefined;
+    const visible = columns.includes(key);
+    return {
+      visible,
+      onToggle: () => {
+        dispatch({
+          type: "column-shown",
+          key,
+          shown: !visible,
+          automatic: automatic.includes(key),
+        });
+      },
+    };
+  };
 
 /** An eye, crossed out for a hidden column; drawn in the text colour. */
 const EyeIcon = ({ crossed }: { crossed: boolean }) => (

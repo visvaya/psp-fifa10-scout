@@ -1116,6 +1116,47 @@ input[inputmode="numeric"] {
   gap: var(--space-1);
 }
 
+/* The best peak tie rules, numbered (a flex item has no list marker): each rule's number and name,
+   then its buttons at the end of the line. */
+.tie-order {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: tie-rule;
+}
+
+.tie-order > li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  counter-increment: tie-rule;
+}
+
+.tie-order > li::before {
+  content: counter(tie-rule) ".";
+  min-width: var(--space-6);
+}
+
+.tie-order > li > span {
+  flex: 1;
+}
+
+.tie-order-move {
+  min-width: var(--touch-target);
+  padding-inline: 0;
+}
+
+/* The first rule has no "up" and the last no "down": the other keeps its place at the end. */
+.tie-order > li:first-child > .tie-order-move {
+  margin-inline-start: calc(var(--touch-target) + var(--space-1));
+}
+
+.tie-order > li:last-child > .tie-order-move {
+  margin-inline-end: calc(var(--touch-target) + var(--space-1));
+}
+
 /* The eye stands out while its column shows; the crossed-out eye tells the two apart without colour. */
 .column-eye[aria-pressed="true"] {
   color: var(--color-ink);

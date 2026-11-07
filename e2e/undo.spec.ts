@@ -34,7 +34,7 @@ test.describe("undo", () => {
     const chipsBar = page.locator(".chips-bar");
     await chipsBar.getByRole("button", { name: "Resetuj" }).click();
     const question =
-      "Przywrócić domyślne filtry, sortowanie, kolumny i widok bez potencjału? Wgrane pliki, język nazw i zapisane zestawy zostaną.";
+      "Przywrócić domyślne filtry, sortowanie, kolumny, kolejność reguł remisu szczytu i widok bez potencjału? Wgrane pliki, język nazw i zapisane zestawy zostaną.";
     await expect(chipsBar.getByText(question)).toBeVisible();
     await chipsBar.getByRole("button", { name: "Anuluj" }).click();
     await expect(page.getByRole("checkbox", { name: "Bramkarz" })).toBeChecked();
