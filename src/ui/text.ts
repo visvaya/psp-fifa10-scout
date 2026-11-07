@@ -272,8 +272,8 @@ export const TEXT = {
   localeInput: pl`Albo dołącz plik języka i string.idx`,
   currencyStep: pl`4. Waluta`,
   currencySelect: pl`Ceny i zarobki w walucie`,
-  /** In the order of the game's menu. */
   currencyFromCareer: (code: CurrencyCode): string => `Jak w karierze (${CURRENCY_SYMBOLS[code]})`,
+  /** In the order of the game's menu. */
   currencies: [
     [1, "Funt (£)"],
     [0, "Euro (€)"],
