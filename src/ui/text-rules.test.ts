@@ -2,8 +2,6 @@
 // checked where their own tests call them).
 import { describe, expect, it } from "vitest";
 import {
-  ATTRIBUTE_GROUP_LABELS,
-  ATTRIBUTE_LABELS,
   FILTER_SECTION_LABELS,
   FLAG_LABELS,
   LIST_LABELS,
@@ -11,6 +9,7 @@ import {
   RANGE_LABELS,
   TEXT,
 } from "./text.ts";
+import { ATTRIBUTE_GROUP_LABELS, ATTRIBUTE_LABELS } from "./text-attributes.ts";
 import { CLUB_STATUS_LABELS, LIST_MEMBERSHIP_LABELS, MY_CLUB_LABELS } from "./text-choices.ts";
 import { FILTER_SETS_TEXT } from "./text-filter-sets.ts";
 import { CODE_NAMES } from "./text-code-names.ts";

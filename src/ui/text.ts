@@ -3,9 +3,9 @@ import type { CurrencyCode } from "../data/career-save.ts";
 import type { CareerSummary, LoadErrorKind, LoadPhase, LoadStage } from "../logic/load-scout.ts";
 import type { FlagKey, ListKey, PeakTwin, RangeFields, RangeKey } from "../logic/filter-players.ts";
 import { isAttributeName } from "../logic/players.ts";
-import type { AttributeName } from "../logic/players.ts";
 import type { PositionGroup } from "../logic/positions.ts";
 import type { ScoutError } from "../logic/scout-state.ts";
+import { ATTRIBUTE_LABELS } from "./text-attributes.ts";
 import { NBSP, pl } from "./typeset.ts";
 
 /** By the save's currency code, as the game shows them. */
@@ -78,43 +78,6 @@ export const POSITION_GROUP_LABELS: Readonly<Record<PositionGroup, string>> = {
   forwards: "Napastnik",
 };
 
-export const ATTRIBUTE_LABELS: Readonly<Record<AttributeName, string>> = {
-  acceleration: "Przyspieszenie",
-  aggression: "Agresja",
-  ballcontrol: "Kontrola piłki",
-  crossing: "Dośrodkowania",
-  dribbling: "Drybling",
-  finishing: "Wykończenie",
-  freekicks: "Rzuty wolne",
-  heading: "Gra głową",
-  longpassing: "Długie podania",
-  longshotaccuracy: pl`Strzały z dystansu`,
-  marking: "Krycie",
-  playercomposure: "Opanowanie",
-  positioning: "Ustawianie się",
-  reactions: "Reakcje",
-  shortpassing: "Krótkie podania",
-  shotpower: "Siła strzału",
-  sprintspeed: "Szybkość",
-  stamina: "Wytrzymałość",
-  strength: "Siła",
-  tackling: "Odbiór",
-  tacticalawareness: "Świadomość taktyczna",
-  gkdiving: "Parady",
-  gkpositioning: "Ustawianie bramkarza",
-  handling: "Chwytanie",
-  reflexes: "Refleks",
-};
-
-export const ATTRIBUTE_GROUP_LABELS = {
-  physical: "Fizyczne",
-  technique: "Technika",
-  shooting: "Strzały",
-  mental: "Mentalne",
-  defending: "Obrona",
-  goalkeeping: "Bramkarz",
-} as const;
-
 export const RANGE_LABELS: Readonly<Record<RangeFields | PeakTwin, string>> = {
   age: "Wiek",
   overall: "OVR",
@@ -131,6 +94,9 @@ export const RANGE_LABELS: Readonly<Record<RangeFields | PeakTwin, string>> = {
   learningSpeed: "Szybkość nauki (1–5)",
   retirementAge: "Wiek zakończenia kariery",
   clubRating: "Siła klubu",
+  clubStars: "Gwiazdki klubu",
+  leaguePrestige: "Prestiż ligi",
+  clubPrestige: "Prestiż klubu",
   contractEndYear: "Kontrakt",
   form: "KR (forma)",
   morale: "Morale",

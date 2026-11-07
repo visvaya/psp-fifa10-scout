@@ -139,6 +139,22 @@ export const NO_STATS = {
 
 const NO_PEAKS = { peak: null, peakGain: null, ...NO_BEST_PEAK } as const;
 
+/** A club player's club fields. */
+const CLUB = {
+  clubId: 10,
+  clubName: "Club",
+  clubRating: 60,
+  clubStars: 2,
+  leaguePrestige: 10,
+  clubPrestige: 5,
+  leagueId: 100,
+  leagueName: "League",
+  contractEndYear: 2012,
+  jerseyNumber: 8,
+  nationalTeamId: null,
+  nationalTeamName: null,
+} as const;
+
 export const testPlayer = (overrides: Partial<Player> = {}): Player => {
   const player: Player = {
     id: 1,
@@ -172,15 +188,7 @@ export const testPlayer = (overrides: Partial<Player> = {}): Player => {
     overallByCode: Array.from({ length: 32 }, () => 50),
     peakByCode: [],
     attributes: attributes(50),
-    clubId: 10,
-    clubName: "Club",
-    clubRating: 60,
-    leagueId: 100,
-    leagueName: "League",
-    contractEndYear: 2012,
-    jerseyNumber: 8,
-    nationalTeamId: null,
-    nationalTeamName: null,
+    ...CLUB,
     nationalityId: 1,
     nationalityName: "Country",
     ...NO_STATS,
