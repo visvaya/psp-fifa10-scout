@@ -1409,6 +1409,11 @@ input[inputmode="numeric"] {
   font-size: var(--font-size-sm);
 }
 
+/* The card's curve row spans the grid, so it comes right under the row with the development style. */
+.facts > div:has(> dd > .sparkline) {
+  grid-column: 1 / -1;
+}
+
 /* A switch within the note, on the note's line and as quiet as the note. */
 .fact-note .sort-button {
   padding-block: 0;

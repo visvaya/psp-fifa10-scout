@@ -1,6 +1,6 @@
 // Explanations stay behind a "?" or a "!" (field-help.tsx, texts in text-help.ts) rather than as plain
-// text on the card and its offer form (owner, 2026-11-07). The card is rendered to HTML with every part
-// it can show, the panels' texts are taken out, and no text left may read as a sentence.
+// text on the card and its offer form (owner, 2026-11-07). The card is rendered to HTML in the state
+// below, the panels' texts are taken out, and no text left may read as a sentence.
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { testPlayer } from "../logic/test-support/player-fixtures.ts";
@@ -10,10 +10,10 @@ import { WARNING_TEXT } from "./text-help.ts";
 import { OFFER_TEXT } from "./text-offer.ts";
 
 /**
- * A sentence: a text of four words or more ending with a full stop. Labels, values and abbreviations
- * ("Poz.") end without one or are shorter.
+ * A sentence: a text of four words or more ending with a full stop or a question mark. Labels, values
+ * and abbreviations ("Poz.") end without one or are shorter.
  */
-const SENTENCE = /^\S+(?:\s+\S+){3,}\.$/u;
+const SENTENCE = /^\S+(?:\s+\S+){3,}[.?]$/u;
 
 /**
  * Texts that may stay in sight: a refusal says no offer can succeed, an outcome rather than an
@@ -46,8 +46,9 @@ const NAMES: PositionNames = {
   full: () => undefined,
 };
 
-// Peak below the potential, a fee and a wage above the form's limit, a refusal, on the own list with a
-// note, and a flat curve: every conditional text the card has.
+// The state rendered: a career offer with its default choices, potential shown, the peak below the
+// potential, a fee and a wage above the form's limit, a refusal, the game's shortlist, the own list with
+// a note, and a flat curve. The double offer checked and the remove question are not rendered.
 const player = testPlayer({
   id: 6,
   birthYear: 1986,

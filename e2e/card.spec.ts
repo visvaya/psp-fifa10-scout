@@ -135,6 +135,16 @@ test.describe("development curves", () => {
     const terms = await card.locator(".facts > div > dt").allInnerTexts();
     const style = terms.findIndex((term) => term.startsWith("Styl rozwoju"));
     expect(terms[style + 1]).toMatch(/^Krzywa rozwoju/u);
+    // Across the whole grid, under the style's row, also where the facts take two columns.
+    const [styleRow, curveRow, grid] = await Promise.all(
+      [
+        card.locator(".facts > div").filter({ hasText: /^Styl rozwoju/u }),
+        card.locator(".facts > div:has(.sparkline)"),
+        card.locator(".facts:has(.sparkline)"),
+      ].map(async (box) => box.boundingBox()),
+    );
+    expect(curveRow?.y).toBeGreaterThanOrEqual((styleRow?.y ?? 0) + (styleRow?.height ?? 0) - 1);
+    expect(curveRow?.width).toBeCloseTo(grid?.width ?? 0, 0);
     await expect(cardValue(card, "Krzywa rozwoju").getByRole("img")).toHaveAccessibleName(
       "krzywa rozwoju, szczyt w wieku 15",
     );
@@ -160,7 +170,9 @@ test.describe("offer on the card", () => {
     const card = page.getByRole("dialog", { name: "Lionel Messi" });
     await expect(cardValue(card, "Klub przyjmie od")).toHaveText("22 500 000 €");
     await expect(cardValue(card, "Zawodnik podpisze od")).toContainText("kontrakt 4 lata");
-    await expect(card.getByText(/^Kwota przekracza limit formularza/u)).toBeHidden();
+    // The fee stays within the form's limit, the wage goes over it: a "!" before the wage only.
+    await expect(card.getByRole("button", { name: "Uwaga: Klub przyjmie od" })).toHaveCount(0);
+    await expect(card.getByRole("button", { name: "Uwaga: Zawodnik podpisze od" })).toHaveCount(1);
     // Barcelona has 21 players and enough wide midfielders to sell him.
     await expect(cardValue(card, "Klub może go sprzedać")).toHaveText("tak");
     await expect(card.getByText(/^Klub odmówi sprzedaży/u)).toBeHidden();
