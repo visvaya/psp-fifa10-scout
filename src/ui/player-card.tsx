@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import type { Dispatch, JSX, ReactNode } from "react";
 import type { CurrencyCode } from "../data/career-save.ts";
 import { codesAtPeak } from "../logic/best-peak.ts";
@@ -10,14 +10,14 @@ import { SEASON_STAT_KEYS } from "../logic/players.ts";
 import type { AttributeName, Player } from "../logic/players.ts";
 import type { ScoutAction } from "../logic/scout-state.ts";
 import type { WatchEntry } from "../logic/watchlist.ts";
-import { nameTextIdOf, POSITION_CODES, RATING_CHOICES, ratingCodeOf } from "../logic/positions.ts";
+import { ChoiceRatings, SamePeakNote } from "./card-folds.tsx";
 import { CurveSparkline } from "./curve-sparkline.tsx";
-import { Stars } from "./stars.tsx";
+import { Stars, WatchMark } from "./stars.tsx";
 import { WatchlistSection } from "./watchlist-section.tsx";
 import { codeName } from "./text-code-names.ts";
-import { AttributeValue, GainValue } from "./attribute-value.tsx";
+import { AttributeValue } from "./attribute-value.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
-import { PositionName, ratingChoiceName } from "./position-name.tsx";
+import { PositionName } from "./position-name.tsx";
 import type { PositionNames } from "./position-name.tsx";
 import { clubText, MissingValue, RESULTS_TITLE_ID } from "./player-list.tsx";
 import {
@@ -33,8 +33,8 @@ import { ATTRIBUTE_GROUP_LABELS, ATTRIBUTE_LABELS } from "./text-attributes.ts";
 import { Facts } from "./facts.tsx";
 import type { Fact } from "./facts.tsx";
 import { OfferFacts } from "./offer-facts.tsx";
-import { OptionalHelp } from "./field-help.tsx";
-import { FIELD_HELP, HELP_TEXT } from "./text-help.ts";
+import { HelpHeading, WarnedValue } from "./field-help.tsx";
+import { FIELD_HELP, HELP_TEXT, WARNING_TEXT } from "./text-help.ts";
 
 const ATTRIBUTE_GROUPS: readonly (readonly [
   keyof typeof ATTRIBUTE_GROUP_LABELS,
@@ -67,17 +67,21 @@ const known = (label: string, value: string | null, help?: string): readonly Fac
 /** Clean sheets, which the game counts for goalkeepers only. */
 const CLEAN_SHEETS: ReadonlySet<string> = new Set(["cleanSheets", "cupCleanSheets"]);
 
-/** The style's name with his own skill curve, the one his projection follows, when the game has curves. */
-const styleValue = ({ developmentStyle: style, developmentType: type }: Player, curves: Curves) => {
+/** His own skill curve, the one his projection follows, when the game has curves. */
+const curveFacts = (
+  { developmentStyle: style, developmentType: type }: Player,
+  curves: Curves,
+): readonly Fact[] => {
   const line = curveSparklines(curves)(skillCurveId(style, type));
-  return (
-    <>
-      {codeName("developmentStyle", style)}
-      {line === null ? null : (
-        <CurveSparkline line={line} label={TEXT.card.curvePeak(line.peakAge)} />
-      )}
-    </>
-  );
+  return line === null
+    ? []
+    : [
+        [
+          TEXT.card.curve,
+          <CurveSparkline key="curve" line={line} label={TEXT.card.curvePeak(line.peakAge)} />,
+          HELP_TEXT.curve(line.peakAge),
+        ],
+      ];
 };
 
 /** The club's stars and prestige under its rating; a dash without a club. */
@@ -124,7 +128,12 @@ const profile = (player: Player, showPotential: boolean, curves: Curves): readon
     codeName("developmentType", player.developmentType),
     FIELD_HELP.developmentType,
   ],
-  [LIST_LABELS.developmentStyle, styleValue(player, curves), FIELD_HELP.developmentStyle],
+  [
+    LIST_LABELS.developmentStyle,
+    codeName("developmentStyle", player.developmentStyle),
+    FIELD_HELP.developmentStyle,
+  ],
+  ...curveFacts(player, curves),
   [RANGE_LABELS.clubRating, optional(player.clubRating), FIELD_HELP.clubRating],
   ...clubFields(player),
   ...(player.loanedFromId === null
@@ -185,8 +194,8 @@ const clubFacts = (player: Player): readonly Fact[] =>
       ];
 
 /** The other positions with the same best peak, in code order, or undefined without any. */
-const samePeakNote = (others: readonly number[], names: PositionNames): string | undefined =>
-  others.length === 0 ? undefined : TEXT.card.samePeakAlso(others.map(names.short));
+const samePeakNote = (others: readonly number[], names: PositionNames) =>
+  others.length === 0 ? undefined : <SamePeakNote positions={others.map(names.short).join(", ")} />;
 
 /**
  * His best peak and where it comes, when that position peaks above the preferred one, with the other
@@ -250,7 +259,17 @@ const basics = (
     ? [
         [
           TEXT.card.potential,
-          <AttributeValue key="potential" value={player.potential} />,
+          <WarnedValue
+            key="potential"
+            label={TEXT.card.potential}
+            warning={
+              player.peak !== null && player.peak < player.potential
+                ? WARNING_TEXT.peakBelowPotential(player.potential)
+                : null
+            }
+          >
+            <AttributeValue value={player.potential} />
+          </WarnedValue>,
           FIELD_HELP.potential,
         ] as const,
       ]
@@ -271,72 +290,10 @@ const basics = (
   [TEXT.card.weight, TEXT.card.weightValue(player.weight)],
 ];
 
-/** The positions a rating choice covers, by their full names in the game language where it has them. */
-const choicePositions = (code: number, names: PositionNames): string =>
-  POSITION_CODES.filter(
-    (other) => ratingCodeOf(other) === code && nameTextIdOf(other) !== undefined,
-  )
-    .map((other) => {
-      const full = names.full(other);
-      return full === undefined
-        ? names.short(other)
-        : TEXT.card.positionWithName(full, names.abbreviation(other));
-    })
-    .join(TEXT.rowMetaSeparator);
-
-/**
- * OVR per rating choice, after the gain over the OVR so the ratings line up; one switch at the heading shows the positions
- * each choice covers.
- */
-const ChoiceRatings = (props: { player: Player; names: PositionNames }) => {
-  const { player, names } = props;
-  const [open, setOpen] = useState(false);
-  return (
-    <section aria-labelledby="overall-title">
-      <h3 id="overall-title">
-        <button
-          type="button"
-          className="sort-button"
-          aria-expanded={open}
-          onClick={() => {
-            setOpen(!open);
-          }}
-        >
-          {TEXT.card.overallByGroup}{" "}
-          <span aria-hidden="true" className="sort-mark">
-            {open ? TEXT.card.openMark : TEXT.card.closedMark}
-          </span>
-        </button>
-      </h3>
-      <dl className="facts">
-        {RATING_CHOICES.map(([code]) => {
-          const rating = player.overallByCode[code] ?? null;
-          return (
-            <div key={code}>
-              <dt>
-                {ratingChoiceName(code)}
-                {open ? <p>{choicePositions(code, names)}</p> : null}
-              </dt>
-              <dd className="rated">
-                {rating === null ? null : <GainValue value={rating - player.overall} bracketed />}
-                {rating === null ? null : <AttributeValue value={rating} />}
-              </dd>
-            </div>
-          );
-        })}
-      </dl>
-    </section>
-  );
-};
-
 /** The season so far, career only. */
 const CareerFacts = ({ player }: { player: Player }) => (
   <section aria-labelledby="career-title">
-    {/* The "?" beside the heading, not in it, so the heading keeps its own name. */}
-    <div className="heading-help">
-      <h3 id="career-title">{TEXT.card.career}</h3>
-      <OptionalHelp label={TEXT.card.career} help={HELP_TEXT.career} />
-    </div>
+    <HelpHeading id="career-title" title={TEXT.card.career} help={HELP_TEXT.career} />
     <Facts
       facts={[
         ...known(
@@ -397,11 +354,14 @@ export const PlayerCard = (props: {
           <span aria-hidden="true">{TEXT.shortlistedMark}</span> {TEXT.card.shortlisted}
         </p>
       ) : null}
+      {watched === undefined ? null : (
+        <p className="watched">
+          <WatchMark />
+          {TEXT.card.watched}
+        </p>
+      )}
       <WatchlistSection playerId={player.id} entry={watched} dispatch={dispatch} />
       <Facts facts={basics(player, showPotential, currency, names)} />
-      {showPotential && player.peak !== null && player.peak < player.potential ? (
-        <p className="help">{TEXT.card.peakBelowPotential(player.potential)}</p>
-      ) : null}
       {offer === null || currency === null ? null : (
         <OfferFacts key={player.id} player={player} context={offer} currency={currency} />
       )}

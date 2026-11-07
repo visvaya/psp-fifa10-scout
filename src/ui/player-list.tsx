@@ -12,6 +12,7 @@ import { ratingValueOf } from "../logic/sort-players.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 import { AttributeValue, GainValue } from "./attribute-value.tsx";
 import { PositionName } from "./position-name.tsx";
+import { WatchMark } from "./stars.tsx";
 import { formatNumber, formatRating, RANGE_LABELS, TEXT } from "./text.ts";
 import { ATTRIBUTE_LABELS } from "./text-attributes.ts";
 import { useColumnWidths } from "./use-column-widths.ts";
@@ -61,6 +62,8 @@ export interface ListProps {
   readonly ratingName: string | null;
   /** The currency money shows in, null without a career. */
   readonly currency: CurrencyCode | null;
+  /** The ids on the own list, whose players get its star. */
+  readonly watchedIds: ReadonlySet<number>;
   readonly dispatch: Dispatch<ScoutAction>;
 }
 
@@ -82,6 +85,10 @@ export const widestTextRem = (texts: readonly string[], font?: string): number =
   return widest / rootFontPx();
 };
 
+/** The small gap between a mark and what it stands beside (--space-1), in rem. */
+const gapRem = (): number =>
+  Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--space-1")) || 0;
+
 /**
  * The best peak cell's two sub-columns (owner, 2026-11-06: in line in every row, not stepped): its badge,
  * then after a --space-1 gap the position, as wide as the widest of these players' in its bold font. The
@@ -96,10 +103,8 @@ export const useBestPeakRoom = (
       players.flatMap((player) => player.bestPeakName ?? []),
       `600 ${body.fontSize} ${body.fontFamily}`,
     );
-    const root = getComputedStyle(document.documentElement);
-    const gapRem = Number.parseFloat(root.getPropertyValue("--space-1")) || 0;
     return {
-      besideRem: nameRem > 0 ? gapRem + nameRem : 0,
+      besideRem: nameRem > 0 ? gapRem() + nameRem : 0,
       style: { "--best-peak-name": `${String(nameRem)}rem` },
     };
   }, [players]);
@@ -127,17 +132,36 @@ export const useRows = (count: number, rowHeightRem: number) => {
 /** The results' heading: it takes the focus a closed card cannot give back to a player no longer listed. */
 export const RESULTS_TITLE_ID = "results-title";
 
-/** A star before the name of a player on the game's shortlist, where a cut-off name cannot hide it. */
-export const ShortlistStar = ({ player }: { player: Player }) =>
-  player.shortlisted ? (
-    <span className="shortlist-mark" aria-hidden="true">
-      {TEXT.shortlistedMark}
-    </span>
-  ) : null;
+/** Whether the player is on the game's shortlist and on the own list. */
+export interface ListMarks {
+  readonly player: Player;
+  readonly watched: boolean;
+}
 
-/** The star in words for screen readers, after the name and a space. */
-export const ShortlistWords = ({ player }: { player: Player }) =>
-  player.shortlisted ? <span className="visually-hidden">{` ${TEXT.shortlisted}`}</span> : null;
+/**
+ * The stars before the name, where a cut-off name cannot hide them: the game's shortlist filled in green,
+ * the own list outlined in its own colour, side by side for a player on both.
+ */
+export const ShortlistStar = ({ player, watched }: ListMarks) => (
+  <>
+    {player.shortlisted ? (
+      <span className="shortlist-mark" aria-hidden="true">
+        {TEXT.shortlistedMark}
+      </span>
+    ) : null}
+    {watched ? <WatchMark /> : null}
+  </>
+);
+
+/** The stars in words for screen readers, after the name and a space. */
+export const ShortlistWords = ({ player, watched }: ListMarks) => {
+  const words = [player.shortlisted ? TEXT.shortlisted : "", watched ? TEXT.watched : ""].filter(
+    (word) => word !== "",
+  );
+  return words.length === 0 ? null : (
+    <span className="visually-hidden">{` ${words.join(", ")}`}</span>
+  );
+};
 
 /**
  * The club name, or what stands in for it: a junior of the user's academy, a scouted junior not signed
@@ -268,12 +292,12 @@ const HeaderCell = ({
 
 const TableRow = ({
   player,
+  watched,
   index,
   columns,
   ratingCode,
   dispatch,
-}: {
-  player: Player;
+}: ListMarks & {
   index: number;
   columns: readonly SortKey[];
   ratingCode: number | null;
@@ -289,9 +313,9 @@ const TableRow = ({
           dispatch({ type: "player-opened", id: player.id });
         }}
       >
-        <ShortlistStar player={player} />
+        <ShortlistStar player={player} watched={watched} />
         {player.name}
-        <ShortlistWords player={player} />
+        <ShortlistWords player={player} watched={watched} />
       </button>
     </th>
     {columns.slice(1).map((column) => (
@@ -315,14 +339,34 @@ const widthText = (player: Player, column: SortKey): string | null =>
   columnText(player, column, null);
 
 /**
- * The table's column widths (useColumnWidths), the best peak's with room for its widest position beside
- * the badges, and that position's width for styles.css.
+ * The room the stars before a name take, in rem: the game shortlist's text star and the own list's
+ * outlined star (1em, styles.css .star), each with its gap.
  */
-const useTableWidths = (source: Omit<WidthSource<Player, SortKey>, "text" | "besidePx">) => {
+const useStarsRoom = () =>
+  useMemo(
+    () => ({ gameRem: widestTextRem([TEXT.shortlistedMark]) + gapRem(), ownRem: 1 + gapRem() }),
+    [],
+  );
+
+/**
+ * The table's column widths (useColumnWidths): the best peak's with room for its widest position beside
+ * the badges, the name's with room for the stars before it; and that position's width for styles.css.
+ */
+const useTableWidths = ({
+  watchedIds,
+  ...source
+}: Omit<WidthSource<Player, SortKey>, "text" | "besidePx"> & Pick<ListProps, "watchedIds">) => {
   const { besideRem, style } = useBestPeakRoom(source.rows);
+  const { gameRem, ownRem } = useStarsRoom();
   const besidePx = useCallback(
-    (column: SortKey) => (column === "bestPeak" ? besideRem * rootFontPx() : 0),
-    [besideRem],
+    (column: SortKey, player: Player) =>
+      rootFontPx() *
+      (column === "bestPeak"
+        ? besideRem
+        : column === "name"
+          ? (player.shortlisted ? gameRem : 0) + (watchedIds.has(player.id) ? ownRem : 0)
+          : 0),
+    [besideRem, gameRem, ownRem, watchedIds],
   );
   const widths = useColumnWidths({ ...source, text: widthText, besidePx });
   return { widths, style };
@@ -352,6 +396,7 @@ export const PlayerTable = (props: ListProps): JSX.Element => {
     rows: allPlayers,
     columns,
     label,
+    watchedIds: props.watchedIds,
   });
   return (
     <div ref={scrollRef} className="scroll table-scroll">
@@ -383,6 +428,7 @@ export const PlayerTable = (props: ListProps): JSX.Element => {
               <TableRow
                 key={player.id}
                 player={player}
+                watched={props.watchedIds.has(player.id)}
                 index={item.index}
                 columns={columns}
                 ratingCode={ratingCode}

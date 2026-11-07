@@ -2,6 +2,7 @@
 // a part of the UI texts beside text.ts. Each states what the tool shows and what the game's code and saves
 // confirmed (docs: game-knowledge and the specs in the notes).
 import type { FlagKey, ListKey, RangeKey } from "../logic/filter-players.ts";
+import { formatNumber } from "./text.ts";
 import { pl } from "./typeset.ts";
 
 const LEAGUE_STATS = pl`Liczby z zapisu kariery za bieżący sezon, z meczów ligi twojego klubu; gra zeruje je na początku sezonu. U zawodnika, który odszedł z twojej ligi, to liczby z czasu gry w niej.`;
@@ -64,4 +65,24 @@ export const HELP_TEXT = {
   clubStatus: pl`„dostępni w karierze” to zawodnicy z klubem, wolni zawodnicy i juniorzy (z twojej akademii albo wyszukani przez skautów i jeszcze niepodpisani). „tylko z klubem” to zawodnicy z klubem, bez wolnych zawodników i bez juniorów spoza klubu. „tylko wolni” to zawodnicy bez klubu; ich wartość (cena) to 0, a zarobki rynkowe gra liczy im z doliczonymi 30%. „niedostępni w karierze” to zawodnicy, których gra łączy tylko z kadrą reprezentacji (albo z World XI), bez klubu; narzędzie nie sprawdziło w grze, czy kariera pozwala ich podpisać.`,
   /** One sentence per option of "Na liście". */
   onList: pl`„dowolne” nie zawęża listy. „w grze” to zawodnicy z listy życzeń w grze, odczytanej z zapisu kariery. „w narzędziu” to zawodnicy z twojej listy z tego narzędzia, zapisanej w tej przeglądarce; gra o niej nie wie. „w obu” to zawodnicy z obu tych list naraz. „na żadnej” to zawodnicy spoza obu list. „w grze” i „w obu” wymagają zapisu kariery.`,
+  /** The card's offer section. */
+  offer: pl`Z kodu gry: najniższa kwota, którą klub przyjmie, i najniższe zarobki, za które zawodnik podpisze kontrakt na wybranych warunkach. Uwzględnia twój prestiż menedżera i poziom negocjatora z zapisu: wyższy może obniżyć kwotę dla klubu i zawsze ułatwia rozmowy z zawodnikiem. Na początku jest zwykła oferta, bez premii, na długość kontraktu, której chce zawodnik. Podwójna oferta, premia i inna długość zmieniają punkty zawodnika, a z nimi najniższe zarobki.`,
+  doubleOffer: pl`Podwójna oferta daje zawodnikowi 2 punkty i kosztuje 2 z „Pozostało ofert” zamiast 1.`,
+  /** The own list on the card. */
+  watchlist: (maxChars: number): string =>
+    pl`Lista i notatki zapisują się w tej przeglądarce przy każdej zmianie, notatka do ${maxChars} znaków.`,
+  /** The player's skill curve on the card, peaking at `peakAge`. */
+  curve: (peakAge: number): string =>
+    pl`Krzywa z danych gry według typu i stylu rozwoju zawodnika: jego umiejętności w wieku od 15 do 45 lat, na jednej skali dla wszystkich krzywych, więc ich kształty można porównać. Szczyt w wieku ${peakAge} lat.`,
+} as const;
+
+/** Notes behind the "!" before a value: what holds for this player and asks for attention. */
+export const WARNING_TEXT = {
+  /** The "!" button's name. */
+  label: (field: string): string => `Uwaga: ${field}`,
+  mark: "!",
+  peakBelowPotential: (potential: number): string =>
+    pl`Potencjału ${formatNumber(potential)} zawodnik według prognozy szczytu nie osiągnie.`,
+  feeOverCap: pl`Kwota przekracza limit formularza przy pierwszej ofercie (1,5 wartości). Ponowna oferta po odmowie liczy limit od poprzedniej oferty: do 1,5 jej kwoty.`,
+  wageOverCap: pl`Zarobki przekraczają limit formularza przy pierwszej ofercie (1,5 zarobków rynkowych). Ponowna oferta po odmowie liczy limit od poprzedniej oferty: do 1,5 jej zarobków.`,
 } as const;

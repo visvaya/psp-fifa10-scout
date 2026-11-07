@@ -22,6 +22,13 @@ const Star = ({ fill }: { fill: Fill }) => (
 const fillAt = (value: number, place: number): Fill =>
   value >= place ? "full" : value >= place - 0.5 ? "half" : "empty";
 
+/** The own list's mark: an outlined star in the list's colour (styles.css), apart from the game's filled one. */
+export const WatchMark = (): JSX.Element => (
+  <span className="watch-mark" aria-hidden="true">
+    <Star fill="empty" />
+  </span>
+);
+
 export const Stars = (props: { value: number }): JSX.Element => (
   <span>
     <span className="stars" aria-hidden="true">

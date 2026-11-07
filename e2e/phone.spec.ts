@@ -24,6 +24,15 @@ const layoutSettled = async (page: Page) =>
     await new Promise(requestAnimationFrame);
   });
 
+/** The player with the long test name, with four columns beside him that the list scrolls through. */
+const showLongName = async (page: Page) => {
+  await loadDatabase(page);
+  await filterByAttributes(page, "Przyspieszenie", "Szybkość", "Drybling", "Wytrzymałość");
+  const dialog = await openFilters(page);
+  await dialog.getByRole("searchbox", { name: "Nazwisko" }).fill("bardzo");
+  await dialog.getByRole("button", { name: "Zamknij" }).click();
+};
+
 test.describe("phone", () => {
   test.use(PHONE);
 
@@ -278,11 +287,7 @@ test.describe("phone name forms", () => {
   // Row by row (owner, 2026-11-05): a long name keeps its full form while it fits the narrowing column
   // and gives its first name as an initial only once it does not, then back as the column widens.
   test("gives a long name its initial only once it no longer fits", async ({ page }) => {
-    await loadDatabase(page);
-    await filterByAttributes(page, "Przyspieszenie", "Szybkość", "Drybling", "Wytrzymałość");
-    const dialog = await openFilters(page);
-    await dialog.getByRole("searchbox", { name: "Nazwisko" }).fill("bardzo");
-    await dialog.getByRole("button", { name: "Zamknij" }).click();
+    await showLongName(page);
     const name = page.locator(".player-row", { hasText: "Bardzo-Długie" });
     const [full, short] = [
       name.locator(".player-row-name-full"),
@@ -305,6 +310,40 @@ test.describe("phone name forms", () => {
     });
     await expect(short).toBeHidden();
     await expect(full).toBeVisible();
+  });
+});
+
+/**
+ * Scrolls the list a few pixels at a time to its end and returns the scroll positions where a long name
+ * kept its full form though it did not fit beside its marks (cut off by an ellipsis instead).
+ */
+const cutFullNames = async (page: Page): Promise<number[]> =>
+  page.locator(".scroll").evaluate(async (list) => {
+    const end = list.scrollWidth - list.clientWidth;
+    // One step after another, each waiting for the list to fit its names.
+    const step = async (left: number, cut: readonly number[]): Promise<readonly number[]> => {
+      if (left > end) return cut;
+      list.scrollTo(left, list.scrollTop);
+      await new Promise(requestAnimationFrame);
+      const name = list.querySelector<HTMLElement>(".has-initial[data-fit='full']");
+      const isCut = name !== null && name.scrollWidth > name.clientWidth;
+      return step(left + 4, isCut ? [...cut, left] : cut);
+    };
+    return [...(await step(0, []))];
+  });
+
+test.describe("phone name forms with marks", () => {
+  test.use({ ...PHONE, viewport: { width: 800, height: 844 } });
+
+  // The own list's star takes room before the name too: the name switches to its initial as soon as
+  // it no longer fits beside the star, rather than being cut off.
+  test("counts the own list's star when fitting a long name", async ({ page }) => {
+    await showLongName(page);
+    await page.locator(".player-row", { hasText: "Bardzo-Długie" }).click();
+    await page.getByRole("button", { name: "Dodaj do mojej listy" }).click();
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".player-row .watch-mark")).toHaveCount(1);
+    expect(await cutFullNames(page)).toEqual([]);
   });
 });
 

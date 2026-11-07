@@ -341,6 +341,8 @@ export const TEXT = {
   missingMark: "–",
   missingValue: "brak danych",
   shortlisted: pl`na liście życzeń w grze`,
+  /** The own list's star in words, after the name. */
+  watched: pl`na mojej liście`,
   anyOption: "Dowolna",
   min: "od",
   max: "do",
@@ -380,13 +382,9 @@ export const TEXT = {
     potential: "Potencjał",
     peak: "Szczyt OVR",
     bestPeak: "Szczyt na najlepszej pozycji",
-    /** Under the best peak: the other positions, by their abbreviations, with the same peak. */
-    samePeakAlso: (positions: readonly string[]): string =>
-      `ten sam szczyt także na: ${positions.join(", ")}`,
+    /** Under the best peak, folded: the other positions, by their abbreviations, with the same peak. */
+    samePeakAlso: "ten sam szczyt także na",
     peakNote: pl`Szczyt OVR na pozycji preferowanej zawodnika: prognoza z krzywych rozwoju gry, ta sama co na jej wykresie rozwoju; nie obejmuje przyszłych przyrostów z meczów i treningu. Realniejszy cel niż potencjał, którego zawodnicy rzadko osiągają.`,
-    /** Under the card's facts when the peak stays below the potential. */
-    peakBelowPotential: (potential: number): string =>
-      pl`Potencjału ${formatNumber(potential)} zawodnik według prognozy szczytu nie osiągnie.`,
     overallByGroup: "OVR na pozycjach",
     openMark: "▾",
     closedMark: "▸",
@@ -399,7 +397,8 @@ export const TEXT = {
     profile: "Profil",
     internationalReputation: "Reputacja międzynarodowa",
     learningSpeed: "Szybkość nauki",
-    /** The text of the development curve's sparkline beside the style. */
+    curve: "Krzywa rozwoju",
+    /** The name of the development curve's sparkline. */
     curvePeak: (age: number): string => `krzywa rozwoju, szczyt w wieku ${String(age)}`,
     yes: "tak",
     no: "nie",
@@ -418,6 +417,7 @@ export const TEXT = {
     wage: "Zarobki rynkowe",
     contractWage: pl`Zarobki z kontraktu`,
     shortlisted: pl`Na twojej liście życzeń w grze`,
+    watched: pl`Na mojej liście`,
     money: (amount: number, currency: CurrencyCode): string =>
       `${formatNumber(amount)}${NBSP}${CURRENCY_SYMBOLS[currency]}`,
     wageEstimate: (wage: number, currency: CurrencyCode): string =>

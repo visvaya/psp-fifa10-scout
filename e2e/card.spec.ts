@@ -1,3 +1,4 @@
+import type { Locator } from "@playwright/test";
 import {
   cardValue,
   expect,
@@ -119,7 +120,8 @@ test.describe("club stars and prestige", () => {
 test.describe("development curves", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
-  // A small chart of the skill curve beside each style in the filters and beside his style on the card.
+  // A small chart of the skill curve beside each style in the filters, and on the card in a row of its
+  // own under his style, explained behind a "?".
   test("draws the curve beside each style and on the card", async ({ page }) => {
     await loadDatabase(page);
     await expandSections(page);
@@ -128,12 +130,34 @@ test.describe("development curves", () => {
     await expect(styles.locator("label.check:not(:has(svg.sparkline))")).toHaveCount(0);
     await page.locator("[data-player-id]").first().click();
     // The synthetic database has one flat curve, the game's fallback, so every curve peaks at 15.
+    const card = page.getByRole("dialog");
+    await expect(cardValue(card, "Styl rozwoju").getByRole("img")).toHaveCount(0);
+    const terms = await card.locator(".facts > div > dt").allInnerTexts();
+    const style = terms.findIndex((term) => term.startsWith("Styl rozwoju"));
+    expect(terms[style + 1]).toMatch(/^Krzywa rozwoju/u);
+    // Across the whole grid, under the style's row, also where the facts take two columns.
+    const [styleRow, curveRow, grid] = await Promise.all(
+      [
+        card.locator(".facts > div").filter({ hasText: /^Styl rozwoju/u }),
+        card.locator(".facts > div:has(.sparkline)"),
+        card.locator(".facts:has(.sparkline)"),
+      ].map(async (box) => box.boundingBox()),
+    );
+    expect(curveRow?.y).toBeGreaterThanOrEqual((styleRow?.y ?? 0) + (styleRow?.height ?? 0) - 1);
+    expect(curveRow?.width).toBeCloseTo(grid?.width ?? 0, 0);
+    await expect(cardValue(card, "Krzywa rozwoju").getByRole("img")).toHaveAccessibleName(
+      "krzywa rozwoju, szczyt w wieku 15",
+    );
+    await card.getByRole("button", { name: "Wyjaśnienie: Krzywa rozwoju" }).click();
     await expect(
-      cardValue(page.getByRole("dialog"), "Styl rozwoju").getByRole("img"),
-    ).toHaveAccessibleName("krzywa rozwoju, szczyt w wieku 15");
+      card.getByText(/^Krzywa\sz\sdanych gry.*Szczyt\sw\swieku\s15\slat\.$/u),
+    ).toBeVisible();
     await expectNoAxeViolations(page);
   });
 });
+
+/** A value as shown: its text without a closed "!" panel's note, which toHaveText would read. */
+const shown = (value: Locator) => () => value.innerText();
 
 test.describe("offer on the card", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
@@ -146,7 +170,9 @@ test.describe("offer on the card", () => {
     const card = page.getByRole("dialog", { name: "Lionel Messi" });
     await expect(cardValue(card, "Klub przyjmie od")).toHaveText("22 500 000 €");
     await expect(cardValue(card, "Zawodnik podpisze od")).toContainText("kontrakt 4 lata");
-    await expect(card.getByText(/^Kwota przekracza limit formularza/u)).toBeHidden();
+    // The fee stays within the form's limit, the wage goes over it: a "!" before the wage only.
+    await expect(card.getByRole("button", { name: "Uwaga: Klub przyjmie od" })).toHaveCount(0);
+    await expect(card.getByRole("button", { name: "Uwaga: Zawodnik podpisze od" })).toHaveCount(1);
     // Barcelona has 21 players and enough wide midfielders to sell him.
     await expect(cardValue(card, "Klub może go sprzedać")).toHaveText("tak");
     await expect(card.getByText(/^Klub odmówi sprzedaży/u)).toBeHidden();
@@ -186,14 +212,13 @@ test.describe("offer on the card", () => {
     await expect(length.locator("option:checked")).toHaveText(/^4\slata,\style\schce\szawodnik$/u);
     await expect(card.getByText(/kosztuje\s2\sz/u)).toBeHidden();
 
-    await card.getByLabel("Podwójna oferta").check();
-    await expect(card.getByText(/kosztuje\s2\sz/u)).toBeVisible();
-    await expect(wage).not.toHaveText(first);
-    await card.getByLabel("Podwójna oferta").uncheck();
-    await expect(wage).toHaveText(first);
+    await card.getByRole("checkbox", { name: "Podwójna oferta" }).check();
+    await expect.poll(shown(wage)).not.toBe(first);
+    await card.getByRole("checkbox", { name: "Podwójna oferta" }).uncheck();
+    await expect.poll(shown(wage)).toBe(first);
 
     await card.getByLabel("Premia za bramkę lub czyste konto").selectOption("15");
-    await expect(wage).not.toHaveText(first);
+    await expect.poll(shown(wage)).not.toBe(first);
     await expect(cardValue(card, "Premia")).toBeVisible();
     await length.selectOption("1");
     await expect(wage).toContainText("kontrakt 1 rok");
@@ -204,6 +229,29 @@ test.describe("offer on the card", () => {
     await page.keyboard.press("Escape");
     await page.getByRole("button", { name: /^Lionel Messi/u }).click();
     const again = page.getByRole("dialog", { name: "Lionel Messi" });
-    await expect(cardValue(again, "Zawodnik podpisze od")).toHaveText(first);
+    await expect.poll(shown(cardValue(again, "Zawodnik podpisze od"))).toBe(first);
+  });
+});
+
+test.describe("offer explanations", () => {
+  test.use(PHONE);
+
+  // What the section shows and what a double offer costs, behind a "?" each rather than in sight.
+  test("explains the offer beside its heading and the double offer after it", async ({ page }) => {
+    await loadCareer(page);
+    await page.getByRole("button", { name: /^Lionel Messi/u }).tap();
+    const card = page.getByRole("dialog", { name: "Lionel Messi" });
+    const [note, cost] = [
+      card.getByText(/^Z\skodu gry: najniższa kwota/u),
+      card.getByText(/kosztuje\s2\sz/u),
+    ];
+    await expect(note).toBeHidden();
+    await card.getByRole("button", { name: "Wyjaśnienie: Oferta" }).tap();
+    await expect(note).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(cost).toBeHidden();
+    await card.getByRole("button", { name: "Wyjaśnienie: Podwójna oferta" }).tap();
+    await expect(cost).toBeVisible();
+    await expectNoAxeViolations(page);
   });
 });

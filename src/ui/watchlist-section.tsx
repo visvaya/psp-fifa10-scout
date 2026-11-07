@@ -1,37 +1,32 @@
 // The own watchlist on the player card: a button to add or remove the player and, while he is on the
 // list, his note. The note saves with every change, so it has no save button. Removing a player who has
 // a note asks first, as "Resetuj" does (settings-actions.tsx).
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Dispatch, JSX } from "react";
 import { SCOUT_CONFIG } from "../logic/config.ts";
 import type { ScoutAction } from "../logic/scout-state.ts";
 import type { WatchEntry } from "../logic/watchlist.ts";
 import { ConfirmQuestion } from "./confirm-question.tsx";
+import { HelpHeading } from "./field-help.tsx";
+import { HELP_TEXT } from "./text-help.ts";
 import { WATCHLIST_TEXT } from "./text-watchlist.ts";
 
-/** The note field, named by its label alone; the limit is its description. */
-const NoteField = (props: { note: string; onChange: (note: string) => void }): JSX.Element => {
-  const helpId = useId();
-  return (
-    <>
-      <label className="field">
-        <span>{WATCHLIST_TEXT.note}</span>
-        <textarea
-          rows={3}
-          maxLength={SCOUT_CONFIG.watchlistNoteMaxChars}
-          value={props.note}
-          aria-describedby={helpId}
-          onChange={(event) => {
-            props.onChange(event.currentTarget.value);
-          }}
-        />
-      </label>
-      <p id={helpId} className="help">
-        {WATCHLIST_TEXT.noteHelp(SCOUT_CONFIG.watchlistNoteMaxChars)}
-      </p>
-    </>
-  );
-};
+/** The note field, named by its label alone. */
+const NoteField = (props: { note: string; onChange: (note: string) => void }): JSX.Element => (
+  <label className="field">
+    <span>{WATCHLIST_TEXT.note}</span>
+    <textarea
+      rows={3}
+      maxLength={SCOUT_CONFIG.watchlistNoteMaxChars}
+      value={props.note}
+      onChange={(event) => {
+        props.onChange(event.currentTarget.value);
+      }}
+    />
+  </label>
+);
+
+const LIST_HELP = HELP_TEXT.watchlist(SCOUT_CONFIG.watchlistNoteMaxChars);
 
 export const WatchlistSection = (props: {
   playerId: number;
@@ -50,7 +45,7 @@ export const WatchlistSection = (props: {
   }, [asking]);
   return (
     <section className="watchlist" aria-labelledby="watchlist-title">
-      <h3 id="watchlist-title">{WATCHLIST_TEXT.title}</h3>
+      <HelpHeading id="watchlist-title" title={WATCHLIST_TEXT.title} help={LIST_HELP} />
       {asking ? (
         <div className="watchlist-answer">
           <ConfirmQuestion

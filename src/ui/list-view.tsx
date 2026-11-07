@@ -233,6 +233,7 @@ const ListResults = ({
   dispatch,
 }: ListViewProps & { form: JSX.Element; columns: readonly SortKey[] }) => {
   const { visible, sort, atBest } = useVisiblePlayers(players, state, collator);
+  const watchedIds = useWatchedIds(state.watchlist);
   const shownColumns = useMemo(
     () => columns.map((column) => peakField(column, atBest)),
     [columns, atBest],
@@ -273,6 +274,7 @@ const ListResults = ({
           ratingCode={ratingCode}
           ratingName={ratingName}
           currency={shownCurrency(state)}
+          watchedIds={watchedIds}
           dispatch={dispatch}
         />
       )}

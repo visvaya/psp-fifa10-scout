@@ -59,6 +59,11 @@ test.describe("own watchlist", () => {
     await expect(
       page.getByRole("button", { name: "Usuń filtr: Na liście: w narzędziu" }),
     ).toBeVisible();
+    // The own list's star before his name, named for screen readers.
+    await expect(page.getByRole("button", { name: /^Paweł Brożek/u })).toHaveAccessibleName(
+      "Paweł Brożek na mojej liście",
+    );
+    await expect(page.locator(".watch-mark")).toHaveCount(1);
     // Without a career there is no game shortlist to choose.
     await expect(page.getByRole("radio", { name: "w grze" })).toHaveCount(0);
     await page.getByRole("button", { name: /^Paweł Brożek/u }).click();
@@ -131,6 +136,23 @@ test.describe("own watchlist, focus and store", () => {
       value: { filters: { lists: { positionGroup: ["goalkeeper"] } } },
     });
     expect(await page.evaluate(readStored, "watchlist")).toEqual(foreign);
+  });
+});
+
+test.describe("own watchlist in the table", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  // The name column makes room for the own list's star too, so the longest name is not cut off by it.
+  test("keeps the longest name whole beside the own list's star", async ({ page }) => {
+    await loadDatabase(page);
+    await page.getByRole("searchbox", { name: "Nazwisko" }).fill("bardzo");
+    const name = page.getByRole("button", { name: /Bardzo-Długie/u });
+    await name.click();
+    await page.getByRole("button", { name: "Dodaj do mojej listy" }).click();
+    await page.keyboard.press("Escape");
+    await expect(name.locator(".watch-mark")).toBeVisible();
+    const overflow = await name.evaluate((element) => element.scrollWidth - element.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
   });
 });
 
