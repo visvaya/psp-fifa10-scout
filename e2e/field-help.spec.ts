@@ -53,7 +53,12 @@ const expectSectionHelpOnSummary = async (page: Page, scope: Locator) => {
   expect(centre).toBeLessThan(end + 32);
   const section = summary.locator("..");
   await button.click();
-  await expect(await panelOf(page, button)).toContainText("Cechy pochodzą z bazy gry");
+  const panel = await panelOf(page, button);
+  await expect(panel).toBeVisible();
+  await expect(panel).toContainText("Cechy pochodzą z bazy gry");
+  // A tap on the explanation itself lands on it (so it can scroll) and leaves it open.
+  await panel.click({ timeout: 3000 });
+  await expect(panel).toBeVisible();
   await expect(section).not.toHaveAttribute("open");
   await page.keyboard.press("Escape");
   await expect(button).toBeFocused();

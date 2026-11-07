@@ -1206,7 +1206,8 @@ input[inputmode="numeric"] {
   visibility: hidden;
 }
 
-.section-help .field-help {
+.section-help .field-help,
+.section-help .field-help-panel {
   pointer-events: auto;
 }
 
