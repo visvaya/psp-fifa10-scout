@@ -21,13 +21,6 @@ pmOnFail: ignore
 #   GHSA-q8mj-m7cp-5q26, GHSA-x5fp-wj9c-mxmx, GHSA-4mjr-xmp4-gh2g, GHSA-6pq8-jhm2-2vcw, fixed in 6.16.1.
 # - minimatch 10.2.6: GHSA-g3hv-75wg-m249, fixed in 11.0.1; 11.0.3 is the newest release older than the
 #   three-day release-age window on 2026-11-03.
-#
-# Lighthouse (the advisory lab audit, scripts/measure-lighthouse.ts) reaches chromium-bidi through puppeteer-core.
-# From puppeteer-core 25.13.0 on that is chromium-bidi 157.0.8090-0, published without the provenance its earlier
-# releases carried, so trustPolicy refuses it. puppeteer-core 25.12.0 (within Lighthouse 13.5.0's ^25.9.0) still
-# uses chromium-bidi 17.0.2, published with provenance. Check at every Lighthouse update and remove once a
-# chromium-bidi release with provenance is in puppeteer-core's range.
 overrides:
   "qs@6.15.1": 6.16.1
   "minimatch@10.2.6": 11.0.3
-  "lighthouse>puppeteer-core": 25.12.0

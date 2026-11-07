@@ -1,9 +1,10 @@
-name: Lighthouse
+name: Web vitals
 
-# Advisory lab audit of the production build (scripts/measure-lighthouse.ts): the start screen and the
-# player list with the synthetic game, three runs each, medians in the job summary and the HTML reports as
-# an artifact. Not a required check and nothing waits for it: a low score only warns. Shared runners make
-# the millisecond values noisy, so the numbers are a trend to read, not a gate.
+# Advisory lab measurement of the production build (scripts/measure-web-vitals.ts): LCP, CLS, a TBT
+# stand-in and transferred bytes on the start screen and the player list with the synthetic game, three
+# runs each with the CPU slowed, medians in the job summary and as an artifact. Not a required check and
+# nothing waits for it: a value past its "good" boundary only warns. Shared runners make the millisecond
+# values noisy, so the numbers are a trend to read, not a gate.
 on:
   push:
     branches: [main]
@@ -19,13 +20,13 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - ".nvmrc"
-      - "scripts/measure-lighthouse.ts"
-      - "scripts/lighthouse-summary.ts"
+      - "scripts/measure-web-vitals.ts"
+      - "scripts/web-vitals-summary.ts"
       - "scripts/write-synthetic-db.ts"
       - "scripts/write-service-worker.ts"
       - "scripts/service-worker-template.js"
       - "scripts/check-deployment.ts"
-      - ".github/workflows/lighthouse.yml"
+      - ".github/workflows/web-vitals.yml"
   workflow_dispatch:
 
 permissions:
@@ -36,8 +37,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lighthouse:
-    name: lighthouse
+  web-vitals:
+    name: web-vitals
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -59,12 +60,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Measure the start screen and the player list
         run: |
-          pnpm measure:lighthouse
-          cat reports/lighthouse/summary.md >> "$GITHUB_STEP_SUMMARY"
+          pnpm measure:web-vitals
+          cat reports/web-vitals/summary.md >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ !cancelled() }}
         with:
-          name: lighthouse-reports
-          path: reports/lighthouse/
+          name: web-vitals
+          path: reports/web-vitals/
           if-no-files-found: ignore
           retention-days: 14

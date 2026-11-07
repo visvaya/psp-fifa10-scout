@@ -73,7 +73,7 @@ pnpm build && pnpm preview   # production build, including the offline service w
 pnpm verify    # the full gate CI runs: format, text rules, typecheck, lint, tests, duplicates, dead code, build, size
 pnpm test:e2e  # browser tests (Chromium and WebKit, with axe), on a synthetic database
 pnpm make:screenshots  # after pnpm build: retakes the sample screenshots of the start page (public/screenshots)
-pnpm measure:lighthouse  # Lighthouse lab audit of the build (reports/lighthouse); CI runs it, advisory only
+pnpm measure:web-vitals  # lab LCP, CLS, TBT and bytes of the build (reports/web-vitals); CI runs it, advisory only
 pnpm mutation  # mutation tests (Stryker); CI runs them every Sunday
 ```
 
