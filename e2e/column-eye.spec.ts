@@ -207,14 +207,12 @@ test.describe("phone", () => {
 test.describe("phone filter panel", () => {
   test.use(PHONE);
 
-  // The "?" and the eye beside a field's name are 34 px wide targets, so the eye stays close to the "?"
-  // (owner, 2026-11-07; WCAG 2.5.8 asks for 24 px); the clear button stays a full 44 px target.
-  test('keeps the marks beside a field\'s name apart, the eye close to the "?"', async ({
-    page,
-  }) => {
+  test('keeps the eye close to the "?", the marks apart', async ({ page }) => {
     await loadDatabase(page);
     await page.getByRole("button", { name: "Filtry" }).click();
     const dialog = page.getByRole("dialog", { name: "Filtry" });
+    // The "?" and the eye beside a field's name are 34 px wide targets, so the eye stays close to the "?"
+    // (owner, 2026-11-07; WCAG 2.5.8 asks for 24 px); the clear button stays a full 44 px target.
     const age = dialog.getByRole("group", { name: "Wiek", exact: true });
     await age.getByLabel("do", { exact: true }).fill("25");
     const [help, eye, clear] = await Promise.all([
@@ -229,6 +227,12 @@ test.describe("phone filter panel", () => {
     }
     expect(Math.min(clear.width, clear.height)).toBeGreaterThanOrEqual(44);
     expect([apart(help, eye), apart(eye, clear), apart(help, clear)]).toEqual([true, true, true]);
-    expect(eye.x + eye.width / 2 - (help.x + help.width / 2)).toBeLessThanOrEqual(35);
+    // The eye follows the "?" on its row.
+    const gap = eye.x + eye.width / 2 - (help.x + help.width / 2);
+    expect(gap).toBeGreaterThanOrEqual(0);
+    expect(gap).toBeLessThanOrEqual(35);
+    expect(Math.abs(eye.y + eye.height / 2 - (help.y + help.height / 2))).toBeLessThan(
+      help.height / 2,
+    );
   });
 });
