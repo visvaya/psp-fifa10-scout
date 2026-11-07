@@ -441,7 +441,7 @@ export const TEXT = {
     heightValue: (cm: number): string => `${formatNumber(cm)}${NBSP}cm`,
     weightValue: (kg: number): string => `${formatNumber(kg)}${NBSP}kg`,
     career: pl`W tym sezonie kariery`,
-    careerNote: pl`Gra prowadzi statystyki w lidze twojego klubu i w pucharach, które liczy dla tej ligi (dla Ekstraklasy Puchar Polski, „Klubowe ME” i „Puchar EFA”), dla każdego klubu tych rozgrywek, i zeruje je na początku sezonu. U zawodnika z innej ligi to tylko mecze w europejskich pucharach. U zawodnika, który odszedł z twojej ligi, to liczby z czasu gry w niej. KR to nagłówek kolumny oceny na ekranie statystyk zawodnika w grze.`,
+    careerNote: pl`Gra prowadzi statystyki występów, goli, asyst i czystych kont w lidze twojego klubu i w pucharach, które liczy dla tej ligi (dla Ekstraklasy Puchar Polski, „Klubowe ME” i „Puchar EFA”), dla każdego klubu tych rozgrywek, i zeruje je na początku sezonu. U zawodnika z innej ligi to tylko mecze w europejskich pucharach. U zawodnika, który odszedł z twojej ligi, to liczby z czasu gry w niej. KR to nagłówek kolumny oceny na ekranie statystyk zawodnika w grze. Gra nie zeruje tej oceny na początku sezonu.`,
     loanedFrom: "Wypożyczony z",
     price: "Cena",
     wage: "Zarobki rynkowe",

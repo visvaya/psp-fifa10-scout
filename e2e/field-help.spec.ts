@@ -168,3 +168,37 @@ test.describe("field explanations, phone", () => {
     await expect(card).toBeVisible();
   });
 });
+
+test.describe("field explanations, short phone screen", () => {
+  test.use({ ...PHONE, viewport: { width: 390, height: 320 } });
+
+  // Room on neither side of the button: the panel takes the larger side, stays on screen, keeps clear
+  // of the button, and its text scrolls inside it.
+  test("keeps a long explanation on screen and scrolls it", async ({ page }) => {
+    await loadCareer(page);
+    await page.getByRole("button", { name: "Filtry" }).click();
+    const dialog = page.getByRole("dialog", { name: "Filtry" });
+    await dialog.getByText("Kariera", { exact: true }).click();
+    const button = dialog.getByRole("button", { name: "Wyjaśnienie: Klub może go sprzedać" });
+    await button.evaluate((element) => {
+      element.scrollIntoView({ block: "center" });
+    });
+    await button.tap();
+    const panel = await panelOf(page, button);
+    await expect(panel).toBeVisible();
+    const [panelBox, buttonBox] = await Promise.all([panel.boundingBox(), button.boundingBox()]);
+    const top = panelBox?.y ?? -1;
+    const bottom = top + (panelBox?.height ?? Number.POSITIVE_INFINITY);
+    expect(top).toBeGreaterThanOrEqual(0);
+    expect(bottom).toBeLessThanOrEqual(320);
+    const buttonTop = buttonBox?.y ?? 0;
+    const buttonBottom = buttonTop + (buttonBox?.height ?? 0);
+    expect(bottom <= buttonTop || top >= buttonBottom).toBe(true);
+    const scrolled = await panel.evaluate((element) => {
+      element.scrollTo(0, element.scrollHeight);
+      return element.scrollHeight > element.clientHeight && element.scrollTop > 0;
+    });
+    expect(scrolled).toBe(true);
+    await expectOnScreen(page, panel);
+  });
+});

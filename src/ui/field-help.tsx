@@ -11,9 +11,11 @@ import { HELP_TEXT } from "./text-help.ts";
 /** Where the panel goes beside its button: 1rem from the viewport's sides, 0.25rem from the button. */
 const panelPlace = (button: HTMLElement, panel: HTMLElement) => {
   const rem = rootFontPx();
+  // Its full height, also when an earlier placement cut it short: the content plus the borders.
+  const height = panel.scrollHeight + panel.offsetHeight - panel.clientHeight;
   return helpPanelPlace({
     button: button.getBoundingClientRect(),
-    panel: panel.getBoundingClientRect(),
+    panel: { width: panel.getBoundingClientRect().width, height },
     viewport: { width: document.documentElement.clientWidth, height: window.innerHeight },
     edge: rem,
     gap: rem / 4,
@@ -75,9 +77,10 @@ export const FieldHelp = (props: { label: string; text: string }): JSX.Element =
   const follow = useCallback(() => {
     const shown = panel.current;
     if (button.current === null || shown === null) return;
-    const { left, top } = panelPlace(button.current, shown);
+    const { left, top, maxHeight } = panelPlace(button.current, shown);
     shown.style.left = `${String(left)}px`;
     shown.style.top = `${String(top)}px`;
+    shown.style.maxHeight = `${String(maxHeight)}px`;
     shown.setAttribute("data-placed", "");
   }, []);
   useWhileOpen(open, button, panel, follow);
