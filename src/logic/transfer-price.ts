@@ -81,7 +81,6 @@ const PRICE_TUNING = {
    * euro on the game's screen; the pound and dollar order follows from the rates. */
   exchangeRates: [1, 0.86, 1.41],
 } as const;
-// jscpd:ignore-end
 
 type PriceGroup = keyof typeof PRICE_TUNING.valuePosition;
 
@@ -96,6 +95,7 @@ const PRICE_GROUPS: readonly (readonly [number, PriceGroup])[] = [
   [4, "CB"],
   [2, "FB"],
 ];
+// jscpd:ignore-end
 
 export interface PriceInput {
   /** The preferred position. */

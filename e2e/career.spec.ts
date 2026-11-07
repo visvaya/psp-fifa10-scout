@@ -13,6 +13,8 @@ import {
   test,
 } from "./support.ts";
 
+test.use({ viewport: { width: 1280, height: 800 } });
+
 /** An encrypted save whose DATA.BIN was copied only in part: its length is no whole cipher block. */
 const cutSave = () => {
   const params = new Uint8Array(128);
@@ -35,8 +37,6 @@ const storesCareerSave = async (page: Page): Promise<boolean> => {
 };
 
 test.describe("career", () => {
-  test.use({ viewport: { width: 1280, height: 800 } });
-
   test("prices players, sorts and filters by price and estimates the wage", async ({ page }) => {
     await loadCareer(page);
     // The list names the save's currency once, in the heading (the synthetic save: euro).
@@ -98,8 +98,6 @@ test.describe("career", () => {
 });
 
 test.describe("career currency", () => {
-  test.use({ viewport: { width: 1280, height: 800 } });
-
   // The synthetic save keeps euro; dollars come from the same euro amounts with the game's rate.
   test("prices in the chosen currency, money filters kept", async ({ page }) => {
     await loadCareer(page);
@@ -136,8 +134,6 @@ test.describe("career currency", () => {
 });
 
 test.describe("career club status", () => {
-  test.use({ viewport: { width: 1280, height: 800 } });
-
   // Jan Wolny has no team at all, like the game's players linked only to a national team.
   test("keeps the players a career cannot sign, named on their chip", async ({ page }) => {
     await loadCareer(page);
@@ -154,8 +150,6 @@ test.describe("career club status", () => {
 });
 
 test.describe("career ratings", () => {
-  test.use({ viewport: { width: 1280, height: 800 } });
-
   test("shows KR with one decimal and filters by it", async ({ page }) => {
     await loadCareer(page);
     await page.getByText("Kariera", { exact: true }).click();
@@ -226,8 +220,6 @@ test.describe("career ratings", () => {
 });
 
 test.describe("peak at a chosen position", () => {
-  test.use({ viewport: { width: 1280, height: 800 } });
-
   test("ranges and sorts by the peak at a chosen position while potential shows", async ({
     page,
   }) => {
@@ -255,8 +247,6 @@ test.describe("peak at a chosen position", () => {
 });
 
 test.describe("bad career save", () => {
-  test.use({ viewport: { width: 1280, height: 800 } });
-
   test("explains a missing or damaged save and keeps the career loaded and stored before", async ({
     page,
   }) => {

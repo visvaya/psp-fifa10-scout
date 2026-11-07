@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { LoadResult, WorkerMessage } from "../logic/load-scout.ts";
+import type { WorkerMessage } from "../logic/load-scout.ts";
+import { EMPTY_LOAD_RESULT } from "../logic/test-support/player-fixtures.ts";
 import { createGameMemory, createSaveMemory } from "./load-memory.ts";
 import type { MemoryStore } from "./load-memory.ts";
 
@@ -22,16 +23,11 @@ const recordingStore = () => {
   return { writes, withStore, settled: async () => new Promise((resolve) => setTimeout(resolve)) };
 };
 
-const RESULT: LoadResult = {
-  players: [],
-  myTeamId: null,
-  career: null,
-  curves: new Map(),
-  gameDb: Uint8Array.of(9),
-  languages: {},
-  attachedLanguage: null,
-};
-const done = (requestId: number): WorkerMessage => ({ type: "done", requestId, result: RESULT });
+const done = (requestId: number): WorkerMessage => ({
+  type: "done",
+  requestId,
+  result: EMPTY_LOAD_RESULT,
+});
 const save = (byte: number) => ({ dataBin: new Blob([Uint8Array.of(byte)]), paramSfo: new Blob() });
 
 describe("createSaveMemory", () => {

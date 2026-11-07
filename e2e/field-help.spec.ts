@@ -6,6 +6,7 @@ import {
   expectNoAxeViolations,
   expectNoHorizontalOverflow,
   loadCareer,
+  openFilters,
   PHONE,
   test,
 } from "./support.ts";
@@ -166,16 +167,17 @@ test.describe("field explanations on the wide card", () => {
   });
 });
 
+// A describe's opening, alike in every spec to the literal-blind duplicate check. jscpd:ignore-start
 test.describe("field explanations, phone", () => {
   test.use(PHONE);
+  // jscpd:ignore-end
 
   test("open by tap in the filter panel, close by a tap outside and by Escape", async ({
     page,
   }) => {
-    const dialog = page.getByRole("dialog", { name: "Filtry" });
-    const button = dialog.getByRole("button", { name: "Wyjaśnienie: Pozycje", exact: true });
     await loadCareer(page);
-    await page.getByRole("button", { name: "Filtry" }).click();
+    const dialog = await openFilters(page);
+    const button = dialog.getByRole("button", { name: "Wyjaśnienie: Pozycje", exact: true });
     const panel = await panelOf(page, button);
     await button.tap();
     await expect(panel).toBeVisible();
@@ -199,8 +201,7 @@ test.describe("field explanations, phone", () => {
     page,
   }) => {
     await loadCareer(page);
-    await page.getByRole("button", { name: "Filtry" }).click();
-    await expectSectionHelpOnSummary(page, page.getByRole("dialog", { name: "Filtry" }));
+    await expectSectionHelpOnSummary(page, await openFilters(page));
     await expectNoHorizontalOverflow(page);
   });
 
@@ -223,15 +224,16 @@ test.describe("field explanations, phone", () => {
   });
 });
 
+// A describe's opening, alike in every spec to the literal-blind duplicate check. jscpd:ignore-start
 test.describe("field explanations, short phone screen", () => {
   test.use({ ...PHONE, viewport: { width: 390, height: 320 } });
+  // jscpd:ignore-end
 
   // Room on neither side of the button: the panel takes the larger side, stays on screen, keeps clear
   // of the button, and its text scrolls inside it.
   test("keeps a long explanation on screen and scrolls it", async ({ page }) => {
     await loadCareer(page);
-    await page.getByRole("button", { name: "Filtry" }).click();
-    const dialog = page.getByRole("dialog", { name: "Filtry" });
+    const dialog = await openFilters(page);
     await dialog.getByText("Kariera", { exact: true }).click();
     const button = dialog.getByRole("button", { name: "Wyjaśnienie: Klub może go sprzedać" });
     await button.evaluate((element) => {
