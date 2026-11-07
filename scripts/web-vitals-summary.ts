@@ -151,7 +151,8 @@ export const formatSummary = (
     "",
     `Chromium with the CPU slowed ${String(conditions.cpuSlowdown)}x and a phone viewport, no network ` +
       "throttling (local server). CLS: the largest session window. TBT: of each long task, the part after " +
-      "the first contentful paint less 50 ms, until a second after the page is ready; a stand-in for INP. " +
+      "the first contentful paint less 50 ms, as recorded when collection runs, a second after the page is " +
+      "ready; a stand-in for INP. " +
       '"warn" is reported, never enforced. Accessibility is covered by axe in the e2e tests.',
     "",
   ].join("\n");
