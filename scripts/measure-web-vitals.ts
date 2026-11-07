@@ -44,7 +44,9 @@ const record = () => {
   // No change to the app: a row (phone list or table) entering the page is painted in the next frame,
   // and a task queued from that frame's callback runs once the frame is painted.
   const rows = new MutationObserver(() => {
-    if (document.querySelector(".player-rows > li, tbody tr") === null) return;
+    // Player rows only: the loading skeleton's rows have neither attribute.
+    const row = ".player-rows > li[aria-posinset], tbody tr[aria-rowindex]";
+    if (document.querySelector(row) === null) return;
     rows.disconnect();
     requestAnimationFrame(() => {
       setTimeout(() => {
