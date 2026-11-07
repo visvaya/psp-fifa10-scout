@@ -16,6 +16,12 @@ import {
   writeStored,
 } from "./support.ts";
 
+type Box = { x: number; y: number; width: number; height: number };
+
+/** Whether two drawn boxes share no point. */
+const apart = (a: Box, b: Box) =>
+  a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y;
+
 /** The eye of a column, named after its filter. */
 const eyeOf = (page: Page, label: string) =>
   page.getByRole("button", { name: `Pokaż kolumnę: ${label}`, exact: true });
@@ -201,23 +207,32 @@ test.describe("phone", () => {
 test.describe("phone filter panel", () => {
   test.use(PHONE);
 
-  test("keeps the eye and the clear button apart, each a full touch target", async ({ page }) => {
+  test('keeps the eye close to the "?", the marks apart', async ({ page }) => {
     await loadDatabase(page);
     await page.getByRole("button", { name: "Filtry" }).click();
     const dialog = page.getByRole("dialog", { name: "Filtry" });
+    // The "?" and the eye beside a field's name are 34 px wide targets, so the eye stays close to the "?"
+    // (owner, 2026-11-07; WCAG 2.5.8 asks for 24 px); the clear button stays a full 44 px target.
     const age = dialog.getByRole("group", { name: "Wiek", exact: true });
     await age.getByLabel("do", { exact: true }).fill("25");
-    const eye = await eyeOf(page, "Wiek").boundingBox();
-    const clear = await dialog.getByRole("button", { name: "Wyczyść: Wiek" }).boundingBox();
-    if (eye === null || clear === null) throw new Error("a button is not drawn");
-    for (const box of [eye, clear]) {
-      expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(44);
+    const [help, eye, clear] = await Promise.all([
+      dialog.getByRole("button", { name: "Wyjaśnienie: Wiek", exact: true }).boundingBox(),
+      eyeOf(page, "Wiek").boundingBox(),
+      dialog.getByRole("button", { name: "Wyczyść: Wiek" }).boundingBox(),
+    ]);
+    if (help === null || eye === null || clear === null) throw new Error("a button is not drawn");
+    for (const box of [help, eye]) {
+      expect(box.width).toBeGreaterThanOrEqual(34);
+      expect(box.height).toBeGreaterThanOrEqual(44);
     }
-    const apart =
-      eye.x + eye.width <= clear.x ||
-      clear.x + clear.width <= eye.x ||
-      eye.y + eye.height <= clear.y ||
-      clear.y + clear.height <= eye.y;
-    expect(apart).toBe(true);
+    expect(Math.min(clear.width, clear.height)).toBeGreaterThanOrEqual(44);
+    expect([apart(help, eye), apart(eye, clear), apart(help, clear)]).toEqual([true, true, true]);
+    // The eye follows the "?" on its row.
+    const gap = eye.x + eye.width / 2 - (help.x + help.width / 2);
+    expect(gap).toBeGreaterThanOrEqual(0);
+    expect(gap).toBeLessThanOrEqual(35);
+    expect(Math.abs(eye.y + eye.height / 2 - (help.y + help.height / 2))).toBeLessThan(
+      help.height / 2,
+    );
   });
 });
