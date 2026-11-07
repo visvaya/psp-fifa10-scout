@@ -1,6 +1,12 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { careerManager, effectiveRows, parseCareerSave, seasonStartDate } from "./career-save.ts";
+import {
+  careerManager,
+  effectiveRows,
+  parseCareerSave,
+  seasonStartDate,
+  userFormationCodes,
+} from "./career-save.ts";
 import { parseEaDb, readTable } from "./ea-db.ts";
 import { buildEaDb } from "./test-support/synthetic-ea-db.ts";
 import { buildCareerSave, le32, poolString } from "./test-support/synthetic-career-save.ts";
@@ -93,6 +99,10 @@ const STATS_CLEAR: ChunkSpec = {
   bitmap: [0, 0],
 };
 
+/** A formations row's position1..13 columns. */
+const positions = (codes: readonly number[]) =>
+  Object.fromEntries(codes.map((code, index) => [`position${String(index + 1)}`, code]));
+
 const parse = (chunks: readonly ChunkSpec[]) => parseCareerSave(DB, buildCareerSave(chunks));
 
 /** The links table after a save chunk with this bitmap and these records. */
@@ -171,6 +181,31 @@ describe("parseCareerSave", () => {
   it("skips a chunk whose directory offset belongs to another database", () => {
     const foreign = { ...STATS_CLEAR, index: 0, directoryOffset: 0x14, bitmap: [0, 0, 0] };
     expect(effectiveRows(DB, parse([foreign, LINKS]), "teamplayerlinks")).toHaveLength(1);
+  });
+
+  it("reads the user team's starting eleven from its formation, not the substitutes", () => {
+    const save = new Map([
+      ...parse([MANAGERS]),
+      [
+        "teamwrite",
+        [
+          { teamid: 241, formationid: 2 },
+          { teamid: 1873, formationid: 373 },
+        ],
+      ],
+      [
+        "formations",
+        [
+          { formationid: 2, ...positions([0, 2, 5, 4, 6, 8, 17, 16, 18, 30, 27, 32, 33]) },
+          { formationid: 373, ...positions([0, 7, 6, 4, 3, 19, 18, 16, 15, 31, 29, 32, 37]) },
+        ],
+      ],
+    ]);
+    expect(userFormationCodes(DB, save)).toEqual([0, 7, 6, 4, 3, 19, 18, 16, 15, 31, 29]);
+    // The formation only breaks ties, so a save without it still loads, as one with no formation.
+    const unknown = new Map([...save, ["teamwrite", [{ teamid: 1873, formationid: 9 }]]]);
+    expect(userFormationCodes(DB, unknown)).toEqual([]);
+    expect(userFormationCodes(DB, new Map([...save, ["teamwrite", []]]))).toEqual([]);
   });
 
   it("rejects a manager table without a user team", () => {
@@ -300,6 +335,8 @@ describe.runIf(existsSync(realDbPath) && existsSync(realCareerPath))("real caree
     const links = effectiveRows(db, save, "teamplayerlinks");
     expect(links).toHaveLength(12858);
     const squad = links.filter((link) => link["teamid"] === 1873);
+    // Wisła plays a 4-4-2 (formation 373).
+    expect(userFormationCodes(db, save)).toEqual([0, 7, 6, 4, 3, 19, 18, 16, 15, 31, 29]);
     expect(effectiveRows(db, save, "career_extra_user_team_info")).toHaveLength(squad.length);
   });
 

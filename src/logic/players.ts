@@ -1,11 +1,18 @@
 // One immutable summary per player: fifa.db's players joined with their club, league, national team
 // and nationality, and with a career save also the save's links, date and season stats.
-import { careerManager, effectiveRows, seasonStartDate } from "../data/career-save.ts";
+import {
+  careerManager,
+  careerShortlist,
+  effectiveRows,
+  seasonStartDate,
+  userFormationCodes,
+} from "../data/career-save.ts";
 import type { CareerSave } from "../data/career-save.ts";
 import { ageOn, birthdateToDate, num, readTable } from "../data/ea-db.ts";
 import type { EaDb, EaDbRow } from "../data/ea-db.ts";
 import { SaveFormatError } from "../data/save-format-error.ts";
 import { bestPeakFields } from "./best-peak.ts";
+import type { BestPeakKey } from "./best-peak.ts";
 import { SCOUT_CONFIG } from "./config.ts";
 import {
   attributeGains,
@@ -245,6 +252,8 @@ interface Context {
   readonly saleVerdict: ((playerId: number) => SaleRefusal | "sells" | null) | null;
   readonly freeAgents: ReadonlySet<number>;
   readonly rate: (row: EaDbRow) => Rating;
+  /** The user's starting eleven, which a tie for the best peak goes by; empty without a save. */
+  readonly formationCodes: readonly number[];
   /** Career only. */
   readonly finance: ((input: FinanceInput) => Finance) | null;
 }
@@ -264,18 +273,6 @@ export const nameCollator = new Intl.Collator("pl");
 /** Text without case and diacritics (ł included, which has no decomposition), for search. */
 export const searchKey = (text: string): string =>
   text.normalize("NFD").replaceAll(/\p{M}/gu, "").replaceAll(/ł/giu, "l").toLowerCase();
-
-/**
- * The game's shortlist in a career: the save's rows, else the database's (fifa.db's is empty; a database
- * without the table, as in tests, has none). Without a career there is no shortlist.
- */
-const shortlistOf = (db: EaDb, save: CareerSave | undefined): readonly EaDbRow[] => {
-  if (save === undefined) return [];
-  return (
-    save.get("career_shortlist") ??
-    (db.tables.has("career_shortlist") ? readTable(db, "career_shortlist") : [])
-  );
-};
 
 /** The sale fields from the game's verdict on an offer for the player. */
 const saleFields = (verdict: SaleRefusal | "sells" | null) => ({
@@ -336,7 +333,7 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
   const rate = (code: number): number => overallByCode[code] ?? 0;
   const overall = rate(num(row, "preferredposition1"));
   const peak = peakByCode[num(row, "preferredposition1")] ?? null;
-  return {
+  const player: Omit<Player, "nameOrder" | BestPeakKey> = {
     id,
     name,
     initialName: firstName === "" || surname === "" ? null : `${firstName.charAt(0)}. ${surname}`,
@@ -357,7 +354,6 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
     overall,
     growth: potential - overall,
     peakGain: peak === null ? null : peak - overall,
-    ...bestPeakFields(peakByCode, overallByCode, num(row, "preferredposition1")),
     ...profileFields(row),
     overallByCode,
     peakByCode,
@@ -374,6 +370,7 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
     shortlisted: context.shortlist.has(id),
     ...(context.finance?.({ row, age, club: money, overallAt }) ?? NO_FINANCE),
   };
+  return { ...player, ...bestPeakFields(player, context.formationCodes) };
 };
 
 /** Each summary frozen with its nameOrder; the order is computed once so sorts stay numeric. */
@@ -462,7 +459,8 @@ export const buildPlayers = (db: EaDb, save?: CareerSave): readonly Player[] => 
   const teams = teamsById(db, save);
   const placements = placementsOf(save === undefined ? links : careerLinks(db, save), teams);
   const academy = save === undefined ? [] : effectiveRows(db, save, "career_youth_accademy");
-  const shortlist = shortlistOf(db, save);
+  // Without a career there is no shortlist.
+  const shortlist = save === undefined ? [] : careerShortlist(db, save);
   const context: Context = {
     referenceDate:
       save === undefined
@@ -484,6 +482,7 @@ export const buildPlayers = (db: EaDb, save?: CareerSave): readonly Player[] => 
         .map((row) => num(row, "playerid")),
     ),
     rate: rater(db, save),
+    formationCodes: save === undefined ? [] : userFormationCodes(db, save),
     finance: save === undefined ? null : financeOf(db, save),
     saleVerdict: save === undefined ? null : saleVerdictOf(db, save, placements),
   };

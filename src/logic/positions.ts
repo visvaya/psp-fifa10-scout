@@ -113,6 +113,15 @@ export const ratingChoiceOf = (code: number): readonly [number, ...number[]] => 
 /** The code a position is rated and stored at: its rating choice's first code. */
 export const ratingCodeOf = (code: number): number => groupOf(code)[2];
 
+/** The side of the pitch a position stands on. */
+type PositionSide = "right" | "central" | "left";
+
+/** A code's side, from the game's name for it: R… on the right, L… on the left, the rest central. */
+export const sideOf = (code: number): PositionSide => {
+  const { name } = positionOf(code);
+  return name.startsWith("R") ? "right" : name.startsWith("L") ? "left" : "central";
+};
+
 /** The short name and group of a preferred position code. */
 export const positionOf = (code: number): { name: string; group: PositionGroup } => {
   const [group] = groupOf(code);

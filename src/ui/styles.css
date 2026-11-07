@@ -41,6 +41,8 @@
   --topbar-height: 3.5rem;
   --filter-panel-width: 18rem;
   --rating-width: 2.25rem;
+  /* A filter section's marker; the unseen copy that places the section's "?" takes the same width. */
+  --section-marker-width: 1.25em;
   --skeleton-pulse-duration: 1.2s;
   --skeleton-dim-opacity: 0.4;
 }
@@ -1059,11 +1061,7 @@ input[inputmode="numeric"] {
   visibility: hidden;
 }
 
-/* A section's "?" at the top of its content, and a heading with its "?" beside it. */
-.filter-section-body > .field-help {
-  justify-self: start;
-}
-
+/* A heading with its "?" beside it. */
 .heading-help {
   display: flex;
   align-items: center;
@@ -1171,7 +1169,7 @@ input[inputmode="numeric"] {
 .filter-section > summary::before {
   content: "▸";
   content: "▸" / "";
-  width: 1.25em;
+  width: var(--section-marker-width);
   color: var(--color-muted);
 }
 
@@ -1182,6 +1180,37 @@ input[inputmode="numeric"] {
 
 .filter-section > summary::-webkit-details-marker {
   display: none;
+}
+
+/* A section's "?" over its summary's line, after an unseen copy of the marker and the name. */
+.filter-section-with-help {
+  position: relative;
+}
+
+.section-help {
+  position: absolute;
+  z-index: 1;
+  top: 1px;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--touch-target);
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.section-help-spacer::before {
+  content: attr(data-title);
+  content: attr(data-title) / "";
+  padding-inline-start: var(--section-marker-width);
+  white-space: nowrap;
+  visibility: hidden;
+}
+
+.section-help .field-help,
+.section-help .field-help-panel {
+  pointer-events: auto;
 }
 
 .filter-section-body {
@@ -1336,6 +1365,21 @@ input[inputmode="numeric"] {
 
 .gain-none {
   color: var(--color-muted);
+}
+
+/* A note under the value on its own line; the label shrinks beside the value above it. */
+.facts > div:has(> .fact-note) {
+  flex-wrap: wrap;
+}
+
+.facts > div:has(> .fact-note) > dt {
+  flex: 1 1 0;
+}
+
+.facts dd.fact-note {
+  flex-basis: 100%;
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
 }
 
 .facts dt p {

@@ -5,7 +5,7 @@
 // fifa.db rows left unmarked plus the chunk's rows: a full bitmap replaces the table, a partial one
 // replaces or drops single rows, an empty one with rows adds them (a new season's rtsg). The save is
 // untrusted input.
-import { birthdateToDate, readRecords, readTable, stringReader } from "./ea-db.ts";
+import { birthdateToDate, num, readRecords, readTable, stringReader } from "./ea-db.ts";
 import type { EaDb, EaDbRow, EaDbTable } from "./ea-db.ts";
 import { SaveFormatError } from "./save-format-error.ts";
 
@@ -16,6 +16,8 @@ const CHUNK_TAG = 4;
 const SAVE_STRING_BASE = 0xc7000000;
 /** fixtures.game_number and team_manager.last_game_number: days since 1582-10-14, then a 10-bit index. */
 const GAME_INDEX_SCALE = 1024;
+/** formations.position1..11 hold the starting eleven; position12 and 13 the bench codes. */
+const STARTING_ELEVEN = 11;
 
 /** Rows of the tables the save replaces, keyed by table name. */
 export type CareerSave = ReadonlyMap<string, readonly EaDbRow[]>;
@@ -116,6 +118,10 @@ export const parseCareerSave = (db: EaDb, bytes: Uint8Array): CareerSave => {
 const rowsOf = (db: EaDb, save: CareerSave, name: string): readonly EaDbRow[] =>
   save.get(name) ?? readTable(db, name);
 
+/** Like rowsOf, but none when neither the save nor the database has the table. */
+const rowsOrNone = (db: EaDb, save: CareerSave, name: string): readonly EaDbRow[] =>
+  save.get(name) ?? (db.tables.has(name) ? readTable(db, name) : []);
+
 /** A table as the career sees it: the save's rows when it replaces the table, otherwise fifa.db's. */
 export const effectiveRows: (db: EaDb, save: CareerSave, name: CareerTable) => readonly EaDbRow[] =
   rowsOf;
@@ -172,6 +178,30 @@ export const careerManager = (
     prestige: Number(user["prestige"]),
     negotiator: Number(user["upgrade_fin"]),
   };
+};
+
+/**
+ * The game's shortlist in a career: the save's rows, else the database's (fifa.db's is empty; a database
+ * without the table, as in tests, has none).
+ */
+export const careerShortlist = (db: EaDb, save: CareerSave): readonly EaDbRow[] =>
+  rowsOrNone(db, save, "career_shortlist");
+
+/**
+ * The position codes of the user team's starting eleven: its teamwrite formation's position1..11 in
+ * formations, the save's rows where it replaces either table. None without that row: the formation only
+ * breaks best peak ties, so the save still loads, as without a formation.
+ */
+export const userFormationCodes = (db: EaDb, save: CareerSave): readonly number[] => {
+  const { teamId } = careerManager(db, save);
+  const team = rowsOrNone(db, save, "teamwrite").find((row) => row["teamid"] === teamId);
+  const formation =
+    team &&
+    rowsOrNone(db, save, "formations").find((row) => row["formationid"] === team["formationid"]);
+  if (formation === undefined) return [];
+  return Array.from({ length: STARTING_ELEVEN }, (_, index) =>
+    num(formation, `position${String(index + 1)}`),
+  );
 };
 
 /**

@@ -416,7 +416,10 @@ export const TEXT = {
     potential: "Potencjał",
     peak: "Szczyt OVR",
     bestPeak: "Szczyt na najlepszej pozycji",
-    peakNote: pl`Szczyt OVR to prognoza z krzywych rozwoju gry, ta sama co na jej wykresie rozwoju; nie obejmuje przyszłych przyrostów z meczów i treningu.`,
+    /** Under the best peak: the other positions, by their abbreviations, with the same peak. */
+    samePeakAlso: (positions: readonly string[]): string =>
+      `ten sam szczyt także na: ${positions.join(", ")}`,
+    peakNote: pl`Szczyt OVR na pozycji preferowanej zawodnika: prognoza z krzywych rozwoju gry, ta sama co na jej wykresie rozwoju; nie obejmuje przyszłych przyrostów z meczów i treningu. Realniejszy cel niż potencjał, którego zawodnicy rzadko osiągają.`,
     /** Under the card's facts when the peak stays below the potential. */
     peakBelowPotential: (potential: number): string =>
       pl`Potencjału ${formatNumber(potential)} zawodnik według prognozy szczytu nie osiągnie.`,

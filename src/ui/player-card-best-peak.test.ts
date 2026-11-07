@@ -36,6 +36,14 @@ describe("the card's best peak row", () => {
     expect(html(sweeper)).toContain("ST (ang. SW)");
   });
 
+  it("names the other positions with the same peak under it, and none when no other ties", () => {
+    // RS, ST and LS peak at 70; the card names RS.
+    const peakByCode = Array.from({ length: 32 }, (_, code) => (code >= 29 ? 70 : 60));
+    const striker = { ...sweeper, peakByCode, bestPeakCode: 29, bestPeakName: "RS" };
+    expect(bestPeak(striker, true, names)[0]?.[3]).toBe("ten sam szczyt także na: ST, LS");
+    expect(bestPeak({ ...sweeper, peakByCode: [60, 70] }, true, names)[0]?.[3]).toBeUndefined();
+  });
+
   it("has no row without potential, without a career or when the preferred position peaks as high", () => {
     expect(bestPeak(sweeper, false, names)).toEqual([]);
     expect(bestPeak(testPlayer(), true, names)).toEqual([]);
