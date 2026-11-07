@@ -3,7 +3,7 @@
 // scrolling panels; the code places it beside the button (help-place.ts) and handles Escape itself, so a
 // dialog under the panel stays open and the focus returns to the button.
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import type { JSX } from "react";
+import type { JSX, RefObject } from "react";
 import { helpPanelPlace } from "./help-place.ts";
 import { rootFontPx } from "./player-list.tsx";
 import { HELP_TEXT } from "./text-help.ts";
@@ -20,6 +20,47 @@ const panelPlace = (button: HTMLElement, panel: HTMLElement) => {
   });
 };
 
+/** The button can be seen: its middle is not scrolled away or under a sticky header. */
+const inSight = (button: HTMLElement): boolean => {
+  const box = button.getBoundingClientRect();
+  const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+  return hit !== null && button.contains(hit);
+};
+
+/**
+ * While the panel is open: Escape closes it (before the browser's own Escape, which would also close a
+ * dialog under it) and gives the focus back to the button; a scroll moves it with its button, or closes
+ * it once the button is out of sight, rather than let it float over a header; a resize moves it.
+ */
+const useWhileOpen = (
+  open: boolean,
+  button: RefObject<HTMLButtonElement | null>,
+  panel: RefObject<HTMLSpanElement | null>,
+  follow: () => void,
+) => {
+  useEffect(() => {
+    if (!open) return undefined;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      panel.current?.hidePopover();
+      button.current?.focus();
+    };
+    const onScroll = () => {
+      if (button.current !== null && inSight(button.current)) follow();
+      else panel.current?.hidePopover();
+    };
+    window.addEventListener("resize", follow);
+    document.addEventListener("scroll", onScroll, { capture: true, passive: true });
+    document.addEventListener("keydown", closeOnEscape, { capture: true });
+    return () => {
+      window.removeEventListener("resize", follow);
+      document.removeEventListener("scroll", onScroll, { capture: true });
+      document.removeEventListener("keydown", closeOnEscape, { capture: true });
+    };
+  }, [open, button, panel, follow]);
+};
+
 /** A field's explanation behind a "?" after its name; nothing for a field without one. */
 export const OptionalHelp = (props: { label: string; help: string | undefined }) =>
   props.help === undefined ? null : <FieldHelp label={props.label} text={props.help} />;
@@ -30,32 +71,16 @@ export const FieldHelp = (props: { label: string; text: string }): JSX.Element =
   const button = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLSpanElement>(null);
   const [open, setOpen] = useState(false);
+  // Measured while still hidden (styles.css keeps a panel without data-placed invisible), then shown.
   const follow = useCallback(() => {
     const shown = panel.current;
     if (button.current === null || shown === null) return;
     const { left, top } = panelPlace(button.current, shown);
     shown.style.left = `${String(left)}px`;
     shown.style.top = `${String(top)}px`;
+    shown.setAttribute("data-placed", "");
   }, []);
-  useEffect(() => {
-    if (!open) return undefined;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      // Taken before the browser's own Escape, which would also close a dialog under the panel.
-      event.preventDefault();
-      panel.current?.hidePopover();
-      button.current?.focus();
-    };
-    follow();
-    window.addEventListener("resize", follow);
-    document.addEventListener("scroll", follow, { capture: true, passive: true });
-    document.addEventListener("keydown", closeOnEscape, { capture: true });
-    return () => {
-      window.removeEventListener("resize", follow);
-      document.removeEventListener("scroll", follow, { capture: true });
-      document.removeEventListener("keydown", closeOnEscape, { capture: true });
-    };
-  }, [open, follow]);
+  useWhileOpen(open, button, panel, follow);
   return (
     <>
       <button
@@ -74,12 +99,11 @@ export const FieldHelp = (props: { label: string; text: string }): JSX.Element =
         id={id}
         popover="auto"
         className="field-help-panel"
-        onBeforeToggle={(event) => {
-          // Beside the button from its first frame; the effect corrects for the panel's size once shown.
-          if (event.newState === "open") follow();
-        }}
         onToggle={(event) => {
-          setOpen(event.newState === "open");
+          const opened = event.newState === "open";
+          if (opened) follow();
+          else panel.current?.removeAttribute("data-placed");
+          setOpen(opened);
         }}
       >
         {props.text}

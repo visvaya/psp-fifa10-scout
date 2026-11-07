@@ -27,6 +27,7 @@ import {
   TEXT,
 } from "./text.ts";
 import { Facts } from "./facts.tsx";
+import type { Fact } from "./facts.tsx";
 import { OfferFacts } from "./offer-facts.tsx";
 import { OptionalHelp } from "./field-help.tsx";
 import { FIELD_HELP, HELP_TEXT } from "./text-help.ts";
@@ -56,8 +57,6 @@ const count = (value: number | null): string | null =>
 
 /** A row only when its value is known: a player without a season in the save gets no rows of "brak"
  * (owner, 2026-11-05). */
-type Fact = readonly [string, ReactNode, (string | undefined)?];
-
 const known = (label: string, value: string | null, help?: string): readonly Fact[] =>
   value === null ? [] : [[label, value, help]];
 
@@ -184,7 +183,7 @@ const basics = (
         [
           TEXT.card.peak,
           <AttributeValue key="peak" value={player.peak} />,
-          TEXT.card.peakNote(player.potential, player.peak),
+          TEXT.card.peakNote,
         ] as const,
       ]
     : []),
@@ -256,10 +255,11 @@ const ChoiceRatings = (props: { player: Player; names: PositionNames }) => {
 /** The season so far, career only. */
 const CareerFacts = ({ player }: { player: Player }) => (
   <section aria-labelledby="career-title">
-    <h3>
-      <span id="career-title">{TEXT.card.career}</span>
+    {/* The "?" beside the heading, not in it, so the heading keeps its own name. */}
+    <div className="heading-help">
+      <h3 id="career-title">{TEXT.card.career}</h3>
       <OptionalHelp label={TEXT.card.career} help={TEXT.card.careerNote} />
-    </h3>
+    </div>
     <Facts
       facts={[
         ...known(
@@ -270,7 +270,7 @@ const CareerFacts = ({ player }: { player: Player }) => (
         ...known(RANGE_LABELS.morale, count(player.morale), FIELD_HELP.morale),
         ...SEASON_STAT_KEYS.filter(
           (key) => player.positionGroup === "goalkeeper" || !CLEAN_SHEETS.has(key),
-        ).flatMap((key) => known(RANGE_LABELS[key], count(player[key]), FIELD_HELP[key])),
+        ).flatMap((key) => known(RANGE_LABELS[key], count(player[key]))),
         ...known(RANGE_LABELS.injuryDays, count(player.injuryDays), FIELD_HELP.injuryDays),
         [FLAG_LABELS.transferListed, yesNo(player.transferListed), FIELD_HELP.transferListed],
         [FLAG_LABELS.loanListed, yesNo(player.loanListed), FIELD_HELP.loanListed],
@@ -323,6 +323,9 @@ export const PlayerCard = (props: {
       ) : null}
       <WatchlistSection playerId={player.id} entry={watched} dispatch={dispatch} />
       <Facts facts={basics(player, showPotential, currency, names)} />
+      {showPotential && player.peak !== null && player.peak < player.potential ? (
+        <p className="help">{TEXT.card.peakBelowPotential(player.potential)}</p>
+      ) : null}
       {offer === null || currency === null ? null : (
         <OfferFacts key={player.id} player={player} context={offer} currency={currency} />
       )}

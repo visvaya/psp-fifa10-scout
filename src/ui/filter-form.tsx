@@ -396,8 +396,7 @@ export const FilterForm = ({
           }}
         />
       </Section>
-      <Section title={FILTER_SECTION_LABELS.traits}>
-        <p className="help">{TEXT.traitsNote}</p>
+      <Section title={FILTER_SECTION_LABELS.traits} help={TEXT.traitsNote}>
         {PLAY_TRAITS.map(kit.flag)}
       </Section>
       {characterSection(kit)}

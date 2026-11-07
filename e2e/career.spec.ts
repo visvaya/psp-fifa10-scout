@@ -155,10 +155,10 @@ test.describe("career ratings", () => {
     await page.getByRole("button", { name: /^Lionel Messi/u }).click();
     const card = page.getByRole("dialog", { name: "Lionel Messi" });
     await expect(cardValue(card, "Zapas do szczytu")).toHaveText("0");
-    // The peak row's "?" shows its note.
-    await card.getByRole("button", { name: "Wyjaśnienie: Szczyt OVR", exact: true }).click();
+    // The peak row, and the verdict on this player's potential in sight under the facts.
+    await expect(cardValue(card, "Szczyt OVR")).toBeVisible();
     await expect(
-      card.getByText(/Potencjału 95\szawodnik według niej nie osiągnie\.$/u),
+      card.getByText(/^Potencjału 95\szawodnik według prognozy szczytu nie osiągnie\.$/u),
     ).toBeVisible();
   });
 });

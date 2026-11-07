@@ -56,10 +56,14 @@ const SEARCH_FROM_CHOICES = 12;
 export const numberOrUndefined = (text: string): number | undefined =>
   text.trim() === "" || Number.isNaN(Number(text)) ? undefined : Number(text);
 
-/** A details element whose content renders only while open, so closed sections cost nothing. */
+/**
+ * A details element whose content renders only while open, so closed sections cost nothing. A section's
+ * explanation opens from a "?" at the top of its content (a summary cannot hold a button).
+ */
 export const Section = (props: {
   title: string;
   initiallyOpen?: boolean;
+  help?: string;
   children: ReactNode;
 }): JSX.Element => {
   const [open, setOpen] = useState(props.initiallyOpen === true);
@@ -72,7 +76,12 @@ export const Section = (props: {
       }}
     >
       <summary>{props.title}</summary>
-      {open ? <div className="filter-section-body">{props.children}</div> : null}
+      {open ? (
+        <div className="filter-section-body">
+          <OptionalHelp label={props.title} help={props.help} />
+          {props.children}
+        </div>
+      ) : null}
     </details>
   );
 };

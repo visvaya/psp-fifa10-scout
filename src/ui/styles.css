@@ -1054,6 +1054,27 @@ input[inputmode="numeric"] {
   text-wrap: pretty;
 }
 
+/* Unseen until field-help.tsx has measured and placed it, so it never shows a frame off its place. */
+.field-help-panel:not([data-placed]) {
+  visibility: hidden;
+}
+
+/* A section's "?" at the top of its content, and a heading with its "?" beside it. */
+.filter-section-body > .field-help {
+  justify-self: start;
+}
+
+.heading-help {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-bottom: var(--space-2);
+}
+
+.card .heading-help h3 {
+  margin-bottom: 0;
+}
+
 /* A checkbox with its "?" after the label. */
 .check-help {
   display: flex;

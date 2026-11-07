@@ -71,6 +71,56 @@ test.describe("field explanations, wide", () => {
   });
 });
 
+test.describe("field explanations on the wide card", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  // The panel is placed against the screen, so it can reach past the card; a click there is not a click
+  // on the backdrop and keeps the card open.
+  test("keeps the card open on a click in the panel beyond its edge", async ({ page }) => {
+    await loadCareer(page);
+    await page.getByRole("button", { name: "Lionel Messi" }).click();
+    const card = page.getByRole("dialog", { name: "Lionel Messi" });
+    const button = card.getByRole("button", { name: "Wyjaśnienie: Zarobki rynkowe" });
+    await button.click();
+    const panel = await panelOf(page, button);
+    await expect(panel).toBeVisible();
+    const [cardBox, panelBox] = await Promise.all([card.boundingBox(), panel.boundingBox()]);
+    const cardRight = (cardBox?.x ?? 0) + (cardBox?.width ?? 0);
+    const panelRight = (panelBox?.x ?? 0) + (panelBox?.width ?? 0);
+    // The case under test: part of the panel lies beyond the card's right edge.
+    expect(panelRight).toBeGreaterThan(cardRight + 10);
+    await page.mouse.click(
+      (cardRight + panelRight) / 2,
+      (panelBox?.y ?? 0) + (panelBox?.height ?? 0) / 2,
+    );
+    await expect(card).toBeVisible();
+    await expect(panel).toBeVisible();
+    // The season section: one "?" beside its heading, which keeps its own name; none on the stat rows.
+    await expect(
+      card.getByRole("heading", { name: "W tym sezonie kariery", exact: true }),
+    ).toBeVisible();
+    await expect(
+      card.getByRole("button", { name: "Wyjaśnienie: W tym sezonie kariery" }),
+    ).toBeVisible();
+    await expect(card.getByRole("button", { name: "Wyjaśnienie: Występy w lidze" })).toHaveCount(0);
+  });
+
+  test("closes a panel whose button scrolls out of sight", async ({ page }) => {
+    await loadCareer(page);
+    await page.getByRole("button", { name: "Lionel Messi" }).click();
+    const card = page.getByRole("dialog", { name: "Lionel Messi" });
+    const button = card.getByRole("button", { name: "Wyjaśnienie: Wiek", exact: true });
+    await button.click();
+    const panel = await panelOf(page, button);
+    await expect(panel).toBeVisible();
+    await card.evaluate((dialog) => {
+      dialog.scrollBy(0, 2000);
+    });
+    await expect(panel).toBeHidden();
+    await expect(card).toBeVisible();
+  });
+});
+
 test.describe("field explanations, phone", () => {
   test.use(PHONE);
 
