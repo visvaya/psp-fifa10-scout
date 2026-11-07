@@ -26,10 +26,11 @@ const UNDOABLE: ReadonlySet<ScoutAction["type"]> = new Set([
   "filter-set-deleted",
 ]);
 
-/** Actions after which no earlier step applies. */
+/** Actions after which no earlier step applies; a step from before a currency change holds money bounds in the old one. */
 const FRESH_START: ReadonlySet<ScoutAction["type"]> = new Set([
   "load-succeeded",
   "preferences-restored",
+  "currency-chosen",
 ]);
 
 const stepOf = ({ filters, sort, showPotential, filterSets }: ScoutState): UndoStep => ({

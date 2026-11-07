@@ -1,12 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
   exchangeRate,
-  marketWage,
+  moneyIn,
+  priceInEuro,
   roundMoney,
   roundPrice,
-  transferPrice,
+  wageInEuro,
 } from "./transfer-price.ts";
 import type { PriceInput } from "./transfer-price.ts";
+
+/** The price and the market wage as the game shows them in a currency of this rate. */
+const transferPrice = (input: PriceInput, rate = 1): number =>
+  roundPrice(priceInEuro(input) * rate);
+const marketWage = (input: PriceInput, bosman: boolean, rate = 1): number =>
+  roundPrice(wageInEuro(input, bosman) * rate);
 
 /** OVR + OVR in five years = 195, the divider: the base is exactly 100 000 + 39 000 000. */
 const BASE = 39_100_000;
@@ -21,7 +28,6 @@ const NEUTRAL: PriceInput = {
   internationalReputation: 1,
   playingStyle: 13,
   prestige: 30,
-  exchangeRate: 1,
 };
 
 /** The price with the neutral adjustments plus `extra` (fractions of the base), central midfield 0.85. */
@@ -216,9 +222,36 @@ describe("currency", () => {
   });
 
   it("converts to the selected currency before rounding", () => {
-    expect(transferPrice({ ...NEUTRAL, exchangeRate: 0.86 })).toBe(priceWith(0, 0.85 * 0.86));
-    expect(marketWage({ ...WAGE_NEUTRAL, exchangeRate: 1.41 }, true)).toBe(
-      wageWith(-0.2, 1.3 * 1.41),
-    );
+    expect(transferPrice(NEUTRAL, 0.86)).toBe(priceWith(0, 0.85 * 0.86));
+    expect(marketWage(WAGE_NEUTRAL, true, 1.41)).toBe(wageWith(-0.2, 1.3 * 1.41));
+  });
+
+  // The game's screen on 2009-08-15 (notes, game knowledge): one budget in the three currencies.
+  it.each([
+    [0, 2_068_800],
+    [1, 1_779_170],
+    [2, 2_917_010],
+  ] as const)(
+    "shows money in currency %d with its rate, rounded as the game does",
+    (code, money) => {
+      const rate = exchangeRate(code);
+      expect(moneyIn({ priceEuro: null, wageEuro: 2_068_800, storedWage: true }, rate)).toEqual({
+        price: null,
+        wage: money,
+      });
+    },
+  );
+
+  it("rounds a price and a market wage to two significant digits in each currency", () => {
+    const euro = { priceEuro: 15_449_999.6, wageEuro: 8742.2, storedWage: false };
+    expect(([0, 1, 2] as const).map((code) => moneyIn(euro, exchangeRate(code)))).toEqual([
+      { price: 15_000_000, wage: 8700 },
+      { price: 13_000_000, wage: 7500 },
+      { price: 22_000_000, wage: 12_000 },
+    ]);
+    expect(moneyIn({ priceEuro: 0, wageEuro: null, storedWage: false }, 1.41)).toEqual({
+      price: 0,
+      wage: null,
+    });
   });
 });

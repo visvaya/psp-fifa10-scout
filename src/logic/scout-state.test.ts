@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   actionOf,
   activeFilters,
-  activeLanguage,
   DEFAULT_SORT,
   listedCount,
   initialScoutState,
   scoutReducer,
 } from "./scout-state.ts";
 import type { FilterId, ScoutState } from "./scout-state.ts";
+import { activeLanguage } from "./game-names.ts";
 import { TEST_CAREER, testPlayer } from "./test-support/player-fixtures.ts";
 
 const PLAYERS = [testPlayer({ id: 1 }), testPlayer({ id: 2, clubId: 7 })];

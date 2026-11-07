@@ -86,7 +86,7 @@ describe("usesPotential", () => {
 describe("filterSetsAfter", () => {
   it("leaves the preferences alone when the set to load is gone", () => {
     const preferences = { filters: {}, sort: BY_AGE, showPotential: false, filterSets: [set("A")] };
-    expect(filterSetsAfter(preferences, { type: "filter-set-loaded", name: "B" })).toBe(
+    expect(filterSetsAfter(preferences, { type: "filter-set-loaded", name: "B" }, null)).toBe(
       preferences,
     );
   });

@@ -270,6 +270,15 @@ export const TEXT = {
   languageFromDb: pl`Angielskie z bazy fifa.db`,
   languageHelp: pl`Obraz ISO zawiera nazwy we wszystkich językach gry; po jego wczytaniu wybierz język z listy.`,
   localeInput: pl`Albo dołącz plik języka i string.idx`,
+  currencyStep: pl`4. Waluta`,
+  currencySelect: pl`Ceny i zarobki w walucie`,
+  /** In the order of the game's menu. */
+  currencies: [
+    [1, "Funt (£)"],
+    [0, "Euro (€)"],
+    [2, "Dolar ($)"],
+  ] as const satisfies readonly (readonly [CurrencyCode, string])[],
+  currencyHelp: pl`Kwoty są liczone kursem i zaokrągleniem gry, tak jakby twoja kariera używała tej waluty. W walucie innej niż ta z kariery nie zgadzają się z ekranami gry.`,
   localeHelp: pl`Pliki leżą w obrazie ISO w PSP_GAME/USRDIR/data/gui/locale, np. pol_pl.loc. Zaznacz plik języka razem ze string.idx z tego samego folderu.`,
   resultCount: (value: number): string => count(value, PLAYERS),
   installHeading: "Aplikacja na ekranie początkowym",

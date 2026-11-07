@@ -1,5 +1,7 @@
 // Filter sets: the current filters and sort saved under a name, to load again later ("tanie perełki na
 // LO"). Names are unique: saving under a taken name overwrites that set.
+import type { CurrencyCode } from "../data/career-save.ts";
+import { moneyFiltersIn } from "./currency.ts";
 import type { Preferences, ScoutFilters, ScoutSort } from "./scout-state.ts";
 import { POTENTIAL_KEYS } from "./sort-players.ts";
 
@@ -7,6 +9,8 @@ export interface FilterSet {
   readonly name: string;
   readonly filters: ScoutFilters;
   readonly sort: ScoutSort;
+  /** The currency of its money bounds; unset (saved without a career or before the choice) the shown one. */
+  readonly currency?: CurrencyCode;
 }
 
 export type SetNameCheck =
@@ -66,13 +70,19 @@ export type FilterSetAction =
 
 /**
  * The preferences after saving, loading, renaming or deleting a set. Loading a set that needs the
- * potential shows it, rather than dropping part of the set.
+ * potential shows it, rather than dropping part of the set. A set records the currency money shows in
+ * (null without a career), and its money bounds load converted to the one shown then.
  */
-export const filterSetsAfter = (state: Preferences, action: FilterSetAction): Preferences => {
+export const filterSetsAfter = (
+  state: Preferences,
+  action: FilterSetAction,
+  currency: CurrencyCode | null,
+): Preferences => {
   const sets = state.filterSets ?? [];
   if (action.type === "filter-set-saved") {
     const { filters, sort } = state;
-    return { ...state, filterSets: savedSet(sets, { name: action.name, filters, sort }) };
+    const set = { name: action.name, filters, sort, ...(currency === null ? {} : { currency }) };
+    return { ...state, filterSets: savedSet(sets, set) };
   }
   if (action.type === "filter-set-renamed") {
     return { ...state, filterSets: renamedSet(sets, action.from, action.to) };
@@ -83,5 +93,9 @@ export const filterSetsAfter = (state: Preferences, action: FilterSetAction): Pr
   const set = sets.find((each) => each.name === action.name);
   if (set === undefined) return state;
   const showPotential = state.showPotential || usesPotential(set);
-  return { ...state, filters: set.filters, sort: set.sort, showPotential };
+  const filters =
+    currency === null
+      ? set.filters
+      : moneyFiltersIn(set.filters, set.currency ?? currency, currency);
+  return { ...state, filters, sort: set.sort, showPotential };
 };

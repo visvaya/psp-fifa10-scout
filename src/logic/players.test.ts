@@ -7,6 +7,7 @@ import type { EaDbRow } from "../data/ea-db.ts";
 import { buildEaDb } from "../data/test-support/synthetic-ea-db.ts";
 import { NO_BEST_PEAK } from "./best-peak.ts";
 import { filterPlayers } from "./filter-players.ts";
+import { NO_FINANCE } from "./player-finance.ts";
 import { buildPlayers } from "./players.ts";
 import { sortPlayers } from "./sort-players.ts";
 import { baseOverall, byPositionCode } from "./overall-rating.ts";
@@ -224,9 +225,7 @@ describe("buildPlayers from fifa.db", () => {
       shortlisted: false,
       clubWillSell: null,
       saleRefusal: null,
-      price: null,
-      wage: null,
-      storedWage: false,
+      ...NO_FINANCE,
     });
     // jscpd:ignore-end
   });

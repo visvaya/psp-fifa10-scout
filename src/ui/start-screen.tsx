@@ -1,4 +1,5 @@
 import type { ChangeEvent, Dispatch, JSX, ReactNode } from "react";
+import { isCurrency, shownCurrency } from "../logic/currency.ts";
 import { languageLabel } from "../logic/game-names.ts";
 import type { LoadStage } from "../logic/load-scout.ts";
 import { isRestoring, listedCount } from "../logic/scout-state.ts";
@@ -85,29 +86,26 @@ const FileStep = (props: FileStepProps): JSX.Element => {
   );
 };
 
-const LanguageSelect = ({
-  codes,
-  language,
-  onLanguage,
-}: {
-  readonly codes: readonly string[];
-  readonly language: string | null;
-  readonly onLanguage: (language: string | null) => void;
+/** A step's choice from a list, as [value, label] pairs. */
+const StepSelect = (props: {
+  readonly id: string;
+  readonly label: string;
+  readonly value: string;
+  readonly options: readonly (readonly [string, string])[];
+  readonly onChoice: (value: string) => void;
 }): JSX.Element => (
   <div className="field">
-    <label htmlFor="game-language">{TEXT.languageSelect}</label>
+    <label htmlFor={props.id}>{props.label}</label>
     <select
-      id="game-language"
-      value={language ?? ""}
+      id={props.id}
+      value={props.value}
       onChange={(event) => {
-        const { value } = event.currentTarget;
-        onLanguage(value === "" ? null : value);
+        props.onChoice(event.currentTarget.value);
       }}
     >
-      <option value="">{TEXT.languageFromDb}</option>
-      {codes.map((code) => (
-        <option key={code} value={code}>
-          {languageLabel(code)}
+      {props.options.map(([value, label]) => (
+        <option key={value} value={value}>
+          {label}
         </option>
       ))}
     </select>
@@ -136,11 +134,18 @@ const LanguageStep = ({
     multiple
     accept=".loc,.idx"
     before={
-      <LanguageSelect
-        codes={Object.keys(state.languages).toSorted()}
-        language={language}
-        onLanguage={(chosen) => {
-          dispatch({ type: "language-chosen", language: chosen });
+      <StepSelect
+        id="game-language"
+        label={TEXT.languageSelect}
+        value={language ?? ""}
+        options={[
+          ["", TEXT.languageFromDb],
+          ...Object.keys(state.languages)
+            .toSorted()
+            .map((code) => [code, languageLabel(code)] as const),
+        ]}
+        onChoice={(chosen) => {
+          dispatch({ type: "language-chosen", language: chosen === "" ? null : chosen });
         }}
       />
     }
@@ -153,6 +158,33 @@ const LanguageStep = ({
     }
   />
 );
+
+/** The currency money shows in; only a career has money, so only with one. */
+const CurrencyStep = ({
+  state,
+  dispatch,
+}: Pick<StartScreenProps, "state" | "dispatch">): JSX.Element | null => {
+  const currency = shownCurrency(state);
+  if (currency === null) return null;
+  return (
+    <div className="step">
+      <h3>{TEXT.currencyStep}</h3>
+      <StepSelect
+        id="currency"
+        label={TEXT.currencySelect}
+        value={String(currency)}
+        options={TEXT.currencies.map(([code, label]) => [String(code), label] as const)}
+        onChoice={(chosen) => {
+          const code = Number(chosen);
+          if (isCurrency(code)) dispatch({ type: "currency-chosen", currency: code });
+        }}
+      />
+      <div className="help">
+        <p>{TEXT.currencyHelp}</p>
+      </div>
+    </div>
+  );
+};
 
 /** The career save: what it holds once loaded, and how to forget it. */
 const SaveStep = ({
@@ -263,6 +295,7 @@ export const StartScreen = (props: StartScreenProps): JSX.Element => {
         />
         <SaveStep {...props} />
         <LanguageStep {...props} />
+        <CurrencyStep {...props} />
         <section className="step install-help" aria-labelledby="install-title">
           <h3 id="install-title">{TEXT.installHeading}</h3>
           <p className="help">

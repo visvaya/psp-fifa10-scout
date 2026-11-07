@@ -11,8 +11,14 @@ import { baseOverall, CURVE_COLUMNS } from "./overall-rating.ts";
 import { buildPlayers } from "./players.ts";
 import type { Player } from "./players.ts";
 import { attributes, floatBits, playerRow, table } from "./test-support/player-fixtures.ts";
-import { marketWage, roundMoney, roundPrice, transferPrice } from "./transfer-price.ts";
+import { priceInEuro, roundMoney, roundPrice, wageInEuro } from "./transfer-price.ts";
 import type { PriceInput } from "./transfer-price.ts";
+
+/** The price and the market wage as the game shows them in a currency of this rate. */
+const transferPrice = (input: PriceInput, rate = 1): number =>
+  roundPrice(priceInEuro(input) * rate);
+const marketWage = (input: PriceInput, bosman: boolean): number =>
+  roundPrice(wageInEuro(input, bosman));
 
 const daysSince1582 = (year: number, month: number, day: number): number =>
   (Date.UTC(year, month - 1, day) - Date.UTC(1582, 9, 14)) / 86_400_000;
@@ -138,7 +144,6 @@ const input = (overrides: Partial<PriceInput> = {}): PriceInput => ({
   internationalReputation: 4,
   playingStyle: 13,
   prestige: 21,
-  exchangeRate: 1,
   ...overrides,
 });
 
@@ -180,8 +185,11 @@ describe("career prices and wages", () => {
       ["team_manager", [row({ ...manager, currency: 1 })]],
     ]);
     const player = (id: number) => buildPlayers(DB, inPounds).find((each) => each.id === id);
-    expect(player(1)?.price).toBe(transferPrice(input({ exchangeRate: 0.86 })));
+    expect(player(1)?.price).toBe(transferPrice(input(), 0.86));
     expect(player(4)?.wage).toBe(roundMoney(1234 * 0.86));
+    // The euro amounts stay, so another currency can be shown without a new load.
+    expect(player(1)?.priceEuro).toBe(priceInEuro(input()));
+    expect(player(4)).toMatchObject({ wageEuro: 1234, storedWage: true });
   });
 
   // In April 2011 the game shows a contract to 2013 as three years: it counts from the season's first
