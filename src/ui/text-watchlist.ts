@@ -3,9 +3,9 @@
 import { pl } from "./typeset.ts";
 
 export const WATCHLIST_TEXT = {
-  title: "Moja lista",
-  add: "Dodaj do mojej listy",
-  remove: pl`Usuń z mojej listy`,
-  removeQuestion: pl`Usunąć zawodnika z mojej listy? Jego notatka przepadnie.`,
+  title: pl`Twoja lista w narzędziu`,
+  add: pl`Dodaj do twojej listy w narzędziu`,
+  remove: pl`Usuń z twojej listy w narzędziu`,
+  removeQuestion: pl`Usunąć zawodnika z twojej listy w narzędziu? Jego notatka przepadnie.`,
   note: "Notatka",
 } as const;

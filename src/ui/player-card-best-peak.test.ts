@@ -1,4 +1,4 @@
-import { createElement, Fragment, isValidElement } from "react";
+import { createElement, Fragment } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { abbreviationIn, positionNameIn } from "../logic/game-names.ts";
@@ -36,16 +36,11 @@ describe("the card's best peak row", () => {
     expect(html(sweeper)).toContain("ST (ang. SW)");
   });
 
-  it("names the other positions with the same peak under it, folded, and none when no other ties", () => {
+  it("names the other positions with the same peak under it, unfolded, and none when no other ties", () => {
     // RS, ST and LS peak at 70; the card names RS.
     const peakByCode = Array.from({ length: 32 }, (_, code) => (code >= 29 ? 70 : 60));
     const striker = { ...sweeper, peakByCode, bestPeakCode: 29, bestPeakName: "RS" };
-    const note = bestPeak(striker, true, names)[0]?.[3];
-    expect(isValidElement<{ positions: string }>(note) && note.props.positions).toBe("ST, LS");
-    const folded = renderToStaticMarkup(note);
-    expect(folded).toContain('aria-expanded="false"');
-    expect(folded).toContain("ten sam szczyt także na");
-    expect(folded).not.toContain("ST, LS");
+    expect(bestPeak(striker, true, names)[0]?.[3]).toBe("ten sam szczyt także na: ST, LS");
     expect(bestPeak({ ...sweeper, peakByCode: [60, 70] }, true, names)[0]?.[3]).toBeUndefined();
   });
 

@@ -340,7 +340,7 @@ test.describe("phone name forms with marks", () => {
   test("counts the own list's star when fitting a long name", async ({ page }) => {
     await showLongName(page);
     await page.locator(".player-row", { hasText: "Bardzo-Długie" }).click();
-    await page.getByRole("button", { name: "Dodaj do mojej listy" }).click();
+    await page.getByRole("button", { name: "Dodaj do twojej listy w narzędziu" }).click();
     await page.keyboard.press("Escape");
     await expect(page.locator(".player-row .watch-mark")).toHaveCount(1);
     expect(await cutFullNames(page)).toEqual([]);

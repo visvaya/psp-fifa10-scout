@@ -342,7 +342,7 @@ export const TEXT = {
   missingValue: "brak danych",
   shortlisted: pl`na liście życzeń w grze`,
   /** The own list's star in words, after the name. */
-  watched: pl`na mojej liście`,
+  watched: pl`na twojej liście w narzędziu`,
   anyOption: "Dowolna",
   min: "od",
   max: "do",
@@ -382,8 +382,9 @@ export const TEXT = {
     potential: "Potencjał",
     peak: "Szczyt OVR",
     bestPeak: "Szczyt na najlepszej pozycji",
-    /** Under the best peak, folded: the other positions, by their abbreviations, with the same peak. */
-    samePeakAlso: "ten sam szczyt także na",
+    /** Under the best peak: the other positions, by their abbreviations, with the same peak. */
+    samePeakAlso: (positions: readonly string[]): string =>
+      `ten sam szczyt także na: ${positions.join(", ")}`,
     peakNote: pl`Szczyt OVR na pozycji preferowanej zawodnika: prognoza z krzywych rozwoju gry, ta sama co na jej wykresie rozwoju; nie obejmuje przyszłych przyrostów z meczów i treningu. Realniejszy cel niż potencjał, którego zawodnicy rzadko osiągają.`,
     overallByGroup: "OVR na pozycjach",
     openMark: "▾",
@@ -417,7 +418,7 @@ export const TEXT = {
     wage: "Zarobki rynkowe",
     contractWage: pl`Zarobki z kontraktu`,
     shortlisted: pl`Na twojej liście życzeń w grze`,
-    watched: pl`Na mojej liście`,
+    watched: pl`Na twojej liście w narzędziu`,
     money: (amount: number, currency: CurrencyCode): string =>
       `${formatNumber(amount)}${NBSP}${CURRENCY_SYMBOLS[currency]}`,
     wageEstimate: (wage: number, currency: CurrencyCode): string =>

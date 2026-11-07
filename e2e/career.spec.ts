@@ -313,13 +313,13 @@ test.describe("marks on the card and the list", () => {
     const messi = page.getByRole("button", { name: /^Lionel Messi/u });
     await messi.click();
     const card = page.getByRole("dialog", { name: "Lionel Messi" });
-    await expect(card.getByText("Na mojej liście")).toHaveCount(0);
-    await card.getByRole("button", { name: "Dodaj do mojej listy" }).click();
-    await expect(card.getByText("Na mojej liście")).toBeVisible();
+    await expect(card.getByText("Na twojej liście w narzędziu")).toHaveCount(0);
+    await card.getByRole("button", { name: "Dodaj do twojej listy w narzędziu" }).click();
+    await expect(card.getByText("Na twojej liście w narzędziu")).toBeVisible();
     await expectNoAxeViolations(page);
     await page.keyboard.press("Escape");
     await expect(messi).toHaveAccessibleName(
-      "Lionel Messi na liście życzeń w grze, na mojej liście",
+      "Lionel Messi na liście życzeń w grze, na twojej liście w narzędziu",
     );
     await expect(messi.locator(":scope > .shortlist-mark:first-child + .watch-mark")).toBeVisible();
     const [game, own] = [messi.locator(".shortlist-mark"), messi.locator(".watch-mark")];

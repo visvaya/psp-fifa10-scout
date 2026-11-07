@@ -181,13 +181,9 @@ test.describe("peak at the best position, eye and card", () => {
     const [best, note] = [bestValues.first(), bestValues.nth(1)];
     // RCB, CB and LCB tie: the diamond's RCB and LCB, RCB on his right foot, the others named under it.
     await expect(best).toHaveText(/^RCB\s61$/u);
-    // The other positions folded under a switch, as "OVR na pozycjach" folds its positions.
-    const samePeak = note.getByRole("button", { name: "ten sam szczyt także na" });
-    await expect(samePeak).toHaveAttribute("aria-expanded", "false");
-    await expect(note).not.toContainText("CB, LCB");
-    await samePeak.click();
-    await expect(samePeak).toHaveAttribute("aria-expanded", "true");
-    await expect(note).toHaveText(/^ten sam szczyt także na\s\S\s?CB, LCB$/u);
+    // The other positions shown at once, with no switch to unfold them (owner, 2026-11-07).
+    await expect(note).toHaveText("ten sam szczyt także na: CB, LCB");
+    await expect(note.getByRole("button")).toHaveCount(0);
     await expectNoAxeViolations(page);
     const values = [best, cardValue(card, "OVR"), cardValue(card, "Szczyt OVR")];
     expect(await Promise.all(values.map(badgeGap))).toEqual([0, 0, 0]);
@@ -228,8 +224,7 @@ test.describe("peak at the best position, phone", () => {
     await page.getByRole("button", { name: /^Paweł Brożek/u }).click();
     const card = page.getByRole("dialog", { name: "Paweł Brożek" });
     const note = cardValue(card, "Szczyt na najlepszej pozycji").nth(1);
-    await note.getByRole("button", { name: "ten sam szczyt także na" }).tap();
-    await expect(note).toHaveText(/CB, LCB$/u);
+    await expect(note).toHaveText("ten sam szczyt także na: CB, LCB");
     expect(await lineCount(note)).toBe(1);
     await expectNoHorizontalOverflow(page);
   });
