@@ -41,8 +41,10 @@ test.describe("own watchlist", () => {
     const card = await openBrozek(page);
     const note = card.getByRole("textbox", NOTE_FIELD);
     await expect(note).toBeHidden();
-    await card.getByRole("button", { name: "Dodaj do mojej listy" }).click();
-    await expect(card.getByRole("button", { name: "Usuń z mojej listy" })).toBeVisible();
+    await card.getByRole("button", { name: "Dodaj do twojej listy w narzędziu" }).click();
+    await expect(
+      card.getByRole("button", { name: "Usuń z twojej listy w narzędziu" }),
+    ).toBeVisible();
     await note.fill(NOTE);
     await expect(note).toHaveAttribute("maxlength", "500");
     await expectNoAxeViolations(page);
@@ -61,7 +63,7 @@ test.describe("own watchlist", () => {
     ).toBeVisible();
     // The own list's star before his name, named for screen readers.
     await expect(page.getByRole("button", { name: /^Paweł Brożek/u })).toHaveAccessibleName(
-      "Paweł Brożek na mojej liście",
+      "Paweł Brożek na twojej liście w narzędziu",
     );
     await expect(page.locator(".watch-mark")).toHaveCount(1);
     // Without a career there is no game shortlist to choose.
@@ -76,8 +78,8 @@ test.describe("own watchlist", () => {
   }) => {
     await loadDatabase(page);
     const card = await openBrozek(page);
-    const add = card.getByRole("button", { name: "Dodaj do mojej listy" });
-    const remove = card.getByRole("button", { name: "Usuń z mojej listy" });
+    const add = card.getByRole("button", { name: "Dodaj do twojej listy w narzędziu" });
+    const remove = card.getByRole("button", { name: "Usuń z twojej listy w narzędziu" });
     await add.click();
     // Spaces alone are no note.
     await card.getByRole("textbox", NOTE_FIELD).fill("   ");
@@ -106,13 +108,13 @@ test.describe("own watchlist, focus and store", () => {
   }) => {
     await loadDatabase(page);
     const card = await openBrozek(page);
-    await card.getByRole("button", { name: "Dodaj do mojej listy" }).click();
+    await card.getByRole("button", { name: "Dodaj do twojej listy w narzędziu" }).click();
     await page.keyboard.press("Escape");
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("");
     await onList(page, "w narzędziu");
     await expectCount(page, "1 zawodnik");
     await page.getByRole("button", { name: /^Paweł Brożek/u }).click();
-    await page.getByRole("button", { name: "Usuń z mojej listy" }).click();
+    await page.getByRole("button", { name: "Usuń z twojej listy w narzędziu" }).click();
     await page.keyboard.press("Escape");
     await expectCount(page, "0 zawodników");
     await expect(page.locator("#results-title")).toBeFocused();
@@ -148,7 +150,7 @@ test.describe("own watchlist in the table", () => {
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("bardzo");
     const name = page.getByRole("button", { name: /Bardzo-Długie/u });
     await name.click();
-    await page.getByRole("button", { name: "Dodaj do mojej listy" }).click();
+    await page.getByRole("button", { name: "Dodaj do twojej listy w narzędziu" }).click();
     await page.keyboard.press("Escape");
     await expect(name.locator(".watch-mark")).toBeVisible();
     const overflow = await name.evaluate((element) => element.scrollWidth - element.clientWidth);
@@ -167,10 +169,10 @@ test.describe("own watchlist on a phone", () => {
     await filters.getByRole("button", { name: "Zamknij" }).tap();
     await page.getByRole("button", { name: /^Paweł Brożek/u }).tap();
     const card = page.getByRole("dialog", { name: "Paweł Brożek" });
-    await card.getByRole("button", { name: "Dodaj do mojej listy" }).tap();
+    await card.getByRole("button", { name: "Dodaj do twojej listy w narzędziu" }).tap();
     const note = card.getByRole("textbox", NOTE_FIELD);
     await note.scrollIntoViewIfNeeded();
-    await expect(card.getByRole("heading", { name: "Moja lista" })).toBeVisible();
+    await expect(card.getByRole("heading", { name: "Twoja lista w narzędziu" })).toBeVisible();
     await expect(note).toBeInViewport();
     await expectNoHorizontalOverflow(page);
     await expectNoAxeViolations(page);

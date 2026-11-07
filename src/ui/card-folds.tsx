@@ -1,5 +1,5 @@
-// The card's folded parts: the OVR per rating choice with the positions each covers, and the other
-// positions with the same best peak. One switch with an arrow shows or folds each.
+// The card's folded part: the OVR per rating choice with the positions each covers, shown or folded by
+// one switch with an arrow.
 import { useState } from "react";
 import type { ReactNode } from "react";
 import type { Player } from "../logic/players.ts";
@@ -18,24 +18,6 @@ const FoldButton = (props: { open: boolean; onToggle: () => void; children: Reac
     </span>
   </button>
 );
-
-/** The other positions with the same best peak, folded under their switch (owner, 2026-11-07). */
-export const SamePeakNote = ({ positions }: { positions: string }) => {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <FoldButton
-        open={open}
-        onToggle={() => {
-          setOpen(!open);
-        }}
-      >
-        {TEXT.card.samePeakAlso}
-      </FoldButton>
-      {open ? positions : null}
-    </>
-  );
-};
 
 /** The positions a rating choice covers, by their full names in the game language where it has them. */
 const choicePositions = (code: number, names: PositionNames): string =>

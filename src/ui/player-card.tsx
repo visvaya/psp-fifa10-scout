@@ -10,7 +10,7 @@ import { SEASON_STAT_KEYS } from "../logic/players.ts";
 import type { AttributeName, Player } from "../logic/players.ts";
 import type { ScoutAction } from "../logic/scout-state.ts";
 import type { WatchEntry } from "../logic/watchlist.ts";
-import { ChoiceRatings, SamePeakNote } from "./card-folds.tsx";
+import { ChoiceRatings } from "./card-folds.tsx";
 import { CurveSparkline } from "./curve-sparkline.tsx";
 import { Stars, WatchMark } from "./stars.tsx";
 import { WatchlistSection } from "./watchlist-section.tsx";
@@ -194,8 +194,8 @@ const clubFacts = (player: Player): readonly Fact[] =>
       ];
 
 /** The other positions with the same best peak, in code order, or undefined without any. */
-const samePeakNote = (others: readonly number[], names: PositionNames) =>
-  others.length === 0 ? undefined : <SamePeakNote positions={others.map(names.short).join(", ")} />;
+const samePeakNote = (others: readonly number[], names: PositionNames): string | undefined =>
+  others.length === 0 ? undefined : TEXT.card.samePeakAlso(others.map(names.short));
 
 /**
  * His best peak and where it comes, when that position peaks above the preferred one, with the other
