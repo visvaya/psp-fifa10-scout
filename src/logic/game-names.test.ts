@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { countryKey, labelKey, leagueKey, teamKey, textKey } from "../data/game-locale.ts";
 import {
   collatorFor,
@@ -179,6 +179,16 @@ describe("localizePlayers", () => {
       [2, 1],
     ]);
     expect(localizePlayers(players, null, nameCollator())).toBe(players);
+    expect(localizePlayers(players, null, collatorFor("pol_pl"))).toBe(players);
+  });
+
+  it("ranks another language's names without building the Polish collator", async () => {
+    const collator = vi.spyOn(Intl, "Collator");
+    vi.resetModules();
+    const fresh = await import("./game-names.ts");
+    fresh.localizePlayers([testPlayer({ id: 1 })], null, fresh.collatorFor("cze_cz"));
+    expect(collator.mock.calls).toEqual([["cs"]]);
+    collator.mockRestore();
   });
 });
 

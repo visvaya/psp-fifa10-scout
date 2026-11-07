@@ -18,7 +18,6 @@ export interface PluralForms {
   readonly many: string;
 }
 
-// Each Intl object is made on first use (lazy.ts): building one loads locale data.
 const pluralRules = lazy(() => new Intl.PluralRules("pl"));
 const numberFormat = lazy(() => new Intl.NumberFormat("pl-PL"));
 

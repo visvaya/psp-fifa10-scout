@@ -265,8 +265,11 @@ interface Rating {
   readonly peakByCode: readonly number[];
 }
 
-/** Polish alphabetical order: the default of every text sort. Made on first use (lazy.ts). */
-export const nameCollator = lazy(() => new Intl.Collator("pl"));
+/** The locale of the default text order. */
+export const NAME_LOCALE = "pl";
+
+/** Polish alphabetical order: the default of every text sort. */
+export const nameCollator = lazy(() => new Intl.Collator(NAME_LOCALE));
 
 /** Text without case and diacritics (ł included, which has no decomposition), for search. */
 export const searchKey = (text: string): string =>

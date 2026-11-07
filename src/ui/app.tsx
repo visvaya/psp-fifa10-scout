@@ -31,16 +31,12 @@ const WIDE_QUERY = "(min-width: 60rem)";
 const useGameNames = (state: ScoutState) => {
   const language = activeLanguage(state, navigator.languages);
   const names = language === null ? null : (state.languages[language] ?? null);
-  // Made once there are players: building a collator loads its locale data, a long task at start.
-  const listed = state.players !== null;
-  const collator = useMemo(() => (listed ? collatorFor(language) : null), [listed, language]);
-  const players = useMemo(
-    () =>
-      state.players === null || collator === null
-        ? null
-        : localizePlayers(state.players, names, collator),
-    [state.players, names, collator],
-  );
+  // The collator only once there are players: it is costly to build (lazy.ts).
+  const list = useMemo(() => {
+    if (state.players === null) return null;
+    const collator = collatorFor(language);
+    return { players: localizePlayers(state.players, names, collator), collator };
+  }, [state.players, names, language]);
   const positionNames = useMemo(
     (): PositionNames => ({
       short: (code) => positionNameIn(names, code),
@@ -49,7 +45,7 @@ const useGameNames = (state: ScoutState) => {
     }),
     [names],
   );
-  return { language, players, collator, positionNames };
+  return { language, list, positionNames };
 };
 
 /** Stores the preferences, the languages read and the watchlist, once the stored ones were restored. */
@@ -157,23 +153,23 @@ export const App = (props: { registering: Promise<UpdatableRegistration> | null 
   const [state, dispatch] = useReducer(scoutReducer, initialScoutState);
   const files = useScoutFiles(dispatch);
   const wide = useMediaQuery(WIDE_QUERY);
-  const { language, players, collator, positionNames } = useGameNames(state);
+  const { language, list, positionNames } = useGameNames(state);
   const update = useAppUpdate(props.registering);
   useStoredState(state, files);
   const { view, showPotential } = state;
 
-  const openPlayer = players?.find((player) => player.id === state.openPlayerId);
+  const openPlayer = list?.players.find((player) => player.id === state.openPlayerId);
   return (
     <div className="app">
-      <TopBar view={players === null ? null : view} update={update} dispatch={dispatch} />
+      <TopBar view={list === null ? null : view} update={update} dispatch={dispatch} />
       <UpdatePrompt status={update.status} install={update.install} dismiss={update.dismiss} />
       <StorageNotice failed={files.storageFailed} />
       <main className="main">
-        {view === "list" && players !== null && collator !== null ? (
+        {view === "list" && list !== null ? (
           <ListView
             state={state}
-            players={players}
-            collator={collator}
+            players={list.players}
+            collator={list.collator}
             positionName={positionNames.short}
             wide={wide}
             dispatch={dispatch}
