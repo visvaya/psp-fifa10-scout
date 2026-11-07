@@ -8,6 +8,4 @@ export const WATCHLIST_TEXT = {
   remove: pl`Usuń z mojej listy`,
   removeQuestion: pl`Usunąć zawodnika z mojej listy? Jego notatka przepadnie.`,
   note: "Notatka",
-  noteHelp: (max: number): string =>
-    pl`Zapisuje się w tej przeglądarce przy każdej zmianie, do ${max} znaków.`,
 } as const;

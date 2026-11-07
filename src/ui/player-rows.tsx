@@ -18,7 +18,7 @@ import {
   useRows,
   widestTextRem,
 } from "./player-list.tsx";
-import type { ListProps } from "./player-list.tsx";
+import type { ListMarks, ListProps } from "./player-list.tsx";
 import { PositionName } from "./position-name.tsx";
 import { TEXT } from "./text.ts";
 import { NBSP } from "./typeset.ts";
@@ -211,23 +211,25 @@ const LabelButton = (props: {
 };
 
 /** The name; a long one also as "A. Surname", which styles.css shows instead once the list scrolls. */
-const PhoneName = ({ player }: { player: Player }) =>
-  player.initialName !== null && player.name.length > PHONE.initialAboveChars ? (
+const PhoneName = (marks: ListMarks) => {
+  const { player } = marks;
+  return player.initialName !== null && player.name.length > PHONE.initialAboveChars ? (
     <span className="player-row-name has-initial">
-      <ShortlistStar player={player} />
+      <ShortlistStar {...marks} />
       <span className="player-row-name-full">{player.name}</span>
       <span className="player-row-name-short" aria-hidden="true">
         {player.initialName}
       </span>
-      <ShortlistWords player={player} />
+      <ShortlistWords {...marks} />
     </span>
   ) : (
     <span className="player-row-name">
-      <ShortlistStar player={player} />
+      <ShortlistStar {...marks} />
       {player.name}
-      <ShortlistWords player={player} />
+      <ShortlistWords {...marks} />
     </span>
   );
+};
 
 /**
  * Where the list scrolls so a focused label shows whole between the kept name and the right edge (from
@@ -372,14 +374,15 @@ const MetaLine = ({ player, columns }: { player: Player; columns: readonly SortK
 };
 
 /** One phone row: the name with what has no column of its own, then the columns. */
-const PhoneRow = (props: {
-  player: Player;
-  columns: readonly SortKey[];
-  labels: readonly string[];
-  ratingCode: number | null;
-  dispatch: Dispatch<ScoutAction>;
-}) => {
-  const { player, columns, labels, ratingCode, dispatch } = props;
+const PhoneRow = (
+  props: ListMarks & {
+    columns: readonly SortKey[];
+    labels: readonly string[];
+    ratingCode: number | null;
+    dispatch: Dispatch<ScoutAction>;
+  },
+) => {
+  const { player, watched, columns, labels, ratingCode, dispatch } = props;
   return (
     <button
       type="button"
@@ -390,7 +393,7 @@ const PhoneRow = (props: {
       }}
     >
       <span className="player-row-text">
-        <PhoneName player={player} />
+        <PhoneName player={player} watched={watched} />
         <MetaLine player={player} columns={columns} />
       </span>
       {columns.map((column, index) => (
@@ -442,7 +445,7 @@ const usePhoneColumns = (props: ListProps) => {
 };
 
 export const PlayerCards = (props: ListProps): JSX.Element => {
-  const { players, ratingCode, sort, dispatch } = props;
+  const { players, ratingCode, sort, watchedIds, dispatch } = props;
   const { columns, labels, layout } = usePhoneColumns(props);
   const headerRef = useRef<HTMLDivElement>(null);
   const { scrollRef, items, before, after } = useRows(players.length, ROW_HEIGHT_REM.list);
@@ -491,6 +494,7 @@ export const PlayerCards = (props: ListProps): JSX.Element => {
               <li key={player.id} aria-setsize={players.length} aria-posinset={item.index + 1}>
                 <PhoneRow
                   player={player}
+                  watched={watchedIds.has(player.id)}
                   columns={columns}
                   labels={labels}
                   ratingCode={ratingCode}

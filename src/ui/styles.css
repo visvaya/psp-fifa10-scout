@@ -10,6 +10,8 @@
   --color-accent: #1d6b3c;
   --color-accent-ink: #ffffff;
   --color-error: #a3261b;
+  /* The own list's star, apart from the game shortlist's green (accent). */
+  --color-watch: #7b3fb0;
   --color-band-high: #1d6b3c;
   --color-band-high-ink: #ffffff;
   --color-band-good: #9ad39a;
@@ -59,6 +61,7 @@
     --color-accent: #6ccf93;
     --color-accent-ink: #0c1a11;
     --color-error: #ff8f84;
+    --color-watch: #c9a2ff;
     --color-position-goalkeeper: #cc9900;
     --color-position-defence: #8fa3ff;
     --color-position-midfield: #33bb33;
@@ -703,7 +706,13 @@ input[inputmode="numeric"] {
   color: var(--color-accent);
 }
 
-.shortlist-mark {
+.watch-mark,
+.watched {
+  color: var(--color-watch);
+}
+
+.shortlist-mark,
+.watch-mark {
   margin-right: var(--space-1);
 }
 
@@ -1046,6 +1055,11 @@ input[inputmode="numeric"] {
 .field-help:hover,
 .field-help[aria-expanded="true"] {
   color: var(--color-ink);
+}
+
+/* The "!" before a value whose note asks for attention, in the warning colour also while open. */
+.field-help.field-warning {
+  color: var(--color-error);
 }
 
 /* The explanation, placed beside its "?" by field-help.tsx (fixed, in the top layer as a popover). */
@@ -1395,6 +1409,12 @@ input[inputmode="numeric"] {
   font-size: var(--font-size-sm);
 }
 
+/* A switch within the note, on the note's line and as quiet as the note. */
+.fact-note .sort-button {
+  padding-block: 0;
+  font-weight: inherit;
+}
+
 .facts dt p {
   margin: var(--space-1) 0 0;
 }
@@ -1444,7 +1464,7 @@ input[inputmode="numeric"] {
   justify-self: stretch;
 }
 
-/* A development curve the size of a line of text, after a style's name. */
+/* A development curve the size of a line of text, after a style's name or in its own card row. */
 .sparkline {
   flex: none;
   width: 4em;
@@ -1460,10 +1480,6 @@ input[inputmode="numeric"] {
   stroke-linecap: round;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
-}
-
-.facts .sparkline {
-  margin-inline-start: var(--space-2);
 }
 
 /* Options with a curve: the names share one column, so the curves start at one edge. Without subgrid

@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { buildFileList, buildParamSfo } from "../src/data/test-support/synthetic-save.ts";
 import { SYNTHETIC_SAVE_PATHS } from "../scripts/write-synthetic-db.ts";
 import {
@@ -211,8 +211,9 @@ test.describe("career ratings", () => {
     await page.getByRole("button", { name: /^Lionel Messi/u }).click();
     const card = page.getByRole("dialog", { name: "Lionel Messi" });
     await expect(cardValue(card, "Zapas do szczytu")).toHaveText("0");
-    // The peak row, and the verdict on this player's potential in sight under the facts.
+    // The peak row, and the verdict on this player's potential behind the "!" before it.
     await expect(cardValue(card, "Szczyt OVR")).toBeVisible();
+    await cardValue(card, "Potencjał").getByRole("button", { name: "Uwaga: Potencjał" }).click();
     await expect(
       card.getByText(/^Potencjału 95\szawodnik według prognozy szczytu nie osiągnie\.$/u),
     ).toBeVisible();
@@ -276,5 +277,53 @@ test.describe("bad career save", () => {
     await expect(page.getByRole("table")).toBeVisible();
     await page.getByRole("button", { name: "Pliki" }).click();
     await expect(summary).toBeVisible();
+  });
+});
+
+/** A mark's colour as drawn. */
+const colourOf = (mark: Locator) => mark.evaluate((element) => getComputedStyle(element).color);
+
+test.describe("marks on the card and the list", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  // The verdict on the potential waits behind a reddish "!" before the value.
+  test("keeps the potential's verdict behind its warning", async ({ page }) => {
+    await loadCareer(page);
+    await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
+    await page.getByRole("button", { name: /^Lionel Messi/u }).click();
+    const card = page.getByRole("dialog", { name: "Lionel Messi" });
+    const verdict = card.getByText(
+      /^Potencjału 95\szawodnik według prognozy szczytu nie osiągnie\.$/u,
+    );
+    const warning = cardValue(card, "Potencjał").getByRole("button", { name: "Uwaga: Potencjał" });
+    await expect(verdict).toBeHidden();
+    await expect(warning).toHaveText("!");
+    expect(await colourOf(warning)).not.toBe(await colourOf(card.getByRole("term").first()));
+    await warning.click();
+    await expect(verdict).toBeVisible();
+    await expectNoAxeViolations(page);
+    await page.keyboard.press("Escape");
+    await expect(verdict).toBeHidden();
+    await expect(warning).toBeFocused();
+  });
+
+  // Messi is on the game's shortlist; added to the own list he carries both stars, each named.
+  test("stars a player on the own list apart from the game's shortlist", async ({ page }) => {
+    await loadCareer(page);
+    const messi = page.getByRole("button", { name: /^Lionel Messi/u });
+    await messi.click();
+    const card = page.getByRole("dialog", { name: "Lionel Messi" });
+    await expect(card.getByText("Na mojej liście")).toHaveCount(0);
+    await card.getByRole("button", { name: "Dodaj do mojej listy" }).click();
+    await expect(card.getByText("Na mojej liście")).toBeVisible();
+    await expectNoAxeViolations(page);
+    await page.keyboard.press("Escape");
+    await expect(messi).toHaveAccessibleName(
+      "Lionel Messi na liście życzeń w grze, na mojej liście",
+    );
+    await expect(messi.locator(":scope > .shortlist-mark:first-child + .watch-mark")).toBeVisible();
+    const [game, own] = [messi.locator(".shortlist-mark"), messi.locator(".watch-mark")];
+    expect(await colourOf(own)).not.toBe(await colourOf(game));
+    await expectNoAxeViolations(page);
   });
 });

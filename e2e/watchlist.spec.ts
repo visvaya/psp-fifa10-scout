@@ -59,6 +59,11 @@ test.describe("own watchlist", () => {
     await expect(
       page.getByRole("button", { name: "Usuń filtr: Na liście: w narzędziu" }),
     ).toBeVisible();
+    // The own list's star before his name, named for screen readers.
+    await expect(page.getByRole("button", { name: /^Paweł Brożek/u })).toHaveAccessibleName(
+      "Paweł Brożek na mojej liście",
+    );
+    await expect(page.locator(".watch-mark")).toHaveCount(1);
     // Without a career there is no game shortlist to choose.
     await expect(page.getByRole("radio", { name: "w grze" })).toHaveCount(0);
     await page.getByRole("button", { name: /^Paweł Brożek/u }).click();

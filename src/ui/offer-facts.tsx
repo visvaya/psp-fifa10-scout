@@ -6,7 +6,10 @@ import { BONUS_PERCENTS, DEFAULT_CHOICE, offerTerms } from "../logic/offer.ts";
 import type { OfferChoice, OfferContext, OfferTerms } from "../logic/offer.ts";
 import type { Player } from "../logic/players.ts";
 import { Facts } from "./facts.tsx";
+import { HelpHeading, WarnedValue } from "./field-help.tsx";
+import { CheckField } from "./filter-fields.tsx";
 import { TEXT } from "./text.ts";
+import { HELP_TEXT, WARNING_TEXT } from "./text-help.ts";
 import { OFFER_TEXT } from "./text-offer.ts";
 
 const range = (count: number): readonly number[] => Array.from({ length: count }, (_, i) => i + 1);
@@ -20,17 +23,14 @@ const OfferControls = (props: {
   const { choice, terms, onChange } = props;
   return (
     <div className="offer-controls">
-      <label className="check">
-        <input
-          type="checkbox"
-          checked={choice.double}
-          onChange={(event) => {
-            onChange({ ...choice, double: event.currentTarget.checked });
-          }}
-        />
-        {OFFER_TEXT.double}
-      </label>
-      {choice.double ? <p className="help">{OFFER_TEXT.doubleCost}</p> : null}
+      <CheckField
+        label={OFFER_TEXT.double}
+        checked={choice.double}
+        help={HELP_TEXT.doubleOffer}
+        onChange={(double) => {
+          onChange({ ...choice, double });
+        }}
+      />
       <label className="field">
         <span>{OFFER_TEXT.bonus}</span>
         <select
@@ -79,26 +79,38 @@ export const OfferFacts = (props: {
   const { fee, wage, years, bonus } = terms;
   return (
     <section aria-labelledby="offer-title">
-      <h3 id="offer-title">{OFFER_TEXT.title}</h3>
-      <p className="help">{OFFER_TEXT.note}</p>
+      <HelpHeading id="offer-title" title={OFFER_TEXT.title} help={HELP_TEXT.offer} />
       <OfferControls choice={choice} terms={terms} onChange={setChoice} />
       <div aria-live="polite" aria-atomic="true">
         <Facts
           facts={[
-            [OFFER_TEXT.fee, fee === null ? OFFER_TEXT.noFee : TEXT.card.money(fee, currency)],
+            [
+              OFFER_TEXT.fee,
+              <WarnedValue
+                key="fee"
+                label={OFFER_TEXT.fee}
+                warning={terms.feeOverCap ? WARNING_TEXT.feeOverCap : null}
+              >
+                {fee === null ? OFFER_TEXT.noFee : TEXT.card.money(fee, currency)}
+              </WarnedValue>,
+            ],
             [
               OFFER_TEXT.wage,
-              wage === null
-                ? OFFER_TEXT.never
-                : OFFER_TEXT.wageValue(TEXT.card.money(wage, currency), TEXT.years(years)),
+              <WarnedValue
+                key="wage"
+                label={OFFER_TEXT.wage}
+                warning={terms.wageOverCap ? WARNING_TEXT.wageOverCap : null}
+              >
+                {wage === null
+                  ? OFFER_TEXT.never
+                  : OFFER_TEXT.wageValue(TEXT.card.money(wage, currency), TEXT.years(years))}
+              </WarnedValue>,
             ],
             ...(bonus === 0
               ? []
               : [[OFFER_TEXT.bonusAmount, TEXT.card.money(bonus, currency)] as const]),
           ]}
         />
-        {terms.feeOverCap ? <p className="help">{OFFER_TEXT.feeOverCap}</p> : null}
-        {terms.wageOverCap ? <p className="help">{OFFER_TEXT.wageOverCap}</p> : null}
       </div>
       {player.saleRefusal === null ? null : (
         <p className="help">{OFFER_TEXT.refusals[player.saleRefusal]}</p>

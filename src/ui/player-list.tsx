@@ -61,6 +61,8 @@ export interface ListProps {
   readonly ratingName: string | null;
   /** The currency money shows in, null without a career. */
   readonly currency: CurrencyCode | null;
+  /** The ids on the own list, whose players get its star. */
+  readonly watchedIds: ReadonlySet<number>;
   readonly dispatch: Dispatch<ScoutAction>;
 }
 
@@ -127,17 +129,40 @@ export const useRows = (count: number, rowHeightRem: number) => {
 /** The results' heading: it takes the focus a closed card cannot give back to a player no longer listed. */
 export const RESULTS_TITLE_ID = "results-title";
 
-/** A star before the name of a player on the game's shortlist, where a cut-off name cannot hide it. */
-export const ShortlistStar = ({ player }: { player: Player }) =>
-  player.shortlisted ? (
-    <span className="shortlist-mark" aria-hidden="true">
-      {TEXT.shortlistedMark}
-    </span>
-  ) : null;
+/** Whether the player is on the game's shortlist and on the own list. */
+export interface ListMarks {
+  readonly player: Player;
+  readonly watched: boolean;
+}
 
-/** The star in words for screen readers, after the name and a space. */
-export const ShortlistWords = ({ player }: { player: Player }) =>
-  player.shortlisted ? <span className="visually-hidden">{` ${TEXT.shortlisted}`}</span> : null;
+/**
+ * The stars before the name, where a cut-off name cannot hide them: the game's shortlist in green, the
+ * own list in its own colour, side by side for a player on both.
+ */
+export const ShortlistStar = ({ player, watched }: ListMarks) => (
+  <>
+    {player.shortlisted ? (
+      <span className="shortlist-mark" aria-hidden="true">
+        {TEXT.shortlistedMark}
+      </span>
+    ) : null}
+    {watched ? (
+      <span className="watch-mark" aria-hidden="true">
+        {TEXT.shortlistedMark}
+      </span>
+    ) : null}
+  </>
+);
+
+/** The stars in words for screen readers, after the name and a space. */
+export const ShortlistWords = ({ player, watched }: ListMarks) => {
+  const words = [player.shortlisted ? TEXT.shortlisted : "", watched ? TEXT.watched : ""].filter(
+    (word) => word !== "",
+  );
+  return words.length === 0 ? null : (
+    <span className="visually-hidden">{` ${words.join(", ")}`}</span>
+  );
+};
 
 /**
  * The club name, or what stands in for it: a junior of the user's academy, a scouted junior not signed
@@ -268,12 +293,12 @@ const HeaderCell = ({
 
 const TableRow = ({
   player,
+  watched,
   index,
   columns,
   ratingCode,
   dispatch,
-}: {
-  player: Player;
+}: ListMarks & {
   index: number;
   columns: readonly SortKey[];
   ratingCode: number | null;
@@ -289,9 +314,9 @@ const TableRow = ({
           dispatch({ type: "player-opened", id: player.id });
         }}
       >
-        <ShortlistStar player={player} />
+        <ShortlistStar player={player} watched={watched} />
         {player.name}
-        <ShortlistWords player={player} />
+        <ShortlistWords player={player} watched={watched} />
       </button>
     </th>
     {columns.slice(1).map((column) => (
@@ -340,6 +365,7 @@ const ColumnGroup = ({ widths }: { widths: readonly number[] | null }) =>
 
 export const PlayerTable = (props: ListProps): JSX.Element => {
   const { players, allPlayers, sort, columns, ratingCode, ratingName, currency, dispatch } = props;
+  const { watchedIds } = props;
   const { scrollRef, items, before, after } = useRows(players.length, ROW_HEIGHT_REM.table);
   const label = useCallback(
     (column: SortKey) => columnLabel(column, ratingName, currency),
@@ -383,6 +409,7 @@ export const PlayerTable = (props: ListProps): JSX.Element => {
               <TableRow
                 key={player.id}
                 player={player}
+                watched={watchedIds.has(player.id)}
                 index={item.index}
                 columns={columns}
                 ratingCode={ratingCode}

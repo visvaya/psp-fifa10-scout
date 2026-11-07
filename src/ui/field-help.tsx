@@ -1,12 +1,13 @@
-// The "?" beside a field's name and the explanation it shows in a small panel. The panel is a native
-// popover: the browser closes it on a tap outside and when another opens, and keeps it above dialogs and
-// scrolling panels; the code places it beside the button (help-place.ts) and handles Escape itself, so a
-// dialog under the panel stays open and the focus returns to the button.
+// The "?" beside a field's name and the explanation it shows in a small panel, and the "!" before a
+// value with its note in the same panel. The panel is a native popover: the browser closes it on a tap
+// outside and when another opens, and keeps it above dialogs and scrolling panels; the code places it
+// beside the button (help-place.ts) and handles Escape itself, so a dialog under the panel stays open
+// and the focus returns to the button.
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import type { JSX, RefObject } from "react";
+import type { JSX, ReactNode, RefObject } from "react";
 import { helpPanelPlace } from "./help-place.ts";
 import { rootFontPx } from "./player-list.tsx";
-import { HELP_TEXT } from "./text-help.ts";
+import { HELP_TEXT, WARNING_TEXT } from "./text-help.ts";
 
 /** Where the panel goes beside its button: 1rem from the viewport's sides, 0.25rem from the button. */
 const panelPlace = (button: HTMLElement, panel: HTMLElement) => {
@@ -67,8 +68,13 @@ const useWhileOpen = (
 export const OptionalHelp = (props: { label: string; help: string | undefined }) =>
   props.help === undefined ? null : <FieldHelp label={props.label} text={props.help} />;
 
-/** label: the field's name, which the button's name repeats; text: the explanation. */
-export const FieldHelp = (props: { label: string; text: string }): JSX.Element => {
+/** A mark button ("?" or "!") named `name` and the panel with `text` it opens. */
+const PanelButton = (props: {
+  name: string;
+  mark: string;
+  className: string;
+  text: string;
+}): JSX.Element => {
   const id = useId();
   const button = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLSpanElement>(null);
@@ -89,13 +95,13 @@ export const FieldHelp = (props: { label: string; text: string }): JSX.Element =
       <button
         ref={button}
         type="button"
-        className="field-help"
-        aria-label={HELP_TEXT.label(props.label)}
+        className={props.className}
+        aria-label={props.name}
         aria-expanded={open}
         aria-controls={id}
         popoverTarget={id}
       >
-        {HELP_TEXT.mark}
+        {props.mark}
       </button>
       <span
         ref={panel}
@@ -114,3 +120,40 @@ export const FieldHelp = (props: { label: string; text: string }): JSX.Element =
     </>
   );
 };
+
+/** label: the field's name, which the button's name repeats; text: the explanation. */
+export const FieldHelp = (props: { label: string; text: string }): JSX.Element => (
+  <PanelButton
+    name={HELP_TEXT.label(props.label)}
+    mark={HELP_TEXT.mark}
+    className="field-help"
+    text={props.text}
+  />
+);
+
+/** A card section's heading with its "?" beside it, not in it, so the heading keeps its own name. */
+export const HelpHeading = (props: { id: string; title: string; help: string }): JSX.Element => (
+  <div className="heading-help">
+    <h3 id={props.id}>{props.title}</h3>
+    <FieldHelp label={props.title} text={props.help} />
+  </div>
+);
+
+/** A value with a "!" before it while a note on it holds; label: the field's name. */
+export const WarnedValue = (props: {
+  label: string;
+  warning: string | null;
+  children: ReactNode;
+}): JSX.Element => (
+  <>
+    {props.warning === null ? null : (
+      <PanelButton
+        name={WARNING_TEXT.label(props.label)}
+        mark={WARNING_TEXT.mark}
+        className="field-help field-warning"
+        text={props.warning}
+      />
+    )}
+    {props.children}
+  </>
+);

@@ -13,7 +13,7 @@ import { ATTRIBUTE_GROUP_LABELS, ATTRIBUTE_LABELS } from "./text-attributes.ts";
 import { CLUB_STATUS_LABELS, LIST_MEMBERSHIP_LABELS, MY_CLUB_LABELS } from "./text-choices.ts";
 import { FILTER_SETS_TEXT } from "./text-filter-sets.ts";
 import { CODE_NAMES } from "./text-code-names.ts";
-import { FIELD_HELP, HELP_TEXT } from "./text-help.ts";
+import { FIELD_HELP, HELP_TEXT, WARNING_TEXT } from "./text-help.ts";
 import { OFFER_TEXT } from "./text-offer.ts";
 import { startDescription } from "./test-support/start-description.ts";
 import { WATCHLIST_TEXT } from "./text-watchlist.ts";
@@ -48,6 +48,7 @@ const STRINGS = stringsIn([
   WATCHLIST_TEXT,
   FIELD_HELP,
   HELP_TEXT,
+  WARNING_TEXT,
   CODE_NAMES,
   descriptionStrings(),
 ]);
@@ -71,7 +72,8 @@ describe("UI texts", () => {
       "ties one-letter words, abbreviations and numbers to the next word",
       (text: string) => tie(text) !== text,
     ],
-    ["has no exclamation mark", (text: string) => text.includes("!")],
+    // The "!" button's mark is a sign, not a sentence (owner, 2026-11-07: "czerwonawy wykrzyknik").
+    ["has no exclamation mark", (text: string) => text !== WARNING_TEXT.mark && text.includes("!")],
     ["writes an ellipsis as one character", (text: string) => text.includes("...")],
     ["addresses the reader in lower case", (text: string) => CAPITAL_PRONOUN.test(text)],
     ["uses no stock phrases", (text: string) => CLICHES.test(text)],
