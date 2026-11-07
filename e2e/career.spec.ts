@@ -80,15 +80,36 @@ test.describe("career", () => {
     // Only he carries the mark, before his name, where a cut-off name cannot hide it.
     await expect(page.locator(".shortlist-mark")).toHaveCount(1);
     await expect(messi.locator(":scope > .shortlist-mark:first-child")).toBeVisible();
-    await page.getByText("Kariera", { exact: true }).click();
-    await page.getByLabel("Na liście życzeń w grze").selectOption("yes");
+    await page
+      .getByRole("group", { name: "Na liście", exact: true })
+      .getByRole("radio", { name: "w grze" })
+      .check();
     await expectCount(page, "1\u00a0zawodnik");
+    await expect(page.getByRole("button", { name: "Usuń filtr: Na liście: w grze" })).toBeVisible();
     await messi.click();
     await expect(
       page
         .getByRole("dialog", { name: "Lionel Messi" })
         .getByText("Na twojej liście życzeń w grze"),
     ).toBeVisible();
+  });
+});
+
+test.describe("career club status", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  // Jan Wolny has no team at all, like the game's players linked only to a national team.
+  test("keeps the players a career cannot sign, named on their chip", async ({ page }) => {
+    await loadCareer(page);
+    await page.getByText("Klub i kontrakt").click();
+    const status = page.getByRole("group", { name: "Zawodnicy", exact: true });
+    await expect(status.getByRole("radio", { name: /^dostępni\sw\skarierze$/u })).toBeChecked();
+    await status.getByRole("radio", { name: "niedostępni w karierze" }).check();
+    await expectCount(page, "1 zawodnik");
+    await expect(page.getByRole("button", { name: /^Jan Wolny/u })).toBeVisible();
+    await page.getByRole("button", { name: "Usuń filtr: Niedostępni w karierze" }).click();
+    await expect(status.getByRole("radio", { name: /^dostępni\sw\skarierze$/u })).toBeChecked();
+    await expectCount(page, "62 zawodników");
   });
 });
 

@@ -120,10 +120,8 @@ const useVisiblePlayers = (
 ) => {
   const filters = useDeferredValue(state.filters);
   const sort = useDeferredValue(state.sort);
-  // The list matters only while its filter is set, so adding a player with it off filters nothing again.
-  const listed = useWatchedIds(
-    filters.flags?.onMyList === undefined ? NO_ENTRIES : state.watchlist,
-  );
+  // The list matters only while its field is set, so adding a player with it off filters nothing again.
+  const listed = useWatchedIds(filters.onList === undefined ? NO_ENTRIES : state.watchlist);
   // The stored peak sort reads the best position's peak while peakAtBest is on; headers mark that key.
   const atBest = filters.peakAtBest === true;
   const shownSort = useMemo(

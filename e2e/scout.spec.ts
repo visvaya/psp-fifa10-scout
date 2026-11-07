@@ -139,7 +139,7 @@ test.describe("wide screen", () => {
   test("hides players no club can sign", async ({ page }) => {
     await loadDatabase(page);
     await page.getByText("Klub i kontrakt").click();
-    await expect(page.getByRole("radio", { name: "tylko wolni zawodnicy" })).toHaveCount(0);
+    await expect(page.getByRole("radio", { name: "tylko wolni" })).toHaveCount(0);
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("wolny");
     await expect(page.getByText("Żaden zawodnik nie spełnia filtrów.")).toBeVisible();
   });

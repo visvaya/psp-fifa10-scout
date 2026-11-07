@@ -4,15 +4,14 @@ import { describe, expect, it } from "vitest";
 import {
   ATTRIBUTE_GROUP_LABELS,
   ATTRIBUTE_LABELS,
-  CLUB_STATUS_LABELS,
   FILTER_SECTION_LABELS,
   FLAG_LABELS,
   LIST_LABELS,
-  MY_CLUB_LABELS,
   POSITION_GROUP_LABELS,
   RANGE_LABELS,
   TEXT,
 } from "./text.ts";
+import { CLUB_STATUS_LABELS, LIST_MEMBERSHIP_LABELS, MY_CLUB_LABELS } from "./text-choices.ts";
 import { FILTER_SETS_TEXT } from "./text-filter-sets.ts";
 import { CODE_NAMES } from "./text-code-names.ts";
 import { FIELD_HELP, HELP_TEXT } from "./text-help.ts";
@@ -40,6 +39,7 @@ const STRINGS = stringsIn([
   FILTER_SECTION_LABELS,
   FLAG_LABELS,
   LIST_LABELS,
+  LIST_MEMBERSHIP_LABELS,
   MY_CLUB_LABELS,
   POSITION_GROUP_LABELS,
   RANGE_LABELS,

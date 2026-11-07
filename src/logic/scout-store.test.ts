@@ -381,7 +381,7 @@ describe("scout store", () => {
       value: { filters: { freeAgentsOnly: false }, sort: DEFAULT_SORT },
     });
     await backend.set("gameDb", { schemaVersion: 1, value: Uint8Array.of(7) });
-    expect(SCHEMA_VERSION.preferences).toBe(5);
+    expect(SCHEMA_VERSION.preferences).toBe(6);
     expect(await createScoutStore(backend).load()).toEqual({
       gameDb: Uint8Array.of(7),
       gameName: null,

@@ -20,6 +20,14 @@ const openBrozek = async (page: Page) => {
   return page.getByRole("dialog", { name: "Paweł Brożek" });
 };
 
+/** Chooses an option of the list field. */
+const onList = async (page: Page, option: string) => {
+  await page
+    .getByRole("group", { name: "Na liście", exact: true })
+    .getByRole("radio", { name: option })
+    .check();
+};
+
 const NOTE = "Szybki, lewa noga";
 const NOTE_FIELD = { name: "Notatka", exact: true } as const;
 
@@ -46,8 +54,13 @@ test.describe("own watchlist", () => {
     await page.reload();
     await expectCount(page, "62 zawodników");
 
-    await page.getByLabel(/^Na mojej liście/u).selectOption("yes");
+    await onList(page, "w narzędziu");
     await expectCount(page, "1 zawodnik");
+    await expect(
+      page.getByRole("button", { name: "Usuń filtr: Na liście: w narzędziu" }),
+    ).toBeVisible();
+    // Without a career there is no game shortlist to choose.
+    await expect(page.getByRole("radio", { name: "w grze" })).toHaveCount(0);
     await page.getByRole("button", { name: /^Paweł Brożek/u }).click();
     await expect(page.getByRole("textbox", NOTE_FIELD)).toHaveValue(NOTE);
   });
@@ -91,14 +104,14 @@ test.describe("own watchlist, focus and store", () => {
     await card.getByRole("button", { name: "Dodaj do mojej listy" }).click();
     await page.keyboard.press("Escape");
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("");
-    await page.getByLabel(/^Na mojej liście/u).selectOption("yes");
+    await onList(page, "w narzędziu");
     await expectCount(page, "1 zawodnik");
     await page.getByRole("button", { name: /^Paweł Brożek/u }).click();
     await page.getByRole("button", { name: "Usuń z mojej listy" }).click();
     await page.keyboard.press("Escape");
     await expectCount(page, "0 zawodników");
     await expect(page.locator("#results-title")).toBeFocused();
-    await page.getByLabel(/^Na mojej liście/u).selectOption("no");
+    await onList(page, "na żadnej");
     await expectCount(page, "62 zawodników");
   });
 

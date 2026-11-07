@@ -1,20 +1,15 @@
 import { useId, useMemo } from "react";
 import type { Dispatch, JSX } from "react";
 import type { CurrencyCode } from "../data/career-save.ts";
-import type { FlagKey, ListKey, RangeKey } from "../logic/filter-players.ts";
+import { CLUB_STATUSES, LIST_MEMBERSHIPS, needsShortlist } from "../logic/filter-players.ts";
+import type { FlagKey, ListKey, ListMembership, RangeKey } from "../logic/filter-players.ts";
 import { SEASON_STAT_KEYS, TRAIT_NAMES } from "../logic/players.ts";
 import type { Player, TraitName } from "../logic/players.ts";
 import { POSITION_GROUPS } from "../logic/positions.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 import { facetOptions } from "../logic/facets.ts";
 import type { FacetOption } from "../logic/facets.ts";
-import type {
-  ClubStatus,
-  FilterChange,
-  MyClub,
-  ScoutAction,
-  ScoutFilters,
-} from "../logic/scout-state.ts";
+import type { FilterChange, MyClub, ScoutAction, ScoutFilters } from "../logic/scout-state.ts";
 import { CheckField, ChoiceField, FlagField, RangeField, Section } from "./filter-fields.tsx";
 import { AttributeRanges, ContractField } from "./filter-field-groups.tsx";
 import type { Eye } from "./column-eye.tsx";
@@ -28,8 +23,6 @@ import type { Settings } from "./settings-actions.tsx";
 import { FIELD_HELP, HELP_TEXT } from "./text-help.ts";
 import { PositionRatingField } from "./position-rating-field.tsx";
 import {
-  CLUB_STATUS_LABELS,
-  MY_CLUB_LABELS,
   FILTER_SECTION_LABELS,
   FLAG_LABELS,
   LIST_LABELS,
@@ -37,6 +30,7 @@ import {
   rangeLabel,
   TEXT,
 } from "./text.ts";
+import { CLUB_STATUS_LABELS, LIST_MEMBERSHIP_LABELS, MY_CLUB_LABELS } from "./text-choices.ts";
 
 interface FilterFormProps {
   readonly players: readonly Player[];
@@ -106,7 +100,8 @@ const CHARACTER_TRAITS: readonly TraitName[] = [
 ];
 const PLAY_TRAITS = TRAIT_NAMES.filter((trait) => !CHARACTER_TRAITS.includes(trait));
 
-const CLUB_STATUSES: readonly ClubStatus[] = ["available", "free-agents"];
+/** "Any" stands for an unset list choice. */
+const LIST_OPTIONS: readonly ("any" | ListMembership)[] = ["any", ...LIST_MEMBERSHIPS];
 
 /** "All" stands for an unset my-club filter. */
 const MY_CLUB_OPTIONS: readonly ("all" | MyClub)[] = ["all", "hide", "only"];
@@ -170,6 +165,21 @@ const CareerClubFields = ({ filters, change }: { filters: ScoutFilters; change: 
       }}
     />
   </>
+);
+
+/** The list choice; without a career there is no game shortlist, so only the own list's options. */
+const OnListField = (props: { filters: ScoutFilters; change: Change; career: boolean }) => (
+  <RadioField
+    legend={TEXT.onList}
+    help={HELP_TEXT.onList}
+    name="on-list"
+    options={props.career ? LIST_OPTIONS : LIST_OPTIONS.filter((option) => !needsShortlist(option))}
+    labels={LIST_MEMBERSHIP_LABELS}
+    value={props.filters.onList ?? "any"}
+    onChange={(option) => {
+      props.change({ onList: option === "any" ? undefined : option });
+    }}
+  />
 );
 
 const facetChoices = (options: readonly FacetOption[]): readonly Choice<number>[] =>
@@ -256,7 +266,7 @@ const peakFields = ({ filters, change, range }: Kit) => [
 
 /** career: the peak OVR exists only with a career save. */
 const basicSection = (kit: Kit, showPotential: boolean, career: boolean) => {
-  const { filters, change, facets, range, list, flag, positionName, eye } = kit;
+  const { filters, change, facets, range, list, positionName, eye } = kit;
   return (
     <Section title={FILTER_SECTION_LABELS.basic} initiallyOpen>
       <label className="field">
@@ -294,7 +304,7 @@ const basicSection = (kit: Kit, showPotential: boolean, career: boolean) => {
       {showPotential
         ? [range("potential"), range("growth"), ...(career ? peakFields(kit) : [])]
         : null}
-      {flag("onMyList")}
+      <OnListField filters={filters} change={change} career={career} />
     </Section>
   );
 };
@@ -348,7 +358,6 @@ const careerSection = ({ range, flag }: Kit) => (
     {flag("transferListed")}
     {flag("loanListed")}
     {flag("loaned")}
-    {flag("shortlisted")}
     {flag("clubWillSell")}
   </Section>
 );

@@ -62,8 +62,6 @@ export type FlagKey =
   | "transferListed"
   | "loanListed"
   | "loaned"
-  | "shortlisted"
-  | "onMyList"
   | "clubWillSell";
 export const FLAG_KEYS: readonly FlagKey[] = [
   ...TRAIT_NAMES,
@@ -71,10 +69,21 @@ export const FLAG_KEYS: readonly FlagKey[] = [
   "transferListed",
   "loanListed",
   "loaned",
-  "shortlisted",
-  "onMyList",
   "clubWillSell",
 ];
+
+/** Which players by club: one can sign them in a career (with a club, free or a junior), with a club,
+ * free agents, or those one cannot (linked only to a national team). */
+export const CLUB_STATUSES = ["available", "with-club", "free-agents", "unavailable"] as const;
+export type ClubStatus = (typeof CLUB_STATUSES)[number];
+
+/** On the game's shortlist, on the user's own list, on both or on neither. */
+export const LIST_MEMBERSHIPS = ["game", "tool", "both", "none"] as const;
+export type ListMembership = (typeof LIST_MEMBERSHIPS)[number];
+
+/** Whether a list choice needs the game's shortlist, so a career save. */
+export const needsShortlist = (choice: "any" | ListMembership | undefined): boolean =>
+  choice === "game" || choice === "both";
 
 /** The ranges only a career save fills: without one every player has null and none passes. */
 export const CAREER_RANGE_KEYS = [
@@ -93,7 +102,6 @@ export const CAREER_FLAG_KEYS = [
   "transferListed",
   "loanListed",
   "loaned",
-  "shortlisted",
   "clubWillSell",
 ] as const satisfies readonly FlagKey[];
 
@@ -110,15 +118,14 @@ export interface PlayerFilters {
   readonly positionRating?: PositionRating;
   /** The peak and its gain ranges count at the position where his peak is highest (best-peak.ts). */
   readonly peakAtBest?: boolean;
-  readonly freeAgentsOnly?: boolean;
-  /** Players one can sign: with a club, free agents and academy youth; leaves out legends and
-   * national-team-only players. */
-  readonly availableOnly?: boolean;
+  readonly clubStatus?: ClubStatus;
+  /** Whether a player is on the game's shortlist and the user's own list. */
+  readonly onList?: ListMembership;
   /** Leaves out the user's club (its players and the academy youth). */
   readonly excludeTeamId?: number;
   /** Keeps only the user's club (its players and the academy youth). */
   readonly onlyTeamId?: number;
-  /** The ids on the user's own watchlist, for the "onMyList" flag; without them nobody is on it. */
+  /** The ids on the user's own watchlist, for the list choice; without them nobody is on it. */
   readonly myListIds?: ReadonlySet<number>;
 }
 
@@ -189,9 +196,8 @@ export const peakAt = (player: Player, code: number): number | null =>
 export const rangeValue = (player: Player, key: RangeKey | PeakTwin): number | null =>
   isAttributeName(key) ? player.attributes[key] : player[key];
 
-const hasFlag = (player: Player, flag: Exclude<FlagKey, "onMyList">): boolean => {
+const hasFlag = (player: Player, flag: FlagKey): boolean => {
   if (flag === "nationalTeam") return player.nationalTeamId !== null;
-  if (flag === "shortlisted") return player.shortlisted;
   if (flag === "clubWillSell") return player.clubWillSell === true;
   if (flag === "loaned") return player.loanedFromId !== null;
   if (flag === "loanListed") return player.loanListed;
@@ -216,13 +222,30 @@ const inRange =
 const isAvailable = (player: Player): boolean =>
   player.clubId !== null || player.youth || player.freeAgent;
 
+const CLUB_STATUS_TESTS: Readonly<Record<ClubStatus, Predicate>> = {
+  available: isAvailable,
+  "with-club": (player) => player.clubId !== null,
+  "free-agents": (player) => player.freeAgent,
+  unavailable: (player) => !isAvailable(player),
+};
+
+/** Keeps players by the lists they are on: the game's shortlist and the user's own list. */
+const onLists =
+  (membership: ListMembership, myListIds: ReadonlySet<number> | undefined): Predicate =>
+  (player) => {
+    const [game, tool] = [player.shortlisted, myListIds?.has(player.id) ?? false];
+    if (membership === "game") return game;
+    if (membership === "tool") return tool;
+    return membership === "both" ? game && tool : !game && !tool;
+  };
+
 /** The user's player: linked to his club, a junior of its academy, or on loan from it at another club. */
 export const inClub = (player: Player, teamId: number): boolean =>
   player.clubId === teamId || player.academy || player.loanedFromId === teamId;
 
 const predicates = (filters: PlayerFilters): readonly Predicate[] => {
   const text = searchKey(filters.text?.trim() ?? "");
-  const { excludeTeamId, onlyTeamId } = filters;
+  const { excludeTeamId, onlyTeamId, clubStatus, onList } = filters;
   const rating = filters.positionRating;
   const peakAtBest = filters.peakAtBest === true;
   return [
@@ -250,13 +273,10 @@ const predicates = (filters: PlayerFilters): readonly Predicate[] => {
       : [inRange(rating.peak, (player) => peakAt(player, rating.code))]),
     ...FLAG_KEYS.flatMap((flag) => {
       const wanted = filters.flags?.[flag];
-      if (wanted === undefined) return [];
-      return flag === "onMyList"
-        ? [(player: Player) => (filters.myListIds?.has(player.id) ?? false) === wanted]
-        : [(player: Player) => hasFlag(player, flag) === wanted];
+      return wanted === undefined ? [] : [(player: Player) => hasFlag(player, flag) === wanted];
     }),
-    ...(filters.freeAgentsOnly === true ? [(player: Player) => player.freeAgent] : []),
-    ...(filters.availableOnly === true ? [isAvailable] : []),
+    ...(clubStatus === undefined ? [] : [CLUB_STATUS_TESTS[clubStatus]]),
+    ...(onList === undefined ? [] : [onLists(onList, filters.myListIds)]),
     ...(excludeTeamId === undefined ? [] : [(player: Player) => !inClub(player, excludeTeamId)]),
     ...(onlyTeamId === undefined ? [] : [(player: Player) => inClub(player, onlyTeamId)]),
   ];

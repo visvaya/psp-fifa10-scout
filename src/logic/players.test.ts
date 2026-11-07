@@ -422,7 +422,7 @@ describe.runIf(existsSync(realDbPath))("real fifa.db", () => {
     timedSort("sortPlayers all by age", players, "age", "descending");
     timedSort(
       "filter + sort by position rating",
-      filterPlayers(players, { positionRating: { code: 3, min: 50 }, availableOnly: true }),
+      filterPlayers(players, { positionRating: { code: 3, min: 50 }, clubStatus: "available" }),
       "positionRating",
       "descending",
       { ratingCode: 3 },
