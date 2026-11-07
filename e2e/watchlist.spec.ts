@@ -139,6 +139,23 @@ test.describe("own watchlist, focus and store", () => {
   });
 });
 
+test.describe("own watchlist in the table", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  // The name column makes room for the own list's star too, so the longest name is not cut off by it.
+  test("keeps the longest name whole beside the own list's star", async ({ page }) => {
+    await loadDatabase(page);
+    await page.getByRole("searchbox", { name: "Nazwisko" }).fill("bardzo");
+    const name = page.getByRole("button", { name: /Bardzo-Długie/u });
+    await name.click();
+    await page.getByRole("button", { name: "Dodaj do mojej listy" }).click();
+    await page.keyboard.press("Escape");
+    await expect(name.locator(".watch-mark")).toBeVisible();
+    const overflow = await name.evaluate((element) => element.scrollWidth - element.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+});
+
 test.describe("own watchlist on a phone", () => {
   test.use(PHONE);
 

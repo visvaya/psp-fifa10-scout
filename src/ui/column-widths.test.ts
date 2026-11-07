@@ -65,6 +65,26 @@ describe("columnWidths", () => {
     ]);
   });
 
+  it("adds what a row draws beside its text, such as the stars before a name", () => {
+    const rows: readonly Readonly<Record<string, string>>[] = [
+      { name: "Bartholomew", marks: "0" },
+      { name: "Ann", marks: "12" },
+    ];
+    expect(
+      columnWidths({
+        ...measures,
+        columns: ["name"],
+        rows,
+        label: () => "",
+        text: (row) => row["name"] ?? null,
+        besidePx: (_column, row) => Number(row["marks"]),
+      }),
+    ).toEqual([
+      // "Ann" 3 with its stars 12 is wider than "Bartholomew" 11, + 10
+      25,
+    ]);
+  });
+
   it("rounds widths up to whole pixels", () => {
     expect(
       columnWidths({

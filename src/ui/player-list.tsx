@@ -85,6 +85,10 @@ export const widestTextRem = (texts: readonly string[], font?: string): number =
   return widest / rootFontPx();
 };
 
+/** The small gap between a mark and what it stands beside (--space-1), in rem. */
+const gapRem = (): number =>
+  Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--space-1")) || 0;
+
 /**
  * The best peak cell's two sub-columns (owner, 2026-11-06: in line in every row, not stepped): its badge,
  * then after a --space-1 gap the position, as wide as the widest of these players' in its bold font. The
@@ -99,10 +103,8 @@ export const useBestPeakRoom = (
       players.flatMap((player) => player.bestPeakName ?? []),
       `600 ${body.fontSize} ${body.fontFamily}`,
     );
-    const root = getComputedStyle(document.documentElement);
-    const gapRem = Number.parseFloat(root.getPropertyValue("--space-1")) || 0;
     return {
-      besideRem: nameRem > 0 ? gapRem + nameRem : 0,
+      besideRem: nameRem > 0 ? gapRem() + nameRem : 0,
       style: { "--best-peak-name": `${String(nameRem)}rem` },
     };
   }, [players]);
@@ -337,14 +339,34 @@ const widthText = (player: Player, column: SortKey): string | null =>
   columnText(player, column, null);
 
 /**
- * The table's column widths (useColumnWidths), the best peak's with room for its widest position beside
- * the badges, and that position's width for styles.css.
+ * The room the stars before a name take, in rem: the game shortlist's text star and the own list's
+ * outlined star (1em, styles.css .star), each with its gap.
  */
-const useTableWidths = (source: Omit<WidthSource<Player, SortKey>, "text" | "besidePx">) => {
+const useStarsRoom = () =>
+  useMemo(
+    () => ({ gameRem: widestTextRem([TEXT.shortlistedMark]) + gapRem(), ownRem: 1 + gapRem() }),
+    [],
+  );
+
+/**
+ * The table's column widths (useColumnWidths): the best peak's with room for its widest position beside
+ * the badges, the name's with room for the stars before it; and that position's width for styles.css.
+ */
+const useTableWidths = ({
+  watchedIds,
+  ...source
+}: Omit<WidthSource<Player, SortKey>, "text" | "besidePx"> & Pick<ListProps, "watchedIds">) => {
   const { besideRem, style } = useBestPeakRoom(source.rows);
+  const { gameRem, ownRem } = useStarsRoom();
   const besidePx = useCallback(
-    (column: SortKey) => (column === "bestPeak" ? besideRem * rootFontPx() : 0),
-    [besideRem],
+    (column: SortKey, player: Player) =>
+      rootFontPx() *
+      (column === "bestPeak"
+        ? besideRem
+        : column === "name"
+          ? (player.shortlisted ? gameRem : 0) + (watchedIds.has(player.id) ? ownRem : 0)
+          : 0),
+    [besideRem, gameRem, ownRem, watchedIds],
   );
   const widths = useColumnWidths({ ...source, text: widthText, besidePx });
   return { widths, style };
@@ -362,7 +384,6 @@ const ColumnGroup = ({ widths }: { widths: readonly number[] | null }) =>
 
 export const PlayerTable = (props: ListProps): JSX.Element => {
   const { players, allPlayers, sort, columns, ratingCode, ratingName, currency, dispatch } = props;
-  const { watchedIds } = props;
   const { scrollRef, items, before, after } = useRows(players.length, ROW_HEIGHT_REM.table);
   const label = useCallback(
     (column: SortKey) => columnLabel(column, ratingName, currency),
@@ -375,6 +396,7 @@ export const PlayerTable = (props: ListProps): JSX.Element => {
     rows: allPlayers,
     columns,
     label,
+    watchedIds: props.watchedIds,
   });
   return (
     <div ref={scrollRef} className="scroll table-scroll">
@@ -406,7 +428,7 @@ export const PlayerTable = (props: ListProps): JSX.Element => {
               <TableRow
                 key={player.id}
                 player={player}
-                watched={watchedIds.has(player.id)}
+                watched={props.watchedIds.has(player.id)}
                 index={item.index}
                 columns={columns}
                 ratingCode={ratingCode}
