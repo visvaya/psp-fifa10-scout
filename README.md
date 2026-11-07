@@ -20,7 +20,12 @@ What it does today:
   development curves (at his preferred position the same as the game's development chart, without
   future gains from matches and training), and how much he still grows to it. The peak is counted
   at every position, and the list can show it at the position where it is highest, which need not
-  be the one he plays best today.
+  be the one he plays best today. When several positions reach the same peak, you set the order of
+  the rules that pick one (your club's formation, the weaker foot, the better foot's side, the
+  preferred position).
+- Draws each player's development curve from the game's data: a small chart on the card and a
+  large one with his age this season, whether he is before, at or after his peak, and his peak
+  period.
 - Hides potential and the peak by default; one switch reveals them.
 - Reads the player database (`fifa.db`) straight from your disc image (ISO), or from a `fifa.db`
   file you extracted yourself. From the image it reads only the database, the language files and
@@ -37,13 +42,17 @@ What it does today:
 - In a career: shows league and cup appearances, goals, assists and clean sheets for the season.
 - Prices players and wages with the game's formulas, and shows on the player card what an offer
   needs to succeed (fee, wage, contract length) or why the game would refuse any offer, for example
-  when the club will not sell.
+  when the club will not sell. Money shows in your career's currency or one you choose (pound, euro,
+  dollar), with the game's rates and rounding.
+- Shows each club's stars as the game computes them from its current squad, and the league and club
+  prestige that feed the game's price and wage formulas.
 - Filters by position, league, club, nationality, preferred foot, body type, development type and
   traits; by ranges of age, OVR, potential, peak OVR, attributes, contract end, price, wage and
   more; any list filter can also keep everyone except the chosen values. Filters and sorting can be
   saved as named sets, the last change can be undone, and each filter can show or hide its value as
   a list column. The list sorts by its column labels, and each player has a detail card.
-- Keeps your own watchlist, without the game's limit of 20 players, and a note on any player.
+- Keeps your own watchlist, without the game's limit of 20 players, and a note on any player, with a
+  view of all your notes.
 - Installs as an app on a phone or a PC and works offline after the first visit. On an iPhone, pick
   the files in the Files app.
 
