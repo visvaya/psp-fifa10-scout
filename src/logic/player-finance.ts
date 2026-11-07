@@ -1,7 +1,7 @@
 // Each career player's transfer price and market wage (transfer-price.ts), with his club's prestige
 // and his contract. The user's squad keeps the wages stored in the save. A loaned player's link holds
-// no contract (game-knowledge: loans), so he gets no price, and a wage only when the user's club lent
-// him out: those players keep their stored wage.
+// no contract (game-knowledge: loans), so he gets no price, and a wage only from the user's records:
+// the stored wage when he was lent by the user's club or to it.
 import { careerManager, effectiveRows, seasonStartDate } from "../data/career-save.ts";
 import type { CareerSave } from "../data/career-save.ts";
 import { num } from "../data/ea-db.ts";
@@ -71,7 +71,10 @@ export const financeOf = (
   return ({ row, age, club, overallAt }) => {
     const id = num(row, "playerid");
     if (loanedFrom.has(id)) {
-      const stored = loanedFrom.get(id) === userTeamId ? storedWages.get(id) : undefined;
+      const userLoan =
+        loanedFrom.get(id) === userTeamId ||
+        (club !== undefined && num(club.link, "teamid") === userTeamId);
+      const stored = userLoan ? storedWages.get(id) : undefined;
       return stored === undefined ? NO_FINANCE : { price: null, wage: stored, storedWage: true };
     }
     const link = club?.link ?? freeAgentLinks.get(id);

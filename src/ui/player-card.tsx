@@ -116,7 +116,7 @@ const profile = (player: Player, showPotential: boolean): readonly Fact[] => [
 
 /**
  * Price and wage, career only: the user's squad shows its stored wage, others an estimate. A loaned
- * player has no price and, unless the user's club lent him out, no wage: a dash for each.
+ * player has no price and, unless lent by the user's club or to it, no wage: a dash for each.
  */
 const money = (
   { price, wage, storedWage, loanedFromId }: Player,
