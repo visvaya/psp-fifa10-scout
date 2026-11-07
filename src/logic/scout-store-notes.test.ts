@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { SCOUT_CONFIG } from "./config.ts";
 import {
   createScoutStore,
+  openScoutStore,
   memoryBackend,
   notesFromWatchlist,
   SCHEMA_VERSION,
@@ -13,6 +14,8 @@ const stored = {
   name: "Paweł Brożek",
   changedAt: "2026-11-05T10:00:00.000Z",
 };
+
+const failingSet = async () => Promise.reject(new Error("quota"));
 
 const loadWith = async (records: Readonly<Record<string, unknown>>) => {
   const backend = memoryBackend();
@@ -96,5 +99,32 @@ describe("notes moved out of a version 1 watchlist", () => {
     const { backend, loaded } = await loadWith({ watchlist: v1List, notes: foreign });
     expect(loaded.notes).toEqual([]);
     expect(await backend.get("notes")).toEqual(foreign);
+  });
+
+  it("still returns the moved notes when storing them fails, and reports it", async () => {
+    const backend = memoryBackend();
+    await backend.set("watchlist", v1List);
+    await backend.set("gameDb", {
+      schemaVersion: SCHEMA_VERSION.gameDb,
+      value: { bytes: Uint8Array.of(1), name: "fifa.db" },
+    });
+    const set = async (key: string, value: unknown) =>
+      key === "notes" ? Promise.reject(new Error("quota")) : backend.set(key, value);
+    const onFailed = vi.fn<() => void>();
+    const { stored: opened } = await openScoutStore({ get: backend.get, set }, onFailed);
+    expect(onFailed).toHaveBeenCalledOnce();
+    expect(opened.gameName).toBe("fifa.db");
+    expect(opened.watchlist).toHaveLength(3);
+    expect(opened.notes).toEqual(notesFromWatchlist(v1List.value));
+    // The list keeps its notes on disk, so the next load moves them again.
+    expect(await backend.get("watchlist")).toEqual(v1List);
+    expect(await backend.get("notes")).toBeUndefined();
+  });
+
+  it("loads the moved notes when storing them fails and nobody listens", async () => {
+    const backend = memoryBackend();
+    await backend.set("watchlist", v1List);
+    const loaded = await createScoutStore({ get: backend.get, set: failingSet }).load();
+    expect(loaded.notes).toEqual(notesFromWatchlist(v1List.value));
   });
 });

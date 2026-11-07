@@ -1527,6 +1527,17 @@ input[inputmode="numeric"] {
   justify-items: start;
 }
 
+.note-remove {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.note-remove > p {
+  flex-basis: 100%;
+  margin: 0;
+}
+
 .note-line {
   max-width: 100%;
   overflow-wrap: anywhere;

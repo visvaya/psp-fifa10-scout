@@ -14,6 +14,10 @@ export const NOTES_TEXT = {
   empty: pl`Nie masz jeszcze notatek. Notatkę dodasz na karcie zawodnika.`,
   /** A player the loaded database lacks, stored without a name. */
   unknownPlayer: (id: number): string => pl`Zawodnik nr ${id}`,
+  remove: "Usuń",
+  /** The remove button's name: the visible "Usuń" and whose note it removes. */
+  removeLabel: (name: string): string => `Usuń notatkę: ${name}`,
+  removeQuestion: (name: string): string => `Usunąć notatkę: ${name}?`,
   /** The date of the last change of a note. */
   changed: (iso: string): string => `zmieniona ${changeFormat().format(new Date(iso))}`,
 } as const;

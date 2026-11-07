@@ -70,6 +70,16 @@ describe("notes in the app state", () => {
     expect(changed.undo).toEqual([]);
   });
 
+  it("removes one player's note as an edit", () => {
+    const restored = scoutReducer(initialScoutState, {
+      type: "notes-restored",
+      notes: [note(9, "x"), note(4, "y")],
+    });
+    const removed = scoutReducer(restored, { type: "note-removed", id: 9 });
+    expect(removed.notes).toEqual([note(4, "y")]);
+    expect(removed.notesEdited).toBe(true);
+  });
+
   it("keeps a note when the player leaves the own list, and adds none to it", () => {
     const listed = scoutReducer(initialScoutState, {
       type: "watch-added",

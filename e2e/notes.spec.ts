@@ -10,13 +10,6 @@ import {
   writeStored,
 } from "./support.ts";
 
-const SHOTS = process.env["E2E_SHOTS"];
-
-/** Saves a screenshot for the review when E2E_SHOTS names a folder. */
-const shot = async (page: Page, name: string) => {
-  if (SHOTS !== undefined) await page.screenshot({ path: `${SHOTS}/${name}.png` });
-};
-
 const NOTE_FIELD = { name: "Notatka (nie dodaje do listy)" } as const;
 const NOTE = "Szybki, lewa noga\nDo obserwacji w zimie";
 
@@ -55,7 +48,6 @@ test.describe("notes on players", () => {
     const add = card.getByRole("button", { name: "Dodaj do twojej listy w narzędziu" });
     await expect(add).toBeVisible();
     await expectNoAxeViolations(page);
-    await shot(page, "card-note-wide");
     await expectStored(page, "notes", {
       schemaVersion: 1,
       value: [{ text: NOTE, name: "Paweł Brożek" }],
@@ -96,9 +88,10 @@ test.describe("notes view", () => {
     await expect(items.nth(0)).toContainText("Szybki, lewa noga");
     await expect(items.nth(0)).not.toContainText("Do obserwacji");
     await expect(items.nth(1)).toContainText("Jan Nowak");
-    await expect(items.nth(1).getByRole("button")).toHaveCount(0);
+    await expect(items.nth(1).getByRole("button", { name: "Jan Nowak", exact: true })).toHaveCount(
+      0,
+    );
     await expectNoAxeViolations(page);
-    await shot(page, "notes-view-wide");
 
     const name = notes.getByRole("button", { name: "Paweł Brożek" });
     await name.click();
@@ -107,6 +100,43 @@ test.describe("notes view", () => {
     await page.keyboard.press("Escape");
     await expect(opened).toBeHidden();
     await expect(name).toBeFocused();
+    // Emptied, the note leaves the view under the card: the focus goes back into the view.
+    await name.click();
+    await opened.getByRole("textbox", NOTE_FIELD).fill("");
+    await page.keyboard.press("Escape");
+    await expect(opened).toBeHidden();
+    await expect(notes.getByRole("button", { name: "Zamknij" })).toBeFocused();
+  });
+});
+
+test.describe("notes view, removing", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  // A note of a player the database lacks cannot open his card, so the view removes it, after a
+  // question; the focus moves on to the next note, or to the empty view.
+  test("removes a note of a player missing from the database", async ({ page }) => {
+    await loadDatabase(page);
+    await page.evaluate(writeStored, ["notes", { schemaVersion: 1, value: missing }] as const);
+    await page.reload();
+    await page.getByRole("button", { name: "Notatki" }).click();
+    const notes = page.getByRole("dialog", { name: "Notatki" });
+    const removeNowak = notes.getByRole("button", { name: "Usuń notatkę: Jan Nowak" });
+    await removeNowak.click();
+    await expect(notes.getByText("Usunąć notatkę: Jan Nowak?")).toBeVisible();
+    await expectNoAxeViolations(page);
+    await notes.getByRole("button", { name: /^Anuluj/u }).click();
+    await expect(removeNowak).toBeFocused();
+    await removeNowak.click();
+    await notes.getByRole("button", { name: "Usuń", exact: true }).click();
+    await expect(notes.getByRole("listitem")).toHaveCount(1);
+    await expect(
+      notes.getByRole("button", { name: "Usuń notatkę: Zawodnik nr 990002" }),
+    ).toBeFocused();
+    await expectStored(page, "notes", { value: [{ playerId: 990_002 }] });
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("Enter");
+    await expect(notes.getByText(/^Nie masz jeszcze notatek/u)).toBeFocused();
+    await expectStored(page, "notes", { value: [] });
   });
 
   // Notes kept by the list before they had a record of their own move there, none lost.
@@ -148,7 +178,6 @@ test.describe("notes on a phone", () => {
     await note.fill(NOTE);
     await expectNoHorizontalOverflow(page);
     await expectNoAxeViolations(page);
-    await shot(page, "card-note-phone");
     await card.getByRole("button", { name: "Zamknij" }).tap();
 
     await page.evaluate(writeStored, ["notes", { schemaVersion: 1, value: missing }] as const);
@@ -163,6 +192,5 @@ test.describe("notes on a phone", () => {
     await expect(items.nth(1)).toContainText("Zawodnik nr 990002");
     await expectNoHorizontalOverflow(page);
     await expectNoAxeViolations(page);
-    await shot(page, "notes-view-phone");
   });
 });

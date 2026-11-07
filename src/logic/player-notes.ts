@@ -46,22 +46,29 @@ export type NoteAction =
       readonly text: string;
       readonly name: string;
       readonly changedAt: string;
-    };
+    }
+  /** From the notes view, for a player the loaded database lacks. */
+  | { readonly type: "note-removed"; readonly id: number };
 
 export const isNoteAction = (action: ScoutAction): action is NoteAction =>
-  action.type === "notes-restored" || action.type === "note-changed";
+  action.type.startsWith("note");
+
+/** The notes after an action of the user. */
+const notesAfter = (
+  notes: readonly PlayerNote[],
+  action: Exclude<NoteAction, { readonly type: "notes-restored" }>,
+): readonly PlayerNote[] =>
+  action.type === "note-removed"
+    ? notes.filter((note) => note.playerId !== action.id)
+    : notedPlayer(notes, {
+        playerId: action.id,
+        text: action.text,
+        name: action.name,
+        changedAt: action.changedAt,
+      });
 
 /** The state after an action of the notes; restoring the stored ones is no edit of them. */
 export const notesReducer = (state: ScoutState, action: NoteAction): ScoutState =>
   action.type === "notes-restored"
     ? { ...state, notes: action.notes, notesEdited: false }
-    : {
-        ...state,
-        notes: notedPlayer(state.notes, {
-          playerId: action.id,
-          text: action.text,
-          name: action.name,
-          changedAt: action.changedAt,
-        }),
-        notesEdited: true,
-      };
+    : { ...state, notes: notesAfter(state.notes, action), notesEdited: true };

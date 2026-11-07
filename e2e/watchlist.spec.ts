@@ -45,10 +45,10 @@ test.describe("own watchlist", () => {
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("");
     await expectStoredSearchCleared(page);
     await page.reload();
-    await expectCount(page, "62 zawodników");
+    await expectCount(page, "62 zawodników");
 
     await onList(page, "w narzędziu");
-    await expectCount(page, "1 zawodnik");
+    await expectCount(page, "1 zawodnik");
     await expect(
       page.getByRole("button", { name: "Usuń filtr: Na liście: w narzędziu" }),
     ).toBeVisible();

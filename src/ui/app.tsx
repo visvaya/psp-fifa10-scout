@@ -114,12 +114,13 @@ const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFile
  */
 const TopBar = (props: {
   state: ScoutState;
-  players: readonly Player[] | null;
+  /** The players once loaded. */
+  list: { readonly players: readonly Player[] } | null;
+  wide: boolean;
   update: ReturnType<typeof useAppUpdate>;
   dispatch: Dispatch<ScoutAction>;
 }) => {
-  const { state, players, update, dispatch } = props;
-  const wide = useMediaQuery(WIDE_QUERY);
+  const { state, list, wide, update, dispatch } = props;
   return (
     <header className="topbar">
       <h1>{TEXT.appTitle}</h1>
@@ -136,10 +137,10 @@ const TopBar = (props: {
           <span aria-hidden="true">{TEXT.update.checkMark}</span>
         </button>
       ) : null}
-      {players === null || !wide ? null : (
-        <NotesButton notes={state.notes} players={players} dispatch={dispatch} />
+      {list === null || !wide ? null : (
+        <NotesButton notes={state.notes} players={list.players} dispatch={dispatch} />
       )}
-      {players === null ? null : (
+      {list === null ? null : (
         <button
           type="button"
           className="button"
@@ -176,7 +177,7 @@ export const App = (props: { registering: Promise<UpdatableRegistration> | null 
   const openPlayer = list?.players.find((player) => player.id === state.openPlayerId);
   return (
     <div className="app">
-      <TopBar state={state} players={list?.players ?? null} update={update} dispatch={dispatch} />
+      <TopBar state={state} list={list} wide={wide} update={update} dispatch={dispatch} />
       <UpdatePrompt status={update.status} install={update.install} dismiss={update.dismiss} />
       <StorageNotice failed={files.storageFailed} />
       <main className="main">

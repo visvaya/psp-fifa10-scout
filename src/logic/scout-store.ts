@@ -451,13 +451,14 @@ export const notesFromWatchlist = (entries: unknown): readonly PlayerNote[] =>
   );
 
 export const createScoutStore = (backend: StorageBackend) => ({
-  load: async (): Promise<StoredScout> => {
+  /** onMoveFailed: the moved notes could not be stored; they load all the same and move again next time. */
+  load: async (onMoveFailed?: () => void): Promise<StoredScout> => {
     const watchlist = await backend.get("watchlist");
     const notesRecord = await backend.get("notes");
     // A version 1 list's notes are stored apart at once, so a later save of the list cannot lose them.
     const moved = notesRecord === undefined ? notesFromWatchlist(versioned(watchlist, 1)) : [];
     const notes = { schemaVersion: SCHEMA_VERSION.notes, value: moved };
-    if (moved.length > 0) await backend.set("notes", notes);
+    if (moved.length > 0) await backend.set("notes", notes).catch(() => onMoveFailed?.());
     return {
       ...gameDbOf(await backend.get("gameDb")),
       preferences: preferencesOf(await backend.get("preferences")),
@@ -486,14 +487,15 @@ export type ScoutStore = ReturnType<typeof createScoutStore>;
 
 /**
  * The store over a backend, with what it holds. A backend that cannot be read (a broken IndexedDB)
- * gives an empty store that keeps nothing past the session, and calls onUnreadable.
+ * gives an empty store that keeps nothing past the session, and calls onFailed, as a failed move of the
+ * notes does.
  */
-export const openScoutStore = async (backend: StorageBackend, onUnreadable: () => void) => {
+export const openScoutStore = async (backend: StorageBackend, onFailed: () => void) => {
   const store = createScoutStore(backend);
   try {
-    return { store, stored: await store.load() };
+    return { store, stored: await store.load(onFailed) };
   } catch {
-    onUnreadable();
+    onFailed();
     const session = createScoutStore(memoryBackend());
     return { store: session, stored: await session.load() };
   }

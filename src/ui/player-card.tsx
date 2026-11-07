@@ -331,6 +331,20 @@ const CareerFacts = ({ player }: { player: Player }) => (
   </section>
 );
 
+/**
+ * Where the card returns focus: the player's button in a dialog still open under it (the notes), else
+ * that dialog itself (his note was emptied, so his row left it), else his row or the results' title.
+ */
+const cardOpener = (playerId: number): HTMLElement | null => {
+  const button = `[data-player-id="${String(playerId)}"]`;
+  return (
+    document.querySelector<HTMLElement>(`dialog[open] ${button}`) ??
+    document.querySelector<HTMLElement>("dialog[open] button") ??
+    document.querySelector<HTMLElement>(button) ??
+    document.getElementById(RESULTS_TITLE_ID)
+  );
+};
+
 /** Which lists the player is on: the game's shortlist and the own list. */
 const ListMarks = ({ shortlisted, watched }: { shortlisted: boolean; watched: boolean }) => (
   <>
@@ -369,12 +383,7 @@ export const PlayerCard = (props: {
 }): JSX.Element => {
   const { player, career, currency, offer, showPotential, names, watched, dispatch, onClose } =
     props;
-  const returnFocus = useCallback(
-    () =>
-      document.querySelector<HTMLElement>(`[data-player-id="${String(player.id)}"]`) ??
-      document.getElementById(RESULTS_TITLE_ID),
-    [player.id],
-  );
+  const returnFocus = useCallback(() => cardOpener(player.id), [player.id]);
   return (
     <ModalDialog title={player.name} className="card" onClose={onClose} returnFocus={returnFocus}>
       <ListMarks shortlisted={player.shortlisted} watched={watched} />
