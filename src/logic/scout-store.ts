@@ -5,7 +5,8 @@
 // version or shape is ignored, and
 // unknown or malformed filter values and column overrides are dropped one by one (a record without the
 // columns loads as none, without a chosen currency as the career's, a set without a currency with its
-// amounts in the career's currency, so they needed no new version).
+// amounts in the career's currency, without the order of the best peak tie rules as the default, so
+// they needed no new version).
 import type { GameLanguages, GameNames } from "./game-names.ts";
 import {
   bounded,
@@ -26,6 +27,7 @@ import type { SaveFiles } from "./load-scout.ts";
 import { OVR_WEIGHTS } from "./overall-rating.ts";
 import { POSITION_GROUPS, ratingCodeOf } from "./positions.ts";
 import { isCurrencyCode } from "../data/career-save.ts";
+import { tieOrderOf } from "./best-peak.ts";
 import { compactFilters, DEFAULT_SORT, inRecordOrder } from "./scout-state.ts";
 import type { MyClub, Preferences, ScoutFilters, ScoutSort } from "./scout-state.ts";
 import type { ColumnPreference } from "./column-preference.ts";
@@ -225,6 +227,7 @@ const parsePreferences = (value: unknown): Preferences | null => {
       ? { gameLanguage: value["gameLanguage"] }
       : {}),
     ...(isCurrencyCode(value["currency"]) ? { currency: value["currency"] } : {}),
+    ...(Array.isArray(value["tieOrder"]) ? { tieOrder: tieOrderOf(value["tieOrder"]) } : {}),
   };
 };
 

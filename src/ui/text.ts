@@ -296,6 +296,13 @@ export const TEXT = {
   peakAt: (position: string): string => `Szczyt ${position}`,
   ratingPeakShort: "szczyt",
   peakAtBest: "Szczyt OVR na jego najlepszej pozycji",
+  /** The order of the rules that break a best peak tie, and its buttons. */
+  tieOrder: pl`Przy remisie szczytu wybieraj według`,
+  tieRuleUp: (rule: string): string => `W górę: ${rule}`,
+  tieRuleDown: (rule: string): string => `W dół: ${rule}`,
+  upMark: "↑",
+  downMark: "↓",
+  tieOrderDefault: pl`Przywróć domyślną kolejność`,
   bestPositionOnly: "Tylko jego najlepsza pozycja",
   bestPositionShort: "najlepsza pozycja",
   signed: (value: number): string => signed(value),

@@ -120,6 +120,7 @@ export const TEST_CAREER: CareerSummary = {
   lastGameDate: new Date(0),
   currency: 0,
   offer: { prestige: 2, negotiator: 4, squadAverage: 65, countryId: 37, seasonEndYear: 2010 },
+  formationCodes: [],
 };
 
 /** A finished load of a game with no players and no career save. */

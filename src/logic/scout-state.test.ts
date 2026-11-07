@@ -3,11 +3,11 @@ import {
   actionOf,
   activeFilters,
   DEFAULT_SORT,
-  listedCount,
   initialScoutState,
   scoutReducer,
 } from "./scout-state.ts";
 import type { FilterId, ScoutState } from "./scout-state.ts";
+import { listedCount } from "./effective-filters.ts";
 import { activeLanguage } from "./game-names.ts";
 import { TEST_CAREER, testPlayer } from "./test-support/player-fixtures.ts";
 

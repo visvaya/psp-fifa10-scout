@@ -118,6 +118,8 @@ describe("loadScout", () => {
       lastGameDate: new Date(Date.UTC(2009, 7, 8)),
       currency: 0,
       offer: { prestige: 0, negotiator: 0, seasonEndYear: 2010 },
+      // The starting eleven of the scout database's diamond.
+      formationCodes: [0, 3, 4, 6, 7, 11, 16, 18, 23, 29, 31],
     });
   });
 

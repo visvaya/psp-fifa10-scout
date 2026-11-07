@@ -12,6 +12,7 @@ import { SORTABLE_KEYS, sortPlayers } from "../logic/sort-players.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 import type { WatchEntry } from "../logic/watchlist.ts";
 import { FilterChips } from "./filter-chips.tsx";
+import { TIE_RULES } from "../logic/best-peak.ts";
 import { FilterForm } from "./filter-form.tsx";
 import { FilterSets } from "./filter-sets.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
@@ -300,6 +301,7 @@ export const ListView = (props: ListViewProps): JSX.Element => {
         currency={shownCurrency(state)}
         columns={columns}
         automaticColumns={automatic}
+        tieOrder={state.tieOrder ?? TIE_RULES}
         dispatch={dispatch}
       />
     </>

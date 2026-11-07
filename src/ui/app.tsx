@@ -59,6 +59,7 @@ const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFile
     currency,
     filterSets,
     columns,
+    tieOrder,
     languages,
     watchlist,
     watchlistEdited,
@@ -74,6 +75,7 @@ const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFile
         ...(currency === undefined ? {} : { currency }),
         ...(filterSets === undefined ? {} : { filterSets }),
         ...(columns === undefined ? {} : { columns }),
+        ...(tieOrder === undefined ? {} : { tieOrder }),
       });
     }
   }, [
@@ -86,6 +88,7 @@ const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFile
     currency,
     filterSets,
     columns,
+    tieOrder,
   ]);
 
   useEffect(() => {

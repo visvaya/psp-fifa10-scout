@@ -96,7 +96,9 @@ test.describe("peak at the best position, wide screen", () => {
       .click();
     await expect(page.getByText(/osobno dla każdej pozycji/u)).toBeVisible();
     // And how a tie between positions is settled.
-    await expect(page.getByText(/formacji twojego klubu/u)).toBeVisible();
+    await expect(page.getByText(/formacji twojego klubu w\szapisie/u)).toBeVisible();
+    // And that the order of those rules can change.
+    await expect(page.getByText(/Kolejność reguł zmienisz/u)).toBeVisible();
     await expectNoAxeViolations(page);
     await peakAtBestBox(page).check();
     await expect(peakHeader(page)).toHaveCount(0);
@@ -143,6 +145,52 @@ test.describe("peak at the best position, wide screen", () => {
     await peakAtBestBox(page).uncheck();
     await expect(peakHeader(page)).toHaveAttribute("aria-sort", "descending");
     await expect(secondRow).not.toHaveText("Paweł Brożek");
+  });
+});
+
+/** The rules that break a best peak tie, in their shown order. */
+const tieRules = (page: Page) =>
+  page.getByRole("group", { name: "Przy remisie szczytu wybieraj według" }).getByRole("listitem");
+
+test.describe("peak at the best position, order of the tie rules", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  test("moves a rule with its buttons, keeps the keyboard on it and stores the order", async ({
+    page,
+  }) => {
+    await loadCareer(page);
+    await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
+    const rules = tieRules(page);
+    await expect(rules).toHaveText([
+      /^pozycje z\sformacji/u,
+      /^środek/u,
+      /^strona lepszej nogi/u,
+      /^pozycja preferowana/u,
+    ]);
+    const reset = page.getByRole("button", { name: "Przywróć domyślną kolejność" });
+    await expect(reset).toBeDisabled();
+    // The first rule has no "up", the last no "down".
+    await expect(rules.first().getByRole("button", { name: /^W górę/u })).toHaveCount(0);
+    await expect(rules.last().getByRole("button", { name: /^W dół/u })).toHaveCount(0);
+    await expectNoAxeViolations(page);
+    const up = page.getByRole("button", { name: "W górę: pozycja preferowana" });
+    await up.click();
+    await expect(up).toBeFocused();
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("Enter");
+    // At the top its "up" goes: the keyboard moves to its "down".
+    await expect(rules.first()).toHaveText(/^pozycja preferowana/u);
+    await expect(page.getByRole("button", { name: "W dół: pozycja preferowana" })).toBeFocused();
+    const order = ["preferredPosition", "formation", "weakFootCentre", "betterFootSide"];
+    await expectStored(page, "preferences", { value: { tieOrder: order } });
+    await page.reload();
+    await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
+    await expect(rules.first()).toHaveText(/^pozycja preferowana/u);
+    await reset.click();
+    await expect(rules.first()).toHaveText(/^pozycje z\sformacji/u);
+    await expect(reset).toBeDisabled();
+    // The reset button goes off: the keyboard moves to the first rule.
+    await expect(rules.first().getByRole("button")).toBeFocused();
   });
 });
 

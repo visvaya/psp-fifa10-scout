@@ -3,7 +3,7 @@
 // loadScout decides what to read, within the size caps, and the UI never parses files on its own thread.
 import { offerContextOf } from "./offer.ts";
 import type { OfferContext } from "./offer.ts";
-import { careerManager, parseCareerSave } from "../data/career-save.ts";
+import { careerManager, parseCareerSave, userFormationCodes } from "../data/career-save.ts";
 import type { CurrencyCode } from "../data/career-save.ts";
 import { num, parseEaDb, readTable } from "../data/ea-db.ts";
 import type { EaDb } from "../data/ea-db.ts";
@@ -72,6 +72,8 @@ export interface CareerSummary {
   readonly currency: CurrencyCode;
   /** The user's side of a transfer offer. */
   readonly offer: OfferContext;
+  /** The starting eleven's position codes, which a best peak tie goes by; empty without them. */
+  readonly formationCodes: readonly number[];
 }
 
 export interface LoadResult {
@@ -210,7 +212,14 @@ export const loadScout = async (
   return {
     players,
     myTeamId: teamId,
-    career: { managerName, clubName, lastGameDate, currency, offer },
+    career: {
+      managerName,
+      clubName,
+      lastGameDate,
+      currency,
+      offer,
+      formationCodes: userFormationCodes(db, career),
+    },
     gameDb,
     ...names,
   };
