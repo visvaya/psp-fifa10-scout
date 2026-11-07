@@ -741,6 +741,15 @@ input[inputmode="numeric"] {
   stroke-linejoin: round;
 }
 
+/* The own list's mark, an outlined star in the list's colour, sized and placed like a text star. */
+.watch-mark .star {
+  vertical-align: -0.125em;
+}
+
+.watch-mark .star path {
+  stroke: var(--color-watch);
+}
+
 .star-full path,
 .star-half .star-half-fill {
   fill: var(--color-accent);

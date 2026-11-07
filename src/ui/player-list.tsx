@@ -12,6 +12,7 @@ import { ratingValueOf } from "../logic/sort-players.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 import { AttributeValue, GainValue } from "./attribute-value.tsx";
 import { PositionName } from "./position-name.tsx";
+import { WatchMark } from "./stars.tsx";
 import { formatNumber, formatRating, RANGE_LABELS, TEXT } from "./text.ts";
 import { ATTRIBUTE_LABELS } from "./text-attributes.ts";
 import { useColumnWidths } from "./use-column-widths.ts";
@@ -136,8 +137,8 @@ export interface ListMarks {
 }
 
 /**
- * The stars before the name, where a cut-off name cannot hide them: the game's shortlist in green, the
- * own list in its own colour, side by side for a player on both.
+ * The stars before the name, where a cut-off name cannot hide them: the game's shortlist filled in green,
+ * the own list outlined in its own colour, side by side for a player on both.
  */
 export const ShortlistStar = ({ player, watched }: ListMarks) => (
   <>
@@ -146,11 +147,7 @@ export const ShortlistStar = ({ player, watched }: ListMarks) => (
         {TEXT.shortlistedMark}
       </span>
     ) : null}
-    {watched ? (
-      <span className="watch-mark" aria-hidden="true">
-        {TEXT.shortlistedMark}
-      </span>
-    ) : null}
+    {watched ? <WatchMark /> : null}
   </>
 );
 

@@ -12,7 +12,7 @@ import type { ScoutAction } from "../logic/scout-state.ts";
 import type { WatchEntry } from "../logic/watchlist.ts";
 import { ChoiceRatings, SamePeakNote } from "./card-folds.tsx";
 import { CurveSparkline } from "./curve-sparkline.tsx";
-import { Stars } from "./stars.tsx";
+import { Stars, WatchMark } from "./stars.tsx";
 import { WatchlistSection } from "./watchlist-section.tsx";
 import { codeName } from "./text-code-names.ts";
 import { AttributeValue } from "./attribute-value.tsx";
@@ -356,7 +356,8 @@ export const PlayerCard = (props: {
       ) : null}
       {watched === undefined ? null : (
         <p className="watched">
-          <span aria-hidden="true">{TEXT.shortlistedMark}</span> {TEXT.card.watched}
+          <WatchMark />
+          {TEXT.card.watched}
         </p>
       )}
       <WatchlistSection playerId={player.id} entry={watched} dispatch={dispatch} />

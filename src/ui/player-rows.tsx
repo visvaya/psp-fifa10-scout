@@ -282,9 +282,12 @@ const outerWidth = (element: HTMLElement): number => {
 const fitNames = (frame: HTMLElement): void => {
   for (const name of frame.querySelectorAll<HTMLElement>(".player-row-name.has-initial")) {
     const full = name.querySelector(".player-row-name-full");
-    const star = name.querySelector<HTMLElement>(".shortlist-mark");
     if (full === null) continue;
-    const room = name.clientWidth - (star === null ? 0 : outerWidth(star));
+    // The room beside the stars before the name: the game's shortlist and the own list.
+    const stars = [
+      ...name.querySelectorAll<HTMLElement>(":scope > :is(.shortlist-mark, .watch-mark)"),
+    ];
+    const room = stars.reduce((left, star) => left - outerWidth(star), name.clientWidth);
     // Half a pixel of leeway for subpixel rounding.
     const fit = textWidth(full) > room + 0.5 ? "short" : "full";
     const was = name.dataset["fit"];
