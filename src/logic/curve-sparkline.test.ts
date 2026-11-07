@@ -6,7 +6,8 @@ import { CURVE_COLUMNS } from "./overall-rating.ts";
 const curve = (value: (index: number) => number): readonly number[] =>
   CURVE_COLUMNS.map((_, index) => value(index));
 
-// Curve 13 rises to 80 at index 12 (age 27) and stays there; curve 1 is flat at 40; curve 2 tops the table.
+// Curve 13 rises from 20, the table's lowest value, to 80 at index 12 (age 27) and stays there; curve 1 is
+// flat at 40; curve 2 tops the table at 99.
 const CURVES = new Map([
   [1, curve(() => 40)],
   [2, curve(() => 99)],
@@ -14,9 +15,9 @@ const CURVES = new Map([
 ]);
 
 describe("curveSparkline", () => {
-  it("draws every age of the table on x and 0 to the table's maximum on y, the same for every curve", () => {
+  it("draws every age of the table on x and its lowest to highest value on y, the same for every curve", () => {
     const line = curveSparkline(CURVES, 13);
-    expect(line?.viewBox).toBe(`0 0 ${String(CURVE_COLUMNS.length - 1)} 99`);
+    expect(line?.viewBox).toBe(`0 0 ${String(CURVE_COLUMNS.length - 1)} 79`);
     const points = line?.points.split(" ");
     expect(points).toHaveLength(CURVE_COLUMNS.length);
     expect(points?.[0]).toBe("0,79");
@@ -34,8 +35,15 @@ describe("curveSparkline", () => {
     expect(curveSparkline(CURVES, 7)).toEqual(curveSparkline(CURVES, 1));
   });
 
-  it("draws nothing without curves or with a table of zeros", () => {
+  it("draws nothing without curves", () => {
     expect(curveSparkline(new Map(), 13)).toBeNull();
-    expect(curveSparkline(new Map([[1, curve(() => 0)]]), 1)).toBeNull();
+  });
+
+  it("draws a flat table as a flat line at the top", () => {
+    const line = curveSparkline(new Map([[1, curve(() => 50)]]), 1);
+    expect(line?.viewBox).toBe(`0 0 ${String(CURVE_COLUMNS.length - 1)} 1`);
+    expect(new Set(line?.points.split(" ").map((point) => point.split(",")[1]))).toEqual(
+      new Set(["0"]),
+    );
   });
 });

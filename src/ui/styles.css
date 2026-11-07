@@ -1446,9 +1446,8 @@ input[inputmode="numeric"] {
 /* A development curve the size of a line of text, after a style's name. */
 .sparkline {
   flex: none;
-  width: 3em;
-  height: 1em;
-  margin-inline-start: var(--space-2);
+  width: 4em;
+  height: 1.25em;
   overflow: visible;
   vertical-align: middle;
 }
@@ -1456,7 +1455,25 @@ input[inputmode="numeric"] {
 .sparkline polyline {
   fill: none;
   stroke: var(--color-accent);
-  stroke-width: 1.5px;
+  stroke-width: 0.125em;
+  stroke-linecap: round;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
+}
+
+.facts .sparkline {
+  margin-inline-start: var(--space-2);
+}
+
+/* Options with a curve: the names share one column, so the curves start at one edge. */
+.choices:has(> .check > .sparkline) {
+  display: grid;
+  grid-template-columns: auto max-content 1fr;
+  column-gap: var(--space-2);
+}
+
+.choices > .check:has(> .sparkline) {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
 }
