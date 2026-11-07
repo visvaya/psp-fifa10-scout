@@ -202,8 +202,10 @@ describe("parseCareerSave", () => {
       ],
     ]);
     expect(userFormationCodes(DB, save)).toEqual([0, 7, 6, 4, 3, 19, 18, 16, 15, 31, 29]);
+    // The formation only breaks ties, so a save without it still loads, as one with no formation.
     const unknown = new Map([...save, ["teamwrite", [{ teamid: 1873, formationid: 9 }]]]);
-    expect(() => userFormationCodes(DB, unknown)).toThrow(/no formation for the user team/);
+    expect(userFormationCodes(DB, unknown)).toEqual([]);
+    expect(userFormationCodes(DB, new Map([...save, ["teamwrite", []]]))).toEqual([]);
   });
 
   it("rejects a manager table without a user team", () => {

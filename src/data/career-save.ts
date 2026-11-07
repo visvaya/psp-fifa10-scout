@@ -118,6 +118,10 @@ export const parseCareerSave = (db: EaDb, bytes: Uint8Array): CareerSave => {
 const rowsOf = (db: EaDb, save: CareerSave, name: string): readonly EaDbRow[] =>
   save.get(name) ?? readTable(db, name);
 
+/** Like rowsOf, but none when neither the save nor the database has the table. */
+const rowsOrNone = (db: EaDb, save: CareerSave, name: string): readonly EaDbRow[] =>
+  save.get(name) ?? (db.tables.has(name) ? readTable(db, name) : []);
+
 /** A table as the career sees it: the save's rows when it replaces the table, otherwise fifa.db's. */
 export const effectiveRows: (db: EaDb, save: CareerSave, name: CareerTable) => readonly EaDbRow[] =
   rowsOf;
@@ -181,20 +185,20 @@ export const careerManager = (
  * without the table, as in tests, has none).
  */
 export const careerShortlist = (db: EaDb, save: CareerSave): readonly EaDbRow[] =>
-  save.get("career_shortlist") ??
-  (db.tables.has("career_shortlist") ? readTable(db, "career_shortlist") : []);
+  rowsOrNone(db, save, "career_shortlist");
 
 /**
  * The position codes of the user team's starting eleven: its teamwrite formation's position1..11 in
- * formations, the save's rows where it replaces either table.
+ * formations, the save's rows where it replaces either table. None without that row: the formation only
+ * breaks best peak ties, so the save still loads, as without a formation.
  */
 export const userFormationCodes = (db: EaDb, save: CareerSave): readonly number[] => {
   const { teamId } = careerManager(db, save);
-  const team = rowsOf(db, save, "teamwrite").find((row) => row["teamid"] === teamId);
+  const team = rowsOrNone(db, save, "teamwrite").find((row) => row["teamid"] === teamId);
   const formation =
     team &&
-    rowsOf(db, save, "formations").find((row) => row["formationid"] === team["formationid"]);
-  if (formation === undefined) throw new SaveFormatError("Save has no formation for the user team");
+    rowsOrNone(db, save, "formations").find((row) => row["formationid"] === team["formationid"]);
+  if (formation === undefined) return [];
   return Array.from({ length: STARTING_ELEVEN }, (_, index) =>
     num(formation, `position${String(index + 1)}`),
   );

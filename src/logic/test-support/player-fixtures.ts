@@ -46,7 +46,7 @@ export const table = (name: string, rows: readonly Row[]): TableSpec => {
 };
 
 /** The real Wisła save's 4-4-2 (formation 373): GK, LB, LCB, RCB, RB, LM, LCM, RCM, RM, LS, RS. */
-const FOUR_FOUR_TWO = [0, 7, 6, 4, 3, 19, 18, 16, 15, 31, 29];
+export const FOUR_FOUR_TWO = [0, 7, 6, 4, 3, 19, 18, 16, 15, 31, 29];
 
 /**
  * fifa.db `teamwrite` and `formations` giving `teamId` a formation of this starting eleven, then the

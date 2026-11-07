@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { bestPeakFields } from "./best-peak.ts";
 import type { PeakInput } from "./best-peak.ts";
+import { FOUR_FOUR_TWO } from "./test-support/player-fixtures.ts";
 
 /** A peak per position code 0..31, with the given codes raised. */
 const peaks = (raised: Readonly<Record<number, number>>, base = 60): readonly number[] =>
@@ -11,8 +12,6 @@ const overalls = (at: Readonly<Record<number, number>>): readonly number[] => pe
 const tiedAt = (codes: readonly number[], peak = 80): readonly number[] =>
   peaks(Object.fromEntries(codes.map((code) => [code, peak])));
 
-// The real Wisła save's 4-4-2: GK, LB, LCB, RCB, RB, LM, LCM, RCM, RM, LS, RS.
-const FOUR_FOUR_TWO = [0, 7, 6, 4, 3, 19, 18, 16, 15, 31, 29];
 const FIVE_THREE_TWO = [0, 8, 6, 5, 4, 2, 18, 17, 16, 31, 29];
 const FORWARDS = [26, 27, 28, 29, 30, 31];
 const CENTRE_BACKS = [4, 5, 6];

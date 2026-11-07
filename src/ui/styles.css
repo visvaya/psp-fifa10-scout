@@ -41,6 +41,8 @@
   --topbar-height: 3.5rem;
   --filter-panel-width: 18rem;
   --rating-width: 2.25rem;
+  /* A filter section's marker; the unseen copy that places the section's "?" takes the same width. */
+  --section-marker-width: 1.25em;
   --skeleton-pulse-duration: 1.2s;
   --skeleton-dim-opacity: 0.4;
 }
@@ -1167,7 +1169,7 @@ input[inputmode="numeric"] {
 .filter-section > summary::before {
   content: "▸";
   content: "▸" / "";
-  width: 1.25em;
+  width: var(--section-marker-width);
   color: var(--color-muted);
 }
 
@@ -1201,7 +1203,7 @@ input[inputmode="numeric"] {
 .section-help-spacer::before {
   content: attr(data-title);
   content: attr(data-title) / "";
-  padding-inline-start: 1.25em;
+  padding-inline-start: var(--section-marker-width);
   white-space: nowrap;
   visibility: hidden;
 }
