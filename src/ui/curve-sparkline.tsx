@@ -13,7 +13,6 @@ export const CurveSparkline = ({
     className="sparkline"
     viewBox={line.viewBox}
     preserveAspectRatio="none"
-    focusable="false"
     {...(label === undefined ? { "aria-hidden": true } : { role: "img", "aria-label": label })}
   >
     <polyline points={line.points} />

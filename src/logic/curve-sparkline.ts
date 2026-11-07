@@ -11,17 +11,22 @@ export interface Sparkline {
   readonly peakAge: number;
 }
 
-/** The curve `id` as a polyline; null without curves. A flat table draws a flat line at the top. */
-export const curveSparkline = (curves: Curves, id: number): Sparkline | null => {
-  const values = curveValues(curves, id);
-  if (values.length === 0) return null;
+/**
+ * The table's shared scale, taken once, and from it each curve `id` as a polyline; null without curves.
+ * A flat table draws a flat line at the top.
+ */
+export const curveSparklines = (curves: Curves): ((id: number) => Sparkline | null) => {
   const all = [...curves.values()].flat();
   const top = Math.max(...all);
   // A flat table spans no height: one unit keeps the viewBox drawable.
   const height = Math.max(top - Math.min(...all), 1);
-  return {
-    viewBox: `0 0 ${String(values.length - 1)} ${String(height)}`,
-    points: values.map((value, index) => `${String(index)},${String(top - value)}`).join(" "),
-    peakAge: CURVE_AGE_MIN + values.indexOf(Math.max(...values)),
+  return (id) => {
+    const values = curveValues(curves, id);
+    if (values.length === 0) return null;
+    return {
+      viewBox: `0 0 ${String(values.length - 1)} ${String(height)}`,
+      points: values.map((value, index) => `${String(index)},${String(top - value)}`).join(" "),
+      peakAge: CURVE_AGE_MIN + values.indexOf(Math.max(...values)),
+    };
   };
 };

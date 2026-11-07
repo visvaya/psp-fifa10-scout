@@ -25,6 +25,7 @@ import {
   potentialDeltas,
   readCurves,
 } from "./overall-rating.ts";
+import type { Curves } from "./overall-rating.ts";
 import { careerLinks, placementsOf, teamFields, teamsById } from "./placements.ts";
 import type { Placement } from "./placements.ts";
 import { financeOf, NO_FINANCE } from "./player-finance.ts";
@@ -389,7 +390,7 @@ export const withNameOrder = (
  * Attributes and OVR from fifa.db without a save; with one, aged to the season's first match day, as
  * the game shows them in the career (overall-rating.md).
  */
-const rater = (db: EaDb, save: CareerSave | undefined): Context["rate"] => {
+const rater = (db: EaDb, save: CareerSave | undefined, read?: Curves): Context["rate"] => {
   if (save === undefined)
     return (row) => {
       const attributes = attributesOf(row);
@@ -400,7 +401,7 @@ const rater = (db: EaDb, save: CareerSave | undefined): Context["rate"] => {
         peakByCode: [],
       };
     };
-  const curves = readCurves(db);
+  const curves = read ?? readCurves(db);
   const deltas = potentialDeltas(db, save);
   const gains = attributeGains(db, save);
   const date = seasonStartDate(db, save);
@@ -445,8 +446,9 @@ const rater = (db: EaDb, save: CareerSave | undefined): Context["rate"] => {
 /**
  * Every player with his club and nationality; youth-pool players only when a team link, or the
  * save's youth academy, transfer list or shortlist, places them. With a save, links and stats come from it and ages are taken on its last game date.
+ * `curves`: the database's curves when the caller has read them already.
  */
-export const buildPlayers = (db: EaDb, save?: CareerSave): readonly Player[] => {
+export const buildPlayers = (db: EaDb, save?: CareerSave, curves?: Curves): readonly Player[] => {
   const links =
     save === undefined
       ? readTable(db, "teamplayerlinks")
@@ -478,7 +480,7 @@ export const buildPlayers = (db: EaDb, save?: CareerSave): readonly Player[] => 
         .filter((row) => num(row, "teamid") === SCOUT_CONFIG.freeAgentTeamId)
         .map((row) => num(row, "playerid")),
     ),
-    rate: rater(db, save),
+    rate: rater(db, save, curves),
     formationCodes: save === undefined ? [] : userFormationCodes(db, save),
     finance: save === undefined ? null : financeOf(db, save, market.loanedFrom),
     saleVerdict: save === undefined ? null : saleVerdictOf(db, save, placements),

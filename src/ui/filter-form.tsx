@@ -7,7 +7,7 @@ import { SEASON_STAT_KEYS, TRAIT_NAMES } from "../logic/players.ts";
 import type { Player, TraitName } from "../logic/players.ts";
 import { POSITION_GROUPS } from "../logic/positions.ts";
 import type { SortKey } from "../logic/sort-players.ts";
-import { curveSparkline } from "../logic/curve-sparkline.ts";
+import { curveSparklines } from "../logic/curve-sparkline.ts";
 import { facetOptions } from "../logic/facets.ts";
 import type { FacetOption } from "../logic/facets.ts";
 import { skillCurveId } from "../logic/overall-rating.ts";
@@ -198,9 +198,12 @@ const codeChoices = (codes: readonly number[], key: CodedKey): readonly Choice<n
 const TYPICAL_DEVELOPMENT_TYPE = 2;
 
 /** Each style with its skill curve for the typical development type, when the game has curves. */
-const styleChoices = (codes: readonly number[], curves: Curves): readonly Choice<number>[] =>
+const styleChoices = (
+  codes: readonly number[],
+  sparkline: ReturnType<typeof curveSparklines>,
+): readonly Choice<number>[] =>
   codes.map((code) => {
-    const line = curveSparkline(curves, skillCurveId(code, TYPICAL_DEVELOPMENT_TYPE));
+    const line = sparkline(skillCurveId(code, TYPICAL_DEVELOPMENT_TYPE));
     return {
       value: code,
       label: codeName("developmentStyle", code),
@@ -267,7 +270,7 @@ type Kit = ReturnType<typeof controls> & {
   readonly facets: ReturnType<typeof facetOptions>;
   readonly eye: Eye;
   readonly positionName: (code: number) => string;
-  readonly curves: Curves;
+  readonly sparkline: ReturnType<typeof curveSparklines>;
 };
 
 /** The peak OVR, with the choice of counting it at the best position, and the growth left to it. */
@@ -338,14 +341,14 @@ const physiqueSection = ({ facets, range, list }: Kit) => (
   </Section>
 );
 
-const characterSection = ({ facets, range, list, flag, curves }: Kit) => (
+const characterSection = ({ facets, range, list, flag, sparkline }: Kit) => (
   <Section title={FILTER_SECTION_LABELS.character}>
     {CHARACTER_TRAITS.map(flag)}
     {range("internationalReputation")}
     {range("learningSpeed")}
     {range("retirementAge")}
     {list("developmentType", codeChoices(facets.codes.developmentType, "developmentType"))}
-    {list("developmentStyle", styleChoices(facets.codes.developmentStyle, curves))}
+    {list("developmentStyle", styleChoices(facets.codes.developmentStyle, sparkline))}
   </Section>
 );
 
@@ -401,6 +404,7 @@ export const FilterForm = ({
     () => facetOptions(players, filters, collator),
     [players, filters, collator],
   );
+  const sparkline = useMemo(() => curveSparklines(curves), [curves]);
   const change: Change = (next) => {
     dispatch({ type: "filters-changed", filters: next });
   };
@@ -412,7 +416,7 @@ export const FilterForm = ({
     facets,
     eye,
     positionName,
-    curves,
+    sparkline,
   };
   return (
     <form className="filter-form" onSubmit={(event) => event.preventDefault()}>

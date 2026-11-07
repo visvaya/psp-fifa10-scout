@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import type { Dispatch, JSX, ReactNode } from "react";
 import type { CurrencyCode } from "../data/career-save.ts";
 import { codesAtPeak } from "../logic/best-peak.ts";
-import { curveSparkline } from "../logic/curve-sparkline.ts";
+import { curveSparklines } from "../logic/curve-sparkline.ts";
 import type { OfferContext } from "../logic/offer.ts";
 import { skillCurveId } from "../logic/overall-rating.ts";
 import type { Curves } from "../logic/overall-rating.ts";
@@ -70,7 +70,7 @@ const CLEAN_SHEETS: ReadonlySet<string> = new Set(["cleanSheets", "cupCleanSheet
 
 /** The style's name with his own skill curve, the one his projection follows, when the game has curves. */
 const styleValue = ({ developmentStyle: style, developmentType: type }: Player, curves: Curves) => {
-  const line = curveSparkline(curves, skillCurveId(style, type));
+  const line = curveSparklines(curves)(skillCurveId(style, type));
   return (
     <>
       {codeName("developmentStyle", style)}

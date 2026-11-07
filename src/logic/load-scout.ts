@@ -203,7 +203,7 @@ export const loadScout = async (
   );
   onPhase("players");
   const { players, offer } = await atStage("save", () => {
-    const built = buildPlayers(db, career);
+    const built = buildPlayers(db, career, names.curves);
     return { players: built, offer: offerContextOf(db, career, built) };
   });
   const clubName = players.find((player) => player.clubId === teamId)?.clubName ?? null;
