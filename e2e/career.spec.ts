@@ -5,7 +5,9 @@ import {
   cardValue,
   expect,
   expectCount,
+  expectNoAxeViolations,
   expectStored,
+  firstCellOf,
   loadCareer,
   readStored,
   test,
@@ -92,6 +94,44 @@ test.describe("career", () => {
         .getByRole("dialog", { name: "Lionel Messi" })
         .getByText("Na twojej liście życzeń w grze"),
     ).toBeVisible();
+  });
+});
+
+test.describe("career currency", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  // The synthetic save keeps euro; dollars come from the same euro amounts with the game's rate.
+  test("prices in the chosen currency, money filters kept", async ({ page }) => {
+    await loadCareer(page);
+    await page.getByText("Kariera", { exact: true }).click();
+    const euroBound = page.getByRole("group", { name: "Cena (€)", exact: true }).getByLabel("od");
+    await euroBound.fill("1000000");
+    const listPrice = await (await firstCellOf(page, "Cena")).textContent();
+    await page.getByRole("button", { name: "Lionel Messi" }).click();
+    const card = page.getByRole("dialog", { name: "Lionel Messi" });
+    const euroPrice = await cardValue(card, "Cena").textContent();
+    expect(euroPrice).toMatch(/€$/u);
+    await page.keyboard.press("Escape");
+    await expect(card).toBeHidden();
+
+    await page.getByRole("button", { name: "Pliki" }).click();
+    const select = page.getByLabel("Ceny i zarobki w walucie");
+    await expect(select).toHaveValue("");
+    await expect(select).toHaveAccessibleDescription(/^Kwoty są liczone/u);
+    await select.selectOption({ label: "Dolar ($)" });
+    await expectNoAxeViolations(page);
+    await page.getByRole("button", { name: /^Pokaż zawodników/u }).click();
+
+    await expect(page.getByRole("columnheader", { name: /^Cena \(\$\)/u })).toBeVisible();
+    // The filter keeps the amount: 1 000 000 € is 1 410 000 $.
+    await expect(
+      page.getByRole("button", { name: /^Usuń filtr: Cena: od 1\s410\s000$/u }),
+    ).toBeVisible();
+    await expect(await firstCellOf(page, "Cena")).not.toHaveText(listPrice ?? "");
+    await page.getByRole("button", { name: "Lionel Messi" }).click();
+    const dollarPrice = cardValue(card, "Cena");
+    await expect(dollarPrice).toHaveText(/\$$/u);
+    await expect(dollarPrice).not.toHaveText(euroPrice ?? "");
   });
 });
 

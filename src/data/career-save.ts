@@ -132,7 +132,7 @@ const gameDate = (gameNumber: number): Date =>
 /** The currency the career shows money in: 0 euro, 1 pound, 2 dollar. */
 export type CurrencyCode = 0 | 1 | 2;
 
-const isCurrencyCode = (code: number): code is CurrencyCode =>
+export const isCurrencyCode = (code: unknown): code is CurrencyCode =>
   code === 0 || code === 1 || code === 2;
 
 const MANAGER_COLUMNS = [

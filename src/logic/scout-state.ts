@@ -1,4 +1,6 @@
 // The app state as a reducer with pure transitions, and the pure view helpers the screens share.
+import type { CurrencyCode } from "../data/career-save.ts";
+import { currencyChosen, withShownCurrency } from "./currency.ts";
 import {
   bounded,
   CAREER_FLAG_KEYS,
@@ -13,7 +15,6 @@ import {
   peakField,
 } from "./filter-players.ts";
 import type { FlagKey, ListKey, PlayerFilters, RangeKey } from "./filter-players.ts";
-import { defaultLanguage } from "./game-names.ts";
 import type { GameLanguages } from "./game-names.ts";
 import type { CareerSummary, LoadError, LoadPhase, WorkerMessage } from "./load-scout.ts";
 import type { Curves } from "./overall-rating.ts";
@@ -63,6 +64,8 @@ export interface Preferences {
   readonly showPotential: boolean;
   /** The game language of club, league and country names; null the fifa.db names, unset the browser's. */
   readonly gameLanguage?: string | null;
+  /** The currency money shows in; unset the career's. */
+  readonly currency?: CurrencyCode;
   /** Filters and sort saved under a name; unset as none. */
   readonly filterSets?: readonly FilterSet[];
   /** A view setting, kept out of the filters, the sets and undo; unset as none. */
@@ -102,6 +105,9 @@ export interface ScoutState extends Preferences {
   readonly watchlistEdited: boolean;
 }
 
+/** Null goes back to the career's currency. */
+type CurrencyAction = { readonly type: "currency-chosen"; readonly currency: CurrencyCode | null };
+
 type LoadAction =
   | {
       readonly type: "load-started";
@@ -129,6 +135,7 @@ export type ScoutAction =
   | { readonly type: "files-incomplete"; readonly stage: "save" | "locale" }
   | { readonly type: "languages-restored"; readonly languages: GameLanguages }
   | { readonly type: "language-chosen"; readonly language: string | null }
+  | CurrencyAction
   | { readonly type: "view-changed"; readonly view: ScoutState["view"] }
   | { readonly type: "filters-changed"; readonly filters: FilterChange }
   | { readonly type: "filter-removed"; readonly id: FilterId }
@@ -284,7 +291,7 @@ const isLoadAction = (action: ScoutAction): action is LoadAction => action.type.
 
 /** The stored preferences over the state, made consistent; after a game without a career, without what needs one. */
 const withPreferences = (state: ScoutState, preferences: Preferences): ScoutState => {
-  const { filters, sort, showPotential, gameLanguage, filterSets, columns } = preferences;
+  const { filters, sort, showPotential, gameLanguage, filterSets, columns, currency } = preferences;
   const restored = { filters: compactFilters(filters), sort };
   const fitted =
     state.players !== null && state.myTeamId === null ? withoutCareer(restored) : restored;
@@ -294,6 +301,7 @@ const withPreferences = (state: ScoutState, preferences: Preferences): ScoutStat
     ...(gameLanguage === undefined ? {} : { gameLanguage }),
     ...(filterSets === undefined ? {} : { filterSets }),
     ...(columns === undefined ? {} : { columns }),
+    ...(currency === undefined ? {} : { currency }),
   };
 };
 
@@ -325,7 +333,7 @@ const withoutCareer = ({ filters, sort }: Pick<Preferences, "filters" | "sort">)
 
 /** A filter set's action; a set loaded without a career leaves out what needs one, the set itself kept. */
 const withFilterSets = (state: ScoutState, action: FilterSetAction): ScoutState => {
-  const next = filterSetsAfter(state, action);
+  const next = filterSetsAfter(state, action, state.career);
   const fitted =
     action.type === "filter-set-loaded" && state.myTeamId === null
       ? { ...next, ...withoutCareer(next) }
@@ -397,7 +405,7 @@ export const resetState = <S extends Pick<ScoutState, "columns">>(
 
 const changes = (
   state: ScoutState,
-  action: Exclude<ScoutAction, UndoAction | WatchlistAction | ColumnAction>,
+  action: Exclude<ScoutAction, UndoAction | WatchlistAction | ColumnAction | CurrencyAction>,
 ): ScoutState => {
   if (isLoadAction(action)) return loadReducer(state, action);
   if (isFilterSetAction(action)) return withFilterSets(state, action);
@@ -443,10 +451,12 @@ const changes = (
   }
 };
 
-/** The state after an action, with undo for the user's changes. */
+/** The state after an action, with undo for the user's changes and the players priced in the shown currency. */
 export const scoutReducer = withUndo((state, action) => {
   if (isWatchlistAction(action)) return watchlistReducer(state, action);
-  return isColumnAction(action) ? columnReducer(state, action) : changes(state, action);
+  if (action.type === "currency-chosen") return currencyChosen(state, action.currency);
+  const next = isColumnAction(action) ? columnReducer(state, action) : changes(state, action);
+  return withShownCurrency(state, next);
 });
 
 /** The stored game is loading and nothing shows yet: the list skeleton stands in for it. */
@@ -460,15 +470,6 @@ export const actionOf = (message: WorkerMessage): ScoutAction => {
   if (message.type === "failed") return { type: "load-failed", requestId, error: message.error };
   const { gameDb: _gameDb, ...result } = message.result;
   return { type: "load-succeeded", requestId, ...result };
-};
-
-/** The game language whose names show: the chosen one while known, else the browser's, else none. */
-export const activeLanguage = (
-  { gameLanguage, languages }: Pick<ScoutState, "gameLanguage" | "languages">,
-  browserLanguages: readonly string[],
-): string | null => {
-  if (gameLanguage === undefined) return defaultLanguage(Object.keys(languages), browserLanguages);
-  return gameLanguage !== null && Object.hasOwn(languages, gameLanguage) ? gameLanguage : null;
 };
 
 /** How many players the list shows with the current filters, for the start screen's button. */

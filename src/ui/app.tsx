@@ -2,14 +2,16 @@ import { useEffect, useMemo, useReducer } from "react";
 import type { Dispatch, JSX } from "react";
 import {
   abbreviationIn,
+  activeLanguage,
   collatorFor,
   localizePlayers,
   positionNameIn,
 } from "../logic/game-names.ts";
+import { shownCurrency } from "../logic/currency.ts";
 import { inClub } from "../logic/filter-players.ts";
 import type { OfferContext } from "../logic/offer.ts";
 import type { Player } from "../logic/players.ts";
-import { activeLanguage, initialScoutState, scoutReducer } from "../logic/scout-state.ts";
+import { initialScoutState, scoutReducer } from "../logic/scout-state.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
 import { ListView } from "./list-view.tsx";
 import { PlayerCard } from "./player-card.tsx";
@@ -53,6 +55,7 @@ const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFile
     sort,
     showPotential,
     gameLanguage,
+    currency,
     filterSets,
     columns,
     languages,
@@ -67,11 +70,22 @@ const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFile
         sort,
         showPotential,
         ...(gameLanguage === undefined ? {} : { gameLanguage }),
+        ...(currency === undefined ? {} : { currency }),
         ...(filterSets === undefined ? {} : { filterSets }),
         ...(columns === undefined ? {} : { columns }),
       });
     }
-  }, [ready, savePreferences, filters, sort, showPotential, gameLanguage, filterSets, columns]);
+  }, [
+    ready,
+    savePreferences,
+    filters,
+    sort,
+    showPotential,
+    gameLanguage,
+    currency,
+    filterSets,
+    columns,
+  ]);
 
   useEffect(() => {
     if (ready) saveLanguages(languages);
@@ -178,7 +192,7 @@ export const App = (props: { registering: Promise<UpdatableRegistration> | null 
           player={openPlayer}
           names={positionNames}
           career={state.myTeamId !== null}
-          currency={state.career?.currency ?? null}
+          currency={shownCurrency(state)}
           curves={state.curves}
           offer={offerFor(state, openPlayer)}
           showPotential={showPotential}

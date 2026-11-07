@@ -11,7 +11,7 @@ import { baseOverall, CURVE_COLUMNS } from "./overall-rating.ts";
 import { buildPlayers } from "./players.ts";
 import type { Player } from "./players.ts";
 import { attributes, floatBits, playerRow, table } from "./test-support/player-fixtures.ts";
-import { marketWage, roundMoney, roundPrice, transferPrice } from "./transfer-price.ts";
+import { priceInEuro, roundMoney, roundPrice, wageInEuro } from "./transfer-price.ts";
 import type { PriceInput } from "./transfer-price.ts";
 
 const daysSince1582 = (year: number, month: number, day: number): number =>
@@ -138,7 +138,6 @@ const input = (overrides: Partial<PriceInput> = {}): PriceInput => ({
   internationalReputation: 4,
   playingStyle: 13,
   prestige: 21,
-  exchangeRate: 1,
   ...overrides,
 });
 
@@ -147,28 +146,36 @@ describe("career prices and wages", () => {
     expect(OVERALL_IN_5_YEARS).toBeGreaterThan(OVERALL);
     expect(byId(1)).toMatchObject({
       overall: OVERALL,
-      price: transferPrice(input()),
-      wage: marketWage(input(), false),
+      price: roundPrice(priceInEuro(input())),
+      wage: roundPrice(wageInEuro(input(), false)),
       storedWage: false,
     });
   });
 
   it("prices a contract that runs out this year at 0, its wage with the free-transfer factor", () => {
     const expired = input({ contractYearsLeft: 0 });
-    expect(marketWage(expired, true)).toBeGreaterThan(marketWage(expired, false));
-    expect(byId(3)).toMatchObject({ price: 0, wage: marketWage(expired, true), storedWage: false });
+    expect(roundPrice(wageInEuro(expired, true))).toBeGreaterThan(
+      roundPrice(wageInEuro(expired, false)),
+    );
+    expect(byId(3)).toMatchObject({
+      price: 0,
+      wage: roundPrice(wageInEuro(expired, true)),
+      storedWage: false,
+    });
   });
 
   it("keeps the stored wage of the user's squad", () => {
     expect(byId(4)).toMatchObject({ wage: 1230, storedWage: true });
-    expect(byId(4)?.price).toBe(transferPrice(input({ contractYearsLeft: 2, prestige: 16 })));
+    expect(byId(4)?.price).toBe(
+      roundPrice(priceInEuro(input({ contractYearsLeft: 2, prestige: 16 }))),
+    );
   });
 
   it("gives a free agent prestige from his OVR", () => {
     const free = input({ contractYearsLeft: 0, prestige: 2 * Math.floor(OVERALL / 5) });
     expect(byId(5)).toMatchObject({
       price: 0,
-      wage: marketWage(free, true),
+      wage: roundPrice(wageInEuro(free, true)),
       storedWage: false,
     });
   });
@@ -180,8 +187,11 @@ describe("career prices and wages", () => {
       ["team_manager", [row({ ...manager, currency: 1 })]],
     ]);
     const player = (id: number) => buildPlayers(DB, inPounds).find((each) => each.id === id);
-    expect(player(1)?.price).toBe(transferPrice(input({ exchangeRate: 0.86 })));
+    expect(player(1)?.price).toBe(roundPrice(priceInEuro(input()) * 0.86));
     expect(player(4)?.wage).toBe(roundMoney(1234 * 0.86));
+    // The euro amounts stay, so another currency can be shown without a new load.
+    expect(player(1)?.priceEuro).toBe(priceInEuro(input()));
+    expect(player(4)).toMatchObject({ wageEuro: 1234, storedWage: true });
   });
 
   // In April 2011 the game shows a contract to 2013 as three years: it counts from the season's first
@@ -197,8 +207,8 @@ describe("career prices and wages", () => {
     const player = buildPlayers(DB, spring).find((each) => each.id === 1);
     const oneYear = input({ contractYearsLeft: 1, age: 26 });
     expect(player).toMatchObject({
-      price: transferPrice(oneYear),
-      wage: marketWage(oneYear, false),
+      price: roundPrice(priceInEuro(oneYear)),
+      wage: roundPrice(wageInEuro(oneYear, false)),
     });
   });
 

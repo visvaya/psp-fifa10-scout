@@ -5,6 +5,7 @@ import { filterPlayers, peakField, rangedAttributes } from "../logic/filter-play
 import { phoneColumns } from "../logic/phone-columns.ts";
 import type { Player } from "../logic/players.ts";
 import { effectiveFilters } from "../logic/effective-filters.ts";
+import { shownCurrency } from "../logic/currency.ts";
 import { activeFilters } from "../logic/scout-state.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
 import { SORTABLE_KEYS, sortPlayers } from "../logic/sort-players.ts";
@@ -271,7 +272,7 @@ const ListResults = ({
           columns={shownColumns}
           ratingCode={ratingCode}
           ratingName={ratingName}
-          currency={state.career?.currency ?? null}
+          currency={shownCurrency(state)}
           dispatch={dispatch}
         />
       )}
@@ -294,7 +295,7 @@ export const ListView = (props: ListViewProps): JSX.Element => {
         curves={state.curves}
         showPotential={state.showPotential}
         settings={state}
-        currency={state.career?.currency ?? null}
+        currency={shownCurrency(state)}
         columns={columns}
         automaticColumns={automatic}
         dispatch={dispatch}

@@ -1,5 +1,8 @@
 // Filter sets: the current filters and sort saved under a name, to load again later ("tanie perełki na
 // LO"). Names are unique: saving under a taken name overwrites that set.
+import type { CurrencyCode } from "../data/career-save.ts";
+import { moneyFiltersIn, shownCurrency } from "./currency.ts";
+import type { CareerSummary } from "./load-scout.ts";
 import type { Preferences, ScoutFilters, ScoutSort } from "./scout-state.ts";
 import { POTENTIAL_KEYS } from "./sort-players.ts";
 
@@ -7,6 +10,8 @@ export interface FilterSet {
   readonly name: string;
   readonly filters: ScoutFilters;
   readonly sort: ScoutSort;
+  /** The currency of its money bounds; unset (saved before the choice existed) the career's. */
+  readonly currency?: CurrencyCode;
 }
 
 export type SetNameCheck =
@@ -66,13 +71,25 @@ export type FilterSetAction =
 
 /**
  * The preferences after saving, loading, renaming or deleting a set. Loading a set that needs the
- * potential shows it, rather than dropping part of the set.
+ * potential shows it, rather than dropping part of the set. With a career a set records the currency
+ * money shows in, and its money bounds load converted to the one shown then.
  */
-export const filterSetsAfter = (state: Preferences, action: FilterSetAction): Preferences => {
+export const filterSetsAfter = (
+  state: Preferences,
+  action: FilterSetAction,
+  career: Pick<CareerSummary, "currency"> | null,
+): Preferences => {
   const sets = state.filterSets ?? [];
+  const shown = shownCurrency({ ...state, career });
   if (action.type === "filter-set-saved") {
     const { filters, sort } = state;
-    return { ...state, filterSets: savedSet(sets, { name: action.name, filters, sort }) };
+    const set = {
+      name: action.name,
+      filters,
+      sort,
+      ...(shown === null ? {} : { currency: shown }),
+    };
+    return { ...state, filterSets: savedSet(sets, set) };
   }
   if (action.type === "filter-set-renamed") {
     return { ...state, filterSets: renamedSet(sets, action.from, action.to) };
@@ -83,5 +100,9 @@ export const filterSetsAfter = (state: Preferences, action: FilterSetAction): Pr
   const set = sets.find((each) => each.name === action.name);
   if (set === undefined) return state;
   const showPotential = state.showPotential || usesPotential(set);
-  return { ...state, filters: set.filters, sort: set.sort, showPotential };
+  const filters =
+    career === null || shown === null
+      ? set.filters
+      : moneyFiltersIn(set.filters, set.currency ?? career.currency, shown);
+  return { ...state, filters, sort: set.sort, showPotential };
 };

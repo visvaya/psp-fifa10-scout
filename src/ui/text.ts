@@ -270,6 +270,16 @@ export const TEXT = {
   languageFromDb: pl`Angielskie z bazy fifa.db`,
   languageHelp: pl`Obraz ISO zawiera nazwy we wszystkich językach gry; po jego wczytaniu wybierz język z listy.`,
   localeInput: pl`Albo dołącz plik języka i string.idx`,
+  currencyStep: pl`4. Waluta`,
+  currencySelect: pl`Ceny i zarobki w walucie`,
+  currencyFromCareer: (code: CurrencyCode): string => `Jak w karierze (${CURRENCY_SYMBOLS[code]})`,
+  /** In the order of the game's menu. */
+  currencies: [
+    [1, "Funt (£)"],
+    [0, "Euro (€)"],
+    [2, "Dolar ($)"],
+  ] as const satisfies readonly (readonly [CurrencyCode, string])[],
+  currencyHelp: pl`Kwoty są liczone kursem i zaokrągleniem gry, tak jakby twoja kariera używała tej waluty. W walucie innej niż ta z kariery nie zgadzają się z ekranami gry.`,
   localeHelp: pl`Pliki leżą w obrazie ISO w PSP_GAME/USRDIR/data/gui/locale, np. pol_pl.loc. Zaznacz plik języka razem ze string.idx z tego samego folderu.`,
   resultCount: (value: number): string => count(value, PLAYERS),
   installHeading: "Aplikacja na ekranie początkowym",
@@ -304,7 +314,7 @@ export const TEXT = {
   groupList: (labels: readonly string[]): string =>
     labels.map((label, index) => (index === 0 ? label : label.toLocaleLowerCase("pl"))).join(" / "),
   ratingGain: "Różnica do OVR",
-  /** A price or wage label with the career's currency (once for a column or a filter); others as they are. */
+  /** A price or wage label with the shown currency (once for a column or a filter); others as they are. */
   withCurrency: (key: string, label: string, currency: CurrencyCode | null): string =>
     (key === "price" || key === "wage") && currency !== null
       ? `${label} (${CURRENCY_SYMBOLS[currency]})`

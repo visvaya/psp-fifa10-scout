@@ -7,20 +7,25 @@ import type { CareerSave } from "../data/career-save.ts";
 import { num } from "../data/ea-db.ts";
 import type { EaDb, EaDbRow } from "../data/ea-db.ts";
 import { SCOUT_CONFIG } from "./config.ts";
-import { exchangeRate, marketWage, roundMoney, transferPrice } from "./transfer-price.ts";
-import type { PriceInput } from "./transfer-price.ts";
+import { exchangeRate, moneyIn, priceInEuro, wageInEuro } from "./transfer-price.ts";
+import type { EuroMoney, PriceInput } from "./transfer-price.ts";
 
-export interface Finance {
+/** Priced in the save's currency; the euro amounts let the reducer show another without a new load. */
+export interface Finance extends EuroMoney {
   /** The asking price; 0 when the contract has run out, null for a loaned player. */
   readonly price: number | null;
   /** The market wage per match from the game's formula, with the free-transfer factor once the
    * contract has run out, or the stored wage of the user's squad. */
   readonly wage: number | null;
-  /** The wage is the one stored in the contract of the user's player, not the market wage. */
-  readonly storedWage: boolean;
 }
 
-export const NO_FINANCE: Finance = { price: null, wage: null, storedWage: false };
+export const NO_FINANCE: Finance = {
+  price: null,
+  wage: null,
+  priceEuro: null,
+  wageEuro: null,
+  storedWage: false,
+};
 
 export interface FinanceInput {
   readonly row: EaDbRow;
@@ -52,6 +57,7 @@ export const financeOf = (
 ): ((input: FinanceInput) => Finance) => {
   const { teamId: userTeamId, currency } = careerManager(db, save);
   const rate = exchangeRate(currency);
+  const shown = (euro: EuroMoney): Finance => ({ ...euro, ...moneyIn(euro, rate) });
   // The game counts contract years from the year the season started: in April 2011 a contract to 2013
   // shows three years.
   const seasonYear = seasonStartDate(db, save).getUTCFullYear();
@@ -65,7 +71,7 @@ export const financeOf = (
       num(row, "playerid"),
       // Stored in euro, not always round (raises in later seasons); the game shows it converted and
       // rounded at the units digit (four of four squad wages on its screen in dollars).
-      roundMoney(float32(num(row, "wage")) * rate),
+      float32(num(row, "wage")),
     ]),
   );
   return ({ row, age, club, overallAt }) => {
@@ -75,7 +81,9 @@ export const financeOf = (
         loanedFrom.get(id) === userTeamId ||
         (club !== undefined && num(club.link, "teamid") === userTeamId);
       const stored = userLoan ? storedWages.get(id) : undefined;
-      return stored === undefined ? NO_FINANCE : { price: null, wage: stored, storedWage: true };
+      return stored === undefined
+        ? NO_FINANCE
+        : shown({ priceEuro: null, wageEuro: stored, storedWage: true });
     }
     const link = club?.link ?? freeAgentLinks.get(id);
     if (link === undefined) return NO_FINANCE;
@@ -92,12 +100,17 @@ export const financeOf = (
       playingStyle: num(row, "playingstyle"),
       // A free agent counts OVR / 5 as both league and team prestige.
       prestige: club?.prestige ?? 2 * Math.floor(overall / 5),
-      exchangeRate: rate,
     };
     const stored = num(link, "teamid") === userTeamId ? storedWages.get(id) : undefined;
-    const price = transferPrice(input);
-    return stored === undefined
-      ? { price, wage: marketWage(input, input.contractYearsLeft <= 0), storedWage: false }
-      : { price, wage: stored, storedWage: true };
+    const priceEuro = priceInEuro(input);
+    return shown(
+      stored === undefined
+        ? {
+            priceEuro,
+            wageEuro: wageInEuro(input, input.contractYearsLeft <= 0),
+            storedWage: false,
+          }
+        : { priceEuro, wageEuro: stored, storedWage: true },
+    );
   };
 };

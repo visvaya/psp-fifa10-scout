@@ -5,6 +5,7 @@ import type { Attributes, Player } from "../players.ts";
 import { NO_BEST_PEAK } from "../best-peak.ts";
 import { CURVE_COLUMNS } from "../overall-rating.ts";
 import type { CareerSummary } from "../load-scout.ts";
+import { NO_FINANCE } from "../player-finance.ts";
 
 type Row = Readonly<Record<string, number | string>>;
 
@@ -191,9 +192,7 @@ export const testPlayer = (overrides: Partial<Player> = {}): Player => {
     shortlisted: false,
     clubWillSell: null,
     saleRefusal: null,
-    price: null,
-    wage: null,
-    storedWage: false,
+    ...NO_FINANCE,
     ...overrides,
   };
   return { ...player, searchName: searchKey(player.name) };

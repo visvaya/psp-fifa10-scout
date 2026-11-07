@@ -4,7 +4,8 @@
 // the game file's name) and languages 1 and 2 to 3 (empty for the position names they lack); any other
 // version or shape is ignored, and
 // unknown or malformed filter values and column overrides are dropped one by one (a record without the
-// columns loads as none, so they needed no new version).
+// columns loads as none, without a chosen currency as the career's, a set without a currency with its
+// amounts in the career's currency, so they needed no new version).
 import type { GameLanguages, GameNames } from "./game-names.ts";
 import {
   bounded,
@@ -24,6 +25,7 @@ import type {
 import type { SaveFiles } from "./load-scout.ts";
 import { OVR_WEIGHTS } from "./overall-rating.ts";
 import { POSITION_GROUPS, ratingCodeOf } from "./positions.ts";
+import { isCurrencyCode } from "../data/career-save.ts";
 import { compactFilters, DEFAULT_SORT, inRecordOrder } from "./scout-state.ts";
 import type { MyClub, Preferences, ScoutFilters, ScoutSort } from "./scout-state.ts";
 import type { ColumnPreference } from "./column-preference.ts";
@@ -187,13 +189,18 @@ const parseSort = (value: unknown): ScoutSort => {
 const parseFilterSets = (value: unknown): readonly FilterSet[] => {
   const seen = new Set<string>();
   return (Array.isArray(value) ? value : []).flatMap((item: unknown): readonly FilterSet[] => {
-    const { name, filters, sort } = recordOf(item);
+    const { name, filters, sort, currency } = recordOf(item);
     const trimmed = typeof name === "string" ? name.trim() : "";
     // Names are unique, as saving keeps them: of two sets with one name the first stays.
     if (trimmed === "" || seen.has(trimmed)) return [];
     seen.add(trimmed);
     return [
-      { name: trimmed, filters: compactFilters(parseFilters(filters)), sort: parseSort(sort) },
+      {
+        name: trimmed,
+        filters: compactFilters(parseFilters(filters)),
+        sort: parseSort(sort),
+        ...(isCurrencyCode(currency) ? { currency } : {}),
+      },
     ];
   });
 };
@@ -217,6 +224,7 @@ const parsePreferences = (value: unknown): Preferences | null => {
     ...(typeof value["gameLanguage"] === "string" || value["gameLanguage"] === null
       ? { gameLanguage: value["gameLanguage"] }
       : {}),
+    ...(isCurrencyCode(value["currency"]) ? { currency: value["currency"] } : {}),
   };
 };
 

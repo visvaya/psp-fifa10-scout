@@ -1,4 +1,5 @@
 import type { ChangeEvent, Dispatch, JSX, ReactNode } from "react";
+import { isCurrencyCode } from "../data/career-save.ts";
 import { languageLabel } from "../logic/game-names.ts";
 import type { LoadStage } from "../logic/load-scout.ts";
 import { isRestoring, listedCount } from "../logic/scout-state.ts";
@@ -85,29 +86,29 @@ const FileStep = (props: FileStepProps): JSX.Element => {
   );
 };
 
-const LanguageSelect = ({
-  codes,
-  language,
-  onLanguage,
-}: {
-  readonly codes: readonly string[];
-  readonly language: string | null;
-  readonly onLanguage: (language: string | null) => void;
+/** A step's choice from a list, as [value, label] pairs. */
+const StepSelect = (props: {
+  readonly id: string;
+  readonly label: string;
+  readonly value: string;
+  readonly options: readonly (readonly [string, string])[];
+  /** The id of the step's help. */
+  readonly describedBy: string;
+  readonly onChoice: (value: string) => void;
 }): JSX.Element => (
   <div className="field">
-    <label htmlFor="game-language">{TEXT.languageSelect}</label>
+    <label htmlFor={props.id}>{props.label}</label>
     <select
-      id="game-language"
-      value={language ?? ""}
+      id={props.id}
+      value={props.value}
+      aria-describedby={props.describedBy}
       onChange={(event) => {
-        const { value } = event.currentTarget;
-        onLanguage(value === "" ? null : value);
+        props.onChoice(event.currentTarget.value);
       }}
     >
-      <option value="">{TEXT.languageFromDb}</option>
-      {codes.map((code) => (
-        <option key={code} value={code}>
-          {languageLabel(code)}
+      {props.options.map(([value, label]) => (
+        <option key={value} value={value}>
+          {label}
         </option>
       ))}
     </select>
@@ -136,11 +137,19 @@ const LanguageStep = ({
     multiple
     accept=".loc,.idx"
     before={
-      <LanguageSelect
-        codes={Object.keys(state.languages).toSorted()}
-        language={language}
-        onLanguage={(chosen) => {
-          dispatch({ type: "language-chosen", language: chosen });
+      <StepSelect
+        id="game-language"
+        label={TEXT.languageSelect}
+        describedBy="locale-help"
+        value={language ?? ""}
+        options={[
+          ["", TEXT.languageFromDb],
+          ...Object.keys(state.languages)
+            .toSorted()
+            .map((code) => [code, languageLabel(code)] as const),
+        ]}
+        onChoice={(chosen) => {
+          dispatch({ type: "language-chosen", language: chosen === "" ? null : chosen });
         }}
       />
     }
@@ -153,6 +162,38 @@ const LanguageStep = ({
     }
   />
 );
+
+/** The currency money shows in, by default the career's; only a career has money, so only with one. */
+const CurrencyStep = ({
+  state,
+  dispatch,
+}: Pick<StartScreenProps, "state" | "dispatch">): JSX.Element | null => {
+  if (state.career === null) return null;
+  return (
+    <div className="step">
+      <h3>{TEXT.currencyStep}</h3>
+      <StepSelect
+        id="currency"
+        label={TEXT.currencySelect}
+        describedBy="currency-help"
+        value={state.currency === undefined ? "" : String(state.currency)}
+        options={[
+          ["", TEXT.currencyFromCareer(state.career.currency)],
+          ...TEXT.currencies.map(([code, label]) => [String(code), label] as const),
+        ]}
+        onChoice={(chosen) => {
+          const code = Number(chosen);
+          const currency = chosen === "" ? null : code;
+          if (currency === null || isCurrencyCode(currency))
+            dispatch({ type: "currency-chosen", currency });
+        }}
+      />
+      <div id="currency-help" className="help">
+        <p>{TEXT.currencyHelp}</p>
+      </div>
+    </div>
+  );
+};
 
 /** The career save: what it holds once loaded, and how to forget it. */
 const SaveStep = ({
@@ -263,6 +304,7 @@ export const StartScreen = (props: StartScreenProps): JSX.Element => {
         />
         <SaveStep {...props} />
         <LanguageStep {...props} />
+        <CurrencyStep {...props} />
         <section className="step install-help" aria-labelledby="install-title">
           <h3 id="install-title">{TEXT.installHeading}</h3>
           <p className="help">

@@ -349,7 +349,7 @@ const CareerFacts = ({ player }: { player: Player }) => (
 export const PlayerCard = (props: {
   player: Player;
   career: boolean;
-  /** The career's currency, null without a career. */
+  /** The currency money shows in, null without a career. */
   currency: CurrencyCode | null;
   /** The loaded game's development curves. */
   curves: Curves;

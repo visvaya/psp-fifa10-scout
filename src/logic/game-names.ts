@@ -135,6 +135,18 @@ export const defaultLanguage = (
   return null;
 };
 
+/** The game language whose names show: the chosen one while known, else the browser's, else none. */
+export const activeLanguage = (
+  {
+    gameLanguage,
+    languages,
+  }: { readonly gameLanguage?: string | null; readonly languages: GameLanguages },
+  browserLanguages: readonly string[],
+): string | null => {
+  if (gameLanguage === undefined) return defaultLanguage(Object.keys(languages), browserLanguages);
+  return gameLanguage !== null && Object.hasOwn(languages, gameLanguage) ? gameLanguage : null;
+};
+
 /** Text order for a language; the fifa.db names and unknown languages keep the Polish order. */
 export const collatorFor = (code: string | null): Intl.Collator => {
   const locale = code === null ? undefined : LANGUAGES[code]?.locale;

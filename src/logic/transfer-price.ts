@@ -4,7 +4,7 @@
 // Source of the tuning values: the game's live tuning registry, read from RAM while the game runs; they
 // differ from the defaults compiled into the executable (for example the divider 195, not 190).
 // Verified on the game's transfer-market screen: 24 of 24 prices and 6 of 6 market wages exactly.
-// Amounts are in euro, converted to the save's currency before the game's rounding.
+// The game keeps money in euro and converts it to the career's currency before its rounding (moneyIn).
 
 import type { CurrencyCode } from "../data/career-save.ts";
 
@@ -110,11 +110,17 @@ export interface PriceInput {
   readonly playingStyle: number;
   /** League prestige plus team prestige. */
   readonly prestige: number;
-  /** The save's currency per euro. */
-  readonly exchangeRate: number;
 }
 
-/** The exchange rate of a currency code from the save. */
+/** A player's price and wage in euro, before the currency and the game's rounding; null when unknown. */
+export interface EuroMoney {
+  readonly priceEuro: number | null;
+  readonly wageEuro: number | null;
+  /** The wage is the one stored in a contract, which the game rounds as money, not as a price. */
+  readonly storedWage: boolean;
+}
+
+/** The exchange rate of a currency code (`team_manager.currency`). */
 export const exchangeRate = (currency: CurrencyCode): number =>
   PRICE_TUNING.exchangeRates[currency];
 
@@ -159,8 +165,8 @@ export const roundPrice = (amount: number): number => {
   return Math.floor((rounded + power / 200) / unit) * unit;
 };
 
-/** The asking price; 0 when the contract has no years left. */
-export const transferPrice = (input: PriceInput): number => {
+/** The asking price in euro, before rounding; 0 when the contract has no years left. */
+export const priceInEuro = (input: PriceInput): number => {
   if (input.contractYearsLeft <= 0) return 0;
   const t = PRICE_TUNING;
   const sum = (input.overall + input.overallIn5Years) / t.valueDivider;
@@ -177,11 +183,11 @@ export const transferPrice = (input: PriceInput): number => {
     (current, k) => (current + k * base > 0 ? current + k * base : current),
     base,
   );
-  return roundPrice(total * t.valuePosition[groupOf(input.positionCode)] * input.exchangeRate);
+  return total * t.valuePosition[groupOf(input.positionCode)];
 };
 
-/** The market wage per match; `bosman` adds the free-transfer factor. */
-export const marketWage = (input: PriceInput, bosman: boolean): number => {
+/** The market wage per match in euro, before rounding; `bosman` adds the free-transfer factor. */
+export const wageInEuro = (input: PriceInput, bosman: boolean): number => {
   const t = PRICE_TUNING;
   const base = t.wageMagic * (input.prestige / t.wagePrestigeDivider) ** t.wagePower;
   const k =
@@ -192,5 +198,14 @@ export const marketWage = (input: PriceInput, bosman: boolean): number => {
   const rating = (input.overall + input.overallIn5Years) / t.wageOverallDivider;
   const factor = (rating ** t.wageOverallPower + t.wageOverallOffset) * t.wageOverallMultiplier;
   const wage = (base + t.wageOffset + k * base) * factor;
-  return roundPrice((bosman ? wage * t.wageBosmanMultiplier : wage) * input.exchangeRate);
+  return bosman ? wage * t.wageBosmanMultiplier : wage;
 };
+
+/** The price and wage as the game shows them in a currency of this rate: converted, then rounded. */
+export const moneyIn = (
+  { priceEuro, wageEuro, storedWage }: EuroMoney,
+  rate: number,
+): { readonly price: number | null; readonly wage: number | null } => ({
+  price: priceEuro === null ? null : roundPrice(priceEuro * rate),
+  wage: wageEuro === null ? null : (storedWage ? roundMoney : roundPrice)(wageEuro * rate),
+});
