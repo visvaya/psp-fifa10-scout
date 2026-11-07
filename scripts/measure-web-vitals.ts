@@ -1,5 +1,6 @@
 // Lab measurement of Core Web Vitals on the production build, with Playwright's Chromium only: LCP, CLS,
-// a TBT stand-in for INP (long tasks past the first contentful paint) and the bytes transferred. Two
+// a TBT stand-in for INP (long tasks past the first contentful paint) and the bytes transferred; on the
+// list, the time its first row is painted in place of LCP (the start screen's text stays largest). Two
 // pages, each measured RUNS times on a phone viewport with the CPU slowed, medians reported: the start
 // screen on a first visit (a fresh context), and the player list as a returning user sees it (the
 // synthetic game stored by an earlier visit opens the list directly).
@@ -28,14 +29,30 @@ const CPU_SLOWDOWN = 4;
 const SETTLE_MS = 1000;
 const PHONE = { viewport: { width: 390, height: 844 }, hasTouch: true } as const;
 
-/** Runs in the page before its own scripts: records LCP, layout shifts and long tasks as they happen. */
+/**
+ * Runs in the page before its own scripts: records LCP, layout shifts, long tasks and when the first
+ * list row is painted, as they happen.
+ */
 const record = () => {
   const vitals: {
     lcpMs: number | null;
+    firstRowMs: number | null;
     shifts: { startMs: number; value: number }[];
     longTasks: { startMs: number; durationMs: number }[];
-  } = { lcpMs: null, shifts: [], longTasks: [] };
+  } = { lcpMs: null, firstRowMs: null, shifts: [], longTasks: [] };
   Reflect.set(window, "__vitals", vitals);
+  // No change to the app: a row (phone list or table) entering the page is painted in the next frame,
+  // and a task queued from that frame's callback runs once the frame is painted.
+  const rows = new MutationObserver(() => {
+    if (document.querySelector(".player-rows > li, tbody tr") === null) return;
+    rows.disconnect();
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        vitals.firstRowMs = performance.now();
+      });
+    });
+  });
+  rows.observe(document, { childList: true, subtree: true });
   new PerformanceObserver((list) => {
     for (const entry of list.getEntries()) vitals.lcpMs = entry.startTime;
   }).observe({ type: "largest-contentful-paint", buffered: true });

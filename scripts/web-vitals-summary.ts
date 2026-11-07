@@ -16,6 +16,8 @@ export interface LabRun {
   readonly cls: number;
   readonly tbtMs: number;
   readonly transferBytes: number;
+  /** When the first list row was painted; only the list page reports it. */
+  readonly firstRowMs?: number;
 }
 
 interface Shift {
@@ -98,12 +100,15 @@ export const readRun = (raw: unknown): LabRun => {
     startMs: numberAt(item, "startMs"),
     durationMs: numberAt(item, "durationMs"),
   }));
-  return {
+  const run = {
     lcpMs: numberAt(raw, "lcpMs"),
     cls: clsOf(shifts),
     tbtMs: tbtOf(tasks, numberAt(raw, "fcpMs")),
     transferBytes: numberAt(raw, "transferBytes"),
   };
+  return raw["firstRowMs"] === undefined || raw["firstRowMs"] === null
+    ? run
+    : { ...run, firstRowMs: numberAt(raw, "firstRowMs") };
 };
 
 const median = (values: readonly number[]): number => {
@@ -117,12 +122,16 @@ const median = (values: readonly number[]): number => {
 /** The median of each value over a page's runs, with a warning where it is past its boundary. */
 export const summarize = (page: string, runs: readonly LabRun[]): SummaryRow[] => {
   const row = (key: keyof LabRun, name: string, unit: string, warnAbove?: number): SummaryRow => {
-    const value = median(runs.map((run) => run[key]));
+    const value = median(runs.map((run) => run[key] ?? Number.NaN));
     const base = { page, name, value, unit, warn: warnAbove !== undefined && value > warnAbove };
     return warnAbove === undefined ? base : { ...base, warnAbove };
   };
+  // On the list the largest paint stays the start screen's text, so the list's own paint replaces LCP.
+  const listPainted = runs.length > 0 && runs.every((run) => run.firstRowMs !== undefined);
   return [
-    row("lcpMs", "LCP", "ms", WARN_ABOVE.lcpMs),
+    listPainted
+      ? row("firstRowMs", "First list row painted", "ms")
+      : row("lcpMs", "LCP", "ms", WARN_ABOVE.lcpMs),
     row("cls", "CLS", "", WARN_ABOVE.cls),
     row("tbtMs", "TBT (long tasks after FCP)", "ms", WARN_ABOVE.tbtMs),
     row("transferBytes", "Transferred", "B"),
@@ -152,7 +161,9 @@ export const formatSummary = (
     `Chromium with the CPU slowed ${String(conditions.cpuSlowdown)}x and a phone viewport, no network ` +
       "throttling (local server). CLS: the largest session window. TBT: of each long task, the part after " +
       "the first contentful paint less 50 ms, as recorded when collection runs, a second after the page is " +
-      "ready; a stand-in for INP. " +
+      "ready; a stand-in for INP. First list row painted: the frame after the first row enters the page, " +
+      "from navigation start; it replaces LCP on the list, whose largest paint stays the start screen's " +
+      "text, and has no good boundary on web.dev. " +
       '"warn" is reported, never enforced. Accessibility is covered by axe in the e2e tests.',
     "",
   ].join("\n");

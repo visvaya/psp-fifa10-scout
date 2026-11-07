@@ -53,6 +53,14 @@ describe("readRun", () => {
   });
 });
 
+describe("readRun, first list row", () => {
+  it("reads the first row's paint time when the page reported one", () => {
+    expect(readRun(sample({ firstRowMs: 900 })).firstRowMs).toBe(900);
+    expect(readRun(sample({ firstRowMs: null })).firstRowMs).toBeUndefined();
+    expect(() => readRun(sample({ firstRowMs: "soon" }))).toThrow("did not report firstRowMs");
+  });
+});
+
 describe("summarize", () => {
   const rows = summarize("start", [run(1200), run(4000), run(2600)]);
 
@@ -72,6 +80,22 @@ describe("summarize", () => {
     expect(summarize("list", [run(1000), run(2000)])[0]?.value).toBe(1500);
   });
 
+  it("reports the first list row in place of LCP on the list, with no good boundary", () => {
+    const list = summarize("list", [
+      { ...run(500), firstRowMs: 1800 },
+      { ...run(500), firstRowMs: 3000 },
+      { ...run(500), firstRowMs: 2000 },
+    ]);
+    expect(list[0]).toEqual({
+      page: "list",
+      name: "First list row painted",
+      value: 2000,
+      unit: "ms",
+      warn: false,
+    });
+    expect(list.map((row) => row.name)).not.toContain("LCP");
+  });
+
   it("formats the medians as a Markdown table", () => {
     const table = formatSummary(rows, { runs: 3, cpuSlowdown: 4 });
     expect(table).toContain("median of 3 runs");
@@ -79,5 +103,6 @@ describe("summarize", () => {
     expect(table).toContain("| start | CLS | 0.010 | 0.100 | ok |");
     expect(table).toContain("| start | Transferred | 400000 B |  | ok |");
     expect(table).toContain("CPU slowed 4x");
+    expect(table).toContain("First list row painted:");
   });
 });
