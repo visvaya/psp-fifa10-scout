@@ -5,6 +5,7 @@ import {
   SYNTHETIC_SAVE_PATHS,
 } from "../scripts/write-synthetic-db.ts";
 import {
+  cardValue,
   expandSections,
   expect,
   expectCount,
@@ -111,9 +112,7 @@ test.describe("wide screen", () => {
     // A forward, in the game's colour for attackers.
     await expect(card.locator(".position")).toHaveCSS("color", "rgb(153, 0, 0)");
     // Both feet with the basics: the better one and the weaker one's stars.
-    await expect(card.locator(".facts > div").filter({ hasText: /^Słabsza noga/u })).toHaveText(
-      "Słabsza noga3 z 5 gwiazdek",
-    );
+    await expect(cardValue(card, "Słabsza noga")).toHaveText("3 z 5 gwiazdek");
     // One row per way the game rates a position, with the gain over his OVR (49 as a striker).
     const row = (label: RegExp) => card.locator(".facts > div").filter({ hasText: label });
     await expect(row(/^Boczny obrońca/u).getByRole("definition")).toHaveText("(+9) 58");

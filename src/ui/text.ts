@@ -132,7 +132,7 @@ export const RANGE_LABELS: Readonly<Record<RangeFields | PeakTwin, string>> = {
   retirementAge: "Wiek zakończenia kariery",
   clubRating: "Siła klubu",
   contractEndYear: "Kontrakt",
-  form: "Średnia ocena (KR)",
+  form: "KR (forma)",
   morale: "Morale",
   appearances: pl`Występy w lidze`,
   goals: pl`Gole w lidze`,
@@ -416,8 +416,10 @@ export const TEXT = {
     potential: "Potencjał",
     peak: "Szczyt OVR",
     bestPeak: "Szczyt na najlepszej pozycji",
-    peakNote: (potential: number, peak: number): string =>
-      pl`Szczyt OVR to prognoza z krzywych rozwoju gry, ta sama co na jej wykresie rozwoju; nie obejmuje przyszłych przyrostów z meczów i treningu.${peak < potential ? pl` Potencjału ${formatNumber(potential)} zawodnik według niej nie osiągnie.` : ""}`,
+    peakNote: pl`Szczyt OVR to prognoza z krzywych rozwoju gry, ta sama co na jej wykresie rozwoju; nie obejmuje przyszłych przyrostów z meczów i treningu.`,
+    /** Under the card's facts when the peak stays below the potential. */
+    peakBelowPotential: (potential: number): string =>
+      pl`Potencjału ${formatNumber(potential)} zawodnik według prognozy szczytu nie osiągnie.`,
     overallByGroup: "OVR na pozycjach",
     openMark: "▾",
     closedMark: "▸",
@@ -439,15 +441,12 @@ export const TEXT = {
     heightValue: (cm: number): string => `${formatNumber(cm)}${NBSP}cm`,
     weightValue: (kg: number): string => `${formatNumber(kg)}${NBSP}kg`,
     career: pl`W tym sezonie kariery`,
-    careerNote: pl`Gra prowadzi statystyki w lidze twojego klubu, w krajowym pucharze i w europejskich pucharach, dla każdego klubu tych rozgrywek. U zawodnika z innej ligi to tylko mecze w europejskich pucharach i z nich średnia ocena. U zawodnika, który odszedł z twojej ligi, to liczby z czasu gry w niej. KR to nagłówek kolumny średniej oceny na ekranie statystyk zawodnika w grze.`,
-    form: "Średnia ocena (KR)",
+    careerNote: pl`Gra prowadzi statystyki występów, goli, asyst i czystych kont w lidze twojego klubu i w pucharach, które liczy dla tej ligi (dla Ekstraklasy Puchar Polski, „Klubowe ME” i „Puchar EFA”), dla każdego klubu tych rozgrywek, i zeruje je na początku sezonu. U zawodnika z innej ligi to tylko mecze w europejskich pucharach. U zawodnika, który odszedł z twojej ligi, to liczby z czasu gry w niej. KR to nagłówek kolumny oceny na ekranie statystyk zawodnika w grze. Gra nie zeruje tej oceny na początku sezonu.`,
     loanedFrom: "Wypożyczony z",
-    morale: "Morale",
     price: "Cena",
     wage: "Zarobki rynkowe",
     contractWage: pl`Zarobki z kontraktu`,
     shortlisted: pl`Na twojej liście życzeń w grze`,
-    wageNote: pl`Na mecz, wzorem gry. Przy wygasłym kontrakcie (też w tym roku) z doliczonymi 30% (wolny transfer).`,
     money: (amount: number, currency: CurrencyCode): string =>
       `${formatNumber(amount)}${NBSP}${CURRENCY_SYMBOLS[currency]}`,
     wageEstimate: (wage: number, currency: CurrencyCode): string =>

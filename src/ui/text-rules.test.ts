@@ -15,7 +15,7 @@ import {
 } from "./text.ts";
 import { FILTER_SETS_TEXT } from "./text-filter-sets.ts";
 import { CODE_NAMES } from "./text-code-names.ts";
-import { FIELD_HELP } from "./text-help.ts";
+import { FIELD_HELP, HELP_TEXT } from "./text-help.ts";
 import { OFFER_TEXT } from "./text-offer.ts";
 import { startDescription } from "./test-support/start-description.ts";
 import { WATCHLIST_TEXT } from "./text-watchlist.ts";
@@ -48,6 +48,7 @@ const STRINGS = stringsIn([
   OFFER_TEXT,
   WATCHLIST_TEXT,
   FIELD_HELP,
+  HELP_TEXT,
   CODE_NAMES,
   descriptionStrings(),
 ]);

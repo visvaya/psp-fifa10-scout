@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import type { Dispatch, JSX, ReactNode } from "react";
 import type { CurrencyCode } from "../data/career-save.ts";
 import type { OfferContext } from "../logic/offer.ts";
+import { SEASON_STAT_KEYS } from "../logic/players.ts";
 import type { AttributeName, Player } from "../logic/players.ts";
 import type { ScoutAction } from "../logic/scout-state.ts";
 import type { WatchEntry } from "../logic/watchlist.ts";
@@ -26,7 +27,10 @@ import {
   TEXT,
 } from "./text.ts";
 import { Facts } from "./facts.tsx";
+import type { Fact } from "./facts.tsx";
 import { OfferFacts } from "./offer-facts.tsx";
+import { OptionalHelp } from "./field-help.tsx";
+import { FIELD_HELP, HELP_TEXT } from "./text-help.ts";
 
 const ATTRIBUTE_GROUPS: readonly (readonly [
   keyof typeof ATTRIBUTE_GROUP_LABELS,
@@ -53,34 +57,50 @@ const count = (value: number | null): string | null =>
 
 /** A row only when its value is known: a player without a season in the save gets no rows of "brak"
  * (owner, 2026-11-05). */
-const known = (label: string, value: string | null): readonly (readonly [string, string])[] =>
-  value === null ? [] : [[label, value]];
+const known = (label: string, value: string | null, help?: string): readonly Fact[] =>
+  value === null ? [] : [[label, value, help]];
+
+/** Clean sheets, which the game counts for goalkeepers only. */
+const CLEAN_SHEETS: ReadonlySet<string> = new Set(["cleanSheets", "cupCleanSheets"]);
 
 /** What the filters offer beyond the basics, labelled as in the filters. */
-const profile = (
-  player: Player,
-  showPotential: boolean,
-): readonly (readonly [string, ReactNode])[] => [
-  ...(showPotential ? [[RANGE_LABELS.growth, formatNumber(player.growth)] as const] : []),
+const profile = (player: Player, showPotential: boolean): readonly Fact[] => [
+  ...(showPotential
+    ? [[RANGE_LABELS.growth, formatNumber(player.growth), FIELD_HELP.growth] as const]
+    : []),
   ...(showPotential && player.peakGain !== null
-    ? [[RANGE_LABELS.peakGain, formatNumber(player.peakGain)] as const]
+    ? [[RANGE_LABELS.peakGain, formatNumber(player.peakGain), FIELD_HELP.peakGain] as const]
     : []),
   [
     TEXT.card.internationalReputation,
     <Stars key="reputation" value={player.internationalReputation} />,
+    FIELD_HELP.internationalReputation,
   ],
-  [TEXT.card.learningSpeed, <Stars key="learning" value={player.learningSpeed} />],
-  [RANGE_LABELS.retirementAge, TEXT.years(player.retirementAge)],
-  [LIST_LABELS.bodyType, codeName("bodyType", player.bodyType)],
-  [LIST_LABELS.developmentType, codeName("developmentType", player.developmentType)],
-  [LIST_LABELS.developmentStyle, codeName("developmentStyle", player.developmentStyle)],
-  [RANGE_LABELS.clubRating, optional(player.clubRating)],
-  [FLAG_LABELS.nationalTeam, player.nationalTeamName ?? TEXT.card.no],
+  [
+    TEXT.card.learningSpeed,
+    <Stars key="learning" value={player.learningSpeed} />,
+    FIELD_HELP.learningSpeed,
+  ],
+  [RANGE_LABELS.retirementAge, TEXT.years(player.retirementAge), FIELD_HELP.retirementAge],
+  [LIST_LABELS.bodyType, codeName("bodyType", player.bodyType), FIELD_HELP.bodyType],
+  [
+    LIST_LABELS.developmentType,
+    codeName("developmentType", player.developmentType),
+    FIELD_HELP.developmentType,
+  ],
+  [
+    LIST_LABELS.developmentStyle,
+    codeName("developmentStyle", player.developmentStyle),
+    FIELD_HELP.developmentStyle,
+  ],
+  [RANGE_LABELS.clubRating, optional(player.clubRating), FIELD_HELP.clubRating],
+  [FLAG_LABELS.nationalTeam, player.nationalTeamName ?? TEXT.card.no, FIELD_HELP.nationalTeam],
   [
     FILTER_SECTION_LABELS.traits,
     player.traits.length === 0
       ? TEXT.card.none
       : player.traits.map((trait) => FLAG_LABELS[trait]).join(", "),
+    TEXT.traitsNote,
   ],
 ];
 
@@ -88,14 +108,15 @@ const profile = (
 const money = (
   { price, wage, storedWage }: Player,
   currency: CurrencyCode | null,
-): readonly (readonly [string, ReactNode])[] =>
+): readonly Fact[] =>
   price === null || wage === null || currency === null
     ? []
     : [
-        [TEXT.card.price, TEXT.card.money(price, currency)],
+        [TEXT.card.price, TEXT.card.money(price, currency), FIELD_HELP.price],
         [
           storedWage ? TEXT.card.contractWage : TEXT.card.wage,
           storedWage ? TEXT.card.money(wage, currency) : TEXT.card.wageEstimate(wage, currency),
+          FIELD_HELP.wage,
         ],
       ];
 
@@ -104,7 +125,7 @@ export const bestPeak = (
   player: Player,
   showPotential: boolean,
   names: PositionNames,
-): readonly (readonly [string, ReactNode])[] =>
+): readonly Fact[] =>
   showPotential &&
   player.peak !== null &&
   player.bestPeak !== null &&
@@ -118,6 +139,7 @@ export const bestPeak = (
             <PositionName code={player.bestPeakCode} name={names.short(player.bestPeakCode)} />{" "}
             <AttributeValue value={player.bestPeak} />
           </>,
+          HELP_TEXT.peakAtBest,
         ],
       ]
     : [];
@@ -127,7 +149,7 @@ const basics = (
   showPotential: boolean,
   currency: CurrencyCode | null,
   names: PositionNames,
-): readonly (readonly [string, ReactNode])[] => [
+): readonly Fact[] => [
   [
     TEXT.card.position,
     <PositionName
@@ -136,22 +158,38 @@ const basics = (
       name={names.short(player.positionCode)}
     />,
   ],
-  [TEXT.card.age, TEXT.years(player.age)],
+  [TEXT.card.age, TEXT.years(player.age), FIELD_HELP.age],
   [TEXT.card.club, clubText(player)],
   [TEXT.card.league, optional(player.leagueName)],
   [TEXT.card.nationality, optional(player.nationalityName)],
   [TEXT.card.contract, player.contractEndYear ?? TEXT.card.none],
   ...money(player, currency),
-  [TEXT.columns.overall, <AttributeValue key="overall" value={player.overall} />],
+  [
+    TEXT.columns.overall,
+    <AttributeValue key="overall" value={player.overall} />,
+    FIELD_HELP.overall,
+  ],
   ...(showPotential
-    ? [[TEXT.card.potential, <AttributeValue key="potential" value={player.potential} />] as const]
+    ? [
+        [
+          TEXT.card.potential,
+          <AttributeValue key="potential" value={player.potential} />,
+          FIELD_HELP.potential,
+        ] as const,
+      ]
     : []),
   ...(showPotential && player.peak !== null
-    ? [[TEXT.card.peak, <AttributeValue key="peak" value={player.peak} />] as const]
+    ? [
+        [
+          TEXT.card.peak,
+          <AttributeValue key="peak" value={player.peak} />,
+          TEXT.card.peakNote,
+        ] as const,
+      ]
     : []),
   ...bestPeak(player, showPotential, names),
   [TEXT.card.foot, player.preferredFoot === "left" ? TEXT.card.left : TEXT.card.right],
-  [TEXT.card.weakFoot, <Stars key="weak-foot" value={player.weakFoot} />],
+  [TEXT.card.weakFoot, <Stars key="weak-foot" value={player.weakFoot} />, FIELD_HELP.weakFoot],
   [TEXT.card.height, TEXT.card.heightValue(player.height)],
   [TEXT.card.weight, TEXT.card.weightValue(player.weight)],
 ];
@@ -217,33 +255,37 @@ const ChoiceRatings = (props: { player: Player; names: PositionNames }) => {
 /** The season so far, career only. */
 const CareerFacts = ({ player }: { player: Player }) => (
   <section aria-labelledby="career-title">
-    <h3 id="career-title">{TEXT.card.career}</h3>
-    <p className="help">{TEXT.card.careerNote}</p>
+    {/* The "?" beside the heading, not in it, so the heading keeps its own name. */}
+    <div className="heading-help">
+      <h3 id="career-title">{TEXT.card.career}</h3>
+      <OptionalHelp label={TEXT.card.career} help={TEXT.card.careerNote} />
+    </div>
     <Facts
       facts={[
-        ...known(TEXT.card.form, player.form === null ? null : formatRating(player.form)),
-        ...known(TEXT.card.morale, count(player.morale)),
-        ...known(RANGE_LABELS.appearances, count(player.appearances)),
-        ...known(RANGE_LABELS.goals, count(player.goals)),
-        ...known(RANGE_LABELS.cupAppearances, count(player.cupAppearances)),
-        ...known(RANGE_LABELS.cupGoals, count(player.cupGoals)),
-        ...known(RANGE_LABELS.assists, count(player.assists)),
-        ...known(RANGE_LABELS.cupAssists, count(player.cupAssists)),
-        ...(player.positionGroup === "goalkeeper"
-          ? [
-              ...known(RANGE_LABELS.cleanSheets, count(player.cleanSheets)),
-              ...known(RANGE_LABELS.cupCleanSheets, count(player.cupCleanSheets)),
-            ]
-          : []),
-        ...known(RANGE_LABELS.injuryDays, count(player.injuryDays)),
-        [FLAG_LABELS.transferListed, yesNo(player.transferListed)],
-        [FLAG_LABELS.loanListed, yesNo(player.loanListed)],
+        ...known(
+          RANGE_LABELS.form,
+          player.form === null ? null : formatRating(player.form),
+          FIELD_HELP.form,
+        ),
+        ...known(RANGE_LABELS.morale, count(player.morale), FIELD_HELP.morale),
+        ...SEASON_STAT_KEYS.filter(
+          (key) => player.positionGroup === "goalkeeper" || !CLEAN_SHEETS.has(key),
+        ).flatMap((key) => known(RANGE_LABELS[key], count(player[key]))),
+        ...known(RANGE_LABELS.injuryDays, count(player.injuryDays), FIELD_HELP.injuryDays),
+        [FLAG_LABELS.transferListed, yesNo(player.transferListed), FIELD_HELP.transferListed],
+        [FLAG_LABELS.loanListed, yesNo(player.loanListed), FIELD_HELP.loanListed],
         ...(player.loanedFromId === null
           ? []
           : [[TEXT.card.loanedFrom, player.loanedFromName ?? TEXT.card.none] as const]),
         ...(player.clubWillSell === null
           ? []
-          : [[FLAG_LABELS.clubWillSell, yesNo(player.clubWillSell)] as const]),
+          : [
+              [
+                FLAG_LABELS.clubWillSell,
+                yesNo(player.clubWillSell),
+                FIELD_HELP.clubWillSell,
+              ] as const,
+            ]),
       ]}
     />
   </section>
@@ -281,12 +323,9 @@ export const PlayerCard = (props: {
       ) : null}
       <WatchlistSection playerId={player.id} entry={watched} dispatch={dispatch} />
       <Facts facts={basics(player, showPotential, currency, names)} />
-      {showPotential && player.peak !== null ? (
-        <p className="help">{TEXT.card.peakNote(player.potential, player.peak)}</p>
+      {showPotential && player.peak !== null && player.peak < player.potential ? (
+        <p className="help">{TEXT.card.peakBelowPotential(player.potential)}</p>
       ) : null}
-      {player.wage === null || player.storedWage ? null : (
-        <p className="help">{TEXT.card.wageNote}</p>
-      )}
       {offer === null || currency === null ? null : (
         <OfferFacts key={player.id} player={player} context={offer} currency={currency} />
       )}

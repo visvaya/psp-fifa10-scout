@@ -86,7 +86,7 @@ test.describe("offer on the card", () => {
     const own = page.getByRole("dialog", { name: "Paweł Brożek" });
     await expect(own.getByText("Oferta", { exact: true })).toBeHidden();
     // No season row in the save: no rows of "brak" for it.
-    await expect(cardValue(own, "Średnia ocena (KR)")).toHaveCount(0);
+    await expect(cardValue(own, "KR (forma)")).toHaveCount(0);
     await expect(cardValue(own, "Na liście transferowej")).toHaveText("nie");
   });
 

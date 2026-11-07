@@ -80,7 +80,7 @@ const PLAYERS = table("players", [
 ]);
 
 /**
- * Messi's season so far: the save keeps his average match rating 6,9 times ten; a domestic cup game
+ * Messi's season so far: the save keeps his rolling match rating (KR) 6,9 times ten; a domestic cup game
  * and two Champions League games with a goal and an assist (cup0, cup1). Gracz Numer 1 keeps goal: the
  * game counts clean sheets for goalkeepers only.
  */

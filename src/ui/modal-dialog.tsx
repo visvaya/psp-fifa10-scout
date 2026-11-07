@@ -11,8 +11,12 @@ interface ModalDialogProps {
   readonly children: ReactNode;
 }
 
-/** Outside the dialog's box: on its backdrop. */
+/**
+ * On the backdrop: aimed at the dialog itself, outside its box. A panel of the dialog that reaches past its
+ * box (a field's explanation, field-help.tsx) is aimed at that panel, so a press there does not count.
+ */
 const isOutside = (event: MouseEvent<HTMLDialogElement>): boolean => {
+  if (event.target !== event.currentTarget) return false;
   const box = event.currentTarget.getBoundingClientRect();
   const { clientX: x, clientY: y } = event;
   return x < box.left || x > box.right || y < box.top || y > box.bottom;

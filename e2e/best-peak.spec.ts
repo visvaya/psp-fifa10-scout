@@ -76,7 +76,10 @@ test.describe("peak at the best position, wide screen", () => {
     await expect(bestPeakHeader(page)).toHaveCount(0);
     // Without the choice the peak cell is a bare rating, with no position beside it.
     await expect((await firstCellOf(page, "Szczyt OVR")).locator(".position")).toHaveCount(0);
-    await expect(peakAtBestBox(page)).toHaveAccessibleDescription(/osobno dla każdej pozycji/u);
+    await page
+      .getByRole("button", { name: "Wyjaśnienie: Szczyt OVR na jego najlepszej pozycji" })
+      .click();
+    await expect(page.getByText(/osobno dla każdej pozycji/u)).toBeVisible();
     await expectNoAxeViolations(page);
     await peakAtBestBox(page).check();
     await expect(peakHeader(page)).toHaveCount(0);

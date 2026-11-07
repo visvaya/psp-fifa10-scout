@@ -206,8 +206,9 @@ export interface Player extends Finance, SeasonStats {
   readonly nationalityId: number;
   readonly nationalityName: string | null;
   /**
-   * The average match rating (KR) with one decimal, as the game's stats screen shows it: the save keeps
-   * it times ten (playerstats.form; 5 of 5 league ratings on that screen agree).
+   * The rolling match rating (KR, from all matches, not a season average) with one decimal, as the
+   * game's stats screen shows it: the save keeps it times ten (playerstats.form; 5 of 5 league ratings
+   * on that screen agree).
    */
   readonly form: number | null;
   readonly morale: number | null;
@@ -303,7 +304,7 @@ const seasonStats = (stats: EaDbRow | undefined): SeasonStats => ({
   cupCleanSheets: cupTotal(stats, "cleansheets"),
 });
 
-/** The average match rating, stored times ten. */
+/** The rolling match rating, stored times ten. */
 const ratingOf = (stats: EaDbRow | undefined): number | null => {
   const tenths = statOf(stats, "form");
   return tenths === null ? null : tenths / 10;
