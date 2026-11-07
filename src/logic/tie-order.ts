@@ -1,7 +1,7 @@
 // The user's order of the rules that break a best peak tie (best-peak.ts). A view setting like the
 // columns: kept in the preferences, out of the filters, the sets and undo. The load builds the players
 // in the default order; another order breaks their ties again.
-import { bestPeakFields, isDefaultOrder } from "./best-peak.ts";
+import { bestPeakFields, isDefaultOrder, TIE_RULES } from "./best-peak.ts";
 import type { TieRule } from "./best-peak.ts";
 import type { ScoutState } from "./scout-state.ts";
 
@@ -28,3 +28,7 @@ export const tieOrderChosen = (state: ScoutState, order: readonly TieRule[]): Sc
   const chosen = isDefaultOrder(order) ? {} : { tieOrder: order };
   return { ...rest, ...chosen, players: tiesBroken(state, order) };
 };
+
+/** The state after a change that may drop the order ("Resetuj"), with the players' ties broken again if it did. */
+export const tieOrderAfter = (before: ScoutState, after: ScoutState): ScoutState =>
+  after.tieOrder === before.tieOrder ? after : tieOrderChosen(after, after.tieOrder ?? TIE_RULES);

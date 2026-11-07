@@ -28,7 +28,8 @@ import { isWatchlistAction, watchlistReducer } from "./watchlist.ts";
 import type { WatchEntry, WatchlistAction } from "./watchlist.ts";
 import type { UndoAction, UndoStep } from "./undo.ts";
 import type { FilterSet, FilterSetAction } from "./saved-filters.ts";
-import { tieOrderChosen, tiesBroken } from "./tie-order.ts";
+import type { TieRule } from "./best-peak.ts";
+import { tieOrderAfter, tieOrderChosen, tiesBroken } from "./tie-order.ts";
 import type { TieOrderAction } from "./tie-order.ts";
 
 /** The user's club in the list: unset shows it with everyone, "hide" leaves it out, "only" keeps it alone. */
@@ -71,7 +72,7 @@ export interface Preferences {
   /** A view setting, kept out of the filters, the sets and undo; unset as none. */
   readonly columns?: ColumnPreference;
   /** The order of the best peak tie rules (tie-order.ts); unset as the default. */
-  readonly tieOrder?: TieOrderAction["order"];
+  readonly tieOrder?: readonly TieRule[];
 }
 
 export type ScoutError =
@@ -399,14 +400,15 @@ type ResetAction = Extract<ScoutAction, { readonly type: keyof typeof RESETS }>;
 const isResetAction = (action: ScoutAction): action is ResetAction => action.type in RESETS;
 
 /**
- * The state after a reset; "Resetuj" also brings the columns back to the automatic choice. The settings
- * alone are enough for it, so canResetSettings (settings-reset.ts) asks the reset itself.
+ * The state after a reset; "Resetuj" also brings the columns back to the automatic choice and the best
+ * peak tie rules to their default order. The settings alone are enough for it, so canResetSettings
+ * (settings-reset.ts) asks the reset itself.
  */
-export const resetState = <S extends Pick<ScoutState, "columns">>(
+export const resetState = <S extends Pick<ScoutState, "columns" | "tieOrder">>(
   state: S,
   type: ResetAction["type"],
 ) => {
-  const { columns: _columns, ...kept } = state;
+  const { columns: _columns, tieOrder: _tieOrder, ...kept } = state;
   return { ...(type === "settings-reset" ? kept : state), ...RESETS[type] };
 };
 
@@ -416,7 +418,7 @@ const changes = (
 ): ScoutState => {
   if (isLoadAction(action)) return loadReducer(state, action);
   if (isFilterSetAction(action)) return withFilterSets(state, action);
-  if (isResetAction(action)) return resetState(state, action.type);
+  if (isResetAction(action)) return tieOrderAfter(state, resetState(state, action.type));
   switch (action.type) {
     case "files-incomplete":
       return { ...state, error: { stage: action.stage, kind: "missing-file" } };

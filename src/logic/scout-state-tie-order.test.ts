@@ -3,6 +3,7 @@ import { bestPeakFields, TIE_RULES } from "./best-peak.ts";
 import type { TieRule } from "./best-peak.ts";
 import { initialScoutState, scoutReducer } from "./scout-state.ts";
 import type { Preferences, ScoutState } from "./scout-state.ts";
+import { canResetSettings } from "./settings-reset.ts";
 import { FOUR_FOUR_TWO, TEST_CAREER, testPlayer } from "./test-support/player-fixtures.ts";
 
 const PREFERRED_FIRST: readonly TieRule[] = [
@@ -61,9 +62,15 @@ describe("the user's order of the best peak tie rules", () => {
     expect(bestCode(restored(loaded(initialScoutState), TIE_RULES))).toBe(29);
   });
 
-  it("is a view setting: no undo step, and kept by the reset", () => {
+  it("is a view setting like the columns: no undo step, and back to the default on Resetuj", () => {
     const reordered = chosen(loaded(initialScoutState), PREFERRED_FIRST);
     expect(reordered.undo).toEqual([]);
-    expect(scoutReducer(reordered, { type: "settings-reset" }).tieOrder).toEqual(PREFERRED_FIRST);
+    expect(canResetSettings(reordered)).toBe(true);
+    const reset = scoutReducer(reordered, { type: "settings-reset" });
+    expect(reset.tieOrder).toBeUndefined();
+    expect(bestCode(reset)).toBe(29);
+    expect(canResetSettings(reset)).toBe(false);
+    // Clearing the filters alone keeps it.
+    expect(scoutReducer(reordered, { type: "filters-reset" }).tieOrder).toEqual(PREFERRED_FIRST);
   });
 });
