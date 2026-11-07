@@ -11,34 +11,36 @@ const byAge = (value: (age: number) => number): readonly number[] =>
 const CURVES = new Map([
   [1, byAge(() => 99)],
   [13, byAge((age) => 20 + 5 * Math.min(age - 15, 12))],
+  // Rises to 42 at 26, 50 from 27 to 30, 49 (98 % of its top) at 31, then falls by 1 a year.
+  [14, byAge((age) => (age < 27 ? 20 + 2 * (age - 15) : age <= 30 ? 50 : 50 - (age - 30)))],
 ]);
 
 describe("curveChart", () => {
-  it("puts ages 15 to 45 on x, ten units a year, with a tick every five years", () => {
+  it("puts ages 15 to 45 on x, eight units a year, with a tick every five years", () => {
     const chart = curveChart(CURVES, 13, 22);
-    expect(chart?.viewBox).toBe("0 0 360 240");
-    expect(chart?.plot).toEqual({ left: 44, right: 344, top: 24, bottom: 200 });
+    expect(chart?.viewBox).toBe("0 0 300 256");
+    expect(chart?.plot).toEqual({ left: 36, right: 276, top: 56, bottom: 216 });
     expect(chart?.points).toHaveLength(31);
-    expect(chart?.points[0]).toEqual({ age: 15, value: 20, x: 44, y: 200 });
-    expect(chart?.points.at(-1)).toMatchObject({ age: 45, x: 344 });
+    expect(chart?.points[0]).toEqual({ age: 15, value: 20, x: 36, y: 216 });
+    expect(chart?.points.at(-1)).toMatchObject({ age: 45, x: 276 });
     expect(chart?.ageTicks).toEqual(
-      [15, 20, 25, 30, 35, 40, 45].map((age) => ({ label: age, at: 44 + 10 * (age - 15) })),
+      [15, 20, 25, 30, 35, 40, 45].map((age) => ({ label: age, at: 36 + 8 * (age - 15) })),
     );
   });
 
   it("puts the table's lowest to highest value on y, the scale every curve shares, with round ticks", () => {
     const chart = curveChart(CURVES, 13, 22);
-    // 176 units for the 79 between 20 and 99.
-    expect(chart?.points[12]?.y).toBeCloseTo(24 + (176 * 19) / 79);
-    expect(curveChart(CURVES, 1, 22)?.points[0]?.y).toBe(24);
+    // 160 units for the 79 between 20 and 99.
+    expect(chart?.points[12]?.y).toBeCloseTo(56 + (160 * 19) / 79);
+    expect(curveChart(CURVES, 1, 22)?.points[0]?.y).toBe(56);
     expect(chart?.valueTicks.map((tick) => tick.label)).toEqual([20, 40, 60, 80]);
-    expect(chart?.valueTicks[0]?.at).toBe(200);
+    expect(chart?.valueTicks[0]?.at).toBe(216);
   });
 
   it("marks the first age at the highest value and the player's age", () => {
     const chart = curveChart(CURVES, 13, 22);
-    expect(chart?.peak).toMatchObject({ age: 27, value: 80, x: 164 });
-    expect(chart?.now).toMatchObject({ age: 22, value: 55, x: 114 });
+    expect(chart?.peak).toMatchObject({ age: 27, value: 80, x: 132 });
+    expect(chart?.now).toMatchObject({ age: 22, value: 55, x: 92 });
   });
 
   it("marks no age outside the table's ages", () => {
@@ -55,6 +57,30 @@ describe("curveChart", () => {
   it("ticks whole values only, also on a flat table", () => {
     const chart = curveChart(new Map([[1, byAge(() => 50)]]), 1, 22);
     expect(chart?.valueTicks.map((tick) => tick.label)).toEqual([49, 50]);
-    expect(chart?.points[0]?.y).toBe(24);
+    expect(chart?.points[0]?.y).toBe(56);
+  });
+
+  it("spans the peak over the ages at 98 % of the curve's top or more, half a year past each end", () => {
+    expect(curveChart(CURVES, 14, 22)?.plateau).toEqual({
+      from: 27,
+      to: 31,
+      left: 36 + 8 * 11.5,
+      right: 36 + 8 * 16.5,
+    });
+    // A flat curve peaks at every age, within the plot.
+    expect(curveChart(CURVES, 1, 22)?.plateau).toEqual({ from: 15, to: 45, left: 36, right: 276 });
+  });
+
+  it.each([
+    [14, 26, "before"],
+    [14, 27, "peak"],
+    [14, 31, "peak"],
+    [14, 32, "after"],
+    [1, 14, "before"],
+    [1, 15, "peak"],
+    [1, 45, "peak"],
+    [1, 46, "after"],
+  ] as const)("places curve %i at age %i %s its peak", (id, age, phase) => {
+    expect(curveChart(CURVES, id, age)?.phase).toBe(phase);
   });
 });

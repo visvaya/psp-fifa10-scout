@@ -171,9 +171,13 @@ test.describe("development curves", () => {
     ).toBeVisible();
     await expectNoAxeViolations(page);
   });
+});
 
-  // The small chart opens a large one: ages and values on labelled axes, the peak and his age marked,
-  // and the same in words and in a table for screen readers.
+test.describe("development chart", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  // The small chart opens a large one: ages and levels on labelled axes, the level explained behind a
+  // "?", the peak and his age marked, and the same in words and in a table for screen readers.
   test("opens the large chart from the card and returns to it", async ({ page }) => {
     await loadDatabase(page);
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("brozek");
@@ -181,21 +185,34 @@ test.describe("development curves", () => {
     const card = page.getByRole("dialog", { name: "Paweł Brożek" });
     const age = await cardValue(card, "Wiek").innerText();
     const open = card.getByRole("button", { name: "Pokaż krzywą rozwoju: Paweł Brożek" });
+    // Flat: the peak spans every age, so he is within it, on the card and on the chart.
+    await expect(cardValue(card, "Krzywa rozwoju")).toHaveText(/^w\sszczycie$/u);
     await open.click();
     const chart = page.getByRole("dialog", { name: "Krzywa rozwoju: Paweł Brożek" });
     await expect(chart.locator("svg text").getByText("Wiek", { exact: true })).toBeVisible();
-    await expect(chart.locator("svg text").getByText("Wartość krzywej")).toBeVisible();
+    const level = "Poziom umiejętności (względny)";
+    await expect(chart.locator(".heading-help").getByText(level)).toBeVisible();
     // The synthetic curve is flat: it peaks at 15.
     await expect(chart.locator("svg text").getByText(/^szczyt: 15\slat, \d+$/u)).toBeVisible();
     await expect(
       chart.locator("svg text").getByText(new RegExp(`^w\\stym sezonie: ${age}$`, "u")),
     ).toBeVisible();
-    await expect(cardValue(chart, "Szczyt")).toHaveText(/^15\slat, wartość \d+$/u);
+    await expect(cardValue(chart, "Szczyt")).toHaveText(/^15\slat, poziom \d+$/u);
     await expect(cardValue(chart, "Wiek w tym sezonie")).toHaveText(
-      new RegExp(`^${age}, wartość \\d+$`, "u"),
+      new RegExp(`^${age}, poziom \\d+$`, "u"),
     );
+    await expect(chart.locator("svg text").getByText(/^w\sszczycie$/u)).toBeVisible();
+    await expect(cardValue(chart, "Okres szczytu")).toHaveText(/^15–45\slat$/u);
+    await expect(cardValue(chart, "Faza")).toHaveText(/^w\sszczycie$/u);
     await expect(chart.getByRole("table").getByRole("row")).toHaveCount(32);
     await expectNoAxeViolations(page);
+    const explanation = chart.getByText(/^Gra\sliczy umiejętności techniczne/u);
+    await chart.getByRole("button", { name: `Wyjaśnienie: ${level}` }).click();
+    await expect(explanation).toBeVisible();
+    // Escape closes the explanation first, then the chart.
+    await page.keyboard.press("Escape");
+    await expect(explanation).toBeHidden();
+    await expect(chart).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(chart).toHaveCount(0);
     await expect(card).toBeVisible();

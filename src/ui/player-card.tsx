@@ -84,7 +84,10 @@ const curveFacts = (
     : [
         [
           TEXT.card.curve,
-          <CurveButton key="curve" name={name} line={line} chart={chart} />,
+          <span key="curve" className="curve-row">
+            <CurveButton name={name} line={line} chart={chart} />
+            {TEXT.card.curvePhases[chart.phase]}
+          </span>,
           HELP_TEXT.curve(chart.peak.age),
         ],
       ];

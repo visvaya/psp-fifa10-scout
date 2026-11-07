@@ -3,8 +3,13 @@ import { curveScale } from "./curve-sparkline.ts";
 import { CURVE_AGE_MIN, curveValues } from "./overall-rating.ts";
 import type { Curves } from "./overall-rating.ts";
 
-/** The chart's size and the margins around its plot, for the ticks' labels and the axes' titles. */
-const LAYOUT_UNITS = { width: 360, height: 240, left: 44, right: 16, top: 24, bottom: 40 } as const;
+/**
+ * The chart's size and the margins around its plot: the value ticks' labels on the left, three rows of
+ * marks' labels on top, the ages and their title below. Narrow, so its text stays readable on a phone.
+ */
+const LAYOUT_UNITS = { width: 300, height: 256, left: 36, right: 24, top: 56, bottom: 40 } as const;
+/** The peak spans the ages at this share of the curve's top or more: some curves stay flat for years. */
+const PEAK_SHARE = 0.98;
 const AGE_TICK_YEARS = 5;
 const MAX_VALUE_TICKS = 5;
 
@@ -38,7 +43,18 @@ export interface CurveChart {
   readonly peak: ChartPoint;
   /** The player's age, undefined outside the table's ages. */
   readonly now: ChartPoint | undefined;
+  /** The peak's ages, first to last, and its band in viewBox units, half a year past each end. */
+  readonly plateau: {
+    readonly from: number;
+    readonly to: number;
+    readonly left: number;
+    readonly right: number;
+  };
+  /** Where the player's age falls: before the peak's first age, within its ages, or after them. */
+  readonly phase: CurvePhase;
 }
+
+type CurvePhase = "before" | "peak" | "after";
 
 /** A whole step of 1, 2 or 5 times a power of ten that splits `span` into at most MAX_VALUE_TICKS. */
 const valueStep = (span: number): number => {
@@ -67,6 +83,9 @@ export const curveChart = (curves: Curves, id: number, age: number): CurveChart 
   const step = valueStep(height);
   const lowestTick = Math.ceil((top - height) / step) * step;
   const max = Math.max(...values);
+  const atPeak = points.filter((at) => at.value >= PEAK_SHARE * max).map((at) => at.age);
+  const from = Math.min(...atPeak);
+  const to = Math.max(...atPeak);
   return {
     viewBox: `0 0 ${String(width)} ${String(chartHeight)}`,
     plot,
@@ -81,5 +100,12 @@ export const curveChart = (curves: Curves, id: number, age: number): CurveChart 
     peak: point(max, values.indexOf(max)),
     // Negative or past the last age: no point.
     now: points[age - CURVE_AGE_MIN],
+    plateau: {
+      from,
+      to,
+      left: Math.max(xOf(from - 0.5), left),
+      right: Math.min(xOf(to + 0.5), plot.right),
+    },
+    phase: age < from ? "before" : age > to ? "after" : "peak",
   };
 };

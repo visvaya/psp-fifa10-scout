@@ -4,8 +4,10 @@ import type { CurveChart } from "../logic/curve-chart.ts";
 import type { Sparkline } from "../logic/curve-sparkline.ts";
 import { CurveSparkline } from "./curve-sparkline.tsx";
 import { Facts } from "./facts.tsx";
+import { FieldHelp } from "./field-help.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
 import { formatNumber, TEXT } from "./text.ts";
+import { HELP_TEXT } from "./text-help.ts";
 
 /** Room in viewBox units between a label and its axis, a mark or the chart's edge. */
 const GAP = 6;
@@ -17,7 +19,7 @@ const edgeAnchor = (x: number, { left, right }: CurveChart["plot"]): "start" | "
   return x < left + third ? "start" : x > right - third ? "end" : "middle";
 };
 
-/** Grid lines at the value ticks, the ticks' labels, both axes and their titles. */
+/** Grid lines at the value ticks, the ticks' labels, both axes and the ages' title. */
 const ChartAxes = ({ chart: { plot, valueTicks, ageTicks } }: { chart: CurveChart }) => (
   <>
     {valueTicks.map(({ label, at }) => (
@@ -45,30 +47,40 @@ const ChartAxes = ({ chart: { plot, valueTicks, ageTicks } }: { chart: CurveChar
     >
       {TEXT.card.curveAge}
     </text>
-    <text
-      className="axis-title"
-      transform={`translate(${String(GAP + LABEL_LINE / 2)} ${String((plot.top + plot.bottom) / 2)}) rotate(-90)`}
-      textAnchor="middle"
-      dominantBaseline="middle"
-    >
-      {TEXT.card.curveValue}
-    </text>
   </>
 );
 
-/** The curve, the player's age as a dashed line labelled above the plot, and the peak's dot. */
-const ChartMarks = ({ chart: { plot, points, peak, now } }: { chart: CurveChart }) => {
-  // The peak's label beside its dot, toward the plot's middle so it stays inside.
-  const towardLeft = peak.x > (plot.left + plot.right) / 2;
-  const below = peak.y < (plot.top + plot.bottom) / 2;
+/**
+ * The peak's ages shaded, the curve, the season's age as a dashed line labelled with its phase on the
+ * top two rows, and the peak's dot labelled right above it: nothing of the curve rises past its peak,
+ * so no line crosses that label.
+ */
+const ChartMarks = ({ chart }: { chart: CurveChart }) => {
+  const { plot, points, peak, now, plateau } = chart;
   return (
     <>
+      <rect
+        className="plateau"
+        x={plateau.left}
+        y={plot.top}
+        width={plateau.right - plateau.left}
+        height={plot.bottom - plot.top}
+      />
       {now === undefined ? null : (
         <g className="now">
           <line x1={now.x} x2={now.x} y1={plot.top} y2={plot.bottom} />
-          <text x={now.x} y={plot.top - GAP} textAnchor={edgeAnchor(now.x, plot)}>
-            {TEXT.card.curveNowMark(now.age)}
-          </text>
+          {[TEXT.card.curveNowMark(now.age), TEXT.card.curvePhases[chart.phase]].map(
+            (label, row) => (
+              <text
+                key={label}
+                x={now.x}
+                y={plot.top - GAP - (2 - row) * LABEL_LINE}
+                textAnchor={edgeAnchor(now.x, plot)}
+              >
+                {label}
+              </text>
+            ),
+          )}
         </g>
       )}
       <polyline
@@ -77,11 +89,7 @@ const ChartMarks = ({ chart: { plot, points, peak, now } }: { chart: CurveChart 
       />
       <g className="peak">
         <circle cx={peak.x} cy={peak.y} r={GAP / 2 + 1} />
-        <text
-          x={peak.x + (towardLeft ? -GAP : GAP)}
-          y={peak.y + (below ? LABEL_LINE : -GAP)}
-          textAnchor={towardLeft ? "end" : "start"}
-        >
+        <text x={peak.x} y={peak.y - GAP} textAnchor={edgeAnchor(peak.x, plot)}>
           {TEXT.card.curvePeakMark(peak.age, peak.value)}
         </text>
       </g>
@@ -115,9 +123,14 @@ const ChartTable = ({ chart }: { chart: CurveChart }) => (
  * under it, and the data in a table for screen readers.
  */
 const CurveFigure = ({ chart }: { chart: CurveChart }): JSX.Element => {
-  const { peak, now } = chart;
+  const { peak, now, plateau } = chart;
   return (
     <figure className="curve-chart">
+      {/* The level's title above the chart rather than turned along its axis: readable, with its "?". */}
+      <div className="heading-help">
+        <span className="axis-title">{TEXT.card.curveValue}</span>
+        <FieldHelp label={TEXT.card.curveValue} text={HELP_TEXT.curveLevel} />
+      </div>
       <svg viewBox={chart.viewBox} aria-hidden="true">
         <ChartAxes chart={chart} />
         <ChartMarks chart={chart} />
@@ -126,9 +139,11 @@ const CurveFigure = ({ chart }: { chart: CurveChart }): JSX.Element => {
         <Facts
           facts={[
             [TEXT.card.curvePeakLabel, TEXT.card.curvePoint(peak.age, peak.value)],
+            [TEXT.card.curvePlateauLabel, TEXT.card.curvePlateau(plateau.from, plateau.to)],
             ...(now === undefined
               ? []
               : [[TEXT.card.curveNowLabel, TEXT.card.curvePoint(now.age, now.value)] as const]),
+            [TEXT.card.curvePhaseLabel, TEXT.card.curvePhases[chart.phase], HELP_TEXT.curvePhase],
           ]}
         />
       </figcaption>
