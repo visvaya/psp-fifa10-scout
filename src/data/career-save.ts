@@ -187,6 +187,10 @@ export const careerManager = (
 export const careerShortlist = (db: EaDb, save: CareerSave): readonly EaDbRow[] =>
   rowsOrNone(db, save, "career_shortlist");
 
+/** The players on loan with their parent clubs, read like the shortlist (fifa.db's list is empty). */
+export const careerLoans = (db: EaDb, save: CareerSave): readonly EaDbRow[] =>
+  rowsOrNone(db, save, "career_loaned_list");
+
 /**
  * The position codes of the user team's starting eleven: its teamwrite formation's position1..11 in
  * formations, the save's rows where it replaces either table. None without that row: the formation only

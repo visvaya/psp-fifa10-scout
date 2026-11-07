@@ -169,6 +169,8 @@ export const buildScoutDb = (extra: readonly TableSpec[] = []): Uint8Array =>
     empty("career_youth_accademy"),
     // Gracz Numer 18 is listed for a loan.
     table("career_transfer_list", [{ playerid: 1017, is_loan: 1, sold: 0 }]),
+    // Gracz Numer 2 plays for the user's club on loan from Barcelona.
+    table("career_loaned_list", [{ playerid: 1001, oldteamid: 241 }]),
     // Messi is on the user's shortlist in the game.
     table("career_shortlist", [{ playerid: 158_023, shortlist_dummy: 0 }]),
     empty("career_players_grown_attributes"),

@@ -3,7 +3,7 @@
 // or 19 or fewer (offer code 6), or it is the user's historic rival (11). The user's own full squad
 // (code 7) refuses every offer alike, so it says nothing about a player and is left out here.
 
-import { careerManager, seasonStartDate } from "../data/career-save.ts";
+import { careerLoans, careerManager, seasonStartDate } from "../data/career-save.ts";
 import type { CareerSave } from "../data/career-save.ts";
 import { num, readTable } from "../data/ea-db.ts";
 import type { EaDb } from "../data/ea-db.ts";
@@ -83,6 +83,12 @@ const rivalsOf = (db: EaDb, teamId: number): ReadonlySet<number> =>
     ),
   );
 
+/** The sale fields from the game's verdict on an offer for the player. */
+export const saleFields = (verdict: SaleRefusal | "sells" | null) => ({
+  clubWillSell: verdict === null ? null : verdict === "sells",
+  saleRefusal: verdict === null || verdict === "sells" ? null : verdict,
+});
+
 /**
  * For each player of another club in a career: why the game refuses any offer for him, or "sells"; null
  * without a club or in the user's own. A contract that has run out skips the club's refusals, as the game
@@ -96,8 +102,7 @@ export const saleVerdictOf = (
   const preferred = new Map(
     readTable(db, "players").map((row) => [num(row, "playerid"), num(row, "preferredposition1")]),
   );
-  // fifa.db's loan list is empty: only a save holds loans.
-  const loans = save.get("career_loaned_list") ?? [];
+  const loans = careerLoans(db, save);
   const loaned = new Set(loans.map((row) => num(row, "playerid")));
   const squads = squadsOf(
     [...placements].flatMap(([playerId, { club }]) =>

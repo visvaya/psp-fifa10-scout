@@ -42,6 +42,27 @@ test.describe("player card", () => {
     await expect(cardValue(page.getByRole("dialog"), "Cechy")).toHaveText("Drybler techniczny");
   });
 
+  // The save keeps no contract for a loaned player: a dash for the contract, price and wage, and both
+  // clubs side by side.
+  test("shows a loaned player's two clubs together and no contract", async ({ page }) => {
+    await loadCareer(page);
+    await page.getByRole("searchbox", { name: "Nazwisko" }).fill("gracz numer 2");
+    await page.getByRole("button", { name: /^Gracz Numer 2\b/u }).click();
+    const card = page.getByRole("dialog", { name: "Gracz Numer 2" });
+    const terms = await card.locator(".facts > div > dt").allInnerTexts();
+    expect(terms[terms.indexOf("Klub") + 1]).toBe("Wypożyczony z");
+    await expect(cardValue(card, "Klub")).toHaveText("Wisła Kraków (wypożyczenie do końca sezonu)");
+    await expect(cardValue(card, "Wypożyczony z")).toHaveText("FC Barcelona");
+    // The dash, then its name for screen readers.
+    await Promise.all(
+      ["Kontrakt do", "Cena", "Zarobki rynkowe"].map((label) =>
+        expect(cardValue(card, label)).toHaveText("–brak danych"),
+      ),
+    );
+    await expect(cardValue(card, "Siła klubu")).toHaveText("66");
+    await expect(cardValue(card, "Siła klubu macierzystego")).toHaveText("84");
+  });
+
   // Forced colours drop the stars' fill: the value shows as text instead.
   test("shows star values as text in forced colours", async ({ page }) => {
     await page.emulateMedia({ forcedColors: "active" });

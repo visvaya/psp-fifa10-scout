@@ -36,8 +36,8 @@ export const FIELD_HELP: Partial<Readonly<Record<RangeKey | ListKey | FlagKey, s
   cupAssists: CUP_STATS,
   cupCleanSheets: CUP_STATS,
   injuryDays: pl`Dni przerwy z powodu kontuzji według zapisu kariery; 0 to brak kontuzji.`,
-  price: pl`Wartość według wzoru gry, jak CENA na liście rynku transferowego. Zależy m.in. od OVR, wieku, lat do końca kontraktu, reputacji i pozycji. Przy wygasłym kontrakcie i u wolnego zawodnika 0.`,
-  wage: pl`Zarobki na mecz według wzoru gry, jak „Zarobki rynkowe” w formularzu oferty. Przy wygasłym kontrakcie (też w tym roku) z doliczonymi 30% (wolny transfer). Wzór nie odtwarza każdej pensji zapisanej w kontraktach, stąd szacunek. U zawodników twojego klubu zarobki z kontraktu zapisanego w karierze.`,
+  price: pl`Wartość według wzoru gry, jak CENA na liście rynku transferowego. Zależy m.in. od OVR, wieku, lat do końca kontraktu, reputacji i pozycji. Przy wygasłym kontrakcie i u wolnego zawodnika 0. U wypożyczonego zawodnika zapis nie trzyma kontraktu, więc ceny nie ma.`,
+  wage: pl`Zarobki na mecz według wzoru gry, jak „Zarobki rynkowe” w formularzu oferty. Przy wygasłym kontrakcie (też w tym roku) z doliczonymi 30% (wolny transfer). Wzór nie odtwarza każdej pensji zapisanej w kontraktach, stąd szacunek. U zawodników twojego klubu zarobki z kontraktu zapisanego w karierze. U zawodników wypożyczonych z twojego klubu albo do niego zarobki z kontraktu, u innych wypożyczonych brak danych.`,
   transferListed: pl`Wystawiony na sprzedaż w oknie transferowym według zapisu kariery i jeszcze niesprzedany. Poza oknem transferowym ta lista jest pusta.`,
   loanListed: pl`Wystawiony do wypożyczenia w oknie transferowym według zapisu kariery i jeszcze niewypożyczony.`,
   clubWillSell: pl`Reguły z kodu gry: klub odrzuca każdą ofertę, gdy ma 19 lub mniej zawodników, za mało zawodników w grupie pozycji tego zawodnika albo gdy jest odwiecznym rywalem twojego klubu. „Tak” znaczy, że żadna z tych reguł nie blokuje oferty; jej warunki pokazuje karta zawodnika. Osobno gra odrzuca każdą ofertę, gdy twoja kadra ma 30 lub więcej zawodników. Pole nie dotyczy twoich zawodników ani wolnych zawodników.`,
@@ -48,6 +48,8 @@ export const HELP_TEXT = {
   /** The "?" button's name. */
   label: (field: string): string => `Wyjaśnienie: ${field}`,
   mark: "?",
+  /** The season stats on the card. */
+  career: pl`Gra prowadzi statystyki występów, goli, asyst i czystych kont w lidze twojego klubu i w pucharach, które liczy dla tej ligi (dla Ekstraklasy Puchar Polski, „Klubowe ME” i „Puchar EFA”), dla każdego klubu tych rozgrywek, i zeruje je na początku sezonu. U zawodnika z innej ligi to tylko mecze w europejskich pucharach. U zawodnika, który odszedł z twojej ligi, to liczby z czasu gry w niej. KR to nagłówek kolumny oceny na ekranie statystyk zawodnika w grze. Gra nie zeruje tej oceny na początku sezonu.`,
   positionRating: pl`OVR zawodnika na wybranej pozycji, liczony wagami atrybutów, których gra używa dla tej pozycji. Pozycje o tych samych wagach są jednym wyborem.`,
   ratingGain: pl`OVR na wybranej pozycji minus OVR na pozycji preferowanej. Dodatnia różnica: na tej pozycji zawodnik ma lepszą ocenę.`,
   bestPositionOnly: pl`Zostają tylko zawodnicy, którym wybrana pozycja daje największy OVR ze wszystkich pozycji; równy OVR na innej pozycji też się liczy.`,

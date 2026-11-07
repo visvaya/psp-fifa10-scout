@@ -15,7 +15,7 @@ import { AttributeValue, GainValue } from "./attribute-value.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
 import { PositionName, ratingChoiceName } from "./position-name.tsx";
 import type { PositionNames } from "./position-name.tsx";
-import { clubText, RESULTS_TITLE_ID } from "./player-list.tsx";
+import { clubText, MissingValue, RESULTS_TITLE_ID } from "./player-list.tsx";
 import {
   ATTRIBUTE_GROUP_LABELS,
   ATTRIBUTE_LABELS,
@@ -95,6 +95,15 @@ const profile = (player: Player, showPotential: boolean): readonly Fact[] => [
     FIELD_HELP.developmentStyle,
   ],
   [RANGE_LABELS.clubRating, optional(player.clubRating), FIELD_HELP.clubRating],
+  ...(player.loanedFromId === null
+    ? []
+    : [
+        [
+          TEXT.card.parentClubRating,
+          optional(player.loanedFromRating),
+          FIELD_HELP.clubRating,
+        ] as const,
+      ]),
   [FLAG_LABELS.nationalTeam, player.nationalTeamName ?? TEXT.card.no, FIELD_HELP.nationalTeam],
   [
     FILTER_SECTION_LABELS.traits,
@@ -105,20 +114,42 @@ const profile = (player: Player, showPotential: boolean): readonly Fact[] => [
   ],
 ];
 
-/** Price and wage, career only: the user's squad shows its stored wage, others an estimate. */
+/**
+ * Price and wage, career only: the user's squad shows its stored wage, others an estimate. A loaned
+ * player has no price and, unless lent by the user's club or to it, no wage: a dash for each.
+ */
 const money = (
-  { price, wage, storedWage }: Player,
+  { price, wage, storedWage, loanedFromId }: Player,
   currency: CurrencyCode | null,
 ): readonly Fact[] =>
-  price === null || wage === null || currency === null
+  currency === null || (price === null && loanedFromId === null)
     ? []
     : [
-        [TEXT.card.price, TEXT.card.money(price, currency), FIELD_HELP.price],
+        [
+          TEXT.card.price,
+          price === null ? <MissingValue key="price" /> : TEXT.card.money(price, currency),
+          FIELD_HELP.price,
+        ],
         [
           storedWage ? TEXT.card.contractWage : TEXT.card.wage,
-          storedWage ? TEXT.card.money(wage, currency) : TEXT.card.wageEstimate(wage, currency),
+          wage === null ? (
+            <MissingValue key="wage" />
+          ) : storedWage ? (
+            TEXT.card.money(wage, currency)
+          ) : (
+            TEXT.card.wageEstimate(wage, currency)
+          ),
           FIELD_HELP.wage,
         ],
+      ];
+
+/** The club; for a loaned player with the loan noted and his parent club right under it. */
+const clubFacts = (player: Player): readonly Fact[] =>
+  player.loanedFromId === null
+    ? [[TEXT.card.club, clubText(player)]]
+    : [
+        [TEXT.card.club, TEXT.card.onLoanAt(clubText(player))],
+        [TEXT.card.loanedFrom, player.loanedFromName ?? TEXT.card.none],
       ];
 
 /** The other positions with the same best peak, in code order, or undefined without any. */
@@ -173,10 +204,10 @@ const basics = (
     />,
   ],
   [TEXT.card.age, TEXT.years(player.age), FIELD_HELP.age],
-  [TEXT.card.club, clubText(player)],
+  ...clubFacts(player),
   [TEXT.card.league, optional(player.leagueName)],
   [TEXT.card.nationality, optional(player.nationalityName)],
-  [TEXT.card.contract, player.contractEndYear ?? TEXT.card.none],
+  [TEXT.card.contract, player.contractEndYear ?? <MissingValue key="contract" />],
   ...money(player, currency),
   [
     TEXT.columns.overall,
@@ -272,7 +303,7 @@ const CareerFacts = ({ player }: { player: Player }) => (
     {/* The "?" beside the heading, not in it, so the heading keeps its own name. */}
     <div className="heading-help">
       <h3 id="career-title">{TEXT.card.career}</h3>
-      <OptionalHelp label={TEXT.card.career} help={TEXT.card.careerNote} />
+      <OptionalHelp label={TEXT.card.career} help={HELP_TEXT.career} />
     </div>
     <Facts
       facts={[
@@ -288,9 +319,6 @@ const CareerFacts = ({ player }: { player: Player }) => (
         ...known(RANGE_LABELS.injuryDays, count(player.injuryDays), FIELD_HELP.injuryDays),
         [FLAG_LABELS.transferListed, yesNo(player.transferListed), FIELD_HELP.transferListed],
         [FLAG_LABELS.loanListed, yesNo(player.loanListed), FIELD_HELP.loanListed],
-        ...(player.loanedFromId === null
-          ? []
-          : [[TEXT.card.loanedFrom, player.loanedFromName ?? TEXT.card.none] as const]),
         ...(player.clubWillSell === null
           ? []
           : [

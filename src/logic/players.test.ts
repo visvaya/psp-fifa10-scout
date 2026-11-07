@@ -220,6 +220,7 @@ describe("buildPlayers from fifa.db", () => {
       loanListed: false,
       loanedFromId: null,
       loanedFromName: null,
+      loanedFromRating: null,
       shortlisted: false,
       clubWillSell: null,
       saleRefusal: null,

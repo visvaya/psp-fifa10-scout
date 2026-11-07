@@ -5,6 +5,8 @@ import type { CareerSave } from "../data/career-save.ts";
 import { parseEaDb } from "../data/ea-db.ts";
 import type { EaDbRow } from "../data/ea-db.ts";
 import { buildEaDb } from "../data/test-support/synthetic-ea-db.ts";
+import { facetOptions } from "./facets.ts";
+import { filterPlayers } from "./filter-players.ts";
 import { baseOverall, CURVE_COLUMNS } from "./overall-rating.ts";
 import { buildPlayers } from "./players.ts";
 import type { Player } from "./players.ts";
@@ -44,7 +46,7 @@ const DB = parseEaDb(
     table("country", [{ countryid: 1, countryname: "Country" }]),
     table(
       "players",
-      [1, 3, 4, 5, 6].map((playerid) =>
+      [1, 3, 4, 5, 6, 7, 8, 9].map((playerid) =>
         playerRow({
           playerid,
           birthdate: daysSince1582(1985, 1, 15),
@@ -98,14 +100,28 @@ const SAVE: CareerSave = new Map([
       link(4, USER_TEAM, 2011),
       link(5, FREE_AGENT_TEAM, 2009),
       link(6, 5000, 2012), // a team in no league: no club
+      // On loan: the link's year is never the contract's end (2005 or a renewal year).
+      link(7, 241, 2005),
+      link(8, USER_TEAM, 2011),
+      link(9, 241, 2014),
     ],
   ],
   [
     "career_extra_user_team_info",
     // Player 1 has left the user's squad: his stored wage no longer counts.
-    [4, 1].map((playerid) =>
+    // Players 7 and 8, lent by the user's club or to it, keep their rows; a row for player 9, lent
+    // between two other clubs, does not count.
+    [4, 1, 7, 8, 9].map((playerid) =>
       row({ playerid, wage: floatBits(1234), bonus: 0, bonus_type: 0, contract_status: 0 }),
     ),
+  ],
+  [
+    "career_loaned_list",
+    [
+      row({ playerid: 7, oldteamid: USER_TEAM }),
+      row({ playerid: 8, oldteamid: 241 }),
+      row({ playerid: 9, oldteamid: 5000 }),
+    ],
   ],
 ]);
 
@@ -184,6 +200,27 @@ describe("career prices and wages", () => {
       price: transferPrice(oneYear),
       wage: marketWage(oneYear, false),
     });
+  });
+
+  // The save keeps no contract for a loaned player: no price, and a wage only from the user's records.
+  it("keeps the stored wage of a player lent by the user's club or to it, without a price", () => {
+    expect(byId(7)).toMatchObject({ price: null, wage: 1230, storedWage: true });
+    expect(byId(8)).toMatchObject({ price: null, wage: 1230, storedWage: true });
+  });
+
+  it("leaves other loaned players without a price or a wage", () => {
+    expect(byId(9)).toMatchObject({ price: null, wage: null, storedWage: false });
+  });
+
+  it("leaves the contract of a loaned player unknown, whatever year his link holds", () => {
+    const players = careerPlayers();
+    expect(players.filter((each) => each.loanedFromId !== null).map((each) => each.id)).toEqual([
+      7, 8, 9,
+    ]);
+    expect([7, 8, 9].map((id) => byId(id)?.contractEndYear)).toEqual([null, null, null]);
+    expect(facetOptions(players, {}).contractYears).toEqual([2009, 2011, 2012]);
+    const endsBy2011 = filterPlayers(players, { ranges: { contractEndYear: { max: 2011 } } });
+    expect(endsBy2011.map((each) => each.id)).toEqual([3, 4]);
   });
 
   it("leaves players without a club or without a save unpriced", () => {

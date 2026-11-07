@@ -65,8 +65,9 @@ test.describe("career", () => {
       .getByRole("group", { name: "Zarobki rynkowe (szacunek)" })
       .getByLabel("od")
       .fill("1");
-    // A fifth of the generated players' contracts run out in 2009: their price is 0.
-    await expectCount(page, "50 zawodników");
+    // A fifth of the generated players' contracts run out in 2009: their price is 0. Gracz Numer 2, on
+    // loan, has no price.
+    await expectCount(page, "49 zawodników");
   });
 
   // The synthetic career has Messi on the game's shortlist.
