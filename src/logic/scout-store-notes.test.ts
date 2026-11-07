@@ -127,4 +127,25 @@ describe("notes moved out of a version 1 watchlist", () => {
     const loaded = await createScoutStore({ get: backend.get, set: failingSet }).load();
     expect(loaded.notes).toEqual(notesFromWatchlist(v1List.value));
   });
+
+  it("stores the notes before a list save replaces a version 1 list", async () => {
+    const backend = memoryBackend();
+    await backend.set("watchlist", v1List);
+    await createScoutStore(backend).saveWatchlist([]);
+    expect(await backend.get("notes")).toEqual({
+      schemaVersion: SCHEMA_VERSION.notes,
+      value: notesFromWatchlist(v1List.value),
+    });
+  });
+
+  it("keeps a version 1 list when its notes still cannot be stored", async () => {
+    const backend = memoryBackend();
+    await backend.set("watchlist", v1List);
+    const set = async (key: string, value: unknown) =>
+      key === "notes" ? Promise.reject(new Error("quota")) : backend.set(key, value);
+    await expect(createScoutStore({ get: backend.get, set }).saveWatchlist([])).rejects.toThrow(
+      "quota",
+    );
+    expect(await backend.get("watchlist")).toEqual(v1List);
+  });
 });

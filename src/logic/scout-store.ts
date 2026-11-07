@@ -475,8 +475,19 @@ export const createScoutStore = (backend: StorageBackend) => ({
   /** null forgets the stored save. */
   saveCareerSave: async (save: SaveFiles<Uint8Array> | null): Promise<void> =>
     backend.set("careerSave", { schemaVersion: SCHEMA_VERSION.careerSave, value: save }),
-  saveWatchlist: async (watchlist: readonly WatchEntry[]): Promise<void> =>
-    backend.set("watchlist", { schemaVersion: SCHEMA_VERSION.watchlist, value: watchlist }),
+  /**
+   * Before it replaces a version 1 list whose notes are not stored yet, stores them; if that fails, the
+   * save fails too, so the version 1 list stays on disk with its notes.
+   */
+  saveWatchlist: async (watchlist: readonly WatchEntry[]): Promise<void> => {
+    if ((await backend.get("notes")) === undefined) {
+      const moved = notesFromWatchlist(versioned(await backend.get("watchlist"), 1));
+      if (moved.length > 0) {
+        await backend.set("notes", { schemaVersion: SCHEMA_VERSION.notes, value: moved });
+      }
+    }
+    await backend.set("watchlist", { schemaVersion: SCHEMA_VERSION.watchlist, value: watchlist });
+  },
   saveNotes: async (notes: readonly PlayerNote[]): Promise<void> =>
     backend.set("notes", { schemaVersion: SCHEMA_VERSION.notes, value: notes }),
   saveLanguages: async (languages: GameLanguages): Promise<void> =>
