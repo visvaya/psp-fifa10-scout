@@ -138,6 +138,32 @@ describe("notes moved out of a version 1 watchlist", () => {
     });
   });
 
+  // Ordered: the list save reads "no notes record" and waits; the user's note save starts meanwhile.
+  it("keeps a note edited while a list save moves the old notes", async () => {
+    const backend = memoryBackend();
+    await backend.set("watchlist", v1List);
+    let release: (() => void) | undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const get = async (key: string) => {
+      if (key !== "notes") return backend.get(key);
+      const value = await backend.get(key);
+      await gate;
+      return value;
+    };
+    const store = createScoutStore({ get, set: backend.set });
+    const listSaved = store.saveWatchlist([]);
+    const edited = [{ ...stored, text: "edited" }];
+    const noteSaved = store.saveNotes(edited);
+    release?.();
+    await Promise.all([listSaved, noteSaved]);
+    expect(await backend.get("notes")).toEqual({
+      schemaVersion: SCHEMA_VERSION.notes,
+      value: edited,
+    });
+  });
+
   it("keeps a version 1 list when its notes still cannot be stored", async () => {
     const backend = memoryBackend();
     await backend.set("watchlist", v1List);
