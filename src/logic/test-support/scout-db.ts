@@ -40,6 +40,17 @@ const generated = Array.from({ length: 60 }, (_, index) =>
   }),
 );
 
+/** Brożek's attributes, a centre-back's more than a striker's. */
+const CENTRE_BACK = {
+  tackling: 92,
+  marking: 46,
+  heading: 48,
+  ballcontrol: 43,
+  shortpassing: 38,
+  strength: 73,
+  stamina: 54,
+};
+
 const PLAYERS = table("players", [
   playerRow({
     playerid: 158_023,
@@ -62,13 +73,7 @@ const PLAYERS = table("players", [
     preferredposition1: 29,
     potential: 74,
     // Rates 58 as a full-back and 57 as a sweeper: the card shows that row as approximate.
-    tackling: 92,
-    marking: 46,
-    heading: 48,
-    ballcontrol: 43,
-    shortpassing: 38,
-    strength: 73,
-    stamina: 54,
+    ...CENTRE_BACK,
   }),
   playerRow({
     playerid: 8,
@@ -76,6 +81,19 @@ const PLAYERS = table("players", [
     surname: "Wolny",
     birthdate: born(1990),
     nationality: 37,
+  }),
+  // A centre-back who, like Brożek, peaks alike at RCB, CB and LCB: the diamond and his right foot pick
+  // RCB, his preferred position CB once that rule comes first. With no team he stays off the default
+  // list, so its counts hold.
+  playerRow({
+    playerid: 9,
+    firstname: "Tomasz",
+    surname: "Remis",
+    birthdate: born(1983),
+    nationality: 37,
+    preferredposition1: 5,
+    potential: 74,
+    ...CENTRE_BACK,
   }),
   ...generated,
 ]);
