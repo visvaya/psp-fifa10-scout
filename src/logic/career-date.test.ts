@@ -79,4 +79,13 @@ describe("career ratings", () => {
     // The attributes shown and filtered are the aged ones too: skills rise to 60 at 21.
     expect(player?.attributes.finishing).toBe(60);
   });
+
+  // The development chart marks the age the season's ageing uses, not the age shown.
+  it("keep the age on the season's first match day, the shown age without a save", () => {
+    const [player] = buildPlayers(DB, save([row({ game_number: gameOn(2009, 7, 25) })]));
+    expect(player).toMatchObject({ age: 21, seasonAge: 20 });
+    expect(buildPlayers(DB, save([]))[0]).toMatchObject({ age: 21, seasonAge: 21 });
+    const [outside] = buildPlayers(DB);
+    expect(outside?.seasonAge).toBe(outside?.age);
+  });
 });

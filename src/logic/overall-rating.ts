@@ -243,6 +243,8 @@ export interface CareerAgeing {
    * attribute follows its curve's value.
    */
   readonly growthSeasons: number;
+  /** His age on the career date, which places him on his curves this season. */
+  readonly age: number;
 }
 
 export const careerAgeing = (
@@ -280,6 +282,7 @@ export const careerAgeing = (
       return Math.min(clamp(adjusted, AGED_ATTRIBUTE_MIN, RATING_MAX), Math.max(potential, value));
     },
     growthSeasons: Math.max(0, lastRise - age),
+    age,
   };
 };
 

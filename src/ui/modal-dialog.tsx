@@ -36,17 +36,19 @@ export const ModalDialog = ({
 }: ModalDialogProps): JSX.Element => {
   const ref = useRef<HTMLDialogElement>(null);
   const pressedOutside = useRef(false);
+  // Where the browser puts focus back on close: in Safari not the clicked opener, so it is moved on.
+  // Taken once: a second run of the effect (StrictMode) would find focus inside the dialog.
+  const focusedBefore = useRef<Element | null>(null);
   // A dialog may open over another (the card's large chart): each names itself by its own title.
   const titleId = useId();
   useEffect(() => {
-    // Where the browser puts focus back on close: in Safari not the clicked opener, so it is moved on.
-    const focusedBefore = document.activeElement;
+    focusedBefore.current ??= document.activeElement;
     const dialog = ref.current;
     dialog?.showModal();
     return () => {
       // The close event and this cleanup run after Escape: focus moved on meanwhile stays where it is.
       const focused = document.activeElement;
-      if (focused === null || focused === document.body || focused === focusedBefore)
+      if (focused === null || focused === document.body || focused === focusedBefore.current)
         returnFocus()?.focus();
     };
   }, [returnFocus]);

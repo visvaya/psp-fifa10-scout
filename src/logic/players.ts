@@ -158,6 +158,8 @@ export interface Player extends Finance, SeasonStats, TeamFields {
   /** Linked to the game's free-agent team, so any club can sign him (careers only). */
   readonly freeAgent: boolean;
   readonly age: number;
+  /** His age on the season's first match day, his place on his curves all season; else `age`. */
+  readonly seasonAge: number;
   /** The calendar year of birth; contract ages count from it to the season's end. */
   readonly birthYear: number;
   readonly positionCode: number;
@@ -263,6 +265,8 @@ interface Rating {
   readonly overallAt: (positionCode: number, yearsAhead?: number) => number;
   /** The peak OVR at each position code; empty without a save, as nothing ages. */
   readonly peakByCode: readonly number[];
+  /** His age on the career date the ratings are aged to; absent without a save. */
+  readonly seasonAge?: number;
 }
 
 /** The locale of the default text order. */
@@ -322,7 +326,7 @@ const summary = (row: EaDbRow, context: Context): Summary => {
   const nationalityId = num(row, "nationality");
   const [firstName, surname] = [String(row["firstname"]).trim(), String(row["surname"]).trim()];
   const name = `${firstName} ${surname}`.trim();
-  const { attributes, potential, overallAt, peakByCode } = context.rate(row);
+  const { attributes, potential, overallAt, peakByCode, seasonAge } = context.rate(row);
   const age = ageOn(birthdateToDate(num(row, "birthdate")), context.referenceDate);
   const { club } = context.placements.get(id) ?? {};
   const money = club && { link: club.link, prestige: club.team.prestige };
@@ -339,6 +343,7 @@ const summary = (row: EaDbRow, context: Context): Summary => {
     academy: context.academy.has(id),
     freeAgent: context.freeAgents.has(id),
     age,
+    seasonAge: seasonAge ?? age,
     birthYear: birthdateToDate(num(row, "birthdate")).getUTCFullYear(),
     positionCode: num(row, "preferredposition1"),
     positionName: position.name,
@@ -438,6 +443,7 @@ const rater = (db: EaDb, save: CareerSave | undefined, read?: Curves): Context["
       potential,
       overallAt,
       peakByCode: peaksByPositionCode(ageing, potential),
+      seasonAge: ageing.age,
     };
   };
 };

@@ -11,6 +11,12 @@ import { formatNumber, TEXT } from "./text.ts";
 const GAP = 6;
 const LABEL_LINE = 14;
 
+/** A label over x: from x near the plot's left edge, up to x near its right edge, else centred. */
+const edgeAnchor = (x: number, { left, right }: CurveChart["plot"]): "start" | "middle" | "end" => {
+  const third = (right - left) / 3;
+  return x < left + third ? "start" : x > right - third ? "end" : "middle";
+};
+
 /** Grid lines at the value ticks, the ticks' labels, both axes and their titles. */
 const ChartAxes = ({ chart: { plot, valueTicks, ageTicks } }: { chart: CurveChart }) => (
   <>
@@ -60,7 +66,7 @@ const ChartMarks = ({ chart: { plot, points, peak, now } }: { chart: CurveChart 
       {now === undefined ? null : (
         <g className="now">
           <line x1={now.x} x2={now.x} y1={plot.top} y2={plot.bottom} />
-          <text x={now.x} y={plot.top - GAP} textAnchor="middle">
+          <text x={now.x} y={plot.top - GAP} textAnchor={edgeAnchor(now.x, plot)}>
             {TEXT.card.curveNowMark(now.age)}
           </text>
         </g>

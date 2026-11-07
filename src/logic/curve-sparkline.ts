@@ -1,5 +1,5 @@
 // A development curve drawn small, on the scale every curve of the table shares, so shapes compare.
-import { CURVE_AGE_MIN, curveValues } from "./overall-rating.ts";
+import { curveValues } from "./overall-rating.ts";
 import type { Curves } from "./overall-rating.ts";
 
 export interface Sparkline {
@@ -7,8 +7,6 @@ export interface Sparkline {
   readonly viewBox: string;
   /** The curve's polyline in viewBox units. */
   readonly points: string;
-  /** The first age at the curve's highest value. */
-  readonly peakAge: number;
 }
 
 /** The table's highest value and the span down to its lowest, which every curve is drawn on. */
@@ -31,7 +29,6 @@ export const curveSparklines = (curves: Curves): ((id: number) => Sparkline | nu
     return {
       viewBox: `0 0 ${String(values.length - 1)} ${String(height)}`,
       points: values.map((value, index) => `${String(index)},${String(top - value)}`).join(" "),
-      peakAge: CURVE_AGE_MIN + values.indexOf(Math.max(...values)),
     };
   };
 };

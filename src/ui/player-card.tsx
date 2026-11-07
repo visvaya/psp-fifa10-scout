@@ -70,22 +70,22 @@ const CLEAN_SHEETS: ReadonlySet<string> = new Set(["cleanSheets", "cupCleanSheet
 
 /**
  * His own skill curve, the one his projection follows, when the game has curves; it opens a large chart
- * with his age on it, the card's age.
+ * marking the age this season's development uses (the season's first match day, not the card's age).
  */
 const curveFacts = (
-  { name, age, developmentStyle: style, developmentType: type }: Player,
+  { name, seasonAge, developmentStyle: style, developmentType: type }: Player,
   curves: Curves,
 ): readonly Fact[] => {
   const id = skillCurveId(style, type);
   const line = curveSparklines(curves)(id);
-  const chart = curveChart(curves, id, age);
+  const chart = curveChart(curves, id, seasonAge);
   return line === null || chart === null
     ? []
     : [
         [
           TEXT.card.curve,
           <CurveButton key="curve" name={name} line={line} chart={chart} />,
-          HELP_TEXT.curve(line.peakAge),
+          HELP_TEXT.curve(chart.peak.age),
         ],
       ];
 };

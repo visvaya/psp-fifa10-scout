@@ -187,9 +187,13 @@ test.describe("development curves", () => {
     await expect(chart.locator("svg text").getByText("Wartość krzywej")).toBeVisible();
     // The synthetic curve is flat: it peaks at 15.
     await expect(chart.locator("svg text").getByText(/^szczyt: 15\slat, \d+$/u)).toBeVisible();
-    await expect(chart.locator("svg text").getByText(`teraz: ${age}`)).toBeVisible();
+    await expect(
+      chart.locator("svg text").getByText(new RegExp(`^w\\stym sezonie: ${age}$`, "u")),
+    ).toBeVisible();
     await expect(cardValue(chart, "Szczyt")).toHaveText(/^15\slat, wartość \d+$/u);
-    await expect(cardValue(chart, "Teraz")).toHaveText(new RegExp(`^${age}, wartość \\d+$`, "u"));
+    await expect(cardValue(chart, "Wiek w tym sezonie")).toHaveText(
+      new RegExp(`^${age}, wartość \\d+$`, "u"),
+    );
     await expect(chart.getByRole("table").getByRole("row")).toHaveCount(32);
     await expectNoAxeViolations(page);
     await page.keyboard.press("Escape");

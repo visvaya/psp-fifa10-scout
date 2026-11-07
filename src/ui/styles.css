@@ -1292,6 +1292,8 @@ input[inputmode="numeric"] {
 /* Dialogs */
 .dialog {
   width: min(40rem, 100% - 2 * var(--space-4));
+  /* A dialog opened from a fact's value (the card's curve) does not take the value's alignment. */
+  text-align: start;
   max-height: calc(100dvh - 2 * var(--space-4));
   padding: 0;
   border: 1px solid var(--color-line);
@@ -1534,6 +1536,14 @@ input[inputmode="numeric"] {
 .curve-chart .now text {
   fill: var(--color-ink);
   font-weight: 600;
+}
+
+/* The marks' labels stay readable where they cross the curve or the grid. */
+.curve-chart :is(.peak, .now) text {
+  paint-order: stroke;
+  stroke: var(--color-surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
 }
 
 .curve-chart .grid {

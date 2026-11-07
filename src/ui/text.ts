@@ -413,9 +413,9 @@ export const TEXT = {
     curveValue: "Wartość krzywej",
     curvePeakMark: (age: number, value: number): string =>
       `szczyt: ${count(age, YEARS)}, ${formatNumber(value)}`,
-    curveNowMark: (age: number): string => `teraz: ${count(age, YEARS)}`,
+    curveNowMark: (age: number): string => pl`w tym sezonie: ${count(age, YEARS)}`,
     curvePeakLabel: "Szczyt",
-    curveNowLabel: "Teraz",
+    curveNowLabel: pl`Wiek w tym sezonie`,
     curvePoint: (age: number, value: number): string =>
       `${count(age, YEARS)}, wartość ${formatNumber(value)}`,
     yes: "tak",

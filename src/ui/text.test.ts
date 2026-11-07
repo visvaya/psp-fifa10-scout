@@ -62,7 +62,7 @@ describe("TEXT.card money", () => {
 describe("the development chart's texts", () => {
   it("names the peak's and the player's ages in years and the curve's values", () => {
     expect(TEXT.card.curvePeakMark(27, 80)).toBe(`szczyt: 27${NBSP}lat, 80`);
-    expect(TEXT.card.curveNowMark(22)).toBe(`teraz: 22${NBSP}lata`);
+    expect(TEXT.card.curveNowMark(22)).toBe(`w${NBSP}tym sezonie: 22${NBSP}lata`);
     expect(TEXT.card.curvePoint(21, 55)).toBe(`21${NBSP}lat, wartość 55`);
   });
 });
