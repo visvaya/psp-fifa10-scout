@@ -86,7 +86,7 @@ describe("sortPlayers", () => {
   });
 
   // The sort packs each value into one integer key: a rating with a decimal must not lose a player.
-  it("sorts by the average match rating, one decimal, keeping every player", () => {
+  it("sorts by the rolling match rating (KR), one decimal, keeping every player", () => {
     const rated = PLAYERS.map((player, index) => ({
       ...player,
       form: [6.9, 7.2, 6.3, 7.2][index] ?? null,

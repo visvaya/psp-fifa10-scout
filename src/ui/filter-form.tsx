@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
 import type { Dispatch, JSX } from "react";
 import type { CurrencyCode } from "../data/career-save.ts";
 import type { FlagKey, ListKey, RangeKey } from "../logic/filter-players.ts";
@@ -18,13 +18,14 @@ import type {
 import { CheckField, ChoiceField, FlagField, RangeField, Section } from "./filter-fields.tsx";
 import { AttributeRanges, ContractField } from "./filter-field-groups.tsx";
 import type { Eye } from "./column-eye.tsx";
+import { OptionalHelp } from "./field-help.tsx";
 import { codeName } from "./text-code-names.ts";
 import type { CodedKey } from "./text-code-names.ts";
 import type { Choice } from "./filter-fields.tsx";
 import { PotentialSwitch } from "./filter-panel-controls.tsx";
 import { SettingsActions } from "./settings-actions.tsx";
 import type { Settings } from "./settings-actions.tsx";
-import { FIELD_HELP, PEAK_AT_BEST_HELP } from "./text-help.ts";
+import { FIELD_HELP, HELP_TEXT } from "./text-help.ts";
 import { PositionRatingField } from "./position-rating-field.tsx";
 import {
   CLUB_STATUS_LABELS,
@@ -110,38 +111,46 @@ const CLUB_STATUSES: readonly ClubStatus[] = ["available", "free-agents"];
 /** "All" stands for an unset my-club filter. */
 const MY_CLUB_OPTIONS: readonly ("all" | MyClub)[] = ["all", "hide", "only"];
 
-/** One choice of a few, as radio buttons. */
+/** One choice of a few, as radio buttons; the group takes its name from the legend's text alone. */
 const RadioField = <T extends string>(props: {
   readonly legend: string;
+  readonly help?: string;
   readonly name: string;
   readonly options: readonly T[];
   readonly labels: Readonly<Record<T, string>>;
   readonly value: T;
   readonly onChange: (value: T) => void;
-}) => (
-  <fieldset className="field">
-    <legend>{props.legend}</legend>
-    {props.options.map((option) => (
-      <label key={option} className="check">
-        <input
-          type="radio"
-          name={props.name}
-          checked={props.value === option}
-          onChange={() => {
-            props.onChange(option);
-          }}
-        />
-        {props.labels[option]}
-      </label>
-    ))}
-  </fieldset>
-);
+}) => {
+  const legendId = useId();
+  return (
+    <fieldset className="field" aria-labelledby={legendId}>
+      <legend className="field-legend">
+        <span id={legendId}>{props.legend}</span>
+        <OptionalHelp label={props.legend} help={props.help} />
+      </legend>
+      {props.options.map((option) => (
+        <label key={option} className="check">
+          <input
+            type="radio"
+            name={props.name}
+            checked={props.value === option}
+            onChange={() => {
+              props.onChange(option);
+            }}
+          />
+          {props.labels[option]}
+        </label>
+      ))}
+    </fieldset>
+  );
+};
 
 /** Shown with a career: fifa.db has no free agents and no club of the user's. */
 const CareerClubFields = ({ filters, change }: { filters: ScoutFilters; change: Change }) => (
   <>
     <RadioField
       legend={TEXT.clubStatus}
+      help={HELP_TEXT.clubStatus}
       name="club-status"
       options={CLUB_STATUSES}
       labels={CLUB_STATUS_LABELS}
@@ -213,6 +222,7 @@ const controls = (
     <FlagField
       key={key}
       label={FLAG_LABELS[key]}
+      help={FIELD_HELP[key]}
       wanted={filters.flags?.[key]}
       onChange={(wanted) => {
         change({ flags: { ...filters.flags, [key]: wanted } });
@@ -236,7 +246,7 @@ const peakFields = ({ filters, change, range }: Kit) => [
     key="peakAtBest"
     label={TEXT.peakAtBest}
     checked={filters.peakAtBest === true}
-    help={PEAK_AT_BEST_HELP}
+    help={HELP_TEXT.peakAtBest}
     onChange={(peakAtBest) => {
       change({ peakAtBest });
     }}

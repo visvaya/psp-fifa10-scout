@@ -6,38 +6,28 @@ import { bounded } from "../logic/filter-players.ts";
 import type { Range } from "../logic/filter-players.ts";
 import { searchKey } from "../logic/players.ts";
 import { ColumnEye } from "./column-eye.tsx";
+import { FieldHelp, OptionalHelp } from "./field-help.tsx";
 import type { ColumnToggle } from "./column-eye.tsx";
 import { caretAfterDigits, editGrouped } from "./grouped-number.ts";
 import { decimalText } from "./decimal-text.ts";
 import { DECIMAL_SEPARATOR, formatNumber, TEXT } from "./text.ts";
 
-/** A field's explanation under its name, linked to the field for screen readers. */
-const useFieldHelp = (help: string | undefined) => {
-  const id = useId();
-  return {
-    describedBy: help === undefined ? undefined : id,
-    note:
-      help === undefined ? null : (
-        <p id={id} className="help">
-          {help}
-        </p>
-      ),
-  };
-};
-
 /**
- * A field's name, with the eye of its column and a button that clears the field while it filters (owner,
- * 2026-11-05). The group takes its name from the name alone (labelId), so the buttons do not join it.
+ * A field's name, with its explanation, the eye of its column and a button that clears the field while it
+ * filters (owner, 2026-11-05). The group takes its name from the name alone (labelId), so the buttons do
+ * not join it.
  */
 const FieldLegend = (props: {
   labelId: string;
   label: string;
+  help: string | undefined;
   filtering: boolean;
   column: ColumnToggle | undefined;
   onClear: () => void;
 }) => (
   <legend className="field-legend">
     <span id={props.labelId}>{props.label}</span>
+    <OptionalHelp label={props.label} help={props.help} />
     <ColumnEye label={props.label} column={props.column} />
     {props.filtering ? (
       <button
@@ -219,20 +209,19 @@ export const RangeField = (props: {
 }): JSX.Element => {
   const range = props.range ?? {};
   const grouped = props.grouped === true;
-  const { describedBy, note } = useFieldHelp(props.help);
   const labelId = useId();
   return (
-    <fieldset className="field" aria-labelledby={labelId} aria-describedby={describedBy}>
+    <fieldset className="field" aria-labelledby={labelId}>
       <FieldLegend
         labelId={labelId}
         label={props.label}
+        help={props.help}
         filtering={bounded(range)}
         column={props.column}
         onClear={() => {
           props.onChange({});
         }}
       />
-      {note}
       <div className={grouped ? "range grouped" : "range"}>
         {(["min", "max"] as const).map((bound) => (
           <label key={bound} className="range-input">
@@ -257,20 +246,18 @@ export interface Choice<T> {
   readonly label: string;
 }
 
-/** One checkbox with its explanation, linked to it for screen readers. */
+/** One checkbox with its explanation behind a "?" after it. */
 export const CheckField = (props: {
   label: string;
   checked: boolean;
   help: string;
   onChange: (checked: boolean) => void;
 }): JSX.Element => {
-  const { describedBy, note } = useFieldHelp(props.help);
   return (
-    <div className="field">
+    <div className="check-help">
       <label className="check">
         <input
           type="checkbox"
-          aria-describedby={describedBy}
           checked={props.checked}
           onChange={(event) => {
             props.onChange(event.currentTarget.checked);
@@ -278,7 +265,7 @@ export const CheckField = (props: {
         />
         {props.label}
       </label>
-      {note}
+      <FieldHelp label={props.label} text={props.help} />
     </div>
   );
 };
@@ -338,7 +325,6 @@ export const ChoiceField = <T extends string | number>(props: {
   const { label, choices, onChange } = props;
   const chosen = props.chosen ?? [];
   const [query, setQuery] = useState("");
-  const { describedBy, note } = useFieldHelp(props.help);
   const labelId = useId();
   const wanted = searchKey(query.trim());
   const searchable = choices.length > SEARCH_FROM_CHOICES;
@@ -349,17 +335,17 @@ export const ChoiceField = <T extends string | number>(props: {
           (choice) => chosen.includes(choice.value) || searchKey(choice.label).includes(wanted),
         );
   return (
-    <fieldset className="field" aria-labelledby={labelId} aria-describedby={describedBy}>
+    <fieldset className="field" aria-labelledby={labelId}>
       <FieldLegend
         labelId={labelId}
         label={label}
+        help={props.help}
         filtering={chosen.length > 0}
         column={props.column}
         onClear={() => {
           onChange([]);
         }}
       />
-      {note}
       {searchable ? (
         <input
           type="search"
@@ -378,23 +364,32 @@ export const ChoiceField = <T extends string | number>(props: {
   );
 };
 
+/** A yes / no / any choice; its name in a label of its own, so the "?" after it stays outside it. */
 export const FlagField = (props: {
   label: string;
+  help: string | undefined;
   wanted: boolean | undefined;
   onChange: (wanted: boolean | undefined) => void;
-}): JSX.Element => (
-  <label className="field flag">
-    <span>{props.label}</span>
-    <select
-      value={props.wanted === undefined ? "" : props.wanted ? "yes" : "no"}
-      onChange={(event) => {
-        const { value } = event.currentTarget;
-        props.onChange(value === "" ? undefined : value === "yes");
-      }}
-    >
-      <option value="">{TEXT.flagValues.any}</option>
-      <option value="yes">{TEXT.flagValues.yes}</option>
-      <option value="no">{TEXT.flagValues.no}</option>
-    </select>
-  </label>
-);
+}): JSX.Element => {
+  const id = useId();
+  return (
+    <div className="field">
+      <div className="field-legend">
+        <label htmlFor={id}>{props.label}</label>
+        <OptionalHelp label={props.label} help={props.help} />
+      </div>
+      <select
+        id={id}
+        value={props.wanted === undefined ? "" : props.wanted ? "yes" : "no"}
+        onChange={(event) => {
+          const { value } = event.currentTarget;
+          props.onChange(value === "" ? undefined : value === "yes");
+        }}
+      >
+        <option value="">{TEXT.flagValues.any}</option>
+        <option value="yes">{TEXT.flagValues.yes}</option>
+        <option value="no">{TEXT.flagValues.no}</option>
+      </select>
+    </div>
+  );
+};

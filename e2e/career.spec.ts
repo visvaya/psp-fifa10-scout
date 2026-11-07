@@ -43,7 +43,7 @@ test.describe("career", () => {
     await expect(header).toHaveAttribute("aria-sort", "descending");
     await page.getByRole("button", { name: "Lionel Messi" }).click();
     const card = page.getByRole("dialog", { name: "Lionel Messi" });
-    await expect(card.getByRole("term").filter({ hasText: /^Cena$/u })).toBeVisible();
+    await expect(card.getByRole("term").filter({ hasText: /^Cena(?:\?|$)/u })).toBeVisible();
     await expect(card.getByText(/ \(szacunek\)$/u)).toBeVisible();
     await page.keyboard.press("Escape");
     // The user's own player shows the wage stored in his contract, not the market's. Found by name: the
@@ -52,7 +52,7 @@ test.describe("career", () => {
     await page.getByRole("button", { name: "Paweł Brożek" }).click();
     const own = page.getByRole("dialog", { name: "Paweł Brożek" });
     await expect(
-      own.getByRole("term").filter({ hasText: /^Zarobki z\skontraktu$/u }),
+      own.getByRole("term").filter({ hasText: /^Zarobki z\skontraktu(?:\?|$)/u }),
     ).toBeVisible();
     await page.keyboard.press("Escape");
     // The card must be gone before the search is cleared, or the clearing can be lost (seen in CI).
@@ -94,10 +94,10 @@ test.describe("career", () => {
 test.describe("career ratings", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
-  test("shows the average match rating with one decimal and filters by it", async ({ page }) => {
+  test("shows KR with one decimal and filters by it", async ({ page }) => {
     await loadCareer(page);
     await page.getByText("Kariera", { exact: true }).click();
-    const ratingFrom = page.getByRole("group", { name: "Średnia ocena (KR)" }).getByLabel("od");
+    const ratingFrom = page.getByRole("group", { name: "KR (forma)" }).getByLabel("od");
     // A dot typed inside the number becomes a comma and the caret stays after it.
     await ratingFrom.pressSequentially("75");
     await ratingFrom.press("ArrowLeft");
@@ -154,8 +154,9 @@ test.describe("career ratings", () => {
     await room.getByLabel("do", { exact: true }).fill("0");
     await page.getByRole("button", { name: /^Lionel Messi/u }).click();
     const card = page.getByRole("dialog", { name: "Lionel Messi" });
-    await expect(card.getByRole("term").filter({ hasText: /^Szczyt OVR$/u })).toBeVisible();
     await expect(cardValue(card, "Zapas do szczytu")).toHaveText("0");
+    // The peak row's "?" shows its note.
+    await card.getByRole("button", { name: "Wyjaśnienie: Szczyt OVR", exact: true }).click();
     await expect(
       card.getByText(/Potencjału 95\szawodnik według niej nie osiągnie\.$/u),
     ).toBeVisible();

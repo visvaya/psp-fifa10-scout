@@ -27,7 +27,7 @@ What it does today:
   the game's identifier.
 - Optionally reads a manager-mode career save (`DATA.BIN` and `PARAM.SFO`): decrypts it, verifies
   its checksum and shows the current state of the career: clubs and leagues after promotions and
-  relegations, contracts, loans, the transfer list, average match rating, morale, injuries, the
+  relegations, contracts, loans, the transfer list, rolling match rating (KR), morale, injuries, the
   youth players generated during the career and the game's own shortlist. The save is remembered
   on the device, with a summary of what it holds.
 - Shows club, league, country and position names in any language of the game: every language found

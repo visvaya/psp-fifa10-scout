@@ -342,7 +342,7 @@ describe("buildPlayers with a career save", () => {
     expect(byId(buildPlayers(DB), 158_023)).toMatchObject({ peak: null, ...NO_BEST_PEAK });
   });
 
-  // The save keeps the average match rating times ten: 69 is the 6,9 of the game's stats screen.
+  // The save keeps the rolling match rating (KR) times ten: 69 is the 6,9 of the game's stats screen.
   it("adds career stats where the save has them", () => {
     expect(byId(players, 158_023)).toMatchObject({
       form: 6.9,

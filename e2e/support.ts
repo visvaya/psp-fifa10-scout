@@ -236,7 +236,10 @@ export const showPotential = async (page: Page) => {
   await page.getByRole("button", { name: "Zamknij" }).click();
 };
 
-/** The value a player card shows for a label; a space in the label also matches a non-breaking one. */
+/**
+ * The value a player card shows for a label; a space in the label also matches a non-breaking one. A
+ * label with an explanation is followed by its "?" and the explanation's hidden text.
+ */
 export const cardValue = (card: Locator, label: string) => {
   // The label is literal text: "(KR)" or "(€)" must not turn into regex groups.
   const literal = label.replaceAll(/[.*+?^${}()|[\]\\]/gu, String.raw`\$&`);
@@ -246,7 +249,9 @@ export const cardValue = (card: Locator, label: string) => {
       has: card
         .page()
         .getByRole("term")
-        .filter({ hasText: new RegExp(`^${literal.replaceAll(" ", String.raw`\s`)}$`, "u") }),
+        .filter({
+          hasText: new RegExp(`^${literal.replaceAll(" ", String.raw`\s`)}(?:\\?[\\s\\S]*)?$`, "u"),
+        }),
     })
     .getByRole("definition");
 };
