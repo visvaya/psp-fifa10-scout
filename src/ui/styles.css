@@ -38,6 +38,8 @@
   --radius-md: 0.5rem;
   --focus-ring: 3px solid var(--color-accent);
   --touch-target: 2.75rem;
+  /* The "?" and the eye beside a field's name: 34 px wide (WCAG 2.5.8 asks for 24), so the eye sits close to the "?". */
+  --touch-target-narrow: 2.125rem;
   --topbar-height: 3.5rem;
   --filter-panel-width: 18rem;
   --rating-width: 2.25rem;
@@ -990,7 +992,7 @@ input[inputmode="numeric"] {
 }
 
 /* Small marks right after the name: the explanation's "?", the column's eye and the clear button. Each a
-   full touch target; side margins and the block margins take back its extra size, so the name's line keeps
+   touch target (the "?" and the eye in a field's name narrower, below); side margins and the block margins take back its extra size, so the name's line keeps
    its height when a mark appears. After the "?" or the eye the next mark starts at its edge, so two never
    overlap (the "?" is followed by its hidden panel). */
 .field-help,
@@ -1018,6 +1020,16 @@ input[inputmode="numeric"] {
 .column-eye + .field-clear,
 .field-help-panel + :is(.column-eye, .field-clear) {
   margin-inline-start: 0;
+}
+
+.field-legend :is(.field-help, .column-eye) {
+  min-width: var(--touch-target-narrow);
+  margin-inline-start: calc((var(--space-6) - var(--touch-target-narrow)) / 2);
+}
+
+/* The eye starts at the "?"'s edge, without the line's gap. */
+.field-legend .field-help-panel + .column-eye {
+  margin-inline-start: calc(-1 * var(--space-1));
 }
 
 .field-help {
