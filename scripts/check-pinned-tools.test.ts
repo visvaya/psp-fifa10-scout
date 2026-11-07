@@ -38,38 +38,29 @@ describe("extractPins", () => {
   });
 });
 
+/** The latest releases: the pins in formatReport's tests, except where a test says otherwise. */
+const latestReleases = (changed: Readonly<Record<string, string>> = {}) =>
+  new Map(
+    Object.entries({ gitleaks: "8.30.1", actionlint: "1.7.12", zizmor: "1.30.1", ...changed }),
+  );
+
 describe("formatReport", () => {
   const { pins } = extractPins(
     "GITLEAKS_VERSION: 8.30.1\nACTIONLINT_VERSION: 1.7.12\nZIZMOR_VERSION: 1.30.1",
   );
 
   it("passes when every pin is the latest release", () => {
-    const latest = new Map([
-      ["gitleaks", "8.30.1"],
-      ["actionlint", "1.7.12"],
-      ["zizmor", "1.30.1"],
-    ]);
-    expect(formatReport(pins, latest, []).exitCode).toBe(0);
+    expect(formatReport(pins, latestReleases(), []).exitCode).toBe(0);
   });
 
   it("fails and says how to bump an outdated pin", () => {
-    const latest = new Map([
-      ["gitleaks", "8.31.0"],
-      ["actionlint", "1.7.12"],
-      ["zizmor", "1.30.1"],
-    ]);
-    const report = formatReport(pins, latest, []);
+    const report = formatReport(pins, latestReleases({ gitleaks: "8.31.0" }), []);
     expect(report.exitCode).toBe(1);
     expect(report.text).toContain("gitleaks: pinned 8.30.1, latest 8.31.0: OUTDATED");
   });
 
   it("fails when the latest version cannot be read, rather than calling the pin current", () => {
-    const latest = new Map([
-      ["gitleaks", "8.30.1"],
-      ["actionlint", "1.7.12"],
-      ["zizmor", "1.33"],
-    ]);
-    const report = formatReport(pins, latest, []);
+    const report = formatReport(pins, latestReleases({ zizmor: "1.33" }), []);
     expect(report.exitCode).toBe(1);
     expect(report.text).toContain(
       "zizmor: pinned 1.30.1, latest 1.33: cannot read the latest version",

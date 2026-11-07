@@ -214,10 +214,15 @@ export const firstCellOf = async (page: Page, heading: string) => {
   return page.locator("tbody tr[aria-rowindex]").first().locator("th, td").nth(index);
 };
 
+/** Phone: opens the filter dialog and returns it. */
+export const openFilters = async (page: Page) => {
+  await page.getByRole("button", { name: /^Filtry/u }).click();
+  return page.getByRole("dialog", { name: "Filtry" });
+};
+
 /** Phone: filters by these attributes from 10 up through the filter dialog, a column for each. */
 export const filterByAttributes = async (page: Page, ...labels: readonly string[]) => {
-  await page.getByRole("button", { name: "Filtry" }).click();
-  const dialog = page.getByRole("dialog", { name: "Filtry" });
+  const dialog = await openFilters(page);
   await dialog.getByText("Atrybuty", { exact: true }).click();
   for (const label of labels) {
     // One after another: each choice adds the field the next line fills.

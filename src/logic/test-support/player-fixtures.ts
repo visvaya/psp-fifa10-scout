@@ -4,7 +4,7 @@ import { ATTRIBUTE_NAMES, attributesOf, searchKey, TRAIT_NAMES } from "../player
 import type { Attributes, Player } from "../players.ts";
 import { NO_BEST_PEAK } from "../best-peak.ts";
 import { CURVE_COLUMNS } from "../overall-rating.ts";
-import type { CareerSummary } from "../load-scout.ts";
+import type { CareerSummary, LoadResult } from "../load-scout.ts";
 import { NO_FINANCE } from "../player-finance.ts";
 
 type Row = Readonly<Record<string, number | string>>;
@@ -67,17 +67,17 @@ export const formationTables = (
 ];
 
 /** fifa.db `curves` with one flat curve (id 1, the game's fallback), so career ratings age nothing. */
+export const flatCurves = (): TableSpec =>
+  table("curves", [
+    Object.fromEntries([["id", 1], ...CURVE_COLUMNS.map((column) => [column, 50])]),
+  ]);
+
 /** A float32 as the u32 bits the save stores. */
 export const floatBits = (value: number): number => {
   const view = new DataView(new ArrayBuffer(4));
   view.setFloat32(0, value, true);
   return view.getUint32(0, true);
 };
-
-export const flatCurves = (): TableSpec =>
-  table("curves", [
-    Object.fromEntries([["id", 1], ...CURVE_COLUMNS.map((column) => [column, 50])]),
-  ]);
 
 /** Every attribute at `value`, with `overrides` on top. */
 export const attributes = (value: number, overrides: Partial<Attributes> = {}): Attributes => ({
@@ -120,6 +120,17 @@ export const TEST_CAREER: CareerSummary = {
   lastGameDate: new Date(0),
   currency: 0,
   offer: { prestige: 2, negotiator: 4, squadAverage: 65, countryId: 37, seasonEndYear: 2010 },
+};
+
+/** A finished load of a game with no players and no career save. */
+export const EMPTY_LOAD_RESULT: LoadResult = {
+  players: [],
+  myTeamId: null,
+  career: null,
+  curves: new Map(),
+  gameDb: Uint8Array.of(9),
+  languages: {},
+  attachedLanguage: null,
 };
 
 /** A player without a season in the save. */

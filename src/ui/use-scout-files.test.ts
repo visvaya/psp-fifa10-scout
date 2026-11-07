@@ -1,17 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { LoadResult, WorkerMessage, WorkerRequest } from "../logic/load-scout.ts";
+import type { WorkerMessage, WorkerRequest } from "../logic/load-scout.ts";
+import { EMPTY_LOAD_RESULT } from "../logic/test-support/player-fixtures.ts";
 import type { ScoutAction } from "../logic/scout-state.ts";
 import { createSession } from "./use-scout-files.ts";
-
-const RESULT: LoadResult = {
-  players: [],
-  myTeamId: null,
-  career: null,
-  curves: new Map(),
-  gameDb: Uint8Array.of(9),
-  languages: {},
-  attachedLanguage: null,
-};
 
 /** A session over a stand-in worker that records its requests and replies when told. */
 const openSession = async () => {
@@ -86,9 +77,9 @@ describe("createSession", () => {
   it("goes back to the earlier good save when a newly picked save fails", async () => {
     const { session, posted, reply } = await openSession();
     session.pickGame(new File(["g"], "game.iso"));
-    reply({ type: "done", requestId: 1, result: RESULT });
+    reply({ type: "done", requestId: 1, result: EMPTY_LOAD_RESULT });
     session.pickSave(saveFiles(1));
-    reply({ type: "done", requestId: 2, result: RESULT });
+    reply({ type: "done", requestId: 2, result: EMPTY_LOAD_RESULT });
     const good = posted.at(-1)?.save;
     session.pickSave(saveFiles(2));
     reply(saveFailed(3));

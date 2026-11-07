@@ -51,12 +51,18 @@ const watched = (registration: RegistrationLike) => {
   return { reports, stop };
 };
 
+/** A page on an installed release whose browser has just found the next one. */
+const findingNext = () => {
+  const registration = makeRegistration(makeWorker("activated"));
+  const watch = watched(registration);
+  const next = makeWorker("installing");
+  registration.find(next);
+  return { ...watch, registration, next };
+};
+
 describe("watchForUpdates", () => {
   it("reports a new release once it is stored and waits", () => {
-    const registration = makeRegistration(makeWorker("activated"));
-    const { reports } = watched(registration);
-    const next = makeWorker("installing");
-    registration.find(next);
+    const { reports, next } = findingNext();
     expect(reports).toEqual([]);
     next.moveTo("installed");
     expect(reports).toEqual(["waiting"]);
@@ -80,10 +86,7 @@ describe("watchForUpdates", () => {
   });
 
   it("reports a release that could not be stored, not one replaced after it was", () => {
-    const registration = makeRegistration(makeWorker("activated"));
-    const { reports } = watched(registration);
-    const broken = makeWorker("installing");
-    registration.find(broken);
+    const { reports, registration, next: broken } = findingNext();
     broken.moveTo("redundant");
     expect(reports).toEqual(["failed"]);
 
@@ -95,20 +98,14 @@ describe("watchForUpdates", () => {
   });
 
   it("reports a release that another window installed", () => {
-    const registration = makeRegistration(makeWorker("activated"));
-    const { reports } = watched(registration);
-    const next = makeWorker("installing");
-    registration.find(next);
+    const { reports, next } = findingNext();
     next.moveTo("installed");
     next.moveTo("activated");
     expect(reports).toEqual(["waiting", "outdated"]);
   });
 
   it("stops listening when asked", () => {
-    const registration = makeRegistration(makeWorker("activated"));
-    const { reports, stop } = watched(registration);
-    const next = makeWorker("installing");
-    registration.find(next);
+    const { reports, stop, registration, next } = findingNext();
     stop();
     next.moveTo("installed");
     registration.find(makeWorker("installing"));
