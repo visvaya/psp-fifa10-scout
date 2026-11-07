@@ -77,11 +77,15 @@ const clsOf = (shifts: readonly Shift[]): number => {
   return largest;
 };
 
-/** The TBT stand-in: the part over 50 ms of each long task that starts after the first contentful paint. */
+/**
+ * The TBT stand-in, as Lighthouse counts it: of each long task, the part after the first contentful
+ * paint, less 50 ms. A task that starts before the paint counts with its remainder.
+ */
 const tbtOf = (tasks: readonly LongTask[], fcpMs: number): number =>
-  tasks
-    .filter((task) => task.startMs >= fcpMs)
-    .reduce((sum, task) => sum + Math.max(0, task.durationMs - BLOCKING_AFTER_MS), 0);
+  tasks.reduce((sum, task) => {
+    const afterPaintMs = task.startMs + task.durationMs - Math.max(task.startMs, fcpMs);
+    return sum + Math.max(0, afterPaintMs - BLOCKING_AFTER_MS);
+  }, 0);
 
 /** One run's values from what the page recorded (`page.evaluate` output, so checked here). */
 export const readRun = (raw: unknown): LabRun => {
@@ -146,8 +150,8 @@ export const formatSummary = (
     ),
     "",
     `Chromium with the CPU slowed ${String(conditions.cpuSlowdown)}x and a phone viewport, no network ` +
-      "throttling (local server). CLS: the largest session window. TBT: the part over 50 ms of each long " +
-      "task after the first contentful paint, until a second after the page is ready; a stand-in for INP. " +
+      "throttling (local server). CLS: the largest session window. TBT: of each long task, the part after " +
+      "the first contentful paint less 50 ms, until a second after the page is ready; a stand-in for INP. " +
       '"warn" is reported, never enforced. Accessibility is covered by axe in the e2e tests.',
     "",
   ].join("\n");

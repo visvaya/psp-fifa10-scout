@@ -1,5 +1,5 @@
 // Lab measurement of Core Web Vitals on the production build, with Playwright's Chromium only: LCP, CLS,
-// a TBT stand-in for INP (long tasks after the first contentful paint) and the bytes transferred. Two
+// a TBT stand-in for INP (long tasks past the first contentful paint) and the bytes transferred. Two
 // pages, each measured RUNS times on a phone viewport with the CPU slowed, medians reported: the start
 // screen on a first visit (a fresh context), and the player list as a returning user sees it (the
 // synthetic game stored by an earlier visit opens the list directly).

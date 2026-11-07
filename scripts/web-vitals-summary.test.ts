@@ -41,12 +41,15 @@ describe("readRun", () => {
 
   it("counts the blocking part of long tasks from the first contentful paint", () => {
     const longTasks = [
-      { startMs: 500, durationMs: 300 },
+      // Over before the first contentful paint (800 ms): nothing counts.
+      { startMs: 100, durationMs: 300 },
+      // Straddles it: 200 ms of it after the paint, 150 ms blocking.
+      { startMs: 500, durationMs: 500 },
       { startMs: 800, durationMs: 120 },
       { startMs: 1500, durationMs: 50 },
       { startMs: 2000, durationMs: 90 },
     ];
-    expect(readRun(sample({ longTasks })).tbtMs).toBe(110);
+    expect(readRun(sample({ longTasks })).tbtMs).toBe(260);
   });
 });
 

@@ -1,5 +1,5 @@
-// Checks that the browser tests' container image in CI carries the installed Playwright version and is
-// pinned by digest. The image holds the browsers and their system packages; a test runner of another
+// Checks that the Playwright container image in every CI workflow that runs one carries the installed
+// Playwright version and is pinned by digest. The image holds the browsers and their system packages; a test runner of another
 // version looks for browsers the image does not have. Dependabot bumps @playwright/test but not the image,
 // so this check fails that update with the steps to follow.
 // Usage: node scripts/check-playwright-image.ts
@@ -7,29 +7,37 @@
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 
-export const CI_WORKFLOW = ".github/workflows/ci.yml";
+/** The workflows that run in the Playwright image: the browser tests and the web vitals measurement. */
+export const PLAYWRIGHT_WORKFLOWS = [
+  ".github/workflows/ci.yml",
+  ".github/workflows/web-vitals.yml",
+] as const;
 
 const IMAGE =
   /^\s*image:\s*mcr\.microsoft\.com\/playwright:v(\d+\.\d+\.\d+)-noble(@sha256:[0-9a-f]{64})?\s*$/gm;
 
 /**
- * Null when every Playwright image in the workflow matches the installed version and has a digest;
+ * Null when every Playwright image in the workflow file matches the installed version and has a digest;
  * otherwise what to do.
  */
-export const checkPlaywrightImage = (workflow: string, installed: string): string | null => {
+export const checkPlaywrightImage = (
+  file: string,
+  workflow: string,
+  installed: string,
+): string | null => {
   const images = [...workflow.matchAll(IMAGE)];
-  if (images.length === 0) return `no mcr.microsoft.com/playwright image found in ${CI_WORKFLOW}`;
+  if (images.length === 0) return `no mcr.microsoft.com/playwright image found in ${file}`;
   const tag = `v${installed}-noble`;
   const bump =
-    `set the image in ${CI_WORKFLOW} to mcr.microsoft.com/playwright:${tag}@<digest>, the digest from ` +
+    `set the image in ${file} to mcr.microsoft.com/playwright:${tag}@<digest>, the digest from ` +
     `curl -sI -H "Accept: application/vnd.oci.image.index.v1+json" ` +
     `https://mcr.microsoft.com/v2/playwright/manifests/${tag} (header Docker-Content-Digest)`;
   const problems = images.map(([, version, digest]) => {
     if (version !== installed) {
-      return `the CI image has Playwright v${version ?? "?"}, the project ${installed}: ${bump}`;
+      return `${file}: the image has Playwright v${version ?? "?"}, the project ${installed}: ${bump}`;
     }
     return digest === undefined
-      ? `the CI image is pinned by tag only, add its digest: ${bump}`
+      ? `${file}: the image is pinned by tag only, add its digest: ${bump}`
       : null;
   });
   return problems.find((problem) => problem !== null) ?? null;
@@ -43,8 +51,11 @@ if (import.meta.main) {
     typeof parsed === "object" && parsed !== null && "version" in parsed
       ? String(parsed.version)
       : "";
-  const problem = checkPlaywrightImage(readFileSync(CI_WORKFLOW, "utf8"), version);
-  if (problem !== null) process.stderr.write(`${problem}\n`);
-  process.exitCode = problem === null ? 0 : 1;
+  const problems = PLAYWRIGHT_WORKFLOWS.flatMap((file) => {
+    const problem = checkPlaywrightImage(file, readFileSync(file, "utf8"), version);
+    return problem === null ? [] : [problem];
+  });
+  for (const problem of problems) process.stderr.write(`${problem}\n`);
+  process.exitCode = problems.length === 0 ? 0 : 1;
 }
 /* v8 ignore stop */
