@@ -198,9 +198,10 @@ export const activeFilters = (filters: FilterChange): readonly FilterId[] => [
   ...FLAG_KEYS.filter((key) => isDefined(filters.flags?.[key])).map(
     (key) => `flags.${key}` as const,
   ),
-  ...(filters.onList === undefined ? [] : ["onList" as const]),
-  ...((filters.clubStatus ?? "available") === "available" ? [] : ["clubStatus" as const]),
-  ...(filters.myClub === undefined ? [] : ["myClub" as const]),
+  // The choices as compactFilters keeps them: a club status only when it is not the default.
+  ...(["onList", "clubStatus", "myClub"] as const).filter((key) =>
+    isDefined(compactFilters(filters)[key]),
+  ),
 ];
 
 /** Only the active filters, so empty values never linger in state or storage. */

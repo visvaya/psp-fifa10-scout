@@ -82,7 +82,8 @@ export const LIST_MEMBERSHIPS = ["game", "tool", "both", "none"] as const;
 export type ListMembership = (typeof LIST_MEMBERSHIPS)[number];
 
 /** Whether a list choice needs the game's shortlist, so a career save. */
-export const needsShortlist = (choice: unknown): boolean => choice === "game" || choice === "both";
+export const needsShortlist = (choice: "any" | ListMembership | undefined): boolean =>
+  choice === "game" || choice === "both";
 
 /** The ranges only a career save fills: without one every player has null and none passes. */
 export const CAREER_RANGE_KEYS = [

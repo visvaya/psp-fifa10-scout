@@ -296,9 +296,14 @@ const listChoice = (flags: Readonly<Record<string, unknown>>): ListMembership | 
 /** Filters with version 5's list flags as the list choice. */
 const listFlagsMoved = (filters: unknown): unknown => {
   if (!isRecord(filters)) return filters;
-  const { onMyList: _tool, shortlisted: _game, ...flags } = recordOf(filters["flags"]);
-  const onList = listChoice(recordOf(filters["flags"]));
-  return { ...filters, flags, ...(onList === undefined ? {} : { onList }) };
+  const old = recordOf(filters["flags"]);
+  const { onMyList: _tool, shortlisted: _game, ...flags } = old;
+  const onList = listChoice(old);
+  return {
+    ...filters,
+    ...(filters["flags"] === undefined ? {} : { flags }),
+    ...(onList === undefined ? {} : { onList }),
+  };
 };
 
 const setFlagsMoved = (set: unknown): unknown =>
