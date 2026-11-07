@@ -29,6 +29,7 @@
     "playwright.config.ts",
     "vite.config.ts",
     "vitest.stryker.config.ts",
-    "knip.config.ts"
+    "knip.config.ts",
+    "oxlint.config.ts"
   ]
 }
