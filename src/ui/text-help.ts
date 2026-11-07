@@ -69,8 +69,9 @@ export const HELP_TEXT = {
   offer: pl`Z kodu gry: najniższa kwota, którą klub przyjmie, i najniższe zarobki, za które zawodnik podpisze kontrakt na wybranych warunkach. Uwzględnia twój prestiż menedżera i poziom negocjatora z zapisu: wyższy może obniżyć kwotę dla klubu i zawsze ułatwia rozmowy z zawodnikiem. Na początku jest zwykła oferta, bez premii, na długość kontraktu, której chce zawodnik. Podwójna oferta, premia i inna długość zmieniają punkty zawodnika, a z nimi najniższe zarobki.`,
   doubleOffer: pl`Podwójna oferta daje zawodnikowi 2 punkty i kosztuje 2 z „Pozostało ofert” zamiast 1.`,
   /** The own list on the card. */
-  watchlist: (maxChars: number): string =>
-    pl`Lista i notatki zapisują się w tej przeglądarce przy każdej zmianie, notatka do ${maxChars} znaków.`,
+  watchlist: pl`Lista zapisuje się w tej przeglądarce przy każdej zmianie. Usunięcie zawodnika z listy nie usuwa jego notatki.`,
+  /** The note on the card. */
+  note: pl`Notatkę możesz dodać każdemu zawodnikowi; nie dodaje go do twojej listy w narzędziu. Zapisuje się w tej przeglądarce przy każdej zmianie, a wszystkie notatki otworzysz przyciskiem „Notatki” na górze strony. Pusta notatka znika.`,
   /** The player's skill curve on the card, peaking at `peakAge`. */
   curve: (peakAge: number): string =>
     pl`Krzywa z danych gry według typu i stylu rozwoju zawodnika: względny poziom jego umiejętności technicznych w wieku od 15 do 45 lat, na jednej skali dla wszystkich krzywych, więc ich kształty można porównać. Obok krzywej faza zawodnika w tym sezonie: przed szczytem, w szczycie albo po nim. Przycisk z krzywą otwiera duży wykres z opisem. Szczyt w wieku ${peakAge} lat.`,

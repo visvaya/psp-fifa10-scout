@@ -3,11 +3,9 @@ import {
   expect,
   expectCount,
   expectNoAxeViolations,
-  expectNoHorizontalOverflow,
   expectStored,
   expectStoredSearchCleared,
   loadDatabase,
-  PHONE,
   readStored,
   test,
   writeStored,
@@ -28,28 +26,21 @@ const onList = async (page: Page, option: string) => {
     .check();
 };
 
-const NOTE = "Szybki, lewa noga";
-const NOTE_FIELD = { name: "Notatka", exact: true } as const;
-
 test.describe("own watchlist", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
-  // The list has no limit of 20 and no link to the game's wish list: it stays in the browser with its
-  // notes, comes back after a reload and filters the list.
-  test("keeps a player with a note across a reload and filters by it", async ({ page }) => {
+  // The list has no limit of 20 and no link to the game's wish list: it stays in the browser, comes back
+  // after a reload and filters the list.
+  test("keeps a player across a reload and filters by it", async ({ page }) => {
     await loadDatabase(page);
     const card = await openBrozek(page);
-    const note = card.getByRole("textbox", NOTE_FIELD);
-    await expect(note).toBeHidden();
     await card.getByRole("button", { name: "Dodaj do twojej listy w narzędziu" }).click();
     await expect(
       card.getByRole("button", { name: "Usuń z twojej listy w narzędziu" }),
     ).toBeVisible();
-    await note.fill(NOTE);
-    await expect(note).toHaveAttribute("maxlength", "500");
     await expectNoAxeViolations(page);
     // Not a reload before the write commits, which would restore the previous list.
-    await expectStored(page, "watchlist", { value: [{ note: NOTE }] });
+    await expectStored(page, "watchlist", { schemaVersion: 2, value: [{}] });
     await page.keyboard.press("Escape");
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("");
     await expectStoredSearchCleared(page);
@@ -68,34 +59,6 @@ test.describe("own watchlist", () => {
     await expect(page.locator(".watch-mark")).toHaveCount(1);
     // Without a career there is no game shortlist to choose.
     await expect(page.getByRole("radio", { name: "w grze" })).toHaveCount(0);
-    await page.getByRole("button", { name: /^Paweł Brożek/u }).click();
-    await expect(page.getByRole("textbox", NOTE_FIELD)).toHaveValue(NOTE);
-  });
-
-  // A note is not lost by one click: the question names what goes, and "Anuluj" keeps the entry.
-  test("asks before removing a player with a note, and removes one without a note at once", async ({
-    page,
-  }) => {
-    await loadDatabase(page);
-    const card = await openBrozek(page);
-    const add = card.getByRole("button", { name: "Dodaj do twojej listy w narzędziu" });
-    const remove = card.getByRole("button", { name: "Usuń z twojej listy w narzędziu" });
-    await add.click();
-    // Spaces alone are no note.
-    await card.getByRole("textbox", NOTE_FIELD).fill("   ");
-    await remove.click();
-    await expect(remove).toBeHidden();
-    await add.click();
-    await card.getByRole("textbox", NOTE_FIELD).fill(NOTE);
-    await remove.click();
-    await expect(card.getByText(/^Usunąć zawodnika/u)).toBeVisible();
-    await card.getByRole("button", { name: "Anuluj" }).click();
-    await expect(remove).toBeFocused();
-    await expect(card.getByRole("textbox", NOTE_FIELD)).toHaveValue(NOTE);
-    await remove.click();
-    await remove.click();
-    await expect(add).toBeFocused();
-    await expect(card.getByRole("textbox", NOTE_FIELD)).toBeHidden();
   });
 });
 
@@ -126,8 +89,8 @@ test.describe("own watchlist, focus and store", () => {
   test("leaves an unreadable stored list alone until the user changes it", async ({ page }) => {
     await loadDatabase(page);
     const foreign = {
-      schemaVersion: 2,
-      value: [{ playerId: 1, note: "x", addedAt: "2026-11-05T10:00:00.000Z" }],
+      schemaVersion: 3,
+      value: [{ playerId: 1, addedAt: "2026-11-05T10:00:00.000Z" }],
     };
     await page.evaluate(writeStored, ["watchlist", foreign] as const);
     await page.reload();
@@ -155,26 +118,5 @@ test.describe("own watchlist in the table", () => {
     await expect(name.locator(".watch-mark")).toBeVisible();
     const overflow = await name.evaluate((element) => element.scrollWidth - element.clientWidth);
     expect(overflow).toBeLessThanOrEqual(0);
-  });
-});
-
-test.describe("own watchlist on a phone", () => {
-  test.use(PHONE);
-
-  test("shows the section and the note field within the screen", async ({ page }) => {
-    await loadDatabase(page);
-    await page.getByRole("button", { name: "Filtry" }).tap();
-    const filters = page.getByRole("dialog", { name: "Filtry" });
-    await filters.getByRole("searchbox", { name: "Nazwisko" }).fill("brozek");
-    await filters.getByRole("button", { name: "Zamknij" }).tap();
-    await page.getByRole("button", { name: /^Paweł Brożek/u }).tap();
-    const card = page.getByRole("dialog", { name: "Paweł Brożek" });
-    await card.getByRole("button", { name: "Dodaj do twojej listy w narzędziu" }).tap();
-    const note = card.getByRole("textbox", NOTE_FIELD);
-    await note.scrollIntoViewIfNeeded();
-    await expect(card.getByRole("heading", { name: "Twoja lista w narzędziu" })).toBeVisible();
-    await expect(note).toBeInViewport();
-    await expectNoHorizontalOverflow(page);
-    await expectNoAxeViolations(page);
   });
 });

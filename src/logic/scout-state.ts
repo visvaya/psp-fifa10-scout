@@ -15,7 +15,7 @@ import {
 } from "./filter-players.ts";
 import type { FlagKey, ListKey, PlayerFilters, RangeKey } from "./filter-players.ts";
 import type { GameLanguages } from "./game-names.ts";
-import type { CareerSummary, LoadError, LoadPhase, WorkerMessage } from "./load-scout.ts";
+import type { CareerSummary, LoadError, LoadPhase } from "./load-scout.ts";
 import type { Curves } from "./overall-rating.ts";
 import type { Player } from "./players.ts";
 import { nextDirection, POTENTIAL_KEYS, RATING_SORT_KEYS } from "./sort-players.ts";
@@ -24,6 +24,8 @@ import { filterSetsAfter } from "./saved-filters.ts";
 import { withUndo } from "./undo.ts";
 import { columnReducer, isColumnAction } from "./column-preference.ts";
 import type { ColumnAction, ColumnPreference } from "./column-preference.ts";
+import { isNoteAction, notesReducer } from "./player-notes.ts";
+import type { NoteAction, PlayerNote } from "./player-notes.ts";
 import { isWatchlistAction, watchlistReducer } from "./watchlist.ts";
 import type { WatchEntry, WatchlistAction } from "./watchlist.ts";
 import type { UndoAction, UndoStep } from "./undo.ts";
@@ -106,6 +108,10 @@ export interface ScoutState extends Preferences {
   readonly watchlist: readonly WatchEntry[];
   /** The user changed the list since it was restored; only then is it saved. */
   readonly watchlistEdited: boolean;
+  /** The user's notes on players, kept apart from the list, the preferences and undo. */
+  readonly notes: readonly PlayerNote[];
+  /** The user changed the notes since they were restored; only then are they saved. */
+  readonly notesEdited: boolean;
 }
 
 /** Null goes back to the career's currency. */
@@ -152,6 +158,7 @@ export type ScoutAction =
   | { readonly type: "preferences-restored"; readonly preferences: Preferences }
   | FilterSetAction
   | WatchlistAction
+  | NoteAction
   | ColumnAction
   | { readonly type: "player-opened"; readonly id: number }
   | { readonly type: "player-closed" };
@@ -175,6 +182,8 @@ export const initialScoutState: ScoutState = {
   languages: {},
   watchlist: [],
   watchlistEdited: false,
+  notes: [],
+  notesEdited: false,
 };
 
 /** The known keys in the order the record holds them: the order filters were added orders the columns. */
@@ -414,7 +423,10 @@ export const resetState = <S extends Pick<ScoutState, "columns" | "tieOrder">>(
 
 const changes = (
   state: ScoutState,
-  action: Exclude<ScoutAction, UndoAction | WatchlistAction | ColumnAction | ViewAction>,
+  action: Exclude<
+    ScoutAction,
+    UndoAction | WatchlistAction | NoteAction | ColumnAction | ViewAction
+  >,
 ): ScoutState => {
   if (isLoadAction(action)) return loadReducer(state, action);
   if (isFilterSetAction(action)) return withFilterSets(state, action);
@@ -463,6 +475,7 @@ const changes = (
 /** The state after an action, with undo for the user's changes and the players priced in the shown currency. */
 export const scoutReducer = withUndo((state, action) => {
   if (isWatchlistAction(action)) return watchlistReducer(state, action);
+  if (isNoteAction(action)) return notesReducer(state, action);
   if (action.type === "currency-chosen") return currencyChosen(state, action.currency);
   if (action.type === "tie-order-chosen") return tieOrderChosen(state, action.order);
   const next = isColumnAction(action) ? columnReducer(state, action) : changes(state, action);
@@ -472,12 +485,3 @@ export const scoutReducer = withUndo((state, action) => {
 /** The stored game is loading and nothing shows yet: the list skeleton stands in for it. */
 export const isRestoring = ({ loading, players }: ScoutState): boolean =>
   loading?.restored === true && players === null;
-
-/** The reducer action for a worker message. */
-export const actionOf = (message: WorkerMessage): ScoutAction => {
-  const { requestId } = message;
-  if (message.type === "phase") return { type: "load-phase", requestId, phase: message.phase };
-  if (message.type === "failed") return { type: "load-failed", requestId, error: message.error };
-  const { gameDb: _gameDb, ...result } = message.result;
-  return { type: "load-succeeded", requestId, ...result };
-};

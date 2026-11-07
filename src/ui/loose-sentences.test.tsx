@@ -47,8 +47,8 @@ const NAMES: PositionNames = {
 };
 
 // The state rendered: a career offer with its default choices, potential shown, the peak below the
-// potential, a fee and a wage above the form's limit, a refusal, the game's shortlist, the own list with
-// a note, and a flat curve. The double offer checked and the remove question are not rendered.
+// potential, a fee and a wage above the form's limit, a refusal, the game's shortlist, the own list, a
+// note, and a flat curve. The double offer checked is not rendered.
 const player = testPlayer({
   id: 6,
   birthYear: 1986,
@@ -70,7 +70,8 @@ const html = renderToStaticMarkup(
     offer={{ prestige: 0, negotiator: 0, squadAverage: 65, countryId: 37, seasonEndYear: 2010 }}
     showPotential
     names={NAMES}
-    watched={{ playerId: 6, note: "Szybki", addedAt: "2026-11-07T00:00:00.000Z" }}
+    watched
+    note="Szybki"
     dispatch={() => undefined}
     onClose={() => undefined}
   />,

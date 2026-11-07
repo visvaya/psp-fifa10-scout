@@ -5,8 +5,9 @@ import type { Dispatch } from "react";
 import type { GameLanguages } from "../logic/game-names.ts";
 import { pickLocaleFiles, pickSaveFiles } from "../logic/load-scout.ts";
 import type { LoadRequest, SaveFiles, WorkerMessage, WorkerRequest } from "../logic/load-scout.ts";
-import { actionOf } from "../logic/scout-state.ts";
+import { actionOf } from "../logic/worker-action.ts";
 import type { Preferences, ScoutAction } from "../logic/scout-state.ts";
+import type { PlayerNote } from "../logic/player-notes.ts";
 import type { WatchEntry } from "../logic/watchlist.ts";
 import { openScoutStore } from "../logic/scout-store.ts";
 import type { ScoutStore, StoredScout } from "../logic/scout-store.ts";
@@ -28,6 +29,7 @@ type StoreRun = (opened: ScoutStore) => Promise<void>;
 const restore = (dispatch: Dispatch<ScoutAction>, stored: StoredScout) => {
   dispatch({ type: "languages-restored", languages: stored.languages });
   dispatch({ type: "watchlist-restored", watchlist: stored.watchlist });
+  dispatch({ type: "notes-restored", notes: stored.notes });
   if (stored.preferences !== null) {
     dispatch({ type: "preferences-restored", preferences: stored.preferences });
   }
@@ -41,6 +43,7 @@ const storeSaves = (withStore: (run: StoreRun) => void) => ({
     withStore(async (opened) => opened.saveLanguages(languages)),
   saveWatchlist: (watchlist: readonly WatchEntry[]) =>
     withStore(async (opened) => opened.saveWatchlist(watchlist)),
+  saveNotes: (notes: readonly PlayerNote[]) => withStore(async (opened) => opened.saveNotes(notes)),
 });
 
 /** How a worker that cannot start, run or reply fails the latest load. */
@@ -188,5 +191,6 @@ export const useScoutFiles = (dispatch: Dispatch<ScoutAction>) => {
     savePreferences: session.savePreferences,
     saveLanguages: session.saveLanguages,
     saveWatchlist: session.saveWatchlist,
+    saveNotes: session.saveNotes,
   };
 };

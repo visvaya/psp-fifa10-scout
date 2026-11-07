@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { JSX, MouseEvent, ReactNode } from "react";
 import { TEXT } from "./text.ts";
 
@@ -73,13 +73,54 @@ export const ModalDialog = ({
         if (event.detail > 0 && startedOutside && isOutside(event)) onClose();
       }}
     >
-      <header className="dialog-header">
+      {/* Not a <header>: a dialog opened from the top bar would put a banner inside its banner. */}
+      <div className="dialog-header">
         <h2 id={titleId}>{title}</h2>
         <button type="button" className="button" onClick={onClose}>
           {TEXT.close}
         </button>
-      </header>
+      </div>
       <div className="dialog-body">{children}</div>
     </dialog>
+  );
+};
+
+/** A button that opens a modal dialog and gets the focus back when it closes. */
+export const DialogButton = (props: {
+  label: string;
+  title: string;
+  className: string;
+  buttonClassName: string;
+  children: ReactNode;
+}): JSX.Element => {
+  const [open, setOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const returnFocus = useCallback(() => buttonRef.current, []);
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        type="button"
+        className={props.buttonClassName}
+        aria-haspopup="dialog"
+        onClick={() => {
+          setOpen(true);
+        }}
+      >
+        {props.label}
+      </button>
+      {open ? (
+        <ModalDialog
+          title={props.title}
+          className={props.className}
+          returnFocus={returnFocus}
+          onClose={() => {
+            setOpen(false);
+          }}
+        >
+          {props.children}
+        </ModalDialog>
+      ) : null}
+    </>
   );
 };

@@ -10,10 +10,10 @@ import type { Curves } from "../logic/overall-rating.ts";
 import { SEASON_STAT_KEYS } from "../logic/players.ts";
 import type { AttributeName, Player } from "../logic/players.ts";
 import type { ScoutAction } from "../logic/scout-state.ts";
-import type { WatchEntry } from "../logic/watchlist.ts";
 import { ChoiceRatings } from "./card-folds.tsx";
 import { CurveButton } from "./curve-chart.tsx";
 import { Stars, WatchMark } from "./stars.tsx";
+import { NoteSection } from "./note-section.tsx";
 import { WatchlistSection } from "./watchlist-section.tsx";
 import { codeName } from "./text-code-names.ts";
 import { AttributeValue } from "./attribute-value.tsx";
@@ -331,6 +331,37 @@ const CareerFacts = ({ player }: { player: Player }) => (
   </section>
 );
 
+/**
+ * Where the card returns focus: the player's button in a dialog still open under it (the notes), else
+ * that dialog itself (his note was emptied, so his row left it), else his row or the results' title.
+ */
+const cardOpener = (playerId: number): HTMLElement | null => {
+  const button = `[data-player-id="${String(playerId)}"]`;
+  return (
+    document.querySelector<HTMLElement>(`dialog[open] ${button}`) ??
+    document.querySelector<HTMLElement>("dialog[open] button") ??
+    document.querySelector<HTMLElement>(button) ??
+    document.getElementById(RESULTS_TITLE_ID)
+  );
+};
+
+/** Which lists the player is on: the game's shortlist and the own list. */
+const ListMarks = ({ shortlisted, watched }: { shortlisted: boolean; watched: boolean }) => (
+  <>
+    {shortlisted ? (
+      <p className="shortlisted">
+        <span aria-hidden="true">{TEXT.shortlistedMark}</span> {TEXT.card.shortlisted}
+      </p>
+    ) : null}
+    {watched ? (
+      <p className="watched">
+        <WatchMark />
+        {TEXT.card.watched}
+      </p>
+    ) : null}
+  </>
+);
+
 export const PlayerCard = (props: {
   player: Player;
   career: boolean;
@@ -343,33 +374,26 @@ export const PlayerCard = (props: {
   showPotential: boolean;
   /** Position names in the chosen language. */
   names: PositionNames;
-  /** The player's entry on the own watchlist, undefined while he is not on it. */
-  watched: WatchEntry | undefined;
+  /** Whether the player is on the own watchlist. */
+  watched: boolean;
+  /** The user's note on the player, empty while there is none. */
+  note: string;
   dispatch: Dispatch<ScoutAction>;
   onClose: () => void;
 }): JSX.Element => {
   const { player, career, currency, offer, showPotential, names, watched, dispatch, onClose } =
     props;
-  const returnFocus = useCallback(
-    () =>
-      document.querySelector<HTMLElement>(`[data-player-id="${String(player.id)}"]`) ??
-      document.getElementById(RESULTS_TITLE_ID),
-    [player.id],
-  );
+  const returnFocus = useCallback(() => cardOpener(player.id), [player.id]);
   return (
     <ModalDialog title={player.name} className="card" onClose={onClose} returnFocus={returnFocus}>
-      {player.shortlisted ? (
-        <p className="shortlisted">
-          <span aria-hidden="true">{TEXT.shortlistedMark}</span> {TEXT.card.shortlisted}
-        </p>
-      ) : null}
-      {watched === undefined ? null : (
-        <p className="watched">
-          <WatchMark />
-          {TEXT.card.watched}
-        </p>
-      )}
-      <WatchlistSection playerId={player.id} entry={watched} dispatch={dispatch} />
+      <ListMarks shortlisted={player.shortlisted} watched={watched} />
+      <WatchlistSection playerId={player.id} watched={watched} dispatch={dispatch} />
+      <NoteSection
+        playerId={player.id}
+        playerName={player.name}
+        text={props.note}
+        dispatch={dispatch}
+      />
       <Facts facts={basics(player, showPotential, currency, names)} />
       {offer === null || currency === null ? null : (
         <OfferFacts key={player.id} player={player} context={offer} currency={currency} />

@@ -29,6 +29,7 @@ describe("scout store", () => {
       languages: {},
       careerSave: null,
       watchlist: [],
+      notes: [],
     });
   });
 
@@ -68,6 +69,7 @@ describe("scout store", () => {
       languages,
       careerSave: null,
       watchlist: [],
+      notes: [],
     });
     await store.savePreferences({ ...preferences, gameLanguage: null });
     expect((await store.load()).preferences?.gameLanguage).toBeNull();
@@ -178,6 +180,7 @@ describe("scout store", () => {
       languages: {},
       careerSave: null,
       watchlist: [],
+      notes: [],
     });
     await backend.set("gameDb", "junk");
     expect((await createScoutStore(backend).load()).gameDb).toBeNull();
@@ -389,6 +392,7 @@ describe("scout store", () => {
       languages: {},
       careerSave: null,
       watchlist: [],
+      notes: [],
     });
   });
 

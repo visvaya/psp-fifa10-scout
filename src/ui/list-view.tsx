@@ -1,5 +1,5 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import type { Dispatch, JSX, ReactNode } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import type { Dispatch, JSX } from "react";
 import { effectiveColumns, isKeyAvailable, tableColumns } from "../logic/columns.ts";
 import { filterPlayers, peakField, rangedAttributes } from "../logic/filter-players.ts";
 import { phoneColumns } from "../logic/phone-columns.ts";
@@ -10,12 +10,14 @@ import { activeFilters } from "../logic/scout-state.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
 import { SORTABLE_KEYS, sortPlayers } from "../logic/sort-players.ts";
 import type { SortKey } from "../logic/sort-players.ts";
+import { watchedIds } from "../logic/watchlist.ts";
 import type { WatchEntry } from "../logic/watchlist.ts";
 import { FilterChips } from "./filter-chips.tsx";
 import { TIE_RULES } from "../logic/best-peak.ts";
 import { FilterForm } from "./filter-form.tsx";
 import { FilterSets } from "./filter-sets.tsx";
-import { ModalDialog } from "./modal-dialog.tsx";
+import { DialogButton } from "./modal-dialog.tsx";
+import { NotesButton } from "./notes-dialog.tsx";
 import { columnLabel, PlayerTable, RESULTS_TITLE_ID } from "./player-list.tsx";
 import { PlayerCards } from "./player-rows.tsx";
 import { ratingAbbreviation } from "./position-name.tsx";
@@ -105,14 +107,9 @@ const NoMatches = ({ dispatch }: { dispatch: Dispatch<ScoutAction> }) => (
 
 const NO_ENTRIES: readonly WatchEntry[] = [];
 
-/**
- * The ids on the watchlist, the same set while only a note changes, so typing a note does not filter and
- * sort every player again.
- */
-const useWatchedIds = (watchlist: readonly WatchEntry[]): ReadonlySet<number> => {
-  const key = watchlist.map((entry) => entry.playerId).join(",");
-  return useMemo(() => new Set(key === "" ? [] : key.split(",").map(Number)), [key]);
-};
+/** The ids on the watchlist, a new set only when the list changes. */
+const useWatchedIds = (watchlist: readonly WatchEntry[]): ReadonlySet<number> =>
+  useMemo(() => watchedIds(watchlist), [watchlist]);
 
 /** The filtered and sorted players; deferred so typing stays responsive. */
 const useVisiblePlayers = (
@@ -178,38 +175,25 @@ const useColumns = (state: ScoutState, players: readonly Player[], wide: boolean
   }, [wide, showPotential, columns, myTeamId, sort.key, positionRating, ranges, priced, projected]);
 };
 
-const FiltersDialogButton = ({ count, children }: { count: number; children: ReactNode }) => {
-  const [open, setOpen] = useState(false);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const returnFocus = useCallback(() => buttonRef.current, []);
-  return (
-    <>
-      <button
-        ref={buttonRef}
-        type="button"
-        className="button primary"
-        aria-haspopup="dialog"
-        onClick={() => {
-          setOpen(true);
-        }}
-      >
-        {TEXT.filtersWithCount(count)}
-      </button>
-      {open ? (
-        <ModalDialog
-          title={TEXT.filters}
-          className="sheet"
-          returnFocus={returnFocus}
-          onClose={() => {
-            setOpen(false);
-          }}
-        >
-          {children}
-        </ModalDialog>
-      ) : null}
-    </>
-  );
-};
+/** On a phone: the filter form in a dialog, and the notes beside it (the top bar holds them when wide). */
+const PhoneButtons = (props: {
+  state: ScoutState;
+  players: readonly Player[];
+  form: JSX.Element;
+  dispatch: Dispatch<ScoutAction>;
+}) => (
+  <>
+    <DialogButton
+      label={TEXT.filtersWithCount(activeFilters(props.state.filters).length)}
+      title={TEXT.filters}
+      className="sheet"
+      buttonClassName="button primary"
+    >
+      {props.form}
+    </DialogButton>
+    <NotesButton notes={props.state.notes} players={props.players} dispatch={props.dispatch} />
+  </>
+);
 
 interface ListViewProps {
   readonly state: ScoutState;
@@ -234,7 +218,7 @@ const ListResults = ({
   dispatch,
 }: ListViewProps & { form: JSX.Element; columns: readonly SortKey[] }) => {
   const { visible, sort, atBest } = useVisiblePlayers(players, state, collator);
-  const watchedIds = useWatchedIds(state.watchlist);
+  const watched = useWatchedIds(state.watchlist);
   const shownColumns = useMemo(
     () => columns.map((column) => peakField(column, atBest)),
     [columns, atBest],
@@ -249,9 +233,7 @@ const ListResults = ({
       </h2>
       <div className="toolbar">
         {wide ? null : (
-          <FiltersDialogButton count={activeFilters(state.filters).length}>
-            {form}
-          </FiltersDialogButton>
+          <PhoneButtons state={state} players={players} form={form} dispatch={dispatch} />
         )}
         <SortControls state={state} ratingName={ratingName} dispatch={dispatch} />
         <ResultCount count={visible.length} />
@@ -275,7 +257,7 @@ const ListResults = ({
           ratingCode={ratingCode}
           ratingName={ratingName}
           currency={shownCurrency(state)}
-          watchedIds={watchedIds}
+          watchedIds={watched}
           dispatch={dispatch}
         />
       )}

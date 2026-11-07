@@ -1,12 +1,7 @@
 import { describe, expect, it } from "vitest";
-import {
-  actionOf,
-  activeFilters,
-  DEFAULT_SORT,
-  initialScoutState,
-  scoutReducer,
-} from "./scout-state.ts";
+import { activeFilters, DEFAULT_SORT, initialScoutState, scoutReducer } from "./scout-state.ts";
 import type { FilterId, ScoutState } from "./scout-state.ts";
+import { actionOf } from "./worker-action.ts";
 import { listedCount } from "./effective-filters.ts";
 import { activeLanguage } from "./game-names.ts";
 import { TEST_CAREER, testPlayer } from "./test-support/player-fixtures.ts";

@@ -1,7 +1,8 @@
-// The one load/save adapter: the extracted fifa.db, the career save, the filter and sort preferences and the
-// own watchlist, each stored as { schemaVersion, value } in a key-value backend (IndexedDB in the browser, memory otherwise).
+// The one load/save adapter: the extracted fifa.db, the career save, the filter and sort preferences, the
+// own watchlist and the notes on players, each stored as { schemaVersion, value } in a key-value backend (IndexedDB in the browser, memory otherwise).
 // Nothing leaves the device. Preferences 2 to 5 migrate to 6, a fifa.db 1 (bare bytes) to 2 (bytes and
-// the game file's name) and languages 1 and 2 to 3 (empty for the position names they lack); any other
+// the game file's name), languages 1 and 2 to 3 (empty for the position names they lack) and a watchlist 1's
+// notes to their own record; any other
 // version or shape is ignored, and
 // unknown or malformed filter values and column overrides are dropped one by one (a record without the
 // columns loads as none, without a chosen currency as the career's, a set without a currency with its
@@ -33,21 +34,26 @@ import type { MyClub, Preferences, ScoutFilters, ScoutSort } from "./scout-state
 import type { ColumnPreference } from "./column-preference.ts";
 import type { FilterSet } from "./saved-filters.ts";
 import { SORTABLE_KEYS } from "./sort-players.ts";
-import { clippedNote } from "./watchlist.ts";
+import { clippedNote } from "./player-notes.ts";
+import type { PlayerNote } from "./player-notes.ts";
 import type { WatchEntry } from "./watchlist.ts";
+import { PREFERENCE_MIGRATIONS } from "./preferences-migrations.ts";
+import { isFiniteNumber, isRecord, recordOf, versioned } from "./stored-record.ts";
 
 /**
  * Per record, so a change to the preferences keeps the stored fifa.db. Preferences 2: clubStatus;
  * 3: ranges, lists and flags, showPotential; 4: sweeper, side midfield and wingers as groups; 5: the
  * match rating itself; 6: one list choice for the two list flags, more club statuses. Game
  * database 2: the game file's name. Languages 2: position abbreviations; 3: full position names.
+ * Watchlist 2: the notes moved to their own record.
  */
 export const SCHEMA_VERSION = {
   gameDb: 2,
   preferences: 6,
   languages: 3,
   careerSave: 1,
-  watchlist: 1,
+  watchlist: 2,
+  notes: 1,
 } as const;
 
 export interface StorageBackend {
@@ -65,6 +71,8 @@ export interface StoredScout {
   readonly careerSave: SaveFiles<Uint8Array> | null;
   /** The own watchlist; empty when nothing valid is stored. */
   readonly watchlist: readonly WatchEntry[];
+  /** The notes on players; empty when nothing valid is stored. */
+  readonly notes: readonly PlayerNote[];
 }
 
 export const memoryBackend = (): StorageBackend => {
@@ -78,15 +86,6 @@ export const memoryBackend = (): StorageBackend => {
   };
 };
 
-const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
-const versioned = (record: unknown, version: number): unknown =>
-  isRecord(record) && record["schemaVersion"] === version ? record["value"] : undefined;
-
-const recordOf = (value: unknown): Readonly<Record<string, unknown>> =>
-  isRecord(value) ? value : {};
-
 const isClubStatus = (value: unknown): value is ClubStatus =>
   CLUB_STATUSES.some((status) => status === value);
 const isListMembership = (value: unknown): value is ListMembership =>
@@ -95,7 +94,6 @@ const isListMembership = (value: unknown): value is ListMembership =>
 const MY_CLUB: readonly unknown[] = ["hide", "only"] satisfies MyClub[];
 const isMyClub = (value: unknown): value is MyClub => MY_CLUB.includes(value);
 
-const isFiniteNumber = (value: unknown): value is number => Number.isFinite(value);
 const isInteger = (value: unknown): value is number => Number.isInteger(value);
 
 const parseRange = (value: unknown): Range => {
@@ -231,115 +229,15 @@ const parsePreferences = (value: unknown): Preferences | null => {
   };
 };
 
-/** Version 2 filters (one field per filter, attribute minimums) in the version 3 shape. */
-const migrateFromV2 = (value: unknown): unknown => {
-  if (!isRecord(value)) return value;
-  const filters = recordOf(value["filters"]);
-  const minimums = Object.entries(recordOf(filters["attributeMin"])).map(
-    ([name, min]) => [name, { min }] as const,
-  );
-  const { contractEndsBy } = filters;
-  return {
-    ...value,
-    filters: {
-      ...filters,
-      ranges: {
-        ...Object.fromEntries(minimums),
-        age: filters["age"],
-        potential: filters["potential"],
-        overall: filters["overall"],
-        contractEndYear: contractEndsBy === undefined ? undefined : { max: contractEndsBy },
-      },
-      lists: {
-        positionGroup: filters["positionGroups"],
-        leagueId: filters["leagueIds"],
-        clubId: filters["teamIds"],
-        nationalityId: filters["nationalityIds"],
-      },
-    },
-  };
-};
-
-/** Version 3 position groups: "wide" held side midfielders and wingers, "full-backs" the sweeper. */
-const V3_GROUPS: Readonly<Record<string, readonly string[]>> = {
-  wide: ["side-midfield", "wingers"],
-  "full-backs": ["full-backs", "sweeper"],
-};
-
-/** Version 3 filters with the version 4 position groups. */
-const migrateFromV3 = (value: unknown): unknown => {
-  const filters = recordOf(recordOf(value)["filters"]);
-  const lists = recordOf(filters["lists"]);
-  const groups = lists["positionGroup"];
-  if (!isRecord(value) || !Array.isArray(groups)) return value;
-  const positionGroup = groups.flatMap((group: unknown): readonly unknown[] =>
-    typeof group === "string" ? (V3_GROUPS[group] ?? [group]) : [group],
-  );
-  return { ...value, filters: { ...filters, lists: { ...lists, positionGroup } } };
-};
-
-/** A bound in tenths as the value itself; anything else is left for the parser to drop. */
-const tenths = (bound: unknown): unknown =>
-  isFiniteNumber(bound) ? Math.round(bound) / 10 : bound;
-
-/** Version 4 kept the average match rating range in the save's tenths (65 for 6,5). */
-const migrateFromV4 = (value: unknown): unknown => {
-  const filters = recordOf(recordOf(value)["filters"]);
-  const ranges = recordOf(filters["ranges"]);
-  if (!isRecord(value) || !isRecord(ranges["form"])) return value;
-  const { min, max } = ranges["form"];
-  const form = { min: tenths(min), max: tenths(max) };
-  return { ...value, filters: { ...filters, ranges: { ...ranges, form } } };
-};
-
-/**
- * The list choice for version 5's two list flags: the one that keeps the same players, or the closest.
- * One flag set and the other cleared, or one cleared alone, has no option of its own; it differs from
- * the closest by the few players the other list holds.
- */
-const listChoice = (flags: Readonly<Record<string, unknown>>): ListMembership | undefined => {
-  const [tool, game] = [flags["onMyList"], flags["shortlisted"]];
-  if (tool === true) return game === true ? "both" : "tool";
-  if (game === true) return "game";
-  return tool === false || game === false ? "none" : undefined;
-};
-
-/** Filters with version 5's list flags as the list choice. */
-const listFlagsMoved = (filters: unknown): unknown => {
-  if (!isRecord(filters)) return filters;
-  const old = recordOf(filters["flags"]);
-  const { onMyList: _tool, shortlisted: _game, ...flags } = old;
-  const onList = listChoice(old);
-  return {
-    ...filters,
-    ...(filters["flags"] === undefined ? {} : { flags }),
-    ...(onList === undefined ? {} : { onList }),
-  };
-};
-
-const setFlagsMoved = (set: unknown): unknown =>
-  isRecord(set) ? { ...set, filters: listFlagsMoved(set["filters"]) } : set;
-
-/** Version 5 filters, and those of the saved sets, with the list choice for the two list flags. */
-const migrateFromV5 = (value: unknown): unknown => {
-  if (!isRecord(value)) return value;
-  const sets = value["filterSets"];
-  return {
-    ...value,
-    filters: listFlagsMoved(value["filters"]),
-    ...(Array.isArray(sets) ? { filterSets: sets.map(setFlagsMoved) } : {}),
-  };
-};
-
-/** The steps from each earlier version on: version n starts at index n - 2. */
-const MIGRATIONS = [migrateFromV2, migrateFromV3, migrateFromV4, migrateFromV5];
-
 const preferencesOf = (record: unknown): Preferences | null => {
   if (!isRecord(record)) return null;
   const { schemaVersion, value } = record;
   if (isInteger(schemaVersion) && schemaVersion >= 2 && schemaVersion < SCHEMA_VERSION.preferences)
     return parsePreferences(
-      MIGRATIONS.slice(schemaVersion - 2).reduce((migrated, step) => step(migrated), value),
+      PREFERENCE_MIGRATIONS.slice(schemaVersion - 2).reduce(
+        (migrated, step) => step(migrated),
+        value,
+      ),
     );
   return parsePreferences(versioned(record, SCHEMA_VERSION.preferences));
 };
@@ -395,60 +293,135 @@ const careerSaveOf = (record: unknown): SaveFiles<Uint8Array> | null => {
     : null;
 };
 
-/** The stored own watchlist: entries of a player id, a note (cut to the limit) and a date; others are dropped. */
-const watchlistOf = (record: unknown): readonly WatchEntry[] => {
-  const value = versioned(record, SCHEMA_VERSION.watchlist);
+/** A stored list's items that pass `parse`, the first one per player id; the rest are dropped. */
+const perPlayer = <T extends { readonly playerId: number }>(
+  value: unknown,
+  parse: (item: Readonly<Record<string, unknown>>) => T | undefined,
+): readonly T[] => {
   const seen = new Set<number>();
-  return (Array.isArray(value) ? value : []).flatMap((item: unknown): readonly WatchEntry[] => {
-    const { playerId, note, addedAt } = recordOf(item);
-    if (
-      !isInteger(playerId) ||
-      typeof note !== "string" ||
-      typeof addedAt !== "string" ||
-      Number.isNaN(Date.parse(addedAt)) ||
-      seen.has(playerId)
-    )
-      return [];
-    seen.add(playerId);
-    return [{ playerId, note: clippedNote(note), addedAt }];
+  return (Array.isArray(value) ? value : []).flatMap((item: unknown): readonly T[] => {
+    const parsed = parse(recordOf(item));
+    if (parsed === undefined || seen.has(parsed.playerId)) return [];
+    seen.add(parsed.playerId);
+    return [parsed];
   });
 };
 
-export const createScoutStore = (backend: StorageBackend) => ({
-  load: async (): Promise<StoredScout> => {
-    return {
-      ...gameDbOf(await backend.get("gameDb")),
-      preferences: preferencesOf(await backend.get("preferences")),
-      languages: parseLanguages(await backend.get("languages")),
-      careerSave: careerSaveOf(await backend.get("careerSave")),
-      watchlist: watchlistOf(await backend.get("watchlist")),
-    };
-  },
-  saveGameDb: async (gameDb: Uint8Array, name: string): Promise<void> =>
-    backend.set("gameDb", { schemaVersion: SCHEMA_VERSION.gameDb, value: { bytes: gameDb, name } }),
-  savePreferences: async (preferences: Preferences): Promise<void> =>
-    backend.set("preferences", { schemaVersion: SCHEMA_VERSION.preferences, value: preferences }),
-  /** null forgets the stored save. */
-  saveCareerSave: async (save: SaveFiles<Uint8Array> | null): Promise<void> =>
-    backend.set("careerSave", { schemaVersion: SCHEMA_VERSION.careerSave, value: save }),
-  saveWatchlist: async (watchlist: readonly WatchEntry[]): Promise<void> =>
-    backend.set("watchlist", { schemaVersion: SCHEMA_VERSION.watchlist, value: watchlist }),
-  saveLanguages: async (languages: GameLanguages): Promise<void> =>
-    backend.set("languages", { schemaVersion: SCHEMA_VERSION.languages, value: languages }),
-});
+const isDate = (value: unknown): value is string =>
+  typeof value === "string" && !Number.isNaN(Date.parse(value));
+
+/** The stored own watchlist, of version 1 too (its notes are read by notesFromWatchlist). */
+const watchlistOf = (record: unknown): readonly WatchEntry[] =>
+  perPlayer(
+    versioned(record, SCHEMA_VERSION.watchlist) ?? versioned(record, 1),
+    ({ playerId, addedAt }) =>
+      isInteger(playerId) && isDate(addedAt) ? { playerId, addedAt } : undefined,
+  );
+
+/** The stored notes on players with text, a name or none and a date, each cut to the limit. */
+const notesOf = (value: unknown): readonly PlayerNote[] =>
+  perPlayer(value, ({ playerId, text, name, changedAt }) =>
+    isInteger(playerId) &&
+    typeof text === "string" &&
+    text.trim() !== "" &&
+    (typeof name === "string" || name === null) &&
+    isDate(changedAt)
+      ? { playerId, text: clippedNote(text), name, changedAt }
+      : undefined,
+  );
+
+/**
+ * The notes a version 1 watchlist held in its entries: each non-empty one, dated by when its player was
+ * added (the closest known change) and without a name, which the list did not keep.
+ */
+export const notesFromWatchlist = (entries: unknown): readonly PlayerNote[] =>
+  notesOf(
+    (Array.isArray(entries) ? entries : []).map((item: unknown) => {
+      const { playerId, note, addedAt } = recordOf(item);
+      return { playerId, text: note, name: null, changedAt: addedAt };
+    }),
+  );
+
+/** Runs the writes it is given one after another, so a later write never lands before an earlier one. */
+const writesInOrder = () => {
+  let last: Promise<unknown> = Promise.resolve();
+  return async <T>(write: () => Promise<T>): Promise<T> => {
+    const next = last.then(write, write);
+    last = next.catch(() => undefined);
+    return next;
+  };
+};
+
+export const createScoutStore = (backend: StorageBackend) => {
+  // The list and the notes share the notes record while a version 1 list moves its notes out.
+  const inOrder = writesInOrder();
+  return {
+    /** onMoveFailed: the moved notes could not be stored; they load all the same and move again next time. */
+    load: async (onMoveFailed?: () => void): Promise<StoredScout> => {
+      const watchlist = await backend.get("watchlist");
+      const notesRecord = await backend.get("notes");
+      // A version 1 list's notes are stored apart at once, so a later save of the list cannot lose them.
+      const moved = notesRecord === undefined ? notesFromWatchlist(versioned(watchlist, 1)) : [];
+      const notes = { schemaVersion: SCHEMA_VERSION.notes, value: moved };
+      if (moved.length > 0) await backend.set("notes", notes).catch(() => onMoveFailed?.());
+      return {
+        ...gameDbOf(await backend.get("gameDb")),
+        preferences: preferencesOf(await backend.get("preferences")),
+        languages: parseLanguages(await backend.get("languages")),
+        careerSave: careerSaveOf(await backend.get("careerSave")),
+        watchlist: watchlistOf(watchlist),
+        notes: notesOf(versioned(notesRecord ?? notes, SCHEMA_VERSION.notes)),
+      };
+    },
+    saveGameDb: async (gameDb: Uint8Array, name: string): Promise<void> =>
+      backend.set("gameDb", {
+        schemaVersion: SCHEMA_VERSION.gameDb,
+        value: { bytes: gameDb, name },
+      }),
+    savePreferences: async (preferences: Preferences): Promise<void> =>
+      backend.set("preferences", { schemaVersion: SCHEMA_VERSION.preferences, value: preferences }),
+    /** null forgets the stored save. */
+    saveCareerSave: async (save: SaveFiles<Uint8Array> | null): Promise<void> =>
+      backend.set("careerSave", { schemaVersion: SCHEMA_VERSION.careerSave, value: save }),
+    /**
+     * Before it replaces a version 1 list whose notes are not stored yet, stores them; if that fails, the
+     * save fails too, so the version 1 list stays on disk with its notes.
+     */
+    saveWatchlist: async (watchlist: readonly WatchEntry[]): Promise<void> =>
+      inOrder(async () => {
+        if ((await backend.get("notes")) === undefined) {
+          const moved = notesFromWatchlist(versioned(await backend.get("watchlist"), 1));
+          if (moved.length > 0) {
+            await backend.set("notes", { schemaVersion: SCHEMA_VERSION.notes, value: moved });
+          }
+        }
+        await backend.set("watchlist", {
+          schemaVersion: SCHEMA_VERSION.watchlist,
+          value: watchlist,
+        });
+      }),
+    saveNotes: async (notes: readonly PlayerNote[]): Promise<void> =>
+      inOrder(async () =>
+        backend.set("notes", { schemaVersion: SCHEMA_VERSION.notes, value: notes }),
+      ),
+    saveLanguages: async (languages: GameLanguages): Promise<void> =>
+      backend.set("languages", { schemaVersion: SCHEMA_VERSION.languages, value: languages }),
+  };
+};
 
 export type ScoutStore = ReturnType<typeof createScoutStore>;
 
 /**
  * The store over a backend, with what it holds. A backend that cannot be read (a broken IndexedDB)
- * gives an empty store that keeps nothing past the session, and calls onUnreadable.
+ * gives an empty store that keeps nothing past the session, and calls onFailed, as a failed move of the
+ * notes does.
  */
-export const openScoutStore = async (backend: StorageBackend, onUnreadable: () => void) => {
+export const openScoutStore = async (backend: StorageBackend, onFailed: () => void) => {
   const store = createScoutStore(backend);
   try {
-    return { store, stored: await store.load() };
+    return { store, stored: await store.load(onFailed) };
   } catch {
-    onUnreadable();
+    onFailed();
     const session = createScoutStore(memoryBackend());
     return { store: session, stored: await session.load() };
   }

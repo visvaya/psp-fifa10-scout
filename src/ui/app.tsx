@@ -14,6 +14,7 @@ import type { Player } from "../logic/players.ts";
 import { initialScoutState, scoutReducer } from "../logic/scout-state.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
 import { ListView } from "./list-view.tsx";
+import { NotesButton } from "./notes-dialog.tsx";
 import { PlayerCard } from "./player-card.tsx";
 import type { PositionNames } from "./position-name.tsx";
 import { StartScreen } from "./start-screen.tsx";
@@ -48,9 +49,9 @@ const useGameNames = (state: ScoutState) => {
   return { language, list, positionNames };
 };
 
-/** Stores the preferences, the languages read and the watchlist, once the stored ones were restored. */
+/** Stores the preferences, the languages read, the watchlist and the notes, once the stored ones were restored. */
 const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFiles>) => {
-  const { ready, savePreferences, saveLanguages, saveWatchlist } = files;
+  const { ready, savePreferences, saveLanguages, saveWatchlist, saveNotes } = files;
   const {
     filters,
     sort,
@@ -63,6 +64,8 @@ const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFile
     languages,
     watchlist,
     watchlistEdited,
+    notes,
+    notesEdited,
   } = state;
   useEffect(() => {
     // Only after the stored preferences were restored, so defaults never overwrite them.
@@ -99,18 +102,25 @@ const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFile
     // Only a list the user changed: one the store holds but the app cannot read stays as it is.
     if (ready && watchlistEdited) saveWatchlist(watchlist);
   }, [ready, saveWatchlist, watchlist, watchlistEdited]);
+
+  useEffect(() => {
+    if (ready && notesEdited) saveNotes(notes);
+  }, [ready, saveNotes, notes, notesEdited]);
 };
 
 /**
- * The title, a check for a new version once a worker is registered, and a switch between the list and
- * the files once there is a list (view not null).
+ * The title, a check for a new version once a worker is registered, and once there are players the
+ * notes (on a phone they sit by the filters, list-view.tsx) and a switch between the list and the files.
  */
 const TopBar = (props: {
-  view: ScoutState["view"] | null;
+  state: ScoutState;
+  /** The players once loaded. */
+  list: { readonly players: readonly Player[] } | null;
+  wide: boolean;
   update: ReturnType<typeof useAppUpdate>;
   dispatch: Dispatch<ScoutAction>;
 }) => {
-  const { view, update, dispatch } = props;
+  const { state, list, wide, update, dispatch } = props;
   return (
     <header className="topbar">
       <h1>{TEXT.appTitle}</h1>
@@ -127,15 +137,18 @@ const TopBar = (props: {
           <span aria-hidden="true">{TEXT.update.checkMark}</span>
         </button>
       ) : null}
-      {view === null ? null : (
+      {list === null || !wide ? null : (
+        <NotesButton notes={state.notes} players={list.players} dispatch={dispatch} />
+      )}
+      {list === null ? null : (
         <button
           type="button"
           className="button"
           onClick={() => {
-            dispatch({ type: "view-changed", view: view === "list" ? "start" : "list" });
+            dispatch({ type: "view-changed", view: state.view === "list" ? "start" : "list" });
           }}
         >
-          {view === "list" ? TEXT.showFiles : TEXT.showList}
+          {state.view === "list" ? TEXT.showFiles : TEXT.showList}
         </button>
       )}
     </header>
@@ -164,7 +177,7 @@ export const App = (props: { registering: Promise<UpdatableRegistration> | null 
   const openPlayer = list?.players.find((player) => player.id === state.openPlayerId);
   return (
     <div className="app">
-      <TopBar view={list === null ? null : view} update={update} dispatch={dispatch} />
+      <TopBar state={state} list={list} wide={wide} update={update} dispatch={dispatch} />
       <UpdatePrompt status={update.status} install={update.install} dismiss={update.dismiss} />
       <StorageNotice failed={files.storageFailed} />
       <main className="main">
@@ -200,7 +213,8 @@ export const App = (props: { registering: Promise<UpdatableRegistration> | null 
           curves={state.curves}
           offer={offerFor(state, openPlayer)}
           showPotential={showPotential}
-          watched={state.watchlist.find((entry) => entry.playerId === openPlayer.id)}
+          watched={state.watchlist.some((entry) => entry.playerId === openPlayer.id)}
+          note={state.notes.find((note) => note.playerId === openPlayer.id)?.text ?? ""}
           dispatch={dispatch}
           onClose={() => {
             dispatch({ type: "player-closed" });
