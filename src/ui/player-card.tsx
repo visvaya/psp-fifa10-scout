@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import type { Dispatch, JSX, ReactNode } from "react";
 import type { CurrencyCode } from "../data/career-save.ts";
 import { codesAtPeak } from "../logic/best-peak.ts";
+import { curveChart } from "../logic/curve-chart.ts";
 import { curveSparklines } from "../logic/curve-sparkline.ts";
 import type { OfferContext } from "../logic/offer.ts";
 import { skillCurveId } from "../logic/overall-rating.ts";
@@ -11,7 +12,7 @@ import type { AttributeName, Player } from "../logic/players.ts";
 import type { ScoutAction } from "../logic/scout-state.ts";
 import type { WatchEntry } from "../logic/watchlist.ts";
 import { ChoiceRatings } from "./card-folds.tsx";
-import { CurveSparkline } from "./curve-sparkline.tsx";
+import { CurveButton } from "./curve-chart.tsx";
 import { Stars, WatchMark } from "./stars.tsx";
 import { WatchlistSection } from "./watchlist-section.tsx";
 import { codeName } from "./text-code-names.ts";
@@ -67,18 +68,23 @@ const known = (label: string, value: string | null, help?: string): readonly Fac
 /** Clean sheets, which the game counts for goalkeepers only. */
 const CLEAN_SHEETS: ReadonlySet<string> = new Set(["cleanSheets", "cupCleanSheets"]);
 
-/** His own skill curve, the one his projection follows, when the game has curves. */
+/**
+ * His own skill curve, the one his projection follows, when the game has curves; it opens a large chart
+ * with his age on it, the card's age.
+ */
 const curveFacts = (
-  { developmentStyle: style, developmentType: type }: Player,
+  { name, age, developmentStyle: style, developmentType: type }: Player,
   curves: Curves,
 ): readonly Fact[] => {
-  const line = curveSparklines(curves)(skillCurveId(style, type));
-  return line === null
+  const id = skillCurveId(style, type);
+  const line = curveSparklines(curves)(id);
+  const chart = curveChart(curves, id, age);
+  return line === null || chart === null
     ? []
     : [
         [
           TEXT.card.curve,
-          <CurveSparkline key="curve" line={line} label={TEXT.card.curvePeak(line.peakAge)} />,
+          <CurveButton key="curve" name={name} line={line} chart={chart} />,
           HELP_TEXT.curve(line.peakAge),
         ],
       ];

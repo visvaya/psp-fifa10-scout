@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { decimalSeparator, formatNumber, formatRating, plural, TEXT } from "./text.ts";
 import { OFFER_TEXT } from "./text-offer.ts";
+import { NBSP } from "./typeset.ts";
 
 const LAT = { one: "rok", few: "lata", many: "lat" } as const;
 
@@ -58,9 +59,11 @@ describe("TEXT.card money", () => {
   });
 });
 
-describe("TEXT.card.curvePeak", () => {
-  it("names the age at which the development curve peaks", () => {
-    expect(TEXT.card.curvePeak(27)).toBe("krzywa rozwoju, szczyt w wieku 27");
+describe("the development chart's texts", () => {
+  it("names the peak's and the player's ages in years and the curve's values", () => {
+    expect(TEXT.card.curvePeakMark(27, 80)).toBe(`szczyt: 27${NBSP}lat, 80`);
+    expect(TEXT.card.curveNowMark(22)).toBe(`teraz: 22${NBSP}lata`);
+    expect(TEXT.card.curvePoint(21, 55)).toBe(`21${NBSP}lat, wartość 55`);
   });
 });
 

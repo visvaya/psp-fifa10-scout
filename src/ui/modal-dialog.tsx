@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import type { JSX, MouseEvent, ReactNode } from "react";
 import { TEXT } from "./text.ts";
 
@@ -36,12 +36,17 @@ export const ModalDialog = ({
 }: ModalDialogProps): JSX.Element => {
   const ref = useRef<HTMLDialogElement>(null);
   const pressedOutside = useRef(false);
+  // A dialog may open over another (the card's large chart): each names itself by its own title.
+  const titleId = useId();
   useEffect(() => {
+    // Where the browser puts focus back on close: in Safari not the clicked opener, so it is moved on.
+    const focusedBefore = document.activeElement;
     const dialog = ref.current;
     dialog?.showModal();
     return () => {
       // The close event and this cleanup run after Escape: focus moved on meanwhile stays where it is.
-      if (document.activeElement === null || document.activeElement === document.body)
+      const focused = document.activeElement;
+      if (focused === null || focused === document.body || focused === focusedBefore)
         returnFocus()?.focus();
     };
   }, [returnFocus]);
@@ -51,8 +56,11 @@ export const ModalDialog = ({
     <dialog
       ref={ref}
       className={`dialog ${className}`}
-      aria-labelledby="dialog-title"
-      onClose={onClose}
+      aria-labelledby={titleId}
+      onClose={(event) => {
+        // React passes a dialog's close on to the dialogs around it: only its own closes this one.
+        if (event.target === event.currentTarget) onClose();
+      }}
       onPointerDown={(event) => {
         pressedOutside.current = isOutside(event);
       }}
@@ -64,7 +72,7 @@ export const ModalDialog = ({
       }}
     >
       <header className="dialog-header">
-        <h2 id="dialog-title">{title}</h2>
+        <h2 id={titleId}>{title}</h2>
         <button type="button" className="button" onClick={onClose}>
           {TEXT.close}
         </button>

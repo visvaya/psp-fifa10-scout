@@ -11,15 +11,20 @@ export interface Sparkline {
   readonly peakAge: number;
 }
 
+/** The table's highest value and the span down to its lowest, which every curve is drawn on. */
+export const curveScale = (curves: Curves): { readonly top: number; readonly height: number } => {
+  const all = [...curves.values()].flat();
+  const top = Math.max(...all);
+  // A flat table spans no height: one unit keeps a chart drawable.
+  return { top, height: Math.max(top - Math.min(...all), 1) };
+};
+
 /**
  * The table's shared scale, taken once, and from it each curve `id` as a polyline; null without curves.
  * A flat table draws a flat line at the top.
  */
 export const curveSparklines = (curves: Curves): ((id: number) => Sparkline | null) => {
-  const all = [...curves.values()].flat();
-  const top = Math.max(...all);
-  // A flat table spans no height: one unit keeps the viewBox drawable.
-  const height = Math.max(top - Math.min(...all), 1);
+  const { top, height } = curveScale(curves);
   return (id) => {
     const values = curveValues(curves, id);
     if (values.length === 0) return null;

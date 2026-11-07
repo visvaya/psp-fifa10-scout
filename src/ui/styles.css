@@ -1419,7 +1419,7 @@ input[inputmode="numeric"] {
 }
 
 /* The card's curve row spans the grid, so it comes right under the row with the development style. */
-.facts > div:has(> dd > .sparkline) {
+.facts > div:has(> dd > .curve-button) {
   grid-column: 1 / -1;
 }
 
@@ -1494,6 +1494,76 @@ input[inputmode="numeric"] {
   stroke-linecap: round;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
+}
+
+/* The card's small curve opens the large chart. */
+.curve-button {
+  display: inline-flex;
+  align-items: center;
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  padding: var(--space-1);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: inherit;
+  cursor: pointer;
+}
+
+.curve-chart {
+  margin: 0;
+}
+
+/* The chart scales with the dialog; its text sizes are in viewBox units. */
+.curve-chart svg {
+  display: block;
+  width: 100%;
+  max-width: 30rem;
+  height: auto;
+  margin-inline: auto;
+  overflow: visible;
+  font-size: 13px;
+}
+
+.curve-chart text {
+  fill: var(--color-muted);
+}
+
+.curve-chart .axis-title,
+.curve-chart .peak text,
+.curve-chart .now text {
+  fill: var(--color-ink);
+  font-weight: 600;
+}
+
+.curve-chart .grid {
+  stroke: var(--color-line);
+}
+
+.curve-chart .axis {
+  fill: none;
+  stroke: var(--color-muted);
+}
+
+.curve-chart .now line {
+  stroke: var(--color-muted);
+  stroke-dasharray: 4 3;
+}
+
+.curve-chart .curve {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.curve-chart .peak circle {
+  fill: var(--color-accent);
+}
+
+.curve-chart figcaption .facts {
+  margin: var(--space-4) 0 0;
 }
 
 /* Options with a curve: the names share one column, so the curves start at one edge. Without subgrid

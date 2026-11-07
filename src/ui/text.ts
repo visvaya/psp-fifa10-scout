@@ -405,8 +405,19 @@ export const TEXT = {
     internationalReputation: "Reputacja międzynarodowa",
     learningSpeed: "Szybkość nauki",
     curve: "Krzywa rozwoju",
-    /** The name of the development curve's sparkline. */
-    curvePeak: (age: number): string => `krzywa rozwoju, szczyt w wieku ${String(age)}`,
+    /** The small curve's button, which opens the large chart, and that chart's dialog. */
+    showCurve: (name: string): string => `Pokaż krzywą rozwoju: ${name}`,
+    curveTitle: (name: string): string => `Krzywa rozwoju: ${name}`,
+    /** The large chart's axes, its marks and the facts under it. */
+    curveAge: "Wiek",
+    curveValue: "Wartość krzywej",
+    curvePeakMark: (age: number, value: number): string =>
+      `szczyt: ${count(age, YEARS)}, ${formatNumber(value)}`,
+    curveNowMark: (age: number): string => `teraz: ${count(age, YEARS)}`,
+    curvePeakLabel: "Szczyt",
+    curveNowLabel: "Teraz",
+    curvePoint: (age: number, value: number): string =>
+      `${count(age, YEARS)}, wartość ${formatNumber(value)}`,
     yes: "tak",
     no: "nie",
     left: "lewa",
