@@ -16,6 +16,8 @@ import { SaveFormatError } from "../data/save-format-error.ts";
 import type { SaveFormatErrorKind } from "../data/save-format-error.ts";
 import { gameNamesOf } from "./game-names.ts";
 import type { GameLanguages, NameIds } from "./game-names.ts";
+import { readCurves } from "./overall-rating.ts";
+import type { Curves } from "./overall-rating.ts";
 import { buildPlayers } from "./players.ts";
 import type { Player } from "./players.ts";
 
@@ -78,6 +80,8 @@ export interface LoadResult {
   readonly myTeamId: number | null;
   /** The loaded career, null without a save. */
   readonly career: CareerSummary | null;
+  /** The game's development curves, for their sparklines. */
+  readonly curves: Curves;
   /** The extracted fifa.db, for the local store. */
   readonly gameDb: Uint8Array;
   /** Names of each language in the disc image or the attached file; empty for a bare fifa.db. */
@@ -175,6 +179,7 @@ export const loadScout = async (
   const gameDb = await atStage("game", () => readGameDatabase(game.read, game.size));
   const db = await atStage("game", () => parseEaDb(gameDb));
   const names = {
+    curves: await atStage("game", () => readCurves(db)),
     languages: await readLanguages(db, input),
     attachedLanguage: input.locale?.code ?? null,
   };

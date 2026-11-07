@@ -7,9 +7,13 @@ import { SEASON_STAT_KEYS, TRAIT_NAMES } from "../logic/players.ts";
 import type { Player, TraitName } from "../logic/players.ts";
 import { POSITION_GROUPS } from "../logic/positions.ts";
 import type { SortKey } from "../logic/sort-players.ts";
+import { curveSparkline } from "../logic/curve-sparkline.ts";
 import { facetOptions } from "../logic/facets.ts";
 import type { FacetOption } from "../logic/facets.ts";
+import { skillCurveId } from "../logic/overall-rating.ts";
+import type { Curves } from "../logic/overall-rating.ts";
 import type { FilterChange, MyClub, ScoutAction, ScoutFilters } from "../logic/scout-state.ts";
+import { CurveSparkline } from "./curve-sparkline.tsx";
 import { CheckField, ChoiceField, FlagField, RangeField, Section } from "./filter-fields.tsx";
 import { AttributeRanges, ContractField } from "./filter-field-groups.tsx";
 import type { Eye } from "./column-eye.tsx";
@@ -39,6 +43,8 @@ interface FilterFormProps {
   readonly positionName: (code: number) => string;
   readonly filters: ScoutFilters;
   readonly myTeamId: number | null;
+  /** The loaded game's development curves, drawn beside the styles. */
+  readonly curves: Curves;
   readonly showPotential: boolean;
   /** The settings "Cofnij" and "Resetuj" act on. */
   readonly settings: Settings;
@@ -188,6 +194,20 @@ const facetChoices = (options: readonly FacetOption[]): readonly Choice<number>[
 const codeChoices = (codes: readonly number[], key: CodedKey): readonly Choice<number>[] =>
   codes.map((code) => ({ value: code, label: codeName(key, code) }));
 
+/** The typical development type (text-code-names.ts): the styles' curves are drawn for it. */
+const TYPICAL_DEVELOPMENT_TYPE = 2;
+
+/** Each style with its skill curve for the typical development type, when the game has curves. */
+const styleChoices = (codes: readonly number[], curves: Curves): readonly Choice<number>[] =>
+  codes.map((code) => {
+    const line = curveSparkline(curves, skillCurveId(code, TYPICAL_DEVELOPMENT_TYPE));
+    return {
+      value: code,
+      label: codeName("developmentStyle", code),
+      mark: line && <CurveSparkline line={line} />,
+    };
+  });
+
 /** Ranges of large amounts, typed with grouped digits. */
 const GROUPED_RANGES: ReadonlySet<RangeKey> = new Set(["price", "wage"]);
 
@@ -247,6 +267,7 @@ type Kit = ReturnType<typeof controls> & {
   readonly facets: ReturnType<typeof facetOptions>;
   readonly eye: Eye;
   readonly positionName: (code: number) => string;
+  readonly curves: Curves;
 };
 
 /** The peak OVR, with the choice of counting it at the best position, and the growth left to it. */
@@ -317,14 +338,14 @@ const physiqueSection = ({ facets, range, list }: Kit) => (
   </Section>
 );
 
-const characterSection = ({ facets, range, list, flag }: Kit) => (
+const characterSection = ({ facets, range, list, flag, curves }: Kit) => (
   <Section title={FILTER_SECTION_LABELS.character}>
     {CHARACTER_TRAITS.map(flag)}
     {range("internationalReputation")}
     {range("learningSpeed")}
     {range("retirementAge")}
     {list("developmentType", codeChoices(facets.codes.developmentType, "developmentType"))}
-    {list("developmentStyle", codeChoices(facets.codes.developmentStyle, "developmentStyle"))}
+    {list("developmentStyle", styleChoices(facets.codes.developmentStyle, curves))}
   </Section>
 );
 
@@ -368,6 +389,7 @@ export const FilterForm = ({
   positionName,
   filters,
   myTeamId,
+  curves,
   showPotential,
   settings,
   currency,
@@ -390,6 +412,7 @@ export const FilterForm = ({
     facets,
     eye,
     positionName,
+    curves,
   };
   return (
     <form className="filter-form" onSubmit={(event) => event.preventDefault()}>

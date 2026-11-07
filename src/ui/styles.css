@@ -1442,3 +1442,21 @@ input[inputmode="numeric"] {
 .watchlist .field {
   justify-self: stretch;
 }
+
+/* A development curve the size of a line of text, after a style's name. */
+.sparkline {
+  flex: none;
+  width: 3em;
+  height: 1em;
+  margin-inline-start: var(--space-2);
+  overflow: visible;
+  vertical-align: middle;
+}
+
+.sparkline polyline {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 1.5px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}

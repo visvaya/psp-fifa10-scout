@@ -7,6 +7,8 @@ import {
   positionNameIn,
 } from "../logic/game-names.ts";
 import { inClub } from "../logic/filter-players.ts";
+import type { OfferContext } from "../logic/offer.ts";
+import type { Player } from "../logic/players.ts";
 import { activeLanguage, initialScoutState, scoutReducer } from "../logic/scout-state.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
 import { ListView } from "./list-view.tsx";
@@ -127,6 +129,10 @@ const StorageNotice = ({ failed }: { failed: boolean }) => (
   <output className="storage-notice">{failed ? <p>{TEXT.storageFailed}</p> : null}</output>
 );
 
+/** The user's side of an offer for a player: none without a career and for his own players. */
+const offerFor = ({ myTeamId, career }: ScoutState, player: Player): OfferContext | null =>
+  myTeamId !== null && inClub(player, myTeamId) ? null : (career?.offer ?? null);
+
 /** registering: the service worker's registration, null where none is made (main.tsx). */
 export const App = (props: { registering: Promise<UpdatableRegistration> | null }): JSX.Element => {
   const [state, dispatch] = useReducer(scoutReducer, initialScoutState);
@@ -173,11 +179,8 @@ export const App = (props: { registering: Promise<UpdatableRegistration> | null 
           names={positionNames}
           career={state.myTeamId !== null}
           currency={state.career?.currency ?? null}
-          offer={
-            state.myTeamId !== null && inClub(openPlayer, state.myTeamId)
-              ? null
-              : (state.career?.offer ?? null)
-          }
+          curves={state.curves}
+          offer={offerFor(state, openPlayer)}
           showPotential={showPotential}
           watched={state.watchlist.find((entry) => entry.playerId === openPlayer.id)}
           dispatch={dispatch}

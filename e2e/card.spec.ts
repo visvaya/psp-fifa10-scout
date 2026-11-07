@@ -4,6 +4,7 @@ import {
   expectCount,
   expectNoAxeViolations,
   expectNoHorizontalOverflow,
+  expandSections,
   loadCareer,
   loadDatabase,
   PHONE,
@@ -72,6 +73,25 @@ test.describe("player card", () => {
     const card = page.getByRole("dialog", { name: "Paweł Brożek" });
     await expect(card.locator(".stars").first()).toBeHidden();
     await expect(card.getByText("3 z 5 gwiazdek").first()).toBeVisible();
+  });
+});
+
+test.describe("development curves", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  // A small chart of the skill curve beside each style in the filters and beside his style on the card.
+  test("draws the curve beside each style and on the card", async ({ page }) => {
+    await loadDatabase(page);
+    await expandSections(page);
+    const styles = page.getByRole("group", { name: "Styl rozwoju", exact: true });
+    await expect(styles.locator("label.check svg.sparkline").first()).toBeVisible();
+    await expect(styles.locator("label.check:not(:has(svg.sparkline))")).toHaveCount(0);
+    await page.locator("[data-player-id]").first().click();
+    // The synthetic database has one flat curve, the game's fallback, so every curve peaks at 15.
+    await expect(
+      cardValue(page.getByRole("dialog"), "Styl rozwoju").getByRole("img"),
+    ).toHaveAccessibleName("krzywa rozwoju, szczyt w wieku 15");
+    await expectNoAxeViolations(page);
   });
 });
 

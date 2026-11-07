@@ -40,6 +40,8 @@ describe("loadScout", () => {
     expect(result.gameDb).toEqual(db);
     expect(result.languages).toEqual({});
     expect(result.attachedLanguage).toBeNull();
+    // The synthetic database's one flat curve, the game's fallback.
+    expect([...result.curves.keys()]).toEqual([1]);
   });
 
   const POLISH = {

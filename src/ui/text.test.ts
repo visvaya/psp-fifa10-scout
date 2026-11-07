@@ -58,6 +58,12 @@ describe("TEXT.card money", () => {
   });
 });
 
+describe("TEXT.card.curvePeak", () => {
+  it("names the age at which the development curve peaks", () => {
+    expect(TEXT.card.curvePeak(27)).toBe("krzywa rozwoju, szczyt w wieku 27");
+  });
+});
+
 describe("OFFER_TEXT options", () => {
   it("names a bonus by its share of the wage", () => {
     expect(OFFER_TEXT.bonusOption(0)).toBe("0% zarobków");

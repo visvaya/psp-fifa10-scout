@@ -2,12 +2,16 @@ import { useCallback, useState } from "react";
 import type { Dispatch, JSX, ReactNode } from "react";
 import type { CurrencyCode } from "../data/career-save.ts";
 import { codesAtPeak } from "../logic/best-peak.ts";
+import { curveSparkline } from "../logic/curve-sparkline.ts";
 import type { OfferContext } from "../logic/offer.ts";
+import { skillCurveId } from "../logic/overall-rating.ts";
+import type { Curves } from "../logic/overall-rating.ts";
 import { SEASON_STAT_KEYS } from "../logic/players.ts";
 import type { AttributeName, Player } from "../logic/players.ts";
 import type { ScoutAction } from "../logic/scout-state.ts";
 import type { WatchEntry } from "../logic/watchlist.ts";
 import { nameTextIdOf, POSITION_CODES, RATING_CHOICES, ratingCodeOf } from "../logic/positions.ts";
+import { CurveSparkline } from "./curve-sparkline.tsx";
 import { Stars } from "./stars.tsx";
 import { WatchlistSection } from "./watchlist-section.tsx";
 import { codeName } from "./text-code-names.ts";
@@ -64,8 +68,21 @@ const known = (label: string, value: string | null, help?: string): readonly Fac
 /** Clean sheets, which the game counts for goalkeepers only. */
 const CLEAN_SHEETS: ReadonlySet<string> = new Set(["cleanSheets", "cupCleanSheets"]);
 
+/** The style's name with his own skill curve, the one his projection follows, when the game has curves. */
+const styleValue = ({ developmentStyle: style, developmentType: type }: Player, curves: Curves) => {
+  const line = curveSparkline(curves, skillCurveId(style, type));
+  return (
+    <>
+      {codeName("developmentStyle", style)}
+      {line === null ? null : (
+        <CurveSparkline line={line} label={TEXT.card.curvePeak(line.peakAge)} />
+      )}
+    </>
+  );
+};
+
 /** What the filters offer beyond the basics, labelled as in the filters. */
-const profile = (player: Player, showPotential: boolean): readonly Fact[] => [
+const profile = (player: Player, showPotential: boolean, curves: Curves): readonly Fact[] => [
   ...(showPotential
     ? [[RANGE_LABELS.growth, formatNumber(player.growth), FIELD_HELP.growth] as const]
     : []),
@@ -89,11 +106,7 @@ const profile = (player: Player, showPotential: boolean): readonly Fact[] => [
     codeName("developmentType", player.developmentType),
     FIELD_HELP.developmentType,
   ],
-  [
-    LIST_LABELS.developmentStyle,
-    codeName("developmentStyle", player.developmentStyle),
-    FIELD_HELP.developmentStyle,
-  ],
+  [LIST_LABELS.developmentStyle, styleValue(player, curves), FIELD_HELP.developmentStyle],
   [RANGE_LABELS.clubRating, optional(player.clubRating), FIELD_HELP.clubRating],
   ...(player.loanedFromId === null
     ? []
@@ -338,6 +351,8 @@ export const PlayerCard = (props: {
   career: boolean;
   /** The career's currency, null without a career. */
   currency: CurrencyCode | null;
+  /** The loaded game's development curves. */
+  curves: Curves;
   /** The user's side of an offer; null without a career and for the user's own players. */
   offer: OfferContext | null;
   showPotential: boolean;
@@ -374,7 +389,7 @@ export const PlayerCard = (props: {
       {career ? <CareerFacts player={player} /> : null}
       <section aria-labelledby="profile-title">
         <h3 id="profile-title">{TEXT.card.profile}</h3>
-        <Facts facts={profile(player, showPotential)} />
+        <Facts facts={profile(player, showPotential, props.curves)} />
       </section>
       <ChoiceRatings player={player} names={names} />
       <div className="attribute-groups">

@@ -423,6 +423,8 @@ export const TEXT = {
     profile: "Profil",
     internationalReputation: "Reputacja międzynarodowa",
     learningSpeed: "Szybkość nauki",
+    /** The text of the development curve's sparkline beside the style. */
+    curvePeak: (age: number): string => `krzywa rozwoju, szczyt w wieku ${String(age)}`,
     yes: "tak",
     no: "nie",
     left: "lewa",

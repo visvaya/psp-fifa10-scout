@@ -133,8 +133,13 @@ export type Curves = ReadonlyMap<number, readonly number[]>;
 /** The `curves` columns for ages 15..45. */
 export const CURVE_COLUMNS =
   "a b c d e f g h i j k l m n o p q r s t u v w x y z aa bb cc dd ee".split(" ");
-const CURVE_AGE_MIN = 15;
+export const CURVE_AGE_MIN = 15;
 const CURVE_AGE_MAX = 44;
+/** A curve's values for ages 15..45; the game falls back to curve 1 for an id the table lacks. */
+export const curveValues = (curves: Curves, id: number): readonly number[] =>
+  curves.get(id) ?? curves.get(1) ?? [];
+/** The skill curve of a development style and type, as the game numbers it. */
+export const skillCurveId = (style: number, type: number): number => 3 * style + type - 4;
 /** The career's calendar base date (EBOOT 0x088EA2E8): reference ages are taken on it every season. */
 const CAREER_REFERENCE_DATE = new Date("2009-01-01");
 /** These attributes follow the physical curve of the development type. */
@@ -247,12 +252,12 @@ export const careerAgeing = (
 ): CareerAgeing => {
   const { attributes, potential, developmentTypeCode: type, developmentStyleCode: style } = player;
   const curveAt = (id: number, age: number): number => {
-    const values = curves.get(id) ?? curves.get(1) ?? [];
+    const values = curveValues(curves, id);
     return values[clamp(age, CURVE_AGE_MIN, CURVE_AGE_MAX) - CURVE_AGE_MIN] ?? 0;
   };
   const age = gameAge(player.birthdate, careerDate);
   const ageRef = gameAge(player.birthdate, CAREER_REFERENCE_DATE);
-  const [physical, technical] = [type + 14, 3 * style + type - 4];
+  const [physical, technical] = [type + 14, skillCurveId(style, type)];
   const curveOf = (name: AttributeName): number => (PHYSICAL.has(name) ? physical : technical);
   const curveAges = Array.from(
     { length: CURVE_AGE_MAX - CURVE_AGE_MIN },
