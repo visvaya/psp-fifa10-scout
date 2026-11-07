@@ -6,6 +6,4 @@ export const WATCHLIST_TEXT = {
   title: pl`Twoja lista w narzędziu`,
   add: pl`Dodaj do twojej listy w narzędziu`,
   remove: pl`Usuń z twojej listy w narzędziu`,
-  removeQuestion: pl`Usunąć zawodnika z twojej listy w narzędziu? Jego notatka przepadnie.`,
-  note: "Notatka",
 } as const;

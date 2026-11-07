@@ -43,7 +43,7 @@ What it does today:
   more; any list filter can also keep everyone except the chosen values. Filters and sorting can be
   saved as named sets, the last change can be undone, and each filter can show or hide its value as
   a list column. The list sorts by its column labels, and each player has a detail card.
-- Keeps your own watchlist with notes, without the game's limit of 20 players.
+- Keeps your own watchlist, without the game's limit of 20 players, and a note on any player.
 - Installs as an app on a phone or a PC and works offline after the first visit. On an iPhone, pick
   the files in the Files app.
 
@@ -53,7 +53,7 @@ Supported game version: FIFA 10, European release `ULES01328`. Other releases ar
 
 The tool works only with files you provide from your own copy of the game and your own saves. This
 repository contains no game data: no disc image, no database and no saves. Everything is processed
-locally in your browser; nothing is uploaded. Your settings, saved filter sets and watchlist notes
+locally in your browser; nothing is uploaded. Your settings, saved filter sets, watchlist and notes
 stay in this browser on this device.
 
 Where the files are:

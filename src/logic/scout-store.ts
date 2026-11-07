@@ -1,7 +1,8 @@
-// The one load/save adapter: the extracted fifa.db, the career save, the filter and sort preferences and the
-// own watchlist, each stored as { schemaVersion, value } in a key-value backend (IndexedDB in the browser, memory otherwise).
+// The one load/save adapter: the extracted fifa.db, the career save, the filter and sort preferences, the
+// own watchlist and the notes on players, each stored as { schemaVersion, value } in a key-value backend (IndexedDB in the browser, memory otherwise).
 // Nothing leaves the device. Preferences 2 to 5 migrate to 6, a fifa.db 1 (bare bytes) to 2 (bytes and
-// the game file's name) and languages 1 and 2 to 3 (empty for the position names they lack); any other
+// the game file's name), languages 1 and 2 to 3 (empty for the position names they lack) and a watchlist 1's
+// notes to their own record; any other
 // version or shape is ignored, and
 // unknown or malformed filter values and column overrides are dropped one by one (a record without the
 // columns loads as none, without a chosen currency as the career's, a set without a currency with its
@@ -33,7 +34,8 @@ import type { MyClub, Preferences, ScoutFilters, ScoutSort } from "./scout-state
 import type { ColumnPreference } from "./column-preference.ts";
 import type { FilterSet } from "./saved-filters.ts";
 import { SORTABLE_KEYS } from "./sort-players.ts";
-import { clippedNote } from "./watchlist.ts";
+import { clippedNote } from "./player-notes.ts";
+import type { PlayerNote } from "./player-notes.ts";
 import type { WatchEntry } from "./watchlist.ts";
 
 /**
@@ -41,13 +43,15 @@ import type { WatchEntry } from "./watchlist.ts";
  * 3: ranges, lists and flags, showPotential; 4: sweeper, side midfield and wingers as groups; 5: the
  * match rating itself; 6: one list choice for the two list flags, more club statuses. Game
  * database 2: the game file's name. Languages 2: position abbreviations; 3: full position names.
+ * Watchlist 2: the notes moved to their own record.
  */
 export const SCHEMA_VERSION = {
   gameDb: 2,
   preferences: 6,
   languages: 3,
   careerSave: 1,
-  watchlist: 1,
+  watchlist: 2,
+  notes: 1,
 } as const;
 
 export interface StorageBackend {
@@ -65,6 +69,8 @@ export interface StoredScout {
   readonly careerSave: SaveFiles<Uint8Array> | null;
   /** The own watchlist; empty when nothing valid is stored. */
   readonly watchlist: readonly WatchEntry[];
+  /** The notes on players; empty when nothing valid is stored. */
+  readonly notes: readonly PlayerNote[];
 }
 
 export const memoryBackend = (): StorageBackend => {
@@ -395,33 +401,70 @@ const careerSaveOf = (record: unknown): SaveFiles<Uint8Array> | null => {
     : null;
 };
 
-/** The stored own watchlist: entries of a player id, a note (cut to the limit) and a date; others are dropped. */
-const watchlistOf = (record: unknown): readonly WatchEntry[] => {
-  const value = versioned(record, SCHEMA_VERSION.watchlist);
+/** A stored list's items that pass `parse`, the first one per player id; the rest are dropped. */
+const perPlayer = <T extends { readonly playerId: number }>(
+  value: unknown,
+  parse: (item: Readonly<Record<string, unknown>>) => T | undefined,
+): readonly T[] => {
   const seen = new Set<number>();
-  return (Array.isArray(value) ? value : []).flatMap((item: unknown): readonly WatchEntry[] => {
-    const { playerId, note, addedAt } = recordOf(item);
-    if (
-      !isInteger(playerId) ||
-      typeof note !== "string" ||
-      typeof addedAt !== "string" ||
-      Number.isNaN(Date.parse(addedAt)) ||
-      seen.has(playerId)
-    )
-      return [];
-    seen.add(playerId);
-    return [{ playerId, note: clippedNote(note), addedAt }];
+  return (Array.isArray(value) ? value : []).flatMap((item: unknown): readonly T[] => {
+    const parsed = parse(recordOf(item));
+    if (parsed === undefined || seen.has(parsed.playerId)) return [];
+    seen.add(parsed.playerId);
+    return [parsed];
   });
 };
 
+const isDate = (value: unknown): value is string =>
+  typeof value === "string" && !Number.isNaN(Date.parse(value));
+
+/** The stored own watchlist, of version 1 too (its notes are read by notesFromWatchlist). */
+const watchlistOf = (record: unknown): readonly WatchEntry[] =>
+  perPlayer(
+    versioned(record, SCHEMA_VERSION.watchlist) ?? versioned(record, 1),
+    ({ playerId, addedAt }) =>
+      isInteger(playerId) && isDate(addedAt) ? { playerId, addedAt } : undefined,
+  );
+
+/** The stored notes on players with text, a name or none and a date, each cut to the limit. */
+const notesOf = (value: unknown): readonly PlayerNote[] =>
+  perPlayer(value, ({ playerId, text, name, changedAt }) =>
+    isInteger(playerId) &&
+    typeof text === "string" &&
+    text.trim() !== "" &&
+    (typeof name === "string" || name === null) &&
+    isDate(changedAt)
+      ? { playerId, text: clippedNote(text), name, changedAt }
+      : undefined,
+  );
+
+/**
+ * The notes a version 1 watchlist held in its entries: each non-empty one, dated by when its player was
+ * added (the closest known change) and without a name, which the list did not keep.
+ */
+export const notesFromWatchlist = (entries: unknown): readonly PlayerNote[] =>
+  notesOf(
+    (Array.isArray(entries) ? entries : []).map((item: unknown) => {
+      const { playerId, note, addedAt } = recordOf(item);
+      return { playerId, text: note, name: null, changedAt: addedAt };
+    }),
+  );
+
 export const createScoutStore = (backend: StorageBackend) => ({
   load: async (): Promise<StoredScout> => {
+    const watchlist = await backend.get("watchlist");
+    const notesRecord = await backend.get("notes");
+    // A version 1 list's notes are stored apart at once, so a later save of the list cannot lose them.
+    const moved = notesRecord === undefined ? notesFromWatchlist(versioned(watchlist, 1)) : [];
+    const notes = { schemaVersion: SCHEMA_VERSION.notes, value: moved };
+    if (moved.length > 0) await backend.set("notes", notes);
     return {
       ...gameDbOf(await backend.get("gameDb")),
       preferences: preferencesOf(await backend.get("preferences")),
       languages: parseLanguages(await backend.get("languages")),
       careerSave: careerSaveOf(await backend.get("careerSave")),
-      watchlist: watchlistOf(await backend.get("watchlist")),
+      watchlist: watchlistOf(watchlist),
+      notes: notesOf(versioned(notesRecord ?? notes, SCHEMA_VERSION.notes)),
     };
   },
   saveGameDb: async (gameDb: Uint8Array, name: string): Promise<void> =>
@@ -433,6 +476,8 @@ export const createScoutStore = (backend: StorageBackend) => ({
     backend.set("careerSave", { schemaVersion: SCHEMA_VERSION.careerSave, value: save }),
   saveWatchlist: async (watchlist: readonly WatchEntry[]): Promise<void> =>
     backend.set("watchlist", { schemaVersion: SCHEMA_VERSION.watchlist, value: watchlist }),
+  saveNotes: async (notes: readonly PlayerNote[]): Promise<void> =>
+    backend.set("notes", { schemaVersion: SCHEMA_VERSION.notes, value: notes }),
   saveLanguages: async (languages: GameLanguages): Promise<void> =>
     backend.set("languages", { schemaVersion: SCHEMA_VERSION.languages, value: languages }),
 });

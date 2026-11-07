@@ -13,8 +13,11 @@ export const SCOUT_CONFIG = {
   attributeBandMin: { high: 80, good: 70, average: 50 },
   /** Seasons ahead the peak OVR projection looks: from 16 years old past the oldest curve age. */
   peakProjectionYears: 20,
-  /** Longest note on a player of the own watchlist, in characters. */
-  watchlistNoteMaxChars: 500,
+  /**
+   * Longest note on a player, in characters. No limit for the user (owner, 2026-11-07): this only bounds
+   * a pathological paste, since every change stores all notes again.
+   */
+  noteMaxChars: 20_000,
   /** Weak foot stars from which a best peak tied across sides goes to the central code (owner, 2026-11-07). */
   centralWeakFootStarsMin: 4,
   /** Changes of the filters, sort and sets the user can take back, newest first. */

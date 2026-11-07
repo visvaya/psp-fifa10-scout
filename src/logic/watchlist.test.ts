@@ -1,50 +1,30 @@
 import { describe, expect, it } from "vitest";
-import { SCOUT_CONFIG } from "./config.ts";
 import { initialScoutState, scoutReducer } from "./scout-state.ts";
-import { notedPlayer, unwatchedPlayer, watchedIds, watchedPlayer } from "./watchlist.ts";
+import { unwatchedPlayer, watchedIds, watchedPlayer } from "./watchlist.ts";
 import type { WatchEntry } from "./watchlist.ts";
 
-const entry = (playerId: number, note = ""): WatchEntry => ({
+const entry = (playerId: number): WatchEntry => ({
   playerId,
-  note,
   addedAt: "2026-11-05T10:00:00.000Z",
 });
 
 describe("watchedPlayer", () => {
-  it("adds a player last with an empty note and the time", () => {
+  it("adds a player last with the time", () => {
     expect(watchedPlayer([entry(1)], 2, "2026-11-06T08:00:00.000Z")).toEqual([
       entry(1),
-      { playerId: 2, note: "", addedAt: "2026-11-06T08:00:00.000Z" },
+      { playerId: 2, addedAt: "2026-11-06T08:00:00.000Z" },
     ]);
   });
 
   it("keeps a player already on the list as he is", () => {
-    const list = [entry(1, "fast")];
+    const list = [entry(1)];
     expect(watchedPlayer(list, 1, "2026-11-06T08:00:00.000Z")).toBe(list);
   });
 });
 
 describe("unwatchedPlayer", () => {
-  it("removes the player with his note", () => {
-    expect(unwatchedPlayer([entry(1, "a"), entry(2)], 1)).toEqual([entry(2)]);
-  });
-});
-
-describe("notedPlayer", () => {
-  it("changes only that player's note", () => {
-    expect(notedPlayer([entry(1), entry(2, "old")], 2, "new")).toEqual([entry(1), entry(2, "new")]);
-  });
-
-  it("cuts a note to the limit", () => {
-    const long = "x".repeat(SCOUT_CONFIG.watchlistNoteMaxChars + 5);
-    expect(notedPlayer([entry(1)], 1, long)[0]?.note).toHaveLength(
-      SCOUT_CONFIG.watchlistNoteMaxChars,
-    );
-  });
-
-  it("changes nothing for a player not on the list", () => {
-    const list = [entry(1)];
-    expect(notedPlayer(list, 9, "x")).toBe(list);
+  it("removes the player", () => {
+    expect(unwatchedPlayer([entry(1), entry(2)], 1)).toEqual([entry(2)]);
   });
 });
 
@@ -55,16 +35,14 @@ describe("watchedIds", () => {
 });
 
 describe("watchlist in the app state", () => {
-  it("adds, notes and removes a player, and restores a stored list", () => {
+  it("adds and removes a player, and restores a stored list", () => {
     const added = scoutReducer(initialScoutState, {
       type: "watch-added",
       id: 4,
       addedAt: "2026-11-05T10:00:00.000Z",
     });
     expect(added.watchlist).toEqual([entry(4)]);
-    const noted = scoutReducer(added, { type: "watch-note-changed", id: 4, note: "wing" });
-    expect(noted.watchlist).toEqual([entry(4, "wing")]);
-    expect(scoutReducer(noted, { type: "watch-removed", id: 4 }).watchlist).toEqual([]);
+    expect(scoutReducer(added, { type: "watch-removed", id: 4 }).watchlist).toEqual([]);
     const restored = scoutReducer(initialScoutState, {
       type: "watchlist-restored",
       watchlist: [entry(9)],
@@ -93,8 +71,5 @@ describe("watchlistEdited", () => {
     const added = scoutReducer(restored, { type: "watch-added", id: 4, addedAt: entry(4).addedAt });
     expect(added.watchlistEdited).toBe(true);
     expect(scoutReducer(added, { type: "watch-removed", id: 4 }).watchlistEdited).toBe(true);
-    expect(
-      scoutReducer(restored, { type: "watch-note-changed", id: 9, note: "x" }).watchlistEdited,
-    ).toBe(true);
   });
 });

@@ -1507,19 +1507,34 @@ input[inputmode="numeric"] {
   justify-items: start;
 }
 
-.watchlist-answer {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
+.watchlist,
+.note {
+  margin-bottom: var(--space-4);
 }
 
-.watchlist-answer > p {
-  flex-basis: 100%;
+/* The notes view: per note the player, the note's first line and the date of its last change. */
+.notes-list {
+  display: grid;
+  gap: var(--space-3);
   margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.watchlist .field {
-  justify-self: stretch;
+.notes-list > li {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: start;
+}
+
+.note-line {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.note-date {
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
 }
 
 /* A development curve the size of a line of text, after a style's name or in its own card row. */
