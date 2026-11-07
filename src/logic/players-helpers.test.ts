@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { attributesOf, searchKey } from "./players.ts";
 import { playerRow } from "./test-support/player-fixtures.ts";
 
@@ -12,5 +12,16 @@ describe("attributesOf", () => {
   it("rejects a players row without every attribute column", () => {
     const { reflexes: _, ...partial } = playerRow({});
     expect(() => attributesOf(partial)).toThrow(/lack attribute columns/);
+  });
+});
+
+describe("loading the module", () => {
+  // The Polish collator is costly to build (lazy.ts), and the start screen does not need it.
+  it("builds no collator", async () => {
+    const collator = vi.spyOn(Intl, "Collator");
+    vi.resetModules();
+    await import("./players.ts");
+    expect(collator).not.toHaveBeenCalled();
+    collator.mockRestore();
   });
 });

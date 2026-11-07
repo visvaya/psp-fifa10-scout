@@ -30,7 +30,7 @@ const distinct = (values: readonly number[]): readonly number[] =>
 export const facetOptions = (
   players: readonly Player[],
   filters: ScoutFilters,
-  collator: Intl.Collator = nameCollator,
+  collator: Intl.Collator = nameCollator(),
 ) => {
   const leagues = new Set(filters.lists?.leagueId ?? []);
   const excluded = filters.excludedLists?.leagueId === true;
