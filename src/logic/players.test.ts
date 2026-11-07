@@ -7,6 +7,7 @@ import type { EaDbRow } from "../data/ea-db.ts";
 import { buildEaDb } from "../data/test-support/synthetic-ea-db.ts";
 import { NO_BEST_PEAK } from "./best-peak.ts";
 import { filterPlayers } from "./filter-players.ts";
+import { teamFields } from "./placements.ts";
 import { NO_FINANCE } from "./player-finance.ts";
 import { buildPlayers } from "./players.ts";
 import { sortPlayers } from "./sort-players.ts";
@@ -208,6 +209,10 @@ describe("buildPlayers from fifa.db", () => {
       clubId: 241,
       clubName: "FC Barcelona",
       clubRating: 84,
+      // Messi (60) and Ronaldinho share Barcelona's squad.
+      clubStars: 1,
+      leaguePrestige: 5,
+      clubPrestige: 5,
       leagueId: 53,
       leagueName: "Spain Primera Division (1)",
       contractEndYear: 2014,
@@ -254,16 +259,7 @@ describe("buildPlayers from fifa.db", () => {
   });
 
   it("leaves a player whose only team has no league without a club, not a free agent", () => {
-    expect(byId(players, 8)).toMatchObject({
-      freeAgent: false,
-      clubId: null,
-      clubName: null,
-      clubRating: null,
-      leagueId: null,
-      leagueName: null,
-      contractEndYear: null,
-      jerseyNumber: null,
-    });
+    expect(byId(players, 8)).toMatchObject({ freeAgent: false, ...teamFields({}, false) });
   });
 
   it("leaves out the youth pool without a team link and freezes the summaries", () => {

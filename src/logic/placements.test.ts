@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { CareerSave } from "../data/career-save.ts";
 import { parseEaDb } from "../data/ea-db.ts";
 import { buildEaDb } from "../data/test-support/synthetic-ea-db.ts";
-import { careerLinks, placementsOf, teamsById } from "./placements.ts";
+import { careerLinks, placementsOf, teamFields, teamsById } from "./placements.ts";
 import { table } from "./test-support/player-fixtures.ts";
 
 const DB = parseEaDb(
@@ -54,6 +54,19 @@ describe("teamsById", () => {
     expect(league(career, 20)).toEqual(["Second", 9]);
     expect(league(career, 30)).toEqual(["International", 9]);
     expect(league(teamsById(DB), 10)).toEqual(["Second", 8]);
+  });
+});
+
+describe("teamFields", () => {
+  // The two prestige values the price and wage formulas add up, each as the game stores it.
+  it("shows the club's league prestige and team prestige apart, none without a club", () => {
+    const team = teamsById(DB).get(10);
+    const link = { teamid: 10, playerid: 1, jerseynumber: 4, yearcontractvalidtil: 2012 };
+    expect(team && teamFields({ club: { team, link } }, false)).toMatchObject({
+      leaguePrestige: 5,
+      clubPrestige: 3,
+    });
+    expect(teamFields({}, false)).toMatchObject({ leaguePrestige: null, clubPrestige: null });
   });
 });
 

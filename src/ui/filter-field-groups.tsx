@@ -8,7 +8,8 @@ import type { ScoutFilters } from "../logic/scout-state.ts";
 import { ColumnEye } from "./column-eye.tsx";
 import type { ColumnToggle, Eye } from "./column-eye.tsx";
 import { numberOrUndefined, RangeField } from "./filter-fields.tsx";
-import { ATTRIBUTE_LABELS, TEXT } from "./text.ts";
+import { TEXT } from "./text.ts";
+import { ATTRIBUTE_LABELS } from "./text-attributes.ts";
 
 export const ContractField = (props: {
   years: readonly number[];

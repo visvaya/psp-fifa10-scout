@@ -5,6 +5,7 @@ import type { FlagKey, ListKey, RangeKey } from "../logic/filter-players.ts";
 import { pl } from "./typeset.ts";
 
 const LEAGUE_STATS = pl`Liczby z zapisu kariery za bieżący sezon, z meczów ligi twojego klubu; gra zeruje je na początku sezonu. U zawodnika, który odszedł z twojej ligi, to liczby z czasu gry w niej.`;
+const PRESTIGE = pl`Suma prestiżu ligi i prestiżu klubu wchodzi do wzorów gry na cenę i zarobki rynkowe: od 33 podnosi cenę o 10%, poniżej 25 ją obniża (o 35% przy 8 i mniej), a zarobki rosną z kwadratem tej sumy.`;
 const CUP_STATS = pl`Liczby z zapisu kariery za bieżący sezon, z pucharów krajowych i europejskich razem; gra zeruje je na początku sezonu. Które puchary liczy, zależy od ligi twojego klubu, np. dla Ekstraklasy Puchar Polski, „Klubowe ME” i „Puchar EFA”.`;
 
 export const FIELD_HELP: Partial<Readonly<Record<RangeKey | ListKey | FlagKey, string>>> = {
@@ -23,6 +24,9 @@ export const FIELD_HELP: Partial<Readonly<Record<RangeKey | ListKey | FlagKey, s
   developmentType: pl`Kiedy zawodnik osiąga szczyt według krzywych rozwoju gry: wcześnie, w typowym wieku albo późno.`,
   developmentStyle: pl`Kształt krzywej rozwoju umiejętności: jak wysoko i jak długo rośnie. Krótka kariera szybko spada po szczycie, nagły skok rośnie gwałtownie w kilka sezonów.`,
   clubRating: pl`Ocena drużyny od 1 do 99 zapisana w danych gry. Gwiazdek klubu gra z niej nie liczy: wylicza je z OVR 16 najlepszych zawodników kadry.`,
+  leaguePrestige: pl`Prestiż ligi klubu z bazy gry. ${PRESTIGE}`,
+  clubPrestige: pl`Prestiż międzynarodowy klubu z bazy gry, w karierze też z płyty. ${PRESTIGE}`,
+  clubStars: pl`Gwiazdki klubu od 0,5 do 5, liczone regułą gry z bieżącej kadry: średnia OVR 16 najlepszych zawodników (z pierwszych 30 w kadrze), zaokrąglona w dół; od 55 jedna gwiazdka, od 82 pięć. Z zapisem kariery z kadry i OVR w karierze, więc zmieniają się po transferach i rozwoju zawodników; bez zapisu z kadry na płycie.`,
   nationalTeam: pl`Zawodnik kadry reprezentacji w bazie gry. Kariera tych kadr nie zmienia; na zgrupowania gra powołuje zawodników osobno, przed każdym oknem reprezentacyjnym.`,
   form: pl`KR z zapisu kariery, jak na ekranie statystyk zawodnika w grze: ocena krocząca ze wszystkich meczów, ligi i pucharów razem. Po każdym meczu z minutami to 80% poprzedniej wartości i 20% oceny z tego meczu. Zawodnik bez wcześniejszych meczów ma wartość startową 5,0. Na początku sezonu gra jej nie zeruje, więc zawodnik z meczami w poprzednim sezonie, a bez występów w obecnym, ma wartość z poprzedniego sezonu lub klubu.`,
   morale: pl`Wartość z zapisu kariery. Skala i wpływ morale na mecze nie są potwierdzone.`,

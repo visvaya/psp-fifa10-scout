@@ -21,8 +21,6 @@ import { PositionName, ratingChoiceName } from "./position-name.tsx";
 import type { PositionNames } from "./position-name.tsx";
 import { clubText, MissingValue, RESULTS_TITLE_ID } from "./player-list.tsx";
 import {
-  ATTRIBUTE_GROUP_LABELS,
-  ATTRIBUTE_LABELS,
   FILTER_SECTION_LABELS,
   FLAG_LABELS,
   formatNumber,
@@ -31,6 +29,7 @@ import {
   RANGE_LABELS,
   TEXT,
 } from "./text.ts";
+import { ATTRIBUTE_GROUP_LABELS, ATTRIBUTE_LABELS } from "./text-attributes.ts";
 import { Facts } from "./facts.tsx";
 import type { Fact } from "./facts.tsx";
 import { OfferFacts } from "./offer-facts.tsx";
@@ -81,6 +80,25 @@ const styleValue = ({ developmentStyle: style, developmentType: type }: Player, 
   );
 };
 
+/** The club's stars and prestige under its rating; a dash without a club. */
+const clubFields = ({ clubStars, leaguePrestige, clubPrestige }: Player): readonly Fact[] => [
+  [
+    RANGE_LABELS.clubStars,
+    clubStars === null ? <MissingValue key="stars" /> : <Stars key="stars" value={clubStars} />,
+    FIELD_HELP.clubStars,
+  ],
+  [
+    RANGE_LABELS.leaguePrestige,
+    leaguePrestige === null ? <MissingValue key="league" /> : formatNumber(leaguePrestige),
+    FIELD_HELP.leaguePrestige,
+  ],
+  [
+    RANGE_LABELS.clubPrestige,
+    clubPrestige === null ? <MissingValue key="club" /> : formatNumber(clubPrestige),
+    FIELD_HELP.clubPrestige,
+  ],
+];
+
 /** What the filters offer beyond the basics, labelled as in the filters. */
 const profile = (player: Player, showPotential: boolean, curves: Curves): readonly Fact[] => [
   ...(showPotential
@@ -108,6 +126,7 @@ const profile = (player: Player, showPotential: boolean, curves: Curves): readon
   ],
   [LIST_LABELS.developmentStyle, styleValue(player, curves), FIELD_HELP.developmentStyle],
   [RANGE_LABELS.clubRating, optional(player.clubRating), FIELD_HELP.clubRating],
+  ...clubFields(player),
   ...(player.loanedFromId === null
     ? []
     : [

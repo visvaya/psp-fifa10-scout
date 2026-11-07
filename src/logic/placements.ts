@@ -15,6 +15,8 @@ interface Team {
   /** League prestige plus team prestige. */
   readonly prestige: number;
   readonly leaguePrestige: number;
+  /** teams.internationalprestige: fifa.db's, for every club, as the price and wage formulas use it. */
+  readonly clubPrestige: number;
 }
 
 export interface Placement {
@@ -43,8 +45,14 @@ export const teamsById = (db: EaDb, save?: CareerSave): ReadonlyMap<number, Team
       const [name, leagueName] = [String(row["teamname"]), String(league["leaguename"])];
       const [level, rating] = [num(league, "level"), num(row, "overallrating")];
       const leaguePrestige = num(league, "leagueprestige");
-      const prestige = leaguePrestige + num(row, "internationalprestige");
-      return [[id, { id, name, leagueId, leagueName, level, rating, prestige, leaguePrestige }]];
+      const clubPrestige = num(row, "internationalprestige");
+      const prestige = leaguePrestige + clubPrestige;
+      return [
+        [
+          id,
+          { id, name, leagueId, leagueName, level, rating, prestige, leaguePrestige, clubPrestige },
+        ],
+      ];
     }),
   );
 };
@@ -73,20 +81,41 @@ const NO_CLUB = {
   clubId: null,
   clubName: null,
   clubRating: null,
+  leaguePrestige: null,
+  clubPrestige: null,
   leagueId: null,
   leagueName: null,
   contractEndYear: null,
   jerseyNumber: null,
 } as const;
 
+export interface TeamFields {
+  readonly clubId: number | null;
+  readonly clubName: string | null;
+  /** The club's teams.overallrating. */
+  readonly clubRating: number | null;
+  /** The club league's leagues.leagueprestige. */
+  readonly leaguePrestige: number | null;
+  /** The club's teams.internationalprestige; the price and wage formulas add the league's to it. */
+  readonly clubPrestige: number | null;
+  readonly leagueId: number | null;
+  readonly leagueName: string | null;
+  readonly contractEndYear: number | null;
+  readonly jerseyNumber: number | null;
+  readonly nationalTeamId: number | null;
+  readonly nationalTeamName: string | null;
+}
+
 /** The club fields; a loaned player's link holds no contract end (2005 or a renewal year). */
-export const teamFields = ({ club, national }: Placement, onLoan: boolean) => ({
+export const teamFields = ({ club, national }: Placement, onLoan: boolean): TeamFields => ({
   ...(club === undefined
     ? NO_CLUB
     : {
         clubId: club.team.id,
         clubName: club.team.name,
         clubRating: club.team.rating,
+        leaguePrestige: club.team.leaguePrestige,
+        clubPrestige: club.team.clubPrestige,
         leagueId: club.team.leagueId,
         leagueName: club.team.leagueName,
         contractEndYear: onLoan ? null : num(club.link, "yearcontractvalidtil"),

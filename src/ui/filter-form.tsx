@@ -227,7 +227,7 @@ const controls = (
       label={TEXT.withCurrency(key, rangeLabel(key), currency)}
       range={filters.ranges?.[key]}
       grouped={GROUPED_RANGES.has(key)}
-      decimal={key === "form"}
+      decimal={key === "form" || key === "clubStars"}
       help={FIELD_HELP[key]}
       column={eye(key)}
       onChange={(range) => {
@@ -357,7 +357,7 @@ const clubSection = ({ filters, change, facets, range, list, flag, eye }: Kit, c
     {list("leagueId", facetChoices(facets.leagues))}
     {list("clubId", facetChoices(facets.clubs))}
     {list("nationalityId", facetChoices(facets.nationalities))}
-    {range("clubRating")}
+    {(["clubRating", "clubStars", "leaguePrestige", "clubPrestige"] as const).map(range)}
     <ContractField
       years={facets.contractYears}
       range={filters.ranges?.contractEndYear}

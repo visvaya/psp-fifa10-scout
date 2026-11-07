@@ -76,6 +76,46 @@ test.describe("player card", () => {
   });
 });
 
+test.describe("club stars and prestige", () => {
+  // The club's stars come from its squad by the game's rule; the synthetic squads rate half a star.
+  test("shows the club's stars and prestige under its rating and filters by the stars", async ({
+    page,
+  }) => {
+    await loadDatabase(page);
+    await expandSections(page);
+    await page.getByRole("searchbox", { name: "Nazwisko" }).fill("brozek");
+    await page.getByRole("button", { name: "Paweł Brożek" }).click();
+    const card = page.getByRole("dialog", { name: "Paweł Brożek" });
+    const terms = await card.locator(".facts > div > dt").allInnerTexts();
+    const rating = terms.findIndex((term) => term.startsWith("Siła klubu"));
+    expect(terms.slice(rating + 1, rating + 4).map((term) => term.split("?")[0]?.trim())).toEqual([
+      "Gwiazdki klubu",
+      "Prestiż ligi",
+      "Prestiż klubu",
+    ]);
+    await expect(cardValue(card, "Gwiazdki klubu")).toHaveText(/0,5 z 5 gwiazdek$/u);
+    await expect(
+      card
+        .locator(".facts > div")
+        .filter({ hasText: /^Gwiazdki klubu/u })
+        .locator(".stars > *"),
+    ).toHaveClass([/star-half/u, /star-empty/u, /star-empty/u, /star-empty/u, /star-empty/u]);
+    await expect(cardValue(card, "Prestiż ligi")).toHaveText("5");
+    await expect(cardValue(card, "Prestiż klubu")).toHaveText("6");
+    await expectNoAxeViolations(page);
+    await page.keyboard.press("Escape");
+    const stars = page.getByRole("group", { name: "Gwiazdki klubu", exact: true });
+    await stars.getByLabel("od").fill("0,5");
+    await expectCount(page, "1 zawodnik");
+    // Jan Wolny has no club, so no stars to pass the filter.
+    await page.getByRole("searchbox", { name: "Nazwisko" }).fill("wolny");
+    await expect(page.getByRole("button", { name: /^Jan Wolny/u })).toHaveCount(0);
+    await page.getByRole("searchbox", { name: "Nazwisko" }).fill("brozek");
+    await stars.getByLabel("od").fill("1");
+    await expect(page.getByRole("button", { name: "Paweł Brożek" })).toHaveCount(0);
+  });
+});
+
 test.describe("development curves", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 

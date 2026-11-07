@@ -732,7 +732,8 @@ input[inputmode="numeric"] {
   stroke-linejoin: round;
 }
 
-.star-full path {
+.star-full path,
+.star-half .star-half-fill {
   fill: var(--color-accent);
   stroke: var(--color-accent);
 }

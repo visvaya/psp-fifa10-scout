@@ -27,13 +27,14 @@ import {
 } from "./overall-rating.ts";
 import type { Curves } from "./overall-rating.ts";
 import { careerLinks, placementsOf, teamFields, teamsById } from "./placements.ts";
-import type { Placement } from "./placements.ts";
+import type { Placement, TeamFields } from "./placements.ts";
 import { financeOf, NO_FINANCE } from "./player-finance.ts";
 import { saleFields, saleVerdictOf } from "./sale-rule.ts";
 import type { SaleRefusal } from "./sale-rule.ts";
 import type { Finance, FinanceInput } from "./player-finance.ts";
 import { positionOf } from "./positions.ts";
 import type { PositionGroup } from "./positions.ts";
+import { clubStarsOf } from "./team-stars.ts";
 import { marketFields, transferMarketOf } from "./transfer-market.ts";
 import type { TransferMarket } from "./transfer-market.ts";
 
@@ -137,7 +138,7 @@ export const SEASON_STAT_KEYS = [
 ] as const;
 type SeasonStats = { readonly [K in (typeof SEASON_STAT_KEYS)[number]]: number | null };
 
-export interface Player extends Finance, SeasonStats {
+export interface Player extends Finance, SeasonStats, TeamFields {
   readonly id: number;
   readonly name: string;
   /** The first name as an initial ("L. Messi"), for narrow places; null for a player with one name. */
@@ -202,16 +203,8 @@ export interface Player extends Finance, SeasonStats {
   /** The peak OVR at each position code 0..31; empty without a career. */
   readonly peakByCode: readonly number[];
   readonly attributes: Attributes;
-  readonly clubId: number | null;
-  readonly clubName: string | null;
-  /** The club's teams.overallrating. */
-  readonly clubRating: number | null;
-  readonly leagueId: number | null;
-  readonly leagueName: string | null;
-  readonly contractEndYear: number | null;
-  readonly jerseyNumber: number | null;
-  readonly nationalTeamId: number | null;
-  readonly nationalTeamName: string | null;
+  /** The club's stars 0.5..5 by the game's rule, from its current squad (team-stars.ts). */
+  readonly clubStars: number | null;
   readonly nationalityId: number;
   readonly nationalityName: string | null;
   /**
@@ -316,7 +309,9 @@ const profileFields = (row: EaDbRow) => ({
   traits: TRAIT_NAMES.filter((trait) => num(row, trait) === 1),
 });
 
-const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
+type Summary = Omit<Player, "nameOrder" | "clubStars">;
+
+const summary = (row: EaDbRow, context: Context): Summary => {
   const id = num(row, "playerid");
   const position = positionOf(num(row, "preferredposition1"));
   const stats = context.stats.get(id);
@@ -331,7 +326,7 @@ const summary = (row: EaDbRow, context: Context): Omit<Player, "nameOrder"> => {
   const rate = (code: number): number => overallByCode[code] ?? 0;
   const overall = rate(num(row, "preferredposition1"));
   const peak = peakByCode[num(row, "preferredposition1")] ?? null;
-  const player: Omit<Player, "nameOrder" | BestPeakKey> = {
+  const player: Omit<Summary, BestPeakKey> = {
     id,
     name,
     initialName: firstName === "" || surname === "" ? null : `${firstName.charAt(0)}. ${surname}`,
@@ -489,13 +484,16 @@ export const buildPlayers = (db: EaDb, save?: CareerSave, curves?: Curves): read
   const placed = new Set(
     [...links, ...academy, ...transferList, ...shortlist].map((row) => num(row, "playerid")),
   );
+  const summaries = readTable(db, "players")
+    .filter(
+      (row) =>
+        num(row, "playerid") < SCOUT_CONFIG.youthPlayerIdStart || placed.has(num(row, "playerid")),
+    )
+    .map((row) => summary(row, context));
+  // A club's stars need its whole squad's OVRs; the summaries are this build's own, so they take the
+  // stars in place before withNameOrder freezes its copies.
+  const starsOf = clubStarsOf(summaries, links);
   return withNameOrder(
-    readTable(db, "players")
-      .filter(
-        (row) =>
-          num(row, "playerid") < SCOUT_CONFIG.youthPlayerIdStart ||
-          placed.has(num(row, "playerid")),
-      )
-      .map((row) => summary(row, context)),
+    summaries.map((player) => Object.assign(player, { clubStars: starsOf(player.clubId) })),
   );
 };
