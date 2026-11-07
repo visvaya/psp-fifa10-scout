@@ -182,6 +182,7 @@ describe("buildPlayers from fifa.db", () => {
       academy: false,
       freeAgent: false,
       age: 22,
+      seasonAge: 22,
       birthYear: 1987,
       positionCode: 14,
       positionName: "RWM",

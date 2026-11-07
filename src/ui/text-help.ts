@@ -73,7 +73,11 @@ export const HELP_TEXT = {
     pl`Lista i notatki zapisują się w tej przeglądarce przy każdej zmianie, notatka do ${maxChars} znaków.`,
   /** The player's skill curve on the card, peaking at `peakAge`. */
   curve: (peakAge: number): string =>
-    pl`Krzywa z danych gry według typu i stylu rozwoju zawodnika: jego umiejętności w wieku od 15 do 45 lat, na jednej skali dla wszystkich krzywych, więc ich kształty można porównać. Szczyt w wieku ${peakAge} lat.`,
+    pl`Krzywa z danych gry według typu i stylu rozwoju zawodnika: względny poziom jego umiejętności technicznych w wieku od 15 do 45 lat, na jednej skali dla wszystkich krzywych, więc ich kształty można porównać. Obok krzywej faza zawodnika w tym sezonie: przed szczytem, w szczycie albo po nim. Przycisk z krzywą otwiera duży wykres z opisem. Szczyt w wieku ${peakAge} lat.`,
+  /** The large chart's phase: the rule for the peak's ages. */
+  curvePhase: pl`Okres szczytu to wiek, w którym krzywa ma co najmniej 98% swojego maksimum; wykres zaznacza go tłem, bo niektóre krzywe są płaskie przez kilka lat. Faza mówi, czy wiek zawodnika w tym sezonie przypada przed tym okresem, w nim czy po nim.`,
+  /** The large chart's level axis. */
+  curveLevel: pl`Gra liczy umiejętności techniczne zawodnika z wartości w bazie danych proporcjonalnie do tej krzywej: wartość z bazy odpowiada poziomowi krzywej w jego wieku na 1 stycznia 2009, a w innym wieku rośnie albo maleje w tej samej proporcji, nie wyżej niż 99 i potencjał (albo wyższa od niego wartość z bazy). Poziom 43 rosnący do 100 oznacza więc, że te umiejętności urosną do ponad dwukrotności. Umiejętności fizyczne (przyspieszenie, szybkość, refleks, wytrzymałość, siła) idą za inną krzywą, zależną tylko od typu rozwoju.`,
 } as const;
 
 /** Notes behind the "!" before a value: what holds for this player and asks for attention. */

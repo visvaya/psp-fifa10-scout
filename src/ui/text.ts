@@ -405,8 +405,29 @@ export const TEXT = {
     internationalReputation: "Reputacja międzynarodowa",
     learningSpeed: "Szybkość nauki",
     curve: "Krzywa rozwoju",
-    /** The name of the development curve's sparkline. */
-    curvePeak: (age: number): string => `krzywa rozwoju, szczyt w wieku ${String(age)}`,
+    /** The small curve's button, which opens the large chart, and that chart's dialog. */
+    showCurve: (name: string): string => `Pokaż krzywą rozwoju: ${name}`,
+    curveTitle: (name: string): string => `Krzywa rozwoju: ${name}`,
+    /** The large chart's axes, its marks and the facts under it. */
+    curveAge: "Wiek",
+    curveValue: "Poziom umiejętności (względny)",
+    curvePeakMark: (age: number, value: number): string =>
+      `szczyt: ${count(age, YEARS)}, ${formatNumber(value)}`,
+    curveNowMark: (age: number): string => pl`w tym sezonie: ${count(age, YEARS)}`,
+    curvePeakLabel: "Szczyt",
+    curveNowLabel: pl`Wiek w tym sezonie`,
+    /** Where his age this season falls on the curve: before, within or after the peak's ages. */
+    curvePhaseLabel: "Faza",
+    curvePhases: {
+      before: "przed szczytem",
+      peak: pl`w szczycie`,
+      after: "po szczycie",
+    },
+    curvePlateauLabel: "Okres szczytu",
+    curvePlateau: (from: number, to: number): string =>
+      from === to ? count(from, YEARS) : `${String(from)}–${count(to, YEARS)}`,
+    curvePoint: (age: number, value: number): string =>
+      `${count(age, YEARS)}, poziom ${formatNumber(value)}`,
     yes: "tak",
     no: "nie",
     left: "lewa",

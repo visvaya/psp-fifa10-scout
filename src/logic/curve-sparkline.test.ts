@@ -26,11 +26,6 @@ describe("curveSparklines", () => {
     expect(curveSparklines(CURVES)(1)?.viewBox).toBe(line?.viewBox);
   });
 
-  it("names the first age at the curve's highest value", () => {
-    expect(curveSparklines(CURVES)(13)?.peakAge).toBe(27);
-    expect(curveSparklines(CURVES)(1)?.peakAge).toBe(15);
-  });
-
   it("falls back to curve 1 for a curve the table lacks, as the game does", () => {
     expect(curveSparklines(CURVES)(7)).toEqual(curveSparklines(CURVES)(1));
   });

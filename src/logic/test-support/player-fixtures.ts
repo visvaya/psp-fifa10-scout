@@ -177,6 +177,7 @@ export const testPlayer = (overrides: Partial<Player> = {}): Player => {
     academy: false,
     freeAgent: false,
     age: 25,
+    seasonAge: 25,
     birthYear: 1984,
     positionCode: 17,
     positionName: "CM",
