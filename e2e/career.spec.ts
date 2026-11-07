@@ -134,14 +134,15 @@ test.describe("career currency", () => {
 });
 
 test.describe("career club status", () => {
-  // Jan Wolny has no team at all, like the game's players linked only to a national team.
+  // Jan Wolny and Tomasz Remis have no team at all, like the game's players linked only to a national
+  // team.
   test("keeps the players a career cannot sign, named on their chip", async ({ page }) => {
     await loadCareer(page);
     await page.getByText("Klub i kontrakt").click();
     const status = page.getByRole("group", { name: "Zawodnicy", exact: true });
     await expect(status.getByRole("radio", { name: /^dostępni\sw\skarierze$/u })).toBeChecked();
     await status.getByRole("radio", { name: "niedostępni w karierze" }).check();
-    await expectCount(page, "1 zawodnik");
+    await expectCount(page, "2 zawodników");
     await expect(page.getByRole("button", { name: /^Jan Wolny/u })).toBeVisible();
     await page.getByRole("button", { name: "Usuń filtr: Niedostępni w karierze" }).click();
     await expect(status.getByRole("radio", { name: /^dostępni\sw\skarierze$/u })).toBeChecked();

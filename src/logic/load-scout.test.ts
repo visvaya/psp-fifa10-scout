@@ -34,7 +34,7 @@ describe("loadScout", () => {
     const db = buildScoutDb();
     const result = await loadScout({ game: gameOf(db) }, (phase) => phases.push(phase));
     expect(phases).toEqual(["game", "players"]);
-    expect(result.players).toHaveLength(63);
+    expect(result.players).toHaveLength(64);
     expect(result.myTeamId).toBeNull();
     expect(result.career).toBeNull();
     expect(result.gameDb).toEqual(db);

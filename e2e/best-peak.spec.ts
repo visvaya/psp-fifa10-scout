@@ -2,6 +2,7 @@ import type { Locator, Page } from "@playwright/test";
 import {
   cardValue,
   expect,
+  expectCount,
   expectNoAxeViolations,
   expectNoHorizontalOverflow,
   expectStored,
@@ -84,13 +85,11 @@ const expectAlignedPeaks = async (cells: Locator) => {
 test.describe("peak at the best position, wide screen", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
-  test("swaps the peak column for the best position's, with its abbreviation", async ({ page }) => {
+  // Two tests, one axe scan each: in WebKit a scan of the full list takes 7-8 s, and both in one test
+  // ran close to the 30 s timeout.
+  test("explains the choice of the best position's peak", async ({ page }) => {
     await loadCareer(page);
     await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
-    await expect(peakHeader(page)).toBeVisible();
-    await expect(bestPeakHeader(page)).toHaveCount(0);
-    // Without the choice the peak cell is a bare rating, with no position beside it.
-    await expect((await firstCellOf(page, "Szczyt OVR")).locator(".position")).toHaveCount(0);
     await page
       .getByRole("button", { name: "Wyjaśnienie: Szczyt OVR na jego najlepszej pozycji" })
       .click();
@@ -100,6 +99,15 @@ test.describe("peak at the best position, wide screen", () => {
     // And that the order of those rules can change.
     await expect(page.getByText(/Kolejność reguł zmienisz/u)).toBeVisible();
     await expectNoAxeViolations(page);
+  });
+
+  test("swaps the peak column for the best position's, with its abbreviation", async ({ page }) => {
+    await loadCareer(page);
+    await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
+    await expect(peakHeader(page)).toBeVisible();
+    await expect(bestPeakHeader(page)).toHaveCount(0);
+    // Without the choice the peak cell is a bare rating, with no position beside it.
+    await expect((await firstCellOf(page, "Szczyt OVR")).locator(".position")).toHaveCount(0);
     await peakAtBestBox(page).check();
     await expect(peakHeader(page)).toHaveCount(0);
     await expect(bestPeakHeader(page)).toBeVisible();
@@ -191,6 +199,33 @@ test.describe("peak at the best position, order of the tie rules", () => {
     await expect(reset).toBeDisabled();
     // The reset button goes off: the keyboard moves to the first rule.
     await expect(rules.first().getByRole("button")).toBeFocused();
+  });
+
+  test("changes a tied best peak position with the order and back with the reset", async ({
+    page,
+  }) => {
+    await loadCareer(page);
+    await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
+    await peakAtBestBox(page).check();
+    // Tomasz Remis, a centre-back with no team, peaks alike at RCB, CB and LCB.
+    await page.getByText("Klub i kontrakt").click();
+    await page.getByRole("radio", { name: "niedostępni w karierze" }).check();
+    await page.getByRole("searchbox", { name: "Nazwisko" }).fill("remis");
+    await expectCount(page, "1 zawodnik");
+    const cell = await firstCellOf(page, "Najlepszy szczyt");
+    // The diamond's RCB and LCB, then RCB on his right foot.
+    await expect(cell).toHaveAccessibleName("61 RCB");
+    const up = page.getByRole("button", { name: "W górę: pozycja preferowana" });
+    // One place up the preferred position still follows the formation, which leaves no CB.
+    await up.click();
+    await expect(cell).toHaveAccessibleName("61 RCB");
+    await up.click();
+    await up.click();
+    // Above the formation it keeps his own CB.
+    await expect(tieRules(page).first()).toHaveText(/^pozycja preferowana/u);
+    await expect(cell).toHaveAccessibleName("61 CB");
+    await page.getByRole("button", { name: "Przywróć domyślną kolejność" }).click();
+    await expect(cell).toHaveAccessibleName("61 RCB");
   });
 });
 
