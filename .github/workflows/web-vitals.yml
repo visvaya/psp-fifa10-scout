@@ -1,0 +1,72 @@
+name: Web vitals
+
+# Advisory lab measurement of the production build (scripts/measure-web-vitals.ts): LCP, CLS, a TBT
+# stand-in and transferred bytes on the start screen and the player list with the synthetic game, three
+# runs each with the CPU slowed, medians in the job summary and as an artifact. Not a required check and
+# nothing waits for it: a value past its "good" boundary only warns. Shared runners make the millisecond
+# values noisy, so the numbers are a trend to read, not a gate.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    # What changes the built app or how it is measured.
+    paths:
+      - "src/**"
+      - "public/**"
+      - "index.html"
+      - "vite.config.ts"
+      - "tsconfig.json"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".nvmrc"
+      - "scripts/measure-web-vitals.ts"
+      - "scripts/web-vitals-summary.ts"
+      - "scripts/write-synthetic-db.ts"
+      - "scripts/write-service-worker.ts"
+      - "scripts/service-worker-template.js"
+      - "scripts/check-deployment.ts"
+      - ".github/workflows/web-vitals.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  web-vitals:
+    name: web-vitals
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    # The e2e job's image: the Chromium that @playwright/test pins, with its system packages.
+    # scripts/check-playwright-image.ts fails verify when it falls behind @playwright/test.
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:2f05f8a734509a7b3f26a912639488ee08f58a7b292d14d62271bcff9038768f
+      options: --user 1001
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          check-latest: true # newest patch of the .nvmrc line; no bot updates .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Measure the start screen and the player list
+        run: |
+          pnpm measure:web-vitals
+          cat reports/web-vitals/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: web-vitals
+          path: reports/web-vitals/
+          if-no-files-found: ignore
+          retention-days: 14
