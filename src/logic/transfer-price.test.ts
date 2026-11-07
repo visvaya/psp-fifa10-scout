@@ -9,12 +9,6 @@ import {
 } from "./transfer-price.ts";
 import type { PriceInput } from "./transfer-price.ts";
 
-/** The price and the market wage as the game shows them in a currency of this rate. */
-const transferPrice = (input: PriceInput, rate = 1): number =>
-  roundPrice(priceInEuro(input) * rate);
-const marketWage = (input: PriceInput, bosman: boolean, rate = 1): number =>
-  roundPrice(wageInEuro(input, bosman) * rate);
-
 /** OVR + OVR in five years = 195, the divider: the base is exactly 100 000 + 39 000 000. */
 const BASE = 39_100_000;
 
@@ -62,14 +56,14 @@ describe("the game's money rounding", () => {
 
 describe("transferPrice", () => {
   it("is zero without contract years left", () => {
-    expect(transferPrice({ ...NEUTRAL, contractYearsLeft: 0 })).toBe(0);
-    expect(transferPrice({ ...NEUTRAL, contractYearsLeft: -1 })).toBe(0);
+    expect(roundPrice(priceInEuro({ ...NEUTRAL, contractYearsLeft: 0 }))).toBe(0);
+    expect(roundPrice(priceInEuro({ ...NEUTRAL, contractYearsLeft: -1 }))).toBe(0);
   });
 
   it("grows the base with OVR and OVR in five years", () => {
-    expect(transferPrice(NEUTRAL)).toBe(priceWith(0));
+    expect(roundPrice(priceInEuro(NEUTRAL))).toBe(priceWith(0));
     const lower = { ...NEUTRAL, overall: 70, overallIn5Years: 60 };
-    expect(transferPrice(lower)).toBe(
+    expect(roundPrice(priceInEuro(lower))).toBe(
       roundPrice((100_000 + 39_000_000 * (130 / 195) ** 11) * 1.25 * 0.85),
     );
   });
@@ -80,7 +74,9 @@ describe("transferPrice", () => {
     [4, 0.3],
     [7, 0.3],
   ])("adjusts for %d contract years left", (years, k) => {
-    expect(transferPrice({ ...NEUTRAL, contractYearsLeft: years })).toBe(priceWith(k - 0.3));
+    expect(roundPrice(priceInEuro({ ...NEUTRAL, contractYearsLeft: years }))).toBe(
+      priceWith(k - 0.3),
+    );
   });
 
   it.each([
@@ -88,7 +84,9 @@ describe("transferPrice", () => {
     [4, 0.1],
     [5, 0.35],
   ])("adjusts for international reputation %d", (reputation, k) => {
-    expect(transferPrice({ ...NEUTRAL, internationalReputation: reputation })).toBe(priceWith(k));
+    expect(roundPrice(priceInEuro({ ...NEUTRAL, internationalReputation: reputation }))).toBe(
+      priceWith(k),
+    );
   });
 
   it.each([
@@ -101,7 +99,7 @@ describe("transferPrice", () => {
     [35, -0.3],
     [36, -0.6],
   ])("adjusts for age %d", (age, k) => {
-    expect(transferPrice({ ...NEUTRAL, age })).toBe(priceWith(k));
+    expect(roundPrice(priceInEuro({ ...NEUTRAL, age }))).toBe(priceWith(k));
   });
 
   it.each([
@@ -110,7 +108,7 @@ describe("transferPrice", () => {
     [40, -0.3],
     [41, -0.6],
   ])("counts a goalkeeper five years younger in the oldest bands, age %d", (age, k) => {
-    expect(transferPrice({ ...NEUTRAL, positionCode: 0, age })).toBe(priceWith(k, 0.6));
+    expect(roundPrice(priceInEuro({ ...NEUTRAL, positionCode: 0, age }))).toBe(priceWith(k, 0.6));
   });
 
   it.each([
@@ -125,7 +123,7 @@ describe("transferPrice", () => {
     [-1, 98, -0.05],
   ])("adjusts for playing style %d at OVR %d", (playingStyle, overall, k) => {
     const input = { ...NEUTRAL, playingStyle, overall, overallIn5Years: 195 - overall };
-    expect(transferPrice(input)).toBe(priceWith(k + 0.05));
+    expect(roundPrice(priceInEuro(input))).toBe(priceWith(k + 0.05));
   });
 
   it.each([
@@ -137,7 +135,7 @@ describe("transferPrice", () => {
     [9, -0.25],
     [8, -0.35],
   ])("adjusts for league and team prestige %d", (prestige, k) => {
-    expect(transferPrice({ ...NEUTRAL, prestige })).toBe(priceWith(k));
+    expect(roundPrice(priceInEuro({ ...NEUTRAL, prestige }))).toBe(priceWith(k));
   });
 
   it.each([
@@ -149,20 +147,20 @@ describe("transferPrice", () => {
     [1.15, [26, 31]],
   ])("multiplies by %s at positions %j", (multiplier, codes) => {
     for (const positionCode of codes) {
-      expect(transferPrice({ ...NEUTRAL, positionCode })).toBe(priceWith(0, multiplier));
+      expect(roundPrice(priceInEuro({ ...NEUTRAL, positionCode }))).toBe(priceWith(0, multiplier));
     }
   });
 
   it("skips an adjustment that would take the total to exactly zero", () => {
     // 1 - 0.1 (1 year) - 0.6 (age) - 0.05 (style) - 0.25 (prestige 9) = 0.
     const input = { ...NEUTRAL, contractYearsLeft: 1, age: 36, prestige: 9 };
-    expect(transferPrice(input)).toBe(roundPrice(BASE * 0.25 * 0.85));
+    expect(roundPrice(priceInEuro(input))).toBe(roundPrice(BASE * 0.25 * 0.85));
   });
 
   it("skips an adjustment that would take the total to zero or below", () => {
     // 1 - 0.1 (1 year) - 0.6 (age) - 0.05 (style) = 0.25; prestige -0.35 would end below zero.
     const input = { ...NEUTRAL, contractYearsLeft: 1, age: 36, prestige: 8 };
-    expect(transferPrice(input)).toBe(roundPrice(BASE * 0.25 * 0.85));
+    expect(roundPrice(priceInEuro(input))).toBe(roundPrice(BASE * 0.25 * 0.85));
   });
 });
 
@@ -174,15 +172,15 @@ const wageWith = (k: number, factor = 1): number =>
 
 describe("marketWage", () => {
   it("follows the wage formula", () => {
-    expect(marketWage(WAGE_NEUTRAL, false)).toBe(wageWith(-0.2));
+    expect(roundPrice(wageInEuro(WAGE_NEUTRAL, false))).toBe(wageWith(-0.2));
     const lower = { ...WAGE_NEUTRAL, overall: 60, overallIn5Years: 50, prestige: 20 };
-    expect(marketWage(lower, false)).toBe(
+    expect(roundPrice(wageInEuro(lower, false))).toBe(
       roundPrice((10_000 + 500 + -0.25 * 10_000) * 3 * ((110 / 200) ** 5 + 0.05)),
     );
   });
 
   it("adds the free-transfer factor", () => {
-    expect(marketWage(WAGE_NEUTRAL, true)).toBe(wageWith(-0.2, 1.3));
+    expect(roundPrice(wageInEuro(WAGE_NEUTRAL, true))).toBe(wageWith(-0.2, 1.3));
   });
 
   it.each([
@@ -192,7 +190,7 @@ describe("marketWage", () => {
     [31, 0.1],
     [36, -0.2],
   ])("adjusts for age %d", (age, k) => {
-    expect(marketWage({ ...WAGE_NEUTRAL, age }, false)).toBe(wageWith(k));
+    expect(roundPrice(wageInEuro({ ...WAGE_NEUTRAL, age }, false))).toBe(wageWith(k));
   });
 
   it.each([
@@ -204,13 +202,15 @@ describe("marketWage", () => {
     [7, -0.1],
     [0, -0.1],
   ])("adjusts for position %d", (positionCode, k) => {
-    expect(marketWage({ ...WAGE_NEUTRAL, positionCode }, false)).toBe(wageWith(k - 0.2));
+    expect(roundPrice(wageInEuro({ ...WAGE_NEUTRAL, positionCode }, false))).toBe(
+      wageWith(k - 0.2),
+    );
   });
 
   it("adjusts for playing style and international reputation", () => {
     const input = { ...WAGE_NEUTRAL, playingStyle: 2, internationalReputation: 5 };
-    expect(marketWage(input, false)).toBe(wageWith(-0.2 + 0.25 + 0.2));
-    expect(marketWage({ ...WAGE_NEUTRAL, internationalReputation: 4 }, false)).toBe(
+    expect(roundPrice(wageInEuro(input, false))).toBe(wageWith(-0.2 + 0.25 + 0.2));
+    expect(roundPrice(wageInEuro({ ...WAGE_NEUTRAL, internationalReputation: 4 }, false))).toBe(
       wageWith(-0.2 + 0.1),
     );
   });
@@ -222,8 +222,8 @@ describe("currency", () => {
   });
 
   it("converts to the selected currency before rounding", () => {
-    expect(transferPrice(NEUTRAL, 0.86)).toBe(priceWith(0, 0.85 * 0.86));
-    expect(marketWage(WAGE_NEUTRAL, true, 1.41)).toBe(wageWith(-0.2, 1.3 * 1.41));
+    expect(roundPrice(priceInEuro(NEUTRAL) * 0.86)).toBe(priceWith(0, 0.85 * 0.86));
+    expect(roundPrice(wageInEuro(WAGE_NEUTRAL, true) * 1.41)).toBe(wageWith(-0.2, 1.3 * 1.41));
   });
 
   // The game's screen on 2009-08-15 (notes, game knowledge): one budget in the three currencies.

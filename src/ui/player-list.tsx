@@ -58,7 +58,7 @@ export interface ListProps {
   readonly ratingCode: number | null;
   /** That position's name in the game language; null without that filter. */
   readonly ratingName: string | null;
-  /** The career's currency, null without a career. */
+  /** The currency money shows in, null without a career. */
   readonly currency: CurrencyCode | null;
   readonly dispatch: Dispatch<ScoutAction>;
 }

@@ -273,6 +273,7 @@ export const TEXT = {
   currencyStep: pl`4. Waluta`,
   currencySelect: pl`Ceny i zarobki w walucie`,
   /** In the order of the game's menu. */
+  currencyFromCareer: (code: CurrencyCode): string => `Jak w karierze (${CURRENCY_SYMBOLS[code]})`,
   currencies: [
     [1, "Funt (£)"],
     [0, "Euro (€)"],
@@ -313,7 +314,7 @@ export const TEXT = {
   groupList: (labels: readonly string[]): string =>
     labels.map((label, index) => (index === 0 ? label : label.toLocaleLowerCase("pl"))).join(" / "),
   ratingGain: "Różnica do OVR",
-  /** A price or wage label with the career's currency (once for a column or a filter); others as they are. */
+  /** A price or wage label with the shown currency (once for a column or a filter); others as they are. */
   withCurrency: (key: string, label: string, currency: CurrencyCode | null): string =>
     (key === "price" || key === "wage") && currency !== null
       ? `${label} (${CURRENCY_SYMBOLS[currency]})`

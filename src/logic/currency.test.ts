@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { isCurrency, moneyFiltersIn, pricedIn, shownCurrency } from "./currency.ts";
+import { isCurrencyCode } from "../data/career-save.ts";
+import { moneyFiltersIn, pricedIn, shownCurrency } from "./currency.ts";
 import { DEFAULT_SORT } from "./scout-state.ts";
 import { createScoutStore, memoryBackend, SCHEMA_VERSION } from "./scout-store.ts";
 import { TEST_CAREER, testPlayer } from "./test-support/player-fixtures.ts";
@@ -19,9 +20,9 @@ describe("shownCurrency", () => {
   });
 });
 
-describe("isCurrency", () => {
+describe("isCurrencyCode", () => {
   it("accepts the three currency codes only", () => {
-    expect([0, 1, 2, 3, -1, "1", null].map(isCurrency)).toEqual([
+    expect([0, 1, 2, 3, -1, "1", null].map(isCurrencyCode)).toEqual([
       true,
       true,
       true,

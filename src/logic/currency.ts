@@ -3,19 +3,19 @@
 // keep the same amount of money in the new currency.
 import type { CurrencyCode } from "../data/career-save.ts";
 import type { Range } from "./filter-players.ts";
+import type { CareerSummary } from "./load-scout.ts";
 import type { Player } from "./players.ts";
 import type { ScoutFilters, ScoutState } from "./scout-state.ts";
 import { exchangeRate, moneyIn } from "./transfer-price.ts";
-
-export const isCurrency = (value: unknown): value is CurrencyCode =>
-  value === 0 || value === 1 || value === 2;
 
 /** The currency money shows in; null without a career, which alone has money. */
 export const shownCurrency = ({
   career,
   currency,
-}: Pick<ScoutState, "career" | "currency">): CurrencyCode | null =>
-  career === null ? null : (currency ?? career.currency);
+}: {
+  readonly career: Pick<CareerSummary, "currency"> | null;
+  readonly currency?: CurrencyCode;
+}): CurrencyCode | null => (career === null ? null : (currency ?? career.currency));
 
 /** The players with their prices and wages in a currency, from their euro amounts. */
 export const pricedIn = (players: readonly Player[], currency: CurrencyCode): readonly Player[] => {
@@ -55,14 +55,19 @@ export const moneyFiltersIn = (
   return { ...filters, ranges: { ...ranges, ...Object.fromEntries(money) } };
 };
 
-/** The chosen currency, with the players and the money filters' bounds in it (undo.ts clears the steps). */
-export const currencyChosen = (state: ScoutState, currency: CurrencyCode): ScoutState => {
-  const from = shownCurrency(state);
-  const chosen = { ...state, currency };
-  return from === null
-    ? chosen
-    : withShownCurrency(state, {
-        ...chosen,
-        filters: moneyFiltersIn(state.filters, from, currency),
-      });
+/**
+ * The chosen currency, null the career's (left unset, so the next career shows its own), with the
+ * players and the money bounds of the filters and of the undo steps in it.
+ */
+export const currencyChosen = (state: ScoutState, currency: CurrencyCode | null): ScoutState => {
+  const { currency: _previous, ...rest } = state;
+  const chosen = currency === null ? rest : { ...rest, currency };
+  const [from, to] = [shownCurrency(state), shownCurrency(chosen)];
+  if (from === null || to === null) return chosen;
+  const converted = (filters: ScoutFilters) => moneyFiltersIn(filters, from, to);
+  return withShownCurrency(state, {
+    ...chosen,
+    filters: converted(state.filters),
+    undo: state.undo.map((step) => ({ ...step, filters: converted(step.filters) })),
+  });
 };

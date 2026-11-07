@@ -10,7 +10,7 @@ import { SCOUT_CONFIG } from "./config.ts";
 import { exchangeRate, moneyIn, priceInEuro, wageInEuro } from "./transfer-price.ts";
 import type { EuroMoney, PriceInput } from "./transfer-price.ts";
 
-/** Shown in the save's currency; the euro amounts let another currency be shown without a new load. */
+/** Priced in the save's currency; the euro amounts let the reducer show another without a new load. */
 export interface Finance extends EuroMoney {
   /** The asking price; 0 when the contract has run out, null for a loaned player. */
   readonly price: number | null;

@@ -116,7 +116,8 @@ test.describe("career currency", () => {
 
     await page.getByRole("button", { name: "Pliki" }).click();
     const select = page.getByLabel("Ceny i zarobki w walucie");
-    await expect(select).toHaveValue("0");
+    await expect(select).toHaveValue("");
+    await expect(select).toHaveAccessibleDescription(/^Kwoty są liczone/u);
     await select.selectOption({ label: "Dolar ($)" });
     await expectNoAxeViolations(page);
     await page.getByRole("button", { name: /^Pokaż zawodników/u }).click();

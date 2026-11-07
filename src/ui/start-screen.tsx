@@ -1,5 +1,5 @@
 import type { ChangeEvent, Dispatch, JSX, ReactNode } from "react";
-import { isCurrency, shownCurrency } from "../logic/currency.ts";
+import { isCurrencyCode } from "../data/career-save.ts";
 import { languageLabel } from "../logic/game-names.ts";
 import type { LoadStage } from "../logic/load-scout.ts";
 import { isRestoring, listedCount } from "../logic/scout-state.ts";
@@ -92,6 +92,8 @@ const StepSelect = (props: {
   readonly label: string;
   readonly value: string;
   readonly options: readonly (readonly [string, string])[];
+  /** The id of the step's help. */
+  readonly describedBy: string;
   readonly onChoice: (value: string) => void;
 }): JSX.Element => (
   <div className="field">
@@ -99,6 +101,7 @@ const StepSelect = (props: {
     <select
       id={props.id}
       value={props.value}
+      aria-describedby={props.describedBy}
       onChange={(event) => {
         props.onChoice(event.currentTarget.value);
       }}
@@ -137,6 +140,7 @@ const LanguageStep = ({
       <StepSelect
         id="game-language"
         label={TEXT.languageSelect}
+        describedBy="locale-help"
         value={language ?? ""}
         options={[
           ["", TEXT.languageFromDb],
@@ -159,27 +163,32 @@ const LanguageStep = ({
   />
 );
 
-/** The currency money shows in; only a career has money, so only with one. */
+/** The currency money shows in, by default the career's; only a career has money, so only with one. */
 const CurrencyStep = ({
   state,
   dispatch,
 }: Pick<StartScreenProps, "state" | "dispatch">): JSX.Element | null => {
-  const currency = shownCurrency(state);
-  if (currency === null) return null;
+  if (state.career === null) return null;
   return (
     <div className="step">
       <h3>{TEXT.currencyStep}</h3>
       <StepSelect
         id="currency"
         label={TEXT.currencySelect}
-        value={String(currency)}
-        options={TEXT.currencies.map(([code, label]) => [String(code), label] as const)}
+        describedBy="currency-help"
+        value={state.currency === undefined ? "" : String(state.currency)}
+        options={[
+          ["", TEXT.currencyFromCareer(state.career.currency)],
+          ...TEXT.currencies.map(([code, label]) => [String(code), label] as const),
+        ]}
         onChoice={(chosen) => {
           const code = Number(chosen);
-          if (isCurrency(code)) dispatch({ type: "currency-chosen", currency: code });
+          const currency = chosen === "" ? null : code;
+          if (currency === null || isCurrencyCode(currency))
+            dispatch({ type: "currency-chosen", currency });
         }}
       />
-      <div className="help">
+      <div id="currency-help" className="help">
         <p>{TEXT.currencyHelp}</p>
       </div>
     </div>

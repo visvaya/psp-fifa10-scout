@@ -25,7 +25,7 @@ import type {
 import type { SaveFiles } from "./load-scout.ts";
 import { OVR_WEIGHTS } from "./overall-rating.ts";
 import { POSITION_GROUPS, ratingCodeOf } from "./positions.ts";
-import { isCurrency } from "./currency.ts";
+import { isCurrencyCode } from "../data/career-save.ts";
 import { compactFilters, DEFAULT_SORT, inRecordOrder } from "./scout-state.ts";
 import type { MyClub, Preferences, ScoutFilters, ScoutSort } from "./scout-state.ts";
 import type { ColumnPreference } from "./column-preference.ts";
@@ -199,7 +199,7 @@ const parseFilterSets = (value: unknown): readonly FilterSet[] => {
         name: trimmed,
         filters: compactFilters(parseFilters(filters)),
         sort: parseSort(sort),
-        ...(isCurrency(currency) ? { currency } : {}),
+        ...(isCurrencyCode(currency) ? { currency } : {}),
       },
     ];
   });
@@ -224,7 +224,7 @@ const parsePreferences = (value: unknown): Preferences | null => {
     ...(typeof value["gameLanguage"] === "string" || value["gameLanguage"] === null
       ? { gameLanguage: value["gameLanguage"] }
       : {}),
-    ...(isCurrency(value["currency"]) ? { currency: value["currency"] } : {}),
+    ...(isCurrencyCode(value["currency"]) ? { currency: value["currency"] } : {}),
   };
 };
 

@@ -40,9 +40,28 @@ describe("choosing the currency", () => {
     const dollars = scoutReducer(pounds, { type: "currency-chosen", currency: 2 });
     expect(moneyOf(dollars)).toEqual([{ price: 22_000_000, wage: 12_000 }]);
     expect(dollars.filters.ranges?.price).toEqual({ min: 1_410_000 });
-    // Undo would bring back bounds in the earlier currency.
-    expect(filtered.undo).not.toEqual([]);
-    expect(pounds.undo).toEqual([]);
+  });
+
+  it("converts the undo steps' money bounds too, the other undo steps kept", () => {
+    const filtered = scoutReducer(withSet(), {
+      type: "filters-changed",
+      filters: { ranges: { price: { max: 1_000_000 } } },
+    });
+    const deleted = scoutReducer(filtered, { type: "filter-set-deleted", name: "Tani" });
+    const dollars = scoutReducer(deleted, { type: "currency-chosen", currency: 2 });
+    const restored = scoutReducer(dollars, { type: "undo" });
+    expect(restored.filterSets).toEqual([expect.objectContaining({ name: "Tani" })]);
+    expect(restored.filters.ranges?.price).toEqual({ max: 1_410_000 });
+    const before = scoutReducer(restored, { type: "undo" });
+    expect(before.filters.ranges?.price).toEqual({ max: 2_820_000 });
+  });
+
+  it("goes back to the career's currency, left unset for the next career", () => {
+    const dollars = scoutReducer(withSet(), { type: "currency-chosen", currency: 2 });
+    const career = scoutReducer(dollars, { type: "currency-chosen", currency: null });
+    expect(career).not.toHaveProperty("currency");
+    expect(moneyOf(career)).toEqual([{ price: 15_000_000, wage: 8700 }]);
+    expect(career.filters.ranges?.price).toEqual({ max: 2_000_000 });
   });
 
   it("is kept without a career, for the next career to load in", () => {
@@ -94,7 +113,8 @@ describe("filter sets and the currency", () => {
     expect(loaded.filters.ranges?.price).toEqual({ max: 2_820_000 });
   });
 
-  it("takes the amounts of a set saved without a currency as in the shown one", () => {
+  // No currency could be chosen when it was saved: its amounts are in the career's (euro here).
+  it("takes the amounts of a set saved without a currency as in the career's", () => {
     const old = {
       name: "Stary",
       filters: { ranges: { price: { max: 5 } } },
@@ -105,6 +125,6 @@ describe("filter sets and the currency", () => {
       { type: "currency-chosen", currency: 2 },
     );
     const loaded = scoutReducer(dollars, { type: "filter-set-loaded", name: "Stary" });
-    expect(loaded.filters.ranges?.price).toEqual({ max: 5 });
+    expect(loaded.filters.ranges?.price).toEqual({ max: 7 });
   });
 });

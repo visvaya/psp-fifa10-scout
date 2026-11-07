@@ -1,6 +1,6 @@
 // The app state as a reducer with pure transitions, and the pure view helpers the screens share.
 import type { CurrencyCode } from "../data/career-save.ts";
-import { currencyChosen, shownCurrency, withShownCurrency } from "./currency.ts";
+import { currencyChosen, withShownCurrency } from "./currency.ts";
 import {
   bounded,
   CAREER_FLAG_KEYS,
@@ -105,7 +105,8 @@ export interface ScoutState extends Preferences {
   readonly watchlistEdited: boolean;
 }
 
-type CurrencyAction = { readonly type: "currency-chosen"; readonly currency: CurrencyCode };
+/** Null goes back to the career's currency. */
+type CurrencyAction = { readonly type: "currency-chosen"; readonly currency: CurrencyCode | null };
 
 type LoadAction =
   | {
@@ -332,7 +333,7 @@ const withoutCareer = ({ filters, sort }: Pick<Preferences, "filters" | "sort">)
 
 /** A filter set's action; a set loaded without a career leaves out what needs one, the set itself kept. */
 const withFilterSets = (state: ScoutState, action: FilterSetAction): ScoutState => {
-  const next = filterSetsAfter(state, action, shownCurrency(state));
+  const next = filterSetsAfter(state, action, state.career);
   const fitted =
     action.type === "filter-set-loaded" && state.myTeamId === null
       ? { ...next, ...withoutCareer(next) }

@@ -48,7 +48,7 @@ interface FilterFormProps {
   readonly showPotential: boolean;
   /** The settings "Cofnij" and "Resetuj" act on. */
   readonly settings: Settings;
-  /** The career's currency, shown with the price and the wage; null without a career. */
+  /** The currency money shows in, named with the price and the wage; null without a career. */
   readonly currency: CurrencyCode | null;
   /** The columns the list shows: each filter's eye is open while its column is among them. */
   readonly columns: readonly SortKey[];
