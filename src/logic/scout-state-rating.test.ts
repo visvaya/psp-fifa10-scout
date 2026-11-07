@@ -20,6 +20,7 @@ const loaded = (state: ScoutState, myTeamId: number | null): ScoutState =>
     players: [testPlayer()],
     myTeamId,
     career: null,
+    curves: new Map(),
     languages: {},
     attachedLanguage: null,
   });

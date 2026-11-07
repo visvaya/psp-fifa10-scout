@@ -22,6 +22,7 @@ const SUCCEEDED = {
   players: PLAYERS,
   myTeamId: null,
   career: null,
+  curves: new Map(),
   languages: {},
   attachedLanguage: null,
 } as const;
@@ -85,6 +86,8 @@ describe("scoutReducer loading", () => {
     });
     const career = TEST_CAREER;
     expect(scoutReducer(loadingState(), { ...SUCCEEDED, myTeamId: 5, career }).career).toBe(career);
+    const curves = new Map([[1, [50]]]);
+    expect(scoutReducer(loadingState(), { ...SUCCEEDED, curves }).curves).toBe(curves);
   });
 
   it("ignores phases and results of a superseded load", () => {
@@ -400,6 +403,7 @@ describe("actionOf", () => {
       players: PLAYERS,
       myTeamId: 7,
       career: null,
+      curves: new Map(),
       gameDb: Uint8Array.of(1),
       languages,
       attachedLanguage: "pol_pl",
@@ -410,6 +414,7 @@ describe("actionOf", () => {
       players: PLAYERS,
       myTeamId: 7,
       career: null,
+      curves: new Map(),
       languages,
       attachedLanguage: "pol_pl",
     });

@@ -18,6 +18,7 @@ const loadSucceeded = (requestId: number): ScoutAction => ({
   players: [],
   myTeamId: null,
   career: null,
+  curves: new Map(),
   languages: {},
   attachedLanguage: null,
 });

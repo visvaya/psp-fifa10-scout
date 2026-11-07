@@ -7,6 +7,7 @@ const RESULT: LoadResult = {
   players: [],
   myTeamId: null,
   career: null,
+  curves: new Map(),
   gameDb: Uint8Array.of(9),
   languages: {},
   attachedLanguage: null,

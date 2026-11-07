@@ -1,5 +1,4 @@
 // The app state as a reducer with pure transitions, and the pure view helpers the screens share.
-import { SCOUT_CONFIG } from "./config.ts";
 import {
   bounded,
   CAREER_FLAG_KEYS,
@@ -17,6 +16,7 @@ import type { FlagKey, ListKey, PlayerFilters, RangeKey } from "./filter-players
 import { defaultLanguage } from "./game-names.ts";
 import type { GameLanguages } from "./game-names.ts";
 import type { CareerSummary, LoadError, LoadPhase, WorkerMessage } from "./load-scout.ts";
+import type { Curves } from "./overall-rating.ts";
 import type { Player } from "./players.ts";
 import { nextDirection, POTENTIAL_KEYS, RATING_SORT_KEYS } from "./sort-players.ts";
 import type { SortDirection, SortKey } from "./sort-players.ts";
@@ -79,6 +79,8 @@ export interface ScoutState extends Preferences {
   readonly players: readonly Player[] | null;
   readonly myTeamId: number | null;
   readonly career: CareerSummary | null;
+  /** The loaded game's development curves; empty before a game loads. */
+  readonly curves: Curves;
   readonly loading: {
     readonly requestId: number;
     readonly phase: LoadPhase;
@@ -114,6 +116,7 @@ type LoadAction =
       readonly players: readonly Player[];
       readonly myTeamId: number | null;
       readonly career: CareerSummary | null;
+      readonly curves: Curves;
       readonly languages: GameLanguages;
       /** An attached language file's code; it becomes the chosen language. */
       readonly attachedLanguage: string | null;
@@ -148,6 +151,7 @@ export const initialScoutState: ScoutState = {
   players: null,
   myTeamId: null,
   career: null,
+  curves: new Map(),
   gameName: null,
   loading: null,
   error: null,
@@ -353,6 +357,7 @@ const loadReducer = (state: ScoutState, action: LoadAction): ScoutState => {
         players: action.players,
         myTeamId: action.myTeamId,
         career: action.career,
+        curves: action.curves,
         ...(action.myTeamId === null ? withoutCareer(state) : {}),
         gameName: loading.gameName === undefined ? state.gameName : loading.gameName,
         languages: { ...state.languages, ...action.languages },
@@ -464,16 +469,6 @@ export const activeLanguage = (
 ): string | null => {
   if (gameLanguage === undefined) return defaultLanguage(Object.keys(languages), browserLanguages);
   return gameLanguage !== null && Object.hasOwn(languages, gameLanguage) ? gameLanguage : null;
-};
-
-export type AttributeBand = "high" | "good" | "average" | "low";
-
-/** The FIFA colour band of an attribute or potential value. */
-export const attributeBand = (value: number): AttributeBand => {
-  const { high, good, average } = SCOUT_CONFIG.attributeBandMin;
-  if (value >= high) return "high";
-  if (value >= good) return "good";
-  return value >= average ? "average" : "low";
 };
 
 /** How many players the list shows with the current filters, for the start screen's button. */

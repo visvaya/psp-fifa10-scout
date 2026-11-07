@@ -261,6 +261,8 @@ export const RangeField = (props: {
 export interface Choice<T> {
   readonly value: T;
   readonly label: string;
+  /** Shown after the label, such as a style's curve. */
+  readonly mark?: JSX.Element | null;
 }
 
 /** One checkbox with its explanation behind a "?" after it. */
@@ -323,6 +325,7 @@ const ChoiceList = <T extends string | number>(props: {
           }}
         />
         {choice.label}
+        {choice.mark}
       </label>
     ))}
   </div>
