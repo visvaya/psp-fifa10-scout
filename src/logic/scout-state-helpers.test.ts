@@ -18,11 +18,14 @@ describe("activeFilters", () => {
       activeFilters({
         myClub: "hide",
         clubStatus: "free-agents",
+        onList: "none",
         text: "a",
         lists: { leagueId: [1], clubId: [] },
         flags: { selfish: false, transferListed: undefined },
       }),
-    ).toEqual(["text", "lists.leagueId", "flags.selfish", "clubStatus", "myClub"]);
+    ).toEqual(["text", "lists.leagueId", "flags.selfish", "onList", "clubStatus", "myClub"]);
+    expect(activeFilters({ clubStatus: "with-club" })).toEqual(["clubStatus"]);
+    expect(activeFilters({ clubStatus: "unavailable", onList: undefined })).toEqual(["clubStatus"]);
   });
 });
 
@@ -37,6 +40,7 @@ describe("compactFilters", () => {
         excludedLists: { clubId: true },
         flags: { selfish: undefined },
         clubStatus: "available",
+        onList: undefined,
         myClub: undefined,
       }),
     ).toStrictEqual({});
@@ -49,7 +53,8 @@ describe("compactFilters", () => {
       lists: { leagueId: [1] },
       excludedLists: { leagueId: true },
       flags: { selfish: false },
-      clubStatus: "free-agents",
+      onList: "both",
+      clubStatus: "unavailable",
       myClub: "hide",
     } as const;
     expect(compactFilters(active)).toStrictEqual(active);

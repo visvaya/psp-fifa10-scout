@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { filterPlayers, peakField, rangedAttributes } from "./filter-players.ts";
-import type { PlayerFilters } from "./filter-players.ts";
+import type { ClubStatus, ListMembership, PlayerFilters } from "./filter-players.ts";
 import { attributes, testPlayer } from "./test-support/player-fixtures.ts";
 
 const PLAYERS = [
@@ -62,12 +62,13 @@ const ids = (filters: PlayerFilters): readonly number[] =>
 // shortlist, not signed.
 const CLUBLESS = [
   testPlayer({ id: 5, name: "Academy", clubId: null, youth: true, academy: true }),
-  testPlayer({ id: 6, name: "Legend", clubId: null }),
+  testPlayer({ id: 6, name: "Legend", clubId: null, nationalTeamId: 1369 }),
   testPlayer({ id: 7, name: "Free youth", clubId: null, youth: true, freeAgent: true }),
   testPlayer({ id: 8, name: "Scouted", clubId: null, youth: true }),
 ];
 const idsWithClubless = (filters: PlayerFilters) =>
   filterPlayers([...PLAYERS, ...CLUBLESS], filters).map((player) => player.id);
+const status = (clubStatus: ClubStatus) => idsWithClubless({ clubStatus });
 
 /** Players 1..4 rated id x 10 at position code 1 and 50 elsewhere, with this OVR. */
 const ratedAtCode1 = (overall = 50) =>
@@ -202,18 +203,26 @@ describe("filterPlayers", () => {
     expect(ids({ flags: { nationalTeam: false } })).toEqual([1, 3, 4]);
     expect(ids({ flags: { transferListed: true } })).toEqual([4]);
     expect(ids({ flags: { transferListed: false } })).toEqual([1, 2, 3]);
-    expect(ids({ flags: { shortlisted: true } })).toEqual([4]);
-    expect(ids({ flags: { shortlisted: false } })).toEqual([1, 2, 3]);
     // Without a career (null) a player does not count as one his club will sell.
     expect(ids({ flags: { clubWillSell: true } })).toEqual([4]);
     expect(ids({ flags: { clubWillSell: false } })).toEqual([1, 2, 3]);
   });
 
-  it("finds the players on the user's own list, or those off it", () => {
-    const myListIds = new Set([2, 3]);
-    expect(ids({ flags: { onMyList: true }, myListIds })).toEqual([2, 3]);
-    expect(ids({ flags: { onMyList: false }, myListIds })).toEqual([1, 4]);
-    expect(ids({ flags: { onMyList: true } })).toEqual([]);
+  it("keeps players by the game's shortlist and the user's own list", () => {
+    const listed = [1, 2, 3, 4].map((id) => testPlayer({ id, shortlisted: id === 2 || id === 3 }));
+    const myListIds = new Set([3, 4]);
+    const onList = (membership: ListMembership, own?: ReadonlySet<number>) =>
+      filterPlayers(listed, {
+        onList: membership,
+        ...(own === undefined ? {} : { myListIds: own }),
+      }).map((player) => player.id);
+    expect(onList("game", myListIds)).toEqual([2, 3]);
+    expect(onList("tool", myListIds)).toEqual([3, 4]);
+    expect(onList("both", myListIds)).toEqual([3]);
+    expect(onList("none", myListIds)).toEqual([1]);
+    // Without the own list's ids nobody is on it.
+    expect(onList("tool")).toEqual([]);
+    expect(onList("none")).toEqual([1, 4]);
   });
 
   // Without a stats row (null) a player never passes a range.
@@ -273,9 +282,7 @@ describe("filterPlayers", () => {
     expect(ids({ flags: { loanListed: false } })).toEqual([1, 2, 3]);
   });
 
-  it("finds free agents and excludes a team", () => {
-    expect(ids({ freeAgentsOnly: true })).toEqual([3]);
-    expect(ids({ freeAgentsOnly: false })).toEqual([1, 2, 3, 4]);
+  it("excludes a team", () => {
     expect(ids({ excludeTeamId: 10 })).toEqual([2, 3]);
   });
 
@@ -302,12 +309,27 @@ describe("filterPlayers", () => {
     expect(best.map((player) => player.id)).toEqual([1, 2]);
   });
 
-  it("counts only the game's free agents as free agents, not juniors or legends", () => {
-    expect(idsWithClubless({ freeAgentsOnly: true })).toEqual([3, 7]);
+  // 1 and 4 play for the user's club (10), 2 for another; 3 and 7 are free agents, 5 a junior of the
+  // academy, 8 a scouted junior without a club, 6 linked only to a national team.
+  it("keeps players by club status: available in a career, with a club, free or unavailable", () => {
+    expect(status("available")).toEqual([1, 2, 3, 4, 5, 7, 8]);
+    expect(status("with-club")).toEqual([1, 2, 4]);
+    expect(status("free-agents")).toEqual([3, 7]);
+    expect(status("unavailable")).toEqual([6]);
   });
 
-  it("keeps the players one can sign: with a club, free agents and juniors, not legends", () => {
-    expect(idsWithClubless({ availableOnly: true })).toEqual([1, 2, 3, 4, 5, 7, 8]);
+  it("counts as unavailable in a career exactly those not available, all of them without a club", () => {
+    const all = idsWithClubless({});
+    const split = [
+      ...idsWithClubless({ clubStatus: "available" }),
+      ...idsWithClubless({ clubStatus: "unavailable" }),
+    ];
+    expect(split.toSorted((a, b) => a - b)).toEqual(all);
+    expect(
+      filterPlayers([...PLAYERS, ...CLUBLESS], { clubStatus: "unavailable" }).every(
+        (player) => player.clubId === null && !player.freeAgent && !player.youth,
+      ),
+    ).toBe(true);
   });
 
   it("combines filters with AND", () => {

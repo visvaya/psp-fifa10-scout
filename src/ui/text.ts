@@ -5,7 +5,7 @@ import type { FlagKey, ListKey, PeakTwin, RangeFields, RangeKey } from "../logic
 import { isAttributeName } from "../logic/players.ts";
 import type { AttributeName } from "../logic/players.ts";
 import type { PositionGroup } from "../logic/positions.ts";
-import type { ClubStatus, MyClub, ScoutError } from "../logic/scout-state.ts";
+import type { ScoutError } from "../logic/scout-state.ts";
 import { NBSP, pl } from "./typeset.ts";
 
 /** By the save's currency code, as the game shows them. */
@@ -197,8 +197,6 @@ export const FLAG_LABELS: Readonly<Record<FlagKey, string>> = {
   transferListed: "Na liście transferowej",
   loanListed: "Na liście do wypożyczenia",
   loaned: "Wypożyczony",
-  shortlisted: pl`Na liście życzeń w grze`,
-  onMyList: pl`Na mojej liście`,
   clubWillSell: "Klub może go sprzedać",
 };
 
@@ -213,17 +211,6 @@ export const FILTER_SECTION_LABELS = {
 } as const;
 
 // jscpd:ignore-end
-
-export const MY_CLUB_LABELS: Readonly<Record<"all" | MyClub, string>> = {
-  all: "wszyscy zawodnicy",
-  hide: "ukryj zawodników mojego klubu",
-  only: "tylko zawodnicy mojego klubu",
-};
-
-export const CLUB_STATUS_LABELS: Readonly<Record<ClubStatus, string>> = {
-  available: pl`do sprowadzenia (z klubem i wolni)`,
-  "free-agents": "tylko wolni zawodnicy",
-};
 
 const PHASES: Readonly<Record<LoadPhase, string>> = {
   game: "Czytam plik gry…",
@@ -332,6 +319,7 @@ export const TEXT = {
   signed: (value: number): string => signed(value),
   text: "Nazwisko",
   clubStatus: "Zawodnicy",
+  onList: pl`Na liście`,
   myClub: "Mój klub",
   addAttribute: "Dodaj atrybut",
   chooseAttribute: "Wybierz atrybut",

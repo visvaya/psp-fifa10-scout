@@ -7,15 +7,14 @@ import type { FilterId, ScoutFilters } from "../logic/scout-state.ts";
 import { codeName } from "./text-code-names.ts";
 import { ratingAbbreviation } from "./position-name.tsx";
 import {
-  CLUB_STATUS_LABELS,
   FLAG_LABELS,
   formatNumber,
   LIST_LABELS,
-  MY_CLUB_LABELS,
   POSITION_GROUP_LABELS,
   rangeLabel,
   TEXT,
 } from "./text.ts";
+import { CLUB_STATUS_LABELS, LIST_MEMBERSHIP_LABELS, MY_CLUB_LABELS } from "./text-choices.ts";
 
 /** A chip names this many chosen values; it counts the rest. */
 const CHIP_VALUES_MAX = 3;
@@ -39,6 +38,7 @@ export const namesById = (players: readonly Player[]): ChipNames["byId"] => {
 const FILTER_LABELS = new Map<FilterId, string>([
   ["text", TEXT.text],
   ["positionRating", TEXT.positionRating],
+  ["onList", TEXT.onList],
   ...RANGE_KEYS.map((key) => [`ranges.${key}`, rangeLabel(key)] as const),
   ...LIST_FIELDS.map((key) => [`lists.${key}`, LIST_LABELS[key]] as const),
   ...FLAG_KEYS.map((key) => [`flags.${key}`, FLAG_LABELS[key]] as const),
@@ -106,6 +106,8 @@ const ratingText = (rating: PositionRating, names: ChipNames): string => {
 /** The value a filter takes, or "" when the name says it all. */
 const valueText = (id: FilterId, filters: ScoutFilters, names: ChipNames): string => {
   if (id === "text") return filters.text ?? "";
+  if (id === "onList")
+    return filters.onList === undefined ? "" : LIST_MEMBERSHIP_LABELS[filters.onList];
   if (id === "positionRating") {
     return filters.positionRating === undefined ? "" : ratingText(filters.positionRating, names);
   }

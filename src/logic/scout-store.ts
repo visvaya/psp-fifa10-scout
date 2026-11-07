@@ -1,18 +1,31 @@
 // The one load/save adapter: the extracted fifa.db, the career save, the filter and sort preferences and the
 // own watchlist, each stored as { schemaVersion, value } in a key-value backend (IndexedDB in the browser, memory otherwise).
-// Nothing leaves the device. Preferences 2, 3 and 4 migrate to 5, a fifa.db 1 (bare bytes) to 2 (bytes and
+// Nothing leaves the device. Preferences 2 to 5 migrate to 6, a fifa.db 1 (bare bytes) to 2 (bytes and
 // the game file's name) and languages 1 and 2 to 3 (empty for the position names they lack); any other
 // version or shape is ignored, and
 // unknown or malformed filter values and column overrides are dropped one by one (a record without the
 // columns loads as none, so they needed no new version).
 import type { GameLanguages, GameNames } from "./game-names.ts";
-import { bounded, FLAG_KEYS, LIST_FIELDS, RANGE_KEYS } from "./filter-players.ts";
-import type { ListKey, PositionRating, Range } from "./filter-players.ts";
+import {
+  bounded,
+  CLUB_STATUSES,
+  FLAG_KEYS,
+  LIST_FIELDS,
+  LIST_MEMBERSHIPS,
+  RANGE_KEYS,
+} from "./filter-players.ts";
+import type {
+  ClubStatus,
+  ListKey,
+  ListMembership,
+  PositionRating,
+  Range,
+} from "./filter-players.ts";
 import type { SaveFiles } from "./load-scout.ts";
 import { OVR_WEIGHTS } from "./overall-rating.ts";
 import { POSITION_GROUPS, ratingCodeOf } from "./positions.ts";
 import { compactFilters, DEFAULT_SORT, inRecordOrder } from "./scout-state.ts";
-import type { ClubStatus, MyClub, Preferences, ScoutFilters, ScoutSort } from "./scout-state.ts";
+import type { MyClub, Preferences, ScoutFilters, ScoutSort } from "./scout-state.ts";
 import type { ColumnPreference } from "./column-preference.ts";
 import type { FilterSet } from "./saved-filters.ts";
 import { SORTABLE_KEYS } from "./sort-players.ts";
@@ -21,12 +34,13 @@ import type { WatchEntry } from "./watchlist.ts";
 
 /**
  * Per record, so a change to the preferences keeps the stored fifa.db. Preferences 2: clubStatus;
- * 3: ranges, lists and flags, showPotential; 4: sweeper, side midfield and wingers as groups. Game
+ * 3: ranges, lists and flags, showPotential; 4: sweeper, side midfield and wingers as groups; 5: the
+ * match rating itself; 6: one list choice for the two list flags, more club statuses. Game
  * database 2: the game file's name. Languages 2: position abbreviations; 3: full position names.
  */
 export const SCHEMA_VERSION = {
   gameDb: 2,
-  preferences: 5,
+  preferences: 6,
   languages: 3,
   careerSave: 1,
   watchlist: 1,
@@ -69,8 +83,10 @@ const versioned = (record: unknown, version: number): unknown =>
 const recordOf = (value: unknown): Readonly<Record<string, unknown>> =>
   isRecord(value) ? value : {};
 
-const CLUB_STATUSES: readonly unknown[] = ["available", "free-agents"] satisfies ClubStatus[];
-const isClubStatus = (value: unknown): value is ClubStatus => CLUB_STATUSES.includes(value);
+const isClubStatus = (value: unknown): value is ClubStatus =>
+  CLUB_STATUSES.some((status) => status === value);
+const isListMembership = (value: unknown): value is ListMembership =>
+  LIST_MEMBERSHIPS.some((membership) => membership === value);
 
 const MY_CLUB: readonly unknown[] = ["hide", "only"] satisfies MyClub[];
 const isMyClub = (value: unknown): value is MyClub => MY_CLUB.includes(value);
@@ -134,7 +150,7 @@ const entriesOf = <K extends string, V>(
 const parseFilters = (value: unknown): ScoutFilters => {
   const record = recordOf(value);
   const { text, ranges, lists, excludedLists, flags, clubStatus, myClub, excludeMyClub } = record;
-  const { peakAtBest } = record;
+  const { peakAtBest, onList } = record;
   const rating = parsePositionRating(record["positionRating"]);
   return {
     ...(typeof text === "string" ? { text } : {}),
@@ -152,6 +168,7 @@ const parseFilters = (value: unknown): ScoutFilters => {
     ...(rating === undefined ? {} : { positionRating: rating }),
     ...(peakAtBest === true ? { peakAtBest } : {}),
     ...(isClubStatus(clubStatus) ? { clubStatus } : {}),
+    ...(isListMembership(onList) ? { onList } : {}),
     // excludeMyClub: the checkbox "Mój klub" replaced, kept as "hide".
     ...(isMyClub(myClub) ? { myClub } : excludeMyClub === true ? { myClub: "hide" as const } : {}),
   };
@@ -264,13 +281,50 @@ const migrateFromV4 = (value: unknown): unknown => {
   return { ...value, filters: { ...filters, ranges: { ...ranges, form } } };
 };
 
+/**
+ * The list choice for version 5's two list flags: the one that keeps the same players, or the closest.
+ * One flag set and the other cleared, or one cleared alone, has no option of its own; it differs from
+ * the closest by the few players the other list holds.
+ */
+const listChoice = (flags: Readonly<Record<string, unknown>>): ListMembership | undefined => {
+  const [tool, game] = [flags["onMyList"], flags["shortlisted"]];
+  if (tool === true) return game === true ? "both" : "tool";
+  if (game === true) return "game";
+  return tool === false || game === false ? "none" : undefined;
+};
+
+/** Filters with version 5's list flags as the list choice. */
+const listFlagsMoved = (filters: unknown): unknown => {
+  if (!isRecord(filters)) return filters;
+  const { onMyList: _tool, shortlisted: _game, ...flags } = recordOf(filters["flags"]);
+  const onList = listChoice(recordOf(filters["flags"]));
+  return { ...filters, flags, ...(onList === undefined ? {} : { onList }) };
+};
+
+const setFlagsMoved = (set: unknown): unknown =>
+  isRecord(set) ? { ...set, filters: listFlagsMoved(set["filters"]) } : set;
+
+/** Version 5 filters, and those of the saved sets, with the list choice for the two list flags. */
+const migrateFromV5 = (value: unknown): unknown => {
+  if (!isRecord(value)) return value;
+  const sets = value["filterSets"];
+  return {
+    ...value,
+    filters: listFlagsMoved(value["filters"]),
+    ...(Array.isArray(sets) ? { filterSets: sets.map(setFlagsMoved) } : {}),
+  };
+};
+
+/** The steps from each earlier version on: version n starts at index n - 2. */
+const MIGRATIONS = [migrateFromV2, migrateFromV3, migrateFromV4, migrateFromV5];
+
 const preferencesOf = (record: unknown): Preferences | null => {
   if (!isRecord(record)) return null;
   const { schemaVersion, value } = record;
-  if (schemaVersion === 2)
-    return parsePreferences(migrateFromV4(migrateFromV3(migrateFromV2(value))));
-  if (schemaVersion === 3) return parsePreferences(migrateFromV4(migrateFromV3(value)));
-  if (schemaVersion === 4) return parsePreferences(migrateFromV4(value));
+  if (isInteger(schemaVersion) && schemaVersion >= 2 && schemaVersion < SCHEMA_VERSION.preferences)
+    return parsePreferences(
+      MIGRATIONS.slice(schemaVersion - 2).reduce((migrated, step) => step(migrated), value),
+    );
   return parsePreferences(versioned(record, SCHEMA_VERSION.preferences));
 };
 

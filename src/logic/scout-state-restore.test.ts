@@ -21,9 +21,16 @@ const succeeded = (state: ScoutState, requestId = 1): ScoutState =>
   });
 
 describe("loading a picked or a stored game", () => {
-  it("drops the game shortlist filter when the game comes without a career", () => {
-    const filters = { flags: { shortlisted: true, leadership: true } };
+  it("drops the list options that need the game shortlist when the game comes without a career", () => {
+    const filters = { onList: "game", flags: { leadership: true } } as const;
     expect(succeeded({ ...started(), filters }).filters).toEqual({ flags: { leadership: true } });
+    const both = { ...started(), filters: { onList: "both" } } as const;
+    expect(succeeded(both).filters).toEqual({});
+    // The own list needs no career: "na żadnej" then means off the own list.
+    const own = { ...started(), filters: { onList: "tool" } } as const;
+    expect(succeeded(own).filters).toEqual({ onList: "tool" });
+    const none = { ...started(), filters: { onList: "none" } } as const;
+    expect(succeeded(none).filters).toEqual({ onList: "none" });
   });
 
   it("drops the career filters and sort of preferences restored after a game without a career", () => {

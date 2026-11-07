@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { testPlayer } from "../logic/test-support/player-fixtures.ts";
 import { chipText, namesById } from "./chip-text.ts";
+import { NBSP } from "./typeset.ts";
 
 const names = {
   positionName: (code: number) => ["BR", "ST (ang. SW)"][code] ?? `P${String(code)}`,
@@ -80,8 +81,17 @@ describe("chipText", () => {
       "Podatny na kontuzje: nie",
     );
     expect(chipText("myClub", { myClub: "hide" }, names)).toBe("Ukryj zawodników mojego klubu");
-    expect(chipText("clubStatus", { clubStatus: "free-agents" }, names)).toBe(
-      "Tylko wolni zawodnicy",
+    expect(chipText("clubStatus", { clubStatus: "free-agents" }, names)).toBe("Tylko wolni");
+    expect(chipText("clubStatus", { clubStatus: "with-club" }, names)).toBe(`Tylko z${NBSP}klubem`);
+    expect(chipText("clubStatus", { clubStatus: "unavailable" }, names)).toBe(
+      `Niedostępni w${NBSP}karierze`,
     );
+  });
+
+  it("names the list field with its chosen option", () => {
+    expect(chipText("onList", { onList: "game" }, names)).toBe(`Na liście: w${NBSP}grze`);
+    expect(chipText("onList", { onList: "tool" }, names)).toBe(`Na liście: w${NBSP}narzędziu`);
+    expect(chipText("onList", { onList: "both" }, names)).toBe(`Na liście: w${NBSP}obu`);
+    expect(chipText("onList", { onList: "none" }, names)).toBe("Na liście: na żadnej");
   });
 });

@@ -8,6 +8,7 @@ import {
   FLAG_KEYS,
   isRangeKey,
   LIST_FIELDS,
+  needsShortlist,
   RANGE_KEYS,
   compactRating,
   peakField,
@@ -29,18 +30,11 @@ import type { WatchEntry, WatchlistAction } from "./watchlist.ts";
 import type { UndoAction, UndoStep } from "./undo.ts";
 import type { FilterSet, FilterSetAction } from "./saved-filters.ts";
 
-/** Which players by club: unset means "available", everyone one can sign; free agents need a career. */
-export type ClubStatus = "available" | "free-agents";
-
 /** The user's club in the list: unset shows it with everyone, "hide" leaves it out, "only" keeps it alone. */
 export type MyClub = "hide" | "only";
 
 /** The filters as the user sets them; "my club" becomes a club id only with a career. */
-export type ScoutFilters = Omit<
-  PlayerFilters,
-  "excludeTeamId" | "onlyTeamId" | "freeAgentsOnly" | "availableOnly"
-> & {
-  readonly clubStatus?: ClubStatus;
+export type ScoutFilters = Omit<PlayerFilters, "excludeTeamId" | "onlyTeamId"> & {
   readonly myClub?: MyClub;
 };
 type FilterKey = keyof ScoutFilters;
@@ -49,6 +43,7 @@ export type FilterChange = { readonly [K in FilterKey]?: ScoutFilters[K] | undef
 /** One filter as the chips show it: a top-level key, or one entry of the ranges, lists or flags. */
 export type FilterId =
   | "text"
+  | "onList"
   | "clubStatus"
   | "myClub"
   | "positionRating"
@@ -203,13 +198,14 @@ export const activeFilters = (filters: FilterChange): readonly FilterId[] => [
   ...FLAG_KEYS.filter((key) => isDefined(filters.flags?.[key])).map(
     (key) => `flags.${key}` as const,
   ),
-  ...(filters.clubStatus === "free-agents" ? ["clubStatus" as const] : []),
+  ...(filters.onList === undefined ? [] : ["onList" as const]),
+  ...((filters.clubStatus ?? "available") === "available" ? [] : ["clubStatus" as const]),
   ...(filters.myClub === undefined ? [] : ["myClub" as const]),
 ];
 
 /** Only the active filters, so empty values never linger in state or storage. */
 export const compactFilters = (filters: FilterChange): ScoutFilters => {
-  const { text, clubStatus, myClub, positionRating, peakAtBest } = filters;
+  const { text, clubStatus, onList, myClub, positionRating, peakAtBest } = filters;
   const ranges = pick(filters.ranges, RANGE_KEYS, bounded);
   const lists = pick(filters.lists, LIST_FIELDS, isNonEmpty);
   // An exclusion means nothing without its list's values.
@@ -227,7 +223,8 @@ export const compactFilters = (filters: FilterChange): ScoutFilters => {
     ...(lists === undefined ? {} : { lists }),
     ...(excludedLists === undefined ? {} : { excludedLists }),
     ...(flags === undefined ? {} : { flags }),
-    ...(clubStatus === "free-agents" ? { clubStatus } : {}),
+    ...(onList === undefined ? {} : { onList }),
+    ...(clubStatus === undefined || clubStatus === "available" ? {} : { clubStatus }),
     ...(myClub === undefined ? {} : { myClub }),
   };
 };
@@ -305,6 +302,7 @@ const withoutCareer = ({ filters, sort }: Pick<Preferences, "filters" | "sort">)
     peakAtBest: undefined,
     clubStatus: undefined,
     myClub: undefined,
+    onList: needsShortlist(filters.onList) ? undefined : filters.onList,
     ranges: {
       ...filters.ranges,
       ...Object.fromEntries(CAREER_RANGE_KEYS.map((key) => [key, undefined])),

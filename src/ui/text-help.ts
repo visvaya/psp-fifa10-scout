@@ -16,7 +16,6 @@ export const FIELD_HELP: Partial<Readonly<Record<RangeKey | ListKey | FlagKey, s
   growth: pl`Potencjał minus OVR: ile brakuje do limitu potencjału (w karierze z poprawką z zapisu). Zawodnicy rzadko go osiągają; realniejszy jest szczyt OVR.`,
   peak: pl`OVR na szczycie rozwoju według krzywych gry, na pozycji preferowanej zawodnika albo, gdy zaznaczone jest pole poniżej, na jego najlepszej pozycji. Na pozycji preferowanej ten sam co na wykresie rozwoju w grze. Bez przyszłych przyrostów z meczów i treningu. Realniejszy cel niż potencjał, którego zawodnicy rzadko osiągają.`,
   peakGain: pl`Szczyt OVR minus OVR: ile zawodnik jeszcze urośnie według krzywych rozwoju gry. W filtrze z zaznaczonym polem przy szczycie OVR to szczyt na najlepszej pozycji minus dzisiejszy OVR na tej pozycji.`,
-  onMyList: pl`Twoja lista z tego narzędzia, zapisana w tej przeglądarce; gra o niej nie wie. Lista życzeń z gry to osobne pole w sekcji Kariera.`,
   bodyType: pl`Gra nie nazywa kodów. Przy podobnym wzroście typ 1 to średnio zawodnicy najlżejsi, typ 3 najciężsi.`,
   internationalReputation: pl`Gwiazdki z bazy gry, od 1 do 5. Według wzorów gry 4 i 5 gwiazdek podnoszą cenę i zarobki rynkowe; 1–3 gwiazdki ich nie zmieniają.`,
   learningSpeed: pl`Wartość z bazy gry. Gdy zawodnik trafia do twojego składu, gra dodaje ją do jego potencjału, razem z resztą z dzielenia potencjału przez 5.`,
@@ -57,5 +56,8 @@ export const HELP_TEXT = {
   ratingPeak: pl`Szczyt OVR na tej pozycji według krzywych rozwoju gry, liczony jak szczyt OVR.`,
   /** The choice to count the peak at the best position, and the best peak on the card. */
   peakAtBest: pl`Szczyt liczy się osobno dla każdej pozycji; szczyt na najlepszej pozycji to największy z nich, a pozycja najlepsza dziś nie musi być najlepsza w szczycie. Zawodnik z OVR 72 jako napastnik i 68 jako prawy pomocnik może osiągnąć szczyt 82 jako napastnik i 83 jako prawy pomocnik; kolumna i filtr szczytu pokażą wtedy 83 i prawego pomocnika. Gdy kilka pozycji ma ten sam szczyt, wybór pada na te z formacji twojego klubu w zapisie, przy słabszej nodze na 4 lub 5 gwiazdek na pozycję środkową, w innym razie na stronę lepszej nogi, a na końcu na pozycję preferowaną albo pierwszą w kolejności gry. Pozostałe pozycje z tym samym szczytem karta wymienia pod wynikiem.`,
-  clubStatus: pl`Wolny zawodnik nie ma klubu. Jego wartość (cena) to 0, a zarobki rynkowe gra liczy mu z doliczonymi 30%.`,
+  /** One sentence per option of "Zawodnicy". */
+  clubStatus: pl`„dostępni w karierze” to zawodnicy z klubem, wolni zawodnicy i juniorzy (z twojej akademii albo wyszukani przez skautów i jeszcze niepodpisani). „tylko z klubem” to zawodnicy z klubem, bez wolnych zawodników i bez juniorów spoza klubu. „tylko wolni” to zawodnicy bez klubu, których może podpisać każdy klub; ich wartość (cena) to 0, a zarobki rynkowe gra liczy im z doliczonymi 30%. „niedostępni w karierze” to zawodnicy, których gra łączy tylko z kadrą reprezentacji (albo z World XI), bez klubu; narzędzie nie sprawdziło w grze, czy kariera pozwala ich podpisać.`,
+  /** One sentence per option of "Na liście". */
+  onList: pl`„dowolne” nie zawęża listy. „w grze” to zawodnicy z listy życzeń w grze, odczytanej z zapisu kariery. „w narzędziu” to zawodnicy z twojej listy z tego narzędzia, zapisanej w tej przeglądarce; gra o niej nie wie. „w obu” to zawodnicy z obu tych list naraz. „na żadnej” to zawodnicy spoza obu list. „w grze” i „w obu” wymagają zapisu kariery.`,
 } as const;
