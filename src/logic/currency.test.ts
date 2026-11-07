@@ -74,7 +74,7 @@ describe("moneyFiltersIn", () => {
 });
 
 describe("the stored currency", () => {
-  // A record without them loads as before: the career's currency, a set's amounts in the shown one.
+  // A record without them loads as before: the career's currency, and a set's amounts in the career's one.
   it("keeps the chosen currency and the currency of each set, dropping unknown codes", async () => {
     const set = { name: "Tani", filters: {}, sort: DEFAULT_SORT };
     const value = {

@@ -4,8 +4,8 @@
 // the game file's name) and languages 1 and 2 to 3 (empty for the position names they lack); any other
 // version or shape is ignored, and
 // unknown or malformed filter values and column overrides are dropped one by one (a record without the
-// columns loads as none, without the chosen currency as the career's, a set without one with its amounts
-// in the shown currency, so they needed no new version).
+// columns loads as none, without a chosen currency as the career's, a set without a currency with its
+// amounts in the career's currency, so they needed no new version).
 import type { GameLanguages, GameNames } from "./game-names.ts";
 import {
   bounded,
