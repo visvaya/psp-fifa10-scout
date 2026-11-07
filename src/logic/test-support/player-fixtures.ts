@@ -45,6 +45,26 @@ export const table = (name: string, rows: readonly Row[]): TableSpec => {
   };
 };
 
+/** The real Wisła save's 4-4-2 (formation 373): GK, LB, LCB, RCB, RB, LM, LCM, RCM, RM, LS, RS. */
+const FOUR_FOUR_TWO = [0, 7, 6, 4, 3, 19, 18, 16, 15, 31, 29];
+
+/**
+ * fifa.db `teamwrite` and `formations` giving `teamId` a formation of this starting eleven, then the
+ * bench codes, as formation 373 has them.
+ */
+export const formationTables = (
+  teamId: number,
+  startingEleven: readonly number[] = FOUR_FOUR_TWO,
+): readonly TableSpec[] => [
+  table("teamwrite", [{ teamid: teamId, formationid: 373 }]),
+  table("formations", [
+    Object.fromEntries([
+      ["formationid", 373],
+      ...[...startingEleven, 32, 37].map((code, index) => [`position${String(index + 1)}`, code]),
+    ]),
+  ]),
+];
+
 /** fifa.db `curves` with one flat curve (id 1, the game's fallback), so career ratings age nothing. */
 /** A float32 as the u32 bits the save stores. */
 export const floatBits = (value: number): number => {

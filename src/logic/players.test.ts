@@ -16,6 +16,7 @@ import {
   grownRow,
   NO_STATS,
   playerRow,
+  formationTables,
   table,
 } from "./test-support/player-fixtures.ts";
 
@@ -104,6 +105,7 @@ const DB = parseEaDb(
     ]),
     table("career_players_grown_attributes", [{ playerid: 0, potential_delta: 0 }]),
     flatCurves(),
+    ...formationTables(1873),
   ]),
 );
 

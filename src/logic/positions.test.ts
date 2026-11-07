@@ -8,12 +8,16 @@ import {
   RATING_CHOICES,
   ratingChoiceOf,
   ratingCodeOf,
+  sideOf,
 } from "./positions.ts";
 import { OVR_WEIGHTS } from "./overall-rating.ts";
 import type { PositionGroup } from "./positions.ts";
 
 const firstCode = (groups: readonly PositionGroup[]): number =>
   Math.min(...groups.flatMap(positionCodesOf));
+
+const codesOn = (side: string): readonly number[] =>
+  POSITION_CODES.filter((code) => sideOf(code) === side);
 
 describe("positionOf", () => {
   it("names codes and groups them, rejecting codes outside 0..31", () => {
@@ -70,6 +74,12 @@ describe("positionOf", () => {
 
   it("names a code's rating choice by its codes", () => {
     expect([7, 14, 4, 0].map(ratingChoiceOf)).toEqual([[3, 7], [15, 19, 14, 20], [5], [0]]);
+  });
+
+  it("puts each code on the side its name begins with, the rest in the centre", () => {
+    expect(codesOn("right")).toEqual([2, 3, 4, 9, 10, 14, 15, 16, 21, 22, 26, 29]);
+    expect(codesOn("left")).toEqual([6, 7, 8, 12, 13, 18, 19, 20, 24, 25, 28, 31]);
+    expect(codesOn("central")).toEqual([0, 1, 5, 11, 17, 23, 27, 30]);
   });
 
   it("uses the game's own names, which key the abbreviation of every language", () => {

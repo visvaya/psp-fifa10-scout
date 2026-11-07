@@ -11,6 +11,7 @@ import {
   daysSince1582,
   flatCurves,
   floatBits,
+  formationTables,
   playerRow,
   table,
 } from "./player-fixtures.ts";
@@ -103,6 +104,26 @@ const STATS = table("playerstats", [
 
 export const SCOUT_USER_TEAM_ID = 1873;
 
+/**
+ * The user's 4-1-2-1-2: GK, RB, RCB, LCB, LB, CDM, RCM, LCM, CAM, RS, LS. Its three-letter codes keep
+ * best peak positions of different lengths in the browser tests' rows.
+ */
+const DIAMOND = [0, 3, 4, 6, 7, 11, 16, 18, 23, 29, 31];
+
+/** The career's manager, of Wisła. */
+const MANAGER = table("team_manager", [
+  {
+    team_id: SCOUT_USER_TEAM_ID,
+    firstname: "Anna",
+    surname: "Kariera",
+    // 2009-08-08, game 7 of that day: days since 1582-10-14 times 1024, plus the game.
+    last_game_number: 155_892 * 1024 + 7,
+    currency: 0,
+    prestige: 0,
+    upgrade_fin: 0,
+  },
+]);
+
 /** The synthetic database, with `extra` tables a test adds; one named like a default table replaces it. */
 export const buildScoutDb = (extra: readonly TableSpec[] = []): Uint8Array =>
   buildEaDb([
@@ -142,18 +163,8 @@ export const buildScoutDb = (extra: readonly TableSpec[] = []): Uint8Array =>
         position: 33,
       })),
     ]),
-    table("team_manager", [
-      {
-        team_id: SCOUT_USER_TEAM_ID,
-        firstname: "Anna",
-        surname: "Kariera",
-        // 2009-08-08, game 7 of that day: days since 1582-10-14 times 1024, plus the game.
-        last_game_number: 155_892 * 1024 + 7,
-        currency: 0,
-        prestige: 0,
-        upgrade_fin: 0,
-      },
-    ]),
+    MANAGER,
+    ...formationTables(SCOUT_USER_TEAM_ID, DIAMOND),
     STATS,
     empty("career_youth_accademy"),
     // Gracz Numer 18 is listed for a loan.

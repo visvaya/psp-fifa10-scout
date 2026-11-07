@@ -1338,6 +1338,21 @@ input[inputmode="numeric"] {
   color: var(--color-muted);
 }
 
+/* A note under the value on its own line; the label shrinks beside the value above it. */
+.facts > div:has(> .fact-note) {
+  flex-wrap: wrap;
+}
+
+.facts > div:has(> .fact-note) > dt {
+  flex: 1 1 0;
+}
+
+.facts dd.fact-note {
+  flex-basis: 100%;
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+}
+
 .facts dt p {
   margin: var(--space-1) 0 0;
 }

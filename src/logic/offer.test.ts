@@ -12,6 +12,7 @@ import {
   flatCurves,
   playerRow,
   table,
+  formationTables,
   testPlayer,
 } from "./test-support/player-fixtures.ts";
 
@@ -251,6 +252,7 @@ describe("offerContextOf", () => {
         })),
         table("career_players_grown_attributes", [{ playerid: 0, potential_delta: 0 }]),
         flatCurves(),
+        ...formationTables(9),
       ]),
     );
     // jscpd:ignore-end

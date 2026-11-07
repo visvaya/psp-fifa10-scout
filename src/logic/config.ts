@@ -15,6 +15,8 @@ export const SCOUT_CONFIG = {
   peakProjectionYears: 20,
   /** Longest note on a player of the own watchlist, in characters. */
   watchlistNoteMaxChars: 500,
+  /** Weak foot stars from which a best peak tied across sides goes to the central code (owner, 2026-11-07). */
+  centralWeakFootStarsMin: 4,
   /** Changes of the filters, sort and sets the user can take back, newest first. */
   undoSteps: 50,
 } as const;

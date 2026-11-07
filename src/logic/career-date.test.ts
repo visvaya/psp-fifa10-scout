@@ -6,7 +6,12 @@ import type { EaDbRow } from "../data/ea-db.ts";
 import { buildEaDb } from "../data/test-support/synthetic-ea-db.ts";
 import { CURVE_COLUMNS } from "./overall-rating.ts";
 import { buildPlayers } from "./players.ts";
-import { daysSince1582, playerRow, table } from "./test-support/player-fixtures.ts";
+import {
+  daysSince1582,
+  formationTables,
+  playerRow,
+  table,
+} from "./test-support/player-fixtures.ts";
 
 /** A fixtures or team_manager game number: the day, then a 10-bit game index. */
 const gameOn = (year: number, month: number, day: number): number =>
@@ -33,6 +38,7 @@ const DB = parseEaDb(
     ]),
     // Type 1, style 2: skills follow curve 3 * 2 + 1 - 4 = 3, which rises at 21.
     table("curves", [curve(1, 50), curve(3, 60)]),
+    ...formationTables(1),
   ]),
 );
 

@@ -21,6 +21,14 @@ const bestPeakHeader = (page: Page) =>
 const peakEye = (page: Page) =>
   page.getByRole("button", { name: "Pokaż kolumnę: Szczyt OVR", exact: true });
 
+/** How many lines an element's text takes. */
+const lineCount = async (element: Locator) =>
+  element.evaluate((node) => {
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    return new Set([...range.getClientRects()].map((rect) => Math.round(rect.top))).size;
+  });
+
 /**
  * How far a card value's rating badge ends before its row's right edge: 0 when it ends the row, in line
  * with the badges of the rows above and below it.
@@ -80,6 +88,8 @@ test.describe("peak at the best position, wide screen", () => {
       .getByRole("button", { name: "Wyjaśnienie: Szczyt OVR na jego najlepszej pozycji" })
       .click();
     await expect(page.getByText(/osobno dla każdej pozycji/u)).toBeVisible();
+    // And how a tie between positions is settled.
+    await expect(page.getByText(/formacji twojego klubu/u)).toBeVisible();
     await expectNoAxeViolations(page);
     await peakAtBestBox(page).check();
     await expect(peakHeader(page)).toHaveCount(0);
@@ -104,7 +114,8 @@ test.describe("peak at the best position, wide screen", () => {
     const column = headings.findIndex((text) => text.startsWith("Najlepszy szczyt")) + 1;
     const cells = page.locator(`tbody tr[aria-rowindex] > :nth-child(${String(column)})`);
     await expectAlignedPeaks(cells);
-    // Read as "88 RWM", not run together by the grid that lines them up.
+    // Read as "88 RWM", not run together by the grid that lines them up. Messi, right-footed, ties on
+    // RWM, RM, LM and LWM, none in the user's diamond: his better foot leaves RWM and RM, RWM first.
     await expect(cells.first()).toHaveAccessibleName("88 RWM");
   });
 
@@ -159,8 +170,12 @@ test.describe("peak at the best position, eye and card", () => {
     const card = page.getByRole("dialog", { name: "Paweł Brożek" });
     await expect(cardValue(card, "Szczyt OVR")).toHaveText("49");
     // The abbreviation first, the badge at the right edge in line with the OVR's.
-    const best = cardValue(card, "Szczyt na najlepszej pozycji");
-    await expect(best).toHaveText(/^\S+\s61$/u);
+    const bestValues = cardValue(card, "Szczyt na najlepszej pozycji");
+    const [best, note] = [bestValues.first(), bestValues.nth(1)];
+    // RCB, CB and LCB tie: the diamond's RCB and LCB, RCB on his right foot, the others named under it.
+    await expect(best).toHaveText(/^RCB\s61$/u);
+    await expect(note).toHaveText("ten sam szczyt także na: CB, LCB");
+    await expectNoAxeViolations(page);
     const values = [best, cardValue(card, "OVR"), cardValue(card, "Szczyt OVR")];
     expect(await Promise.all(values.map(badgeGap))).toEqual([0, 0, 0]);
     await page.keyboard.press("Escape");
@@ -192,6 +207,16 @@ test.describe("peak at the best position, phone", () => {
       await cell.evaluate((element) => element.scrollWidth - element.clientWidth),
     ).toBeLessThanOrEqual(0);
     await expectAlignedPeaks(cells);
+    await expectNoHorizontalOverflow(page);
+    // The positions with the same peak fit one line under the best peak on the card.
+    await page.getByRole("button", { name: /^Filtry/u }).click();
+    await page.getByRole("searchbox", { name: "Nazwisko" }).fill("brozek");
+    await page.getByRole("button", { name: "Zamknij" }).click();
+    await page.getByRole("button", { name: /^Paweł Brożek/u }).click();
+    const card = page.getByRole("dialog", { name: "Paweł Brożek" });
+    const note = cardValue(card, "Szczyt na najlepszej pozycji").nth(1);
+    await expect(note).toHaveText("ten sam szczyt także na: CB, LCB");
+    expect(await lineCount(note)).toBe(1);
     await expectNoHorizontalOverflow(page);
   });
 });

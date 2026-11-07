@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import type { Dispatch, JSX, ReactNode } from "react";
 import type { CurrencyCode } from "../data/career-save.ts";
+import { codesAtPeak } from "../logic/best-peak.ts";
 import type { OfferContext } from "../logic/offer.ts";
 import { SEASON_STAT_KEYS } from "../logic/players.ts";
 import type { AttributeName, Player } from "../logic/players.ts";
@@ -120,7 +121,14 @@ const money = (
         ],
       ];
 
-/** His best peak and where it comes, when that position peaks above the preferred one. */
+/** The other positions with the same best peak, in code order, or undefined without any. */
+const samePeakNote = (others: readonly number[], names: PositionNames): string | undefined =>
+  others.length === 0 ? undefined : TEXT.card.samePeakAlso(others.map(names.short));
+
+/**
+ * His best peak and where it comes, when that position peaks above the preferred one, with the other
+ * positions where it comes as high.
+ */
 export const bestPeak = (
   player: Player,
   showPotential: boolean,
@@ -140,6 +148,12 @@ export const bestPeak = (
             <AttributeValue value={player.bestPeak} />
           </>,
           HELP_TEXT.peakAtBest,
+          samePeakNote(
+            codesAtPeak(player.peakByCode, player.bestPeak).filter(
+              (code) => code !== player.bestPeakCode,
+            ),
+            names,
+          ),
         ],
       ]
     : [];

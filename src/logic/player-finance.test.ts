@@ -8,7 +8,13 @@ import { buildEaDb } from "../data/test-support/synthetic-ea-db.ts";
 import { baseOverall, CURVE_COLUMNS } from "./overall-rating.ts";
 import { buildPlayers } from "./players.ts";
 import type { Player } from "./players.ts";
-import { attributes, floatBits, playerRow, table } from "./test-support/player-fixtures.ts";
+import {
+  attributes,
+  floatBits,
+  formationTables,
+  playerRow,
+  table,
+} from "./test-support/player-fixtures.ts";
 import { marketWage, roundMoney, roundPrice, transferPrice } from "./transfer-price.ts";
 import type { PriceInput } from "./transfer-price.ts";
 
@@ -67,6 +73,7 @@ const DB = parseEaDb(
     table("career_players_grown_attributes", [{ playerid: 0, potential_delta: 0 }]),
     // Skills (curve 3) rise by 40 % from age 29: only the OVR in five years grows.
     table("curves", [curveRow(1, () => 50), curveRow(3, (age) => (age >= 29 ? 70 : 50))]),
+    ...formationTables(USER_TEAM),
   ]),
 );
 

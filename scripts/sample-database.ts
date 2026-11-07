@@ -6,7 +6,12 @@ import { buildEaDb } from "../src/data/test-support/synthetic-ea-db.ts";
 import { CURVE_COLUMNS } from "../src/logic/overall-rating.ts";
 import { ATTRIBUTE_NAMES } from "../src/logic/players.ts";
 import type { AttributeName } from "../src/logic/players.ts";
-import { daysSince1582, playerRow, table } from "../src/logic/test-support/player-fixtures.ts";
+import {
+  daysSince1582,
+  formationTables,
+  playerRow,
+  table,
+} from "../src/logic/test-support/player-fixtures.ts";
 
 const SEED = 20_091_010;
 const PLAYER_COUNT = 48;
@@ -228,6 +233,7 @@ export const buildSampleDb = (): Uint8Array => {
       })),
     ),
     table("curves", CURVES),
+    ...formationTables(USER_CLUB_ID),
     table("team_manager", [
       {
         team_id: USER_CLUB_ID,

@@ -8,13 +8,13 @@ const LEAGUE_STATS = pl`Liczby z zapisu kariery za bieżący sezon, z meczów li
 const CUP_STATS = pl`Liczby z zapisu kariery za bieżący sezon, z pucharów krajowych i europejskich razem; gra zeruje je na początku sezonu. Które puchary liczy, zależy od ligi twojego klubu, np. dla Ekstraklasy Puchar Polski, „Klubowe ME” i „Puchar EFA”.`;
 
 export const FIELD_HELP: Partial<Readonly<Record<RangeKey | ListKey | FlagKey, string>>> = {
-  positionGroup: pl`Pozycje zgrupowane według sposobu liczenia OVR w grze: w jednej grupie te same wagi atrybutów.`,
+  positionGroup: pl`Pozycje zgrupowane według sposobu liczenia OVR w grze i miejsca na boisku: w jednej grupie te same wagi atrybutów. Skrzydłowy i boczny pomocnik mają też te same wagi, tak samo libero i boczny obrońca, ale grają w innym miejscu, więc są osobnymi grupami. Wagi libero gra sumuje w innej kolejności, więc jego OVR bywa o 1 inny niż bocznego obrońcy.`,
   weakFoot: pl`Gwiazdki z bazy gry, od 1 do 5: jak dobrze zawodnik gra słabszą nogą.`,
   age: pl`Wiek w dniu ostatniego meczu z zapisu kariery; bez zapisu 1 lipca 2009.`,
   overall: pl`OVR na pozycji preferowanej, liczony wzorem gry z atrybutów. Z zapisem kariery na wiek z pierwszej kolejki sezonu i z przyrostami atrybutów zapisanymi w karierze, tak jak liczy go gra; bez zapisu prosto z bazy gry.`,
-  potential: pl`Limit rozwoju z bazy gry; gra tej liczby nie pokazuje. Gdy zawodnik trafia do twojego składu, gra podnosi go o 1 do 9 (szybkość nauki i reszta z dzielenia potencjału przez 5); u zawodników twojego składu narzędzie liczy z tą poprawką z zapisu.`,
+  potential: pl`Limit rozwoju z bazy gry; gra tej liczby nie pokazuje. Gdy zawodnik trafia do twojego składu, gra podnosi go o 1 do 9 (szybkość nauki i reszta z dzielenia potencjału przez 5); u zawodników twojego składu narzędzie liczy z tą poprawką z zapisu. Zawodnicy rzadko go osiągają; realniejszy jest szczyt OVR.`,
   growth: pl`Potencjał minus OVR: ile brakuje do limitu potencjału (w karierze z poprawką z zapisu). Zawodnicy rzadko go osiągają; realniejszy jest szczyt OVR.`,
-  peak: pl`OVR na szczycie rozwoju według krzywych gry, na pozycji preferowanej zawodnika albo, gdy zaznaczone jest pole poniżej, na jego najlepszej pozycji. Na pozycji preferowanej ten sam co na wykresie rozwoju w grze. Bez przyszłych przyrostów z meczów i treningu.`,
+  peak: pl`OVR na szczycie rozwoju według krzywych gry, na pozycji preferowanej zawodnika albo, gdy zaznaczone jest pole poniżej, na jego najlepszej pozycji. Na pozycji preferowanej ten sam co na wykresie rozwoju w grze. Bez przyszłych przyrostów z meczów i treningu. Realniejszy cel niż potencjał, którego zawodnicy rzadko osiągają.`,
   peakGain: pl`Szczyt OVR minus OVR: ile zawodnik jeszcze urośnie według krzywych rozwoju gry. W filtrze z zaznaczonym polem przy szczycie OVR to szczyt na najlepszej pozycji minus dzisiejszy OVR na tej pozycji.`,
   onMyList: pl`Twoja lista z tego narzędzia, zapisana w tej przeglądarce; gra o niej nie wie. Lista życzeń z gry to osobne pole w sekcji Kariera.`,
   bodyType: pl`Gra nie nazywa kodów. Przy podobnym wzroście typ 1 to średnio zawodnicy najlżejsi, typ 3 najciężsi.`,
@@ -54,6 +54,6 @@ export const HELP_TEXT = {
   /** The peak at the position chosen in "Ocena na pozycji". */
   ratingPeak: pl`Szczyt OVR na tej pozycji według krzywych rozwoju gry, liczony jak szczyt OVR.`,
   /** The choice to count the peak at the best position, and the best peak on the card. */
-  peakAtBest: pl`Szczyt liczy się osobno dla każdej pozycji; szczyt na najlepszej pozycji to największy z nich, a pozycja najlepsza dziś nie musi być najlepsza w szczycie. Zawodnik z OVR 72 jako napastnik i 68 jako prawy pomocnik może osiągnąć szczyt 82 jako napastnik i 83 jako prawy pomocnik; kolumna i filtr szczytu pokażą wtedy 83 i prawego pomocnika.`,
+  peakAtBest: pl`Szczyt liczy się osobno dla każdej pozycji; szczyt na najlepszej pozycji to największy z nich, a pozycja najlepsza dziś nie musi być najlepsza w szczycie. Zawodnik z OVR 72 jako napastnik i 68 jako prawy pomocnik może osiągnąć szczyt 82 jako napastnik i 83 jako prawy pomocnik; kolumna i filtr szczytu pokażą wtedy 83 i prawego pomocnika. Gdy kilka pozycji ma ten sam szczyt, wybór pada na te z formacji twojego klubu w zapisie, przy słabszej nodze na 4 lub 5 gwiazdek na pozycję środkową, w innym razie na stronę lepszej nogi, a na końcu na pozycję preferowaną albo pierwszą w kolejności gry. Pozostałe pozycje z tym samym szczytem karta wymienia pod wynikiem.`,
   clubStatus: pl`Wolny zawodnik nie ma klubu. Jego wartość (cena) to 0, a zarobki rynkowe gra liczy mu z doliczonymi 30%.`,
 } as const;
