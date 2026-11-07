@@ -40,7 +40,9 @@ export const ModalDialog = ({
     const dialog = ref.current;
     dialog?.showModal();
     return () => {
-      returnFocus()?.focus();
+      // The close event and this cleanup run after Escape: focus moved on meanwhile stays where it is.
+      if (document.activeElement === null || document.activeElement === document.body)
+        returnFocus()?.focus();
     };
   }, [returnFocus]);
   return (

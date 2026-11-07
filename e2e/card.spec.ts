@@ -77,6 +77,23 @@ test.describe("player card", () => {
   });
 });
 
+test("keeps the focus moved out of a closing card", async ({ page }) => {
+  // The dialog's close event comes a task after Escape: a field focused before it keeps the focus,
+  // or a quick fill of the search box would type into the player's button (a flaky watchlist test).
+  await loadDatabase(page);
+  const search = page.getByRole("searchbox", { name: "Nazwisko" });
+  await search.fill("brozek");
+  await page.getByRole("button", { name: "Paweł Brożek" }).click();
+  await page.evaluate(() => {
+    document.querySelector("dialog")?.close();
+    document.querySelector<HTMLElement>("input[type=search]")?.focus();
+  });
+  await expect(page.locator("dialog")).toHaveCount(0);
+  await page.evaluate(async () => new Promise(requestAnimationFrame));
+  await page.evaluate(async () => new Promise(requestAnimationFrame));
+  await expect(search).toBeFocused();
+});
+
 test.describe("club stars and prestige", () => {
   // The club's stars come from its squad by the game's rule; the synthetic squads rate half a star.
   test("shows the club's stars and prestige under its rating and filters by the stars", async ({
