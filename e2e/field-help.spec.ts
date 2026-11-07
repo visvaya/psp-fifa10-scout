@@ -26,6 +26,41 @@ const expectOnScreen = async (page: Page, panel: Locator) => {
   expect((box?.x ?? 0) + (box?.width ?? Number.POSITIVE_INFINITY)).toBeLessThanOrEqual(width);
 };
 
+/** Where a summary's name ends on screen, without its marker. */
+const nameEnd = async (summary: Locator) =>
+  summary.evaluate((element) => {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    return range.getBoundingClientRect().right;
+  });
+
+/**
+ * The "Cechy" section's "?" lies on its summary's line, right after the name; it opens its panel without
+ * toggling the section, and the summary still does.
+ */
+const expectSectionHelpOnSummary = async (page: Page, scope: Locator) => {
+  const summary = scope.locator("summary").filter({ hasText: /^Cechy$/u });
+  const button = scope.getByRole("button", { name: "Wyjaśnienie: Cechy" });
+  await summary.scrollIntoViewIfNeeded();
+  const [row, mark] = await Promise.all([summary.boundingBox(), button.boundingBox()]);
+  const middle = (mark?.y ?? -1) + (mark?.height ?? 0) / 2;
+  expect(middle).toBeGreaterThan(row?.y ?? Number.POSITIVE_INFINITY);
+  expect(middle).toBeLessThan((row?.y ?? 0) + (row?.height ?? 0));
+  // The touch target reaches past the mark it centres, so its middle is measured: just after the name.
+  const end = await nameEnd(summary);
+  const centre = (mark?.x ?? -1) + (mark?.width ?? 0) / 2;
+  expect(centre).toBeGreaterThan(end);
+  expect(centre).toBeLessThan(end + 32);
+  const section = summary.locator("..");
+  await button.click();
+  await expect(await panelOf(page, button)).toContainText("Cechy pochodzą z bazy gry");
+  await expect(section).not.toHaveAttribute("open");
+  await page.keyboard.press("Escape");
+  await expect(button).toBeFocused();
+  await summary.click();
+  await expect(section).toHaveAttribute("open");
+};
+
 test.describe("field explanations, wide", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
@@ -57,6 +92,11 @@ test.describe("field explanations, wide", () => {
     await expect(weakFootPanel).toBeVisible();
     await page.locator("p.count").click();
     await expect(weakFootPanel).toBeHidden();
+  });
+
+  test("puts a section's explanation on its summary's line", async ({ page }) => {
+    await loadCareer(page);
+    await expectSectionHelpOnSummary(page, page.locator("body"));
   });
 
   test("names KR the game's way and explains it as a rolling rating", async ({ page }) => {
@@ -148,6 +188,15 @@ test.describe("field explanations, phone", () => {
     await expect(panel).toBeHidden();
     await expect(dialog).toBeVisible();
     await expect(button).toBeFocused();
+  });
+
+  test("puts a section's explanation on its summary's line in the filter dialog", async ({
+    page,
+  }) => {
+    await loadCareer(page);
+    await page.getByRole("button", { name: "Filtry" }).click();
+    await expectSectionHelpOnSummary(page, page.getByRole("dialog", { name: "Filtry" }));
+    await expectNoHorizontalOverflow(page);
   });
 
   test("explains a row of the player card", async ({ page }) => {

@@ -58,7 +58,8 @@ export const numberOrUndefined = (text: string): number | undefined =>
 
 /**
  * A details element whose content renders only while open, so closed sections cost nothing. A section's
- * explanation opens from a "?" at the top of its content (a summary cannot hold a button).
+ * explanation opens from a "?" laid over the summary's line, after its name: a summary cannot hold a
+ * button, and a closed details element hides all but its summary.
  */
 export const Section = (props: {
   title: string;
@@ -67,7 +68,7 @@ export const Section = (props: {
   children: ReactNode;
 }): JSX.Element => {
   const [open, setOpen] = useState(props.initiallyOpen === true);
-  return (
+  const details = (
     <details
       className="filter-section"
       open={open}
@@ -76,13 +77,20 @@ export const Section = (props: {
       }}
     >
       <summary>{props.title}</summary>
-      {open ? (
-        <div className="filter-section-body">
-          <OptionalHelp label={props.title} help={props.help} />
-          {props.children}
-        </div>
-      ) : null}
+      {open ? <div className="filter-section-body">{props.children}</div> : null}
     </details>
+  );
+  return props.help === undefined ? (
+    details
+  ) : (
+    <div className="filter-section-with-help">
+      {/* An unseen copy of the marker and name (CSS content, so no second text) puts the "?" after it. */}
+      <span className="section-help">
+        <span className="section-help-spacer" data-title={props.title} />
+        <FieldHelp label={props.title} text={props.help} />
+      </span>
+      {details}
+    </div>
   );
 };
 

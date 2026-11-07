@@ -1059,11 +1059,7 @@ input[inputmode="numeric"] {
   visibility: hidden;
 }
 
-/* A section's "?" at the top of its content, and a heading with its "?" beside it. */
-.filter-section-body > .field-help {
-  justify-self: start;
-}
-
+/* A heading with its "?" beside it. */
 .heading-help {
   display: flex;
   align-items: center;
@@ -1182,6 +1178,36 @@ input[inputmode="numeric"] {
 
 .filter-section > summary::-webkit-details-marker {
   display: none;
+}
+
+/* A section's "?" over its summary's line, after an unseen copy of the marker and the name. */
+.filter-section-with-help {
+  position: relative;
+}
+
+.section-help {
+  position: absolute;
+  z-index: 1;
+  top: 1px;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--touch-target);
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.section-help-spacer::before {
+  content: attr(data-title);
+  content: attr(data-title) / "";
+  padding-inline-start: 1.25em;
+  white-space: nowrap;
+  visibility: hidden;
+}
+
+.section-help .field-help {
+  pointer-events: auto;
 }
 
 .filter-section-body {
