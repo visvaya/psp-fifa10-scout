@@ -72,31 +72,31 @@ describe("offerTerms", () => {
     // The fee is rounded up to a whole unit, so only an odd value can end above the limit by half a unit;
     // a player nobody can buy (needs 1.5 times the value) shows the warning through that rounding alone.
     expect(offerTerms(player({ price: 100_001 }), novice)).toMatchObject({ feeOverCap: true });
-    // A star in a weak squad: -18 from strength, so the wage must bring +22, 2.47 times the market wage.
+    // A star in a weak squad: -18 from strength, so the wage must bring +23, 2.53 times the market wage.
     expect(offerTerms(player({ overall: 90 }), CONTEXT)).toMatchObject({
-      wage: 7400,
+      wage: 7600,
       wageOverCap: true,
     });
   });
 
-  it("finds the least wage that gives the player no fewer than 0 points", () => {
-    // Prestige -3 and negotiator -1: the wage must bring +4, 4/15 above the market wage.
+  it("finds the least wage that gives the player a point to spare above the 0 he signs at", () => {
+    // Prestige -3 and negotiator -1: the wage must bring +4 and the reserve's 1, 5/15 above the market wage.
     expect(offerTerms(player(), CONTEXT)).toMatchObject({
       years: 2,
       wantedYears: 2,
       longestYears: 5,
-      wage: 3800,
+      wage: 4000,
       wageOverCap: false,
     });
-    // A weaker player in a stronger squad: +7 from strength (trunc(10 * 0.75)), +3 to spare below W.
-    expect(offerTerms(player({ overall: 55 }), CONTEXT)).toMatchObject({ wage: 2401 });
+    // A weaker player in a stronger squad: +7 from strength (trunc(10 * 0.75)), +2 to spare below W.
+    expect(offerTerms(player({ overall: 55 }), CONTEXT)).toMatchObject({ wage: 2601 });
   });
 
   it("counts the same country, a big league and the player's club identification", () => {
     const home = offerTerms(player({ nationalityId: 37 }), CONTEXT);
     const loyal = offerTerms(player({ traits: ["highclubidentification"] }), CONTEXT);
     const english = offerTerms(player(), { ...CONTEXT, countryId: 14 });
-    expect([home?.wage, loyal?.wage, english?.wage]).toEqual([3400, 4200, 3600]);
+    expect([home?.wage, loyal?.wage, english?.wage]).toEqual([3600, 4400, 3800]);
   });
 
   it("caps the contract at the retirement age and refuses past it", () => {
@@ -108,13 +108,13 @@ describe("offerTerms", () => {
   });
 
   it("takes the double offer's two points off the wage", () => {
-    expect(offerTerms(player(), CONTEXT, { ...DEFAULT_CHOICE, double: true })?.wage).toBe(3400);
+    expect(offerTerms(player(), CONTEXT, { ...DEFAULT_CHOICE, double: true })?.wage).toBe(3600);
   });
 
   it("charges a point for every year off the length he wants, either way", () => {
     const wage = (years: number) =>
       offerTerms(player(), CONTEXT, { ...DEFAULT_CHOICE, years })?.wage;
-    expect([wage(1), wage(2), wage(3), wage(5)]).toEqual([4000, 3800, 4000, 4400]);
+    expect([wage(1), wage(2), wage(3), wage(5)]).toEqual([4200, 4000, 4200, 4600]);
     expect(offerTerms(player(), CONTEXT, { ...DEFAULT_CHOICE, years: 2 })).toEqual(
       offerTerms(player(), CONTEXT),
     );
@@ -131,41 +131,41 @@ describe("offerTerms", () => {
   });
 
   // Wage W 3000, the player brings exactly 0 points besides the wage term: strength +4 offsets prestige and
-  // negotiator, the squad averaging 6 points of OVR above him.
+  // negotiator, the squad averaging 6 points of OVR above him. The reserve asks for 1.
   describe("with a bonus", () => {
     const even = player({ overall: 59 });
     const wage = (bonusPercent: number, p = even) =>
       offerTerms(p, CONTEXT, { ...DEFAULT_CHOICE, bonusPercent })?.wage;
 
-    it("needs exactly the market wage at 0 % and 5 % (below it the bonus earns nothing)", () => {
-      expect([wage(0), wage(5)]).toEqual([3000, 3000]);
+    it("needs a point above the market wage at 0 %, the market wage at 5 % (below it the bonus earns nothing)", () => {
+      expect([wage(0), wage(5)]).toEqual([3200, 3000]);
     });
 
-    it("accepts a wage just under the market wage when a larger bonus makes up the point", () => {
-      // 10 %: the bonus gives 1 point from 1500, so 2801 reaches 0 (the wage term truncates to 0, less 1).
-      // 15 %: it gives 2 from 2000, so 2601 does.
-      expect([wage(10), wage(15)]).toEqual([2801, 2601]);
+    it("accepts a wage just under the market wage when a larger bonus makes up the points", () => {
+      // 10 %: the bonus gives 1 point from 1500 and 2 from 3000; under W the wage term costs 1, so only W
+      // reaches 1. 15 %: it gives 2 from 2000, so 2801 does (the wage term truncates to 0, less 1).
+      expect([wage(10), wage(15)]).toEqual([3000, 2801]);
     });
 
     it("lowers a wage above the market wage by the points the bonus gives", () => {
-      // Needs +4: the wage term gives 3 from 3600, the 5 % bonus (trunc(wage / 3000)) 1; with 15 %
-      // (trunc(wage / 1000)) the wage term needs only 1, from 3200.
-      expect([wage(5, player()), wage(15, player())]).toEqual([3600, 3200]);
-      // One more point needed (OVR 67: strength -1): the wage term must give 4 with the 5 % bonus's 1.
-      expect(wage(5, player({ overall: 67 }))).toBe(3800);
+      // Needs +5: the wage term gives 4 from 3800, the 5 % bonus (trunc(wage / 3000)) 1; with 15 %
+      // (trunc(wage / 1000)) the wage term needs only 2, from 3400.
+      expect([wage(5, player()), wage(15, player())]).toEqual([3800, 3400]);
+      // One more point needed (OVR 67: strength -1): the wage term must give 5 with the 5 % bonus's 1.
+      expect(wage(5, player({ overall: 67 }))).toBe(4000);
     });
 
     it("reports the bonus as the percentage of the wage, rounded to a unit, and 0 without a wage", () => {
       const bonus = (p: ReturnType<typeof player>, bonusPercent: number) =>
         offerTerms(p, CONTEXT, { ...DEFAULT_CHOICE, bonusPercent })?.bonus;
-      expect([bonus(player(), 0), bonus(player(), 15), bonus(player(), 5)]).toEqual([0, 480, 180]);
+      expect([bonus(player(), 0), bonus(player(), 15), bonus(player(), 5)]).toEqual([0, 510, 190]);
       expect(bonus(player({ birthYear: 1975 }), 15)).toBe(0);
     });
 
     it("lets a bonus cut the wage below the market wage too", () => {
-      // Strength +7 leaves 3 points to spare: 2401 without a bonus, 2001 with 15 %.
+      // Strength +7 leaves 2 points to spare after the reserve: 2601 without a bonus, 2201 with 15 %.
       expect([wage(0, player({ overall: 55 })), wage(15, player({ overall: 55 }))]).toEqual([
-        2401, 2001,
+        2601, 2201,
       ]);
     });
   });
@@ -173,7 +173,7 @@ describe("offerTerms", () => {
   it("searches within W (15 + needed) / 15 whatever the points and the bonus", () => {
     // Every squad gap from a star to a novice, against a plain scan for the least wage.
     for (const overall of [30, 45, 55, 59, 62, 65, 67, 75, 90, 99]) {
-      const needed = 4 - Math.trunc((65 - overall) * 0.75);
+      const needed = 5 - Math.trunc((65 - overall) * 0.75);
       for (const bonusPercent of BONUS_PERCENTS) {
         const terms = offerTerms(player({ overall }), CONTEXT, { ...DEFAULT_CHOICE, bonusPercent });
         expect(terms?.wage).toBe(scan(needed, bonusPercent));
