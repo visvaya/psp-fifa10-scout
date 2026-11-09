@@ -52,7 +52,7 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.1.2",
-    "@vitest/coverage-v8": "5.0.5",
+    "@vitest/coverage-v8": "5.1.0",
     "cross-env": "10.1.0",
     "jscpd": "5.4.2",
     "knip": "6.43.0",
@@ -61,7 +61,7 @@
     "oxlint-tsgolint": "7.0.2005",
     "typescript": "7.0.2",
     "vite": "8.3.5",
-    "vitest": "5.0.5"
+    "vitest": "5.1.0"
   },
   "engines": {
     "node": "^26.13.0"
