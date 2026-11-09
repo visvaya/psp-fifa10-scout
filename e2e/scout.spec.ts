@@ -337,7 +337,7 @@ test.describe("number fields", () => {
       "inputmode",
       "numeric",
     );
-    await gainRange.fill("-2");
+    await gainRange.pressSequentially("-2");
     await expect(gainRange).toHaveValue("-2");
   });
 });
