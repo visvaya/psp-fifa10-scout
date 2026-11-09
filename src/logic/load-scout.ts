@@ -67,7 +67,8 @@ export interface CareerSummary {
   readonly managerName: string;
   /** The user's club as fifa.db names it, null when the save links it to no club. */
   readonly clubName: string | null;
-  readonly lastGameDate: Date;
+  /** Null before the career's first game. */
+  readonly lastGameDate: Date | null;
   /** The currency the career shows money in. */
   readonly currency: CurrencyCode;
   /** The user's side of a transfer offer. */

@@ -38,7 +38,7 @@ const DB = parseEaDb(
 
 const row = (values: Readonly<Record<string, number | string>>): EaDbRow => Object.freeze(values);
 
-const save = (fixtures: readonly EaDbRow[]): CareerSave =>
+const save = (fixtures: readonly EaDbRow[], lastGame = gameOn(2009, 10, 7)): CareerSave =>
   new Map([
     [
       "team_manager",
@@ -47,7 +47,7 @@ const save = (fixtures: readonly EaDbRow[]): CareerSave =>
           team_id: 1,
           firstname: "A",
           surname: "B",
-          last_game_number: gameOn(2009, 10, 7),
+          last_game_number: lastGame,
           currency: 0,
           prestige: 0,
           upgrade_fin: 0,
@@ -71,6 +71,12 @@ describe("career ratings", () => {
     const [player] = buildPlayers(DB, save([row({ game_number: gameOn(2009, 7, 25) })]));
     expect(player).toMatchObject({ overall: 50, age: 21 });
     expect(player?.attributes.finishing).toBe(50);
+  });
+
+  // A new career stores 0 as the last game, the epoch of game dates (1582).
+  it("show the age on the next match day before the first game is played", () => {
+    const [player] = buildPlayers(DB, save([row({ game_number: gameOn(2009, 7, 25) })], 0));
+    expect(player).toMatchObject({ age: 20, seasonAge: 20 });
   });
 
   it("age players to the last game when the save has no fixtures", () => {

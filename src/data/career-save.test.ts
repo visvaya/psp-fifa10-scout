@@ -7,6 +7,7 @@ import {
   seasonStartDate,
   userFormationCodes,
 } from "./career-save.ts";
+import type { CareerSave } from "./career-save.ts";
 import { parseEaDb, readTable } from "./ea-db.ts";
 import { buildEaDb } from "./test-support/synthetic-ea-db.ts";
 import { buildCareerSave, le32, poolString } from "./test-support/synthetic-career-save.ts";
@@ -142,7 +143,7 @@ describe("parseCareerSave", () => {
     const manager = careerManager(DB, parse([MANAGERS, LINKS]));
     expect(manager.teamId).toBe(1873);
     expect(manager.managerName).toBe("Nowy Kariera");
-    expect(manager.lastGameDate.toISOString().slice(0, 10)).toBe("2009-07-25");
+    expect(manager.lastGameDate?.toISOString().slice(0, 10)).toBe("2009-07-25");
   });
 
   it("dates the season start by the earliest fixture, else by the last played game", () => {
@@ -154,6 +155,19 @@ describe("parseCareerSave", () => {
     const date = (career: typeof save) => seasonStartDate(DB, career).toISOString().slice(0, 10);
     expect(date(new Map([...save, ["fixtures", fixtures]]))).toBe("2009-07-18");
     expect(date(save)).toBe("2009-07-25");
+  });
+
+  // A new career stores game number 0, the epoch of game dates (1582), until its first game.
+  it("has no last game before the first one, and then needs fixtures for the season start", () => {
+    const user = { team_id: 1873, firstname: "A", surname: "B", last_game_number: 0 };
+    const save: CareerSave = new Map([
+      ["team_manager", [{ ...user, currency: 0, prestige: 0, upgrade_fin: 0 }]],
+    ]);
+    expect(careerManager(DB, save).lastGameDate).toBeNull();
+    expect(() => seasonStartDate(DB, save)).toThrow(/neither fixtures nor a played game/);
+    const fixtures = [Object.freeze({ game_number: 0x9839807 })];
+    const dated = new Map([...save, ["fixtures", fixtures]]);
+    expect(seasonStartDate(DB, dated).toISOString().slice(0, 10)).toBe("2009-07-25");
   });
 
   it("dates the season start of a save with many fixtures", () => {
@@ -329,7 +343,7 @@ describe.runIf(existsSync(realDbPath) && existsSync(realCareerPath))("real caree
     const manager = careerManager(db, save);
     expect(manager.teamId).toBe(1873);
     expect(manager.managerName).toBe("Nowy Kariera");
-    expect(manager.lastGameDate.toISOString().slice(0, 10)).toBe("2009-07-25");
+    expect(manager.lastGameDate?.toISOString().slice(0, 10)).toBe("2009-07-25");
     const team = readTable(db, "teams").find((row) => row["teamid"] === 1873);
     expect(team?.["teamname"]).toBe("Wisła Kraków");
     const links = effectiveRows(db, save, "teamplayerlinks");

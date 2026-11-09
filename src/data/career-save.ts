@@ -146,9 +146,10 @@ const MANAGER_COLUMNS = [
 ] as const;
 
 /**
- * The user team, manager name, currency, date of the last played game, prestige and the level of the
- * club's negotiator (upgrade_fin: the game's staff list names the negotiator for it, and its offer
- * message for that part speaks of "your negotiator"), from team_manager.
+ * The user team, manager name, currency, date of the last played game (null before the first: a new
+ * career stores game number 0), prestige and the level of the club's negotiator (upgrade_fin: the
+ * game's staff list names the negotiator for it, and its offer message for that part speaks of "your
+ * negotiator"), from team_manager.
  */
 export const careerManager = (
   db: EaDb,
@@ -157,7 +158,7 @@ export const careerManager = (
   teamId: number;
   managerName: string;
   currency: CurrencyCode;
-  lastGameDate: Date;
+  lastGameDate: Date | null;
   prestige: number;
   negotiator: number;
 } => {
@@ -168,13 +169,14 @@ export const careerManager = (
     throw new SaveFormatError("Database team_manager lacks manager columns");
   }
   const currency = Number(user["currency"]);
+  const lastGame = Number(user["last_game_number"]);
   if (!isCurrencyCode(currency))
     throw new SaveFormatError(`Save has unknown currency ${String(currency)}`);
   return {
     currency,
     teamId: Number(user["team_id"]),
     managerName: `${String(user["firstname"])} ${String(user["surname"])}`.trim(),
-    lastGameDate: gameDate(Number(user["last_game_number"])),
+    lastGameDate: lastGame > 0 ? gameDate(lastGame) : null,
     prestige: Number(user["prestige"]),
     negotiator: Number(user["upgrade_fin"]),
   };
@@ -214,7 +216,11 @@ export const userFormationCodes = (db: EaDb, save: CareerSave): readonly number[
  */
 export const seasonStartDate = (db: EaDb, save: CareerSave): Date => {
   const fixtures = save.get("fixtures") ?? [];
-  if (fixtures.length === 0) return careerManager(db, save).lastGameDate;
+  if (fixtures.length === 0) {
+    const last = careerManager(db, save).lastGameDate;
+    if (last === null) throw new SaveFormatError("Save has neither fixtures nor a played game");
+    return last;
+  }
   const first = fixtures.reduce((min, row) => Math.min(min, Number(row["game_number"])), Infinity);
   if (!Number.isFinite(first)) throw new SaveFormatError("Save fixtures lack game_number");
   return gameDate(first);

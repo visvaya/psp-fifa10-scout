@@ -470,7 +470,7 @@ export const buildPlayers = (db: EaDb, save?: CareerSave, curves?: Curves): read
     referenceDate:
       save === undefined
         ? new Date(SCOUT_CONFIG.referenceDateIso)
-        : careerManager(db, save).lastGameDate,
+        : (careerManager(db, save).lastGameDate ?? seasonStartDate(db, save)),
     placements,
     countries: new Map(
       readTable(db, "country").map((row) => [num(row, "countryid"), String(row["countryname"])]),

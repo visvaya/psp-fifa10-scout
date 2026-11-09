@@ -319,6 +319,7 @@ describe.runIf(existsSync(realDbPath))("real fifa.db", () => {
     const curves = readCurves(db);
     const deltas = potentialDeltas(db, save);
     const now = careerManager(db, save).lastGameDate;
+    if (now === null) throw new Error("The real save has played games");
     const rate = (id: number): number => {
       const row = players.get(id);
       if (row === undefined) throw new Error(`No player ${String(id)}`);

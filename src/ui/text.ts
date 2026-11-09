@@ -54,13 +54,11 @@ const signed = (value: number): string =>
       ? `${MINUS}${formatNumber(-value)}`
       : formatNumber(0);
 
-/** Game dates are calendar days, stored as UTC midnight. */
-const dateFormat = lazy(
-  () => new Intl.DateTimeFormat("pl", { dateStyle: "long", timeZone: "UTC" }),
-);
+/** Game dates are calendar days, stored as UTC midnight: "8 sierpnia 2009". */
+const longDate = lazy(() => new Intl.DateTimeFormat("pl", { dateStyle: "long", timeZone: "UTC" }));
 
-/** A game date the Polish way: "8 sierpnia 2009". */
-const formatDate = (date: Date): string => dateFormat().format(date);
+const lastGame = (date: Date | null): string =>
+  date === null ? "przed pierwszym meczem" : `ostatni mecz ${longDate().format(date)}`;
 
 const count = (value: number, forms: PluralForms): string =>
   `${formatNumber(value)}${NBSP}${plural(value, forms)}`;
@@ -228,7 +226,7 @@ export const TEXT = {
   saveHelp: pl`Zapis kariery jest zwykle w folderze PSP/SAVEDATA/ULES01328081 (iPhone: Pliki, folder PPSSPP). Zaznacz razem DATA.BIN i PARAM.SFO. Zapis zostaje na tym urządzeniu do usunięcia albo wyboru innego.`,
   saveFolders: pl`DATA.BIN kariery ma około 540 KB. Foldery kończące się na 001 (profil, około 36 KB) i 021 (składy, około 270 KB) to inne zapisy.`,
   careerLoaded: ({ managerName, clubName, lastGameDate }: CareerSummary): string =>
-    `Kariera: ${managerName}, ${clubName ?? "bez klubu"}, ostatni mecz ${formatDate(lastGameDate)}`,
+    `Kariera: ${managerName}, ${clubName ?? "bez klubu"}, ${lastGame(lastGameDate)}`,
   forgetSave: "Usuń zapis kariery",
   phase: (phase: LoadPhase): string => PHASES[phase],
   error: (error: ScoutError): string =>
