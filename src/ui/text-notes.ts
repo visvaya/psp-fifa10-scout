@@ -18,6 +18,8 @@ export const NOTES_TEXT = {
   /** The remove button's name: the visible "Usuń" and whose note it removes. */
   removeLabel: (name: string): string => `Usuń notatkę: ${name}`,
   removeQuestion: (name: string): string => `Usunąć notatkę: ${name}?`,
+  /** A note's first line, with an ellipsis when the note goes on below it. */
+  preview: ({ line, more }: { line: string; more: boolean }): string => (more ? `${line}…` : line),
   /** The date of the last change of a note. */
   changed: (iso: string): string => `zmieniona ${changeFormat().format(new Date(iso))}`,
 } as const;

@@ -3,7 +3,7 @@
 // note can be removed here, after a question, since no card of his opens.
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, JSX } from "react";
-import { firstLine, notesNewestFirst } from "../logic/player-notes.ts";
+import { notePreview, notesNewestFirst } from "../logic/player-notes.ts";
 import type { PlayerNote } from "../logic/player-notes.ts";
 import type { Player } from "../logic/players.ts";
 import type { ScoutAction } from "../logic/scout-state.ts";
@@ -121,7 +121,7 @@ const NotesList = (props: {
                 {name}
               </button>
             )}
-            <span className="note-line">{firstLine(note.text)}</span>
+            <span className="note-line">{NOTES_TEXT.preview(notePreview(note.text))}</span>
             <time className="note-date" dateTime={note.changedAt}>
               {NOTES_TEXT.changed(note.changedAt)}
             </time>

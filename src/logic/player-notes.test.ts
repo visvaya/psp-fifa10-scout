@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SCOUT_CONFIG } from "./config.ts";
-import { firstLine, notedPlayer, notesNewestFirst } from "./player-notes.ts";
+import { notedPlayer, notePreview, notesNewestFirst } from "./player-notes.ts";
 import type { PlayerNote } from "./player-notes.ts";
 import { initialScoutState, scoutReducer } from "./scout-state.ts";
 
@@ -43,10 +43,11 @@ describe("notesNewestFirst", () => {
   });
 });
 
-describe("firstLine", () => {
-  it("is the first line with text, trimmed", () => {
-    expect(firstLine("\n  fast winger \nleft foot")).toBe("fast winger");
-    expect(firstLine("one line")).toBe("one line");
+describe("notePreview", () => {
+  it("is the first line with text, trimmed, and whether more text follows it", () => {
+    expect(notePreview("\n  fast winger \nleft foot")).toEqual({ line: "fast winger", more: true });
+    expect(notePreview("one line")).toEqual({ line: "one line", more: false });
+    expect(notePreview("one line\n  \n")).toEqual({ line: "one line", more: false });
   });
 });
 
