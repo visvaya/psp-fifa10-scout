@@ -197,10 +197,12 @@ const BoundInput = (props: {
     return <GroupedInput value={props.value} onChange={props.onChange} />;
   if (props.kind === "decimal")
     return <DecimalInput value={props.value} onChange={props.onChange} />;
+  // A phone's numeric keypad has no minus sign; without the hint a number field opens the keyboard's digits
+  // and symbols, minus included.
   return (
     <input
       type="number"
-      inputMode="numeric"
+      inputMode={props.allowNegative ? undefined : "numeric"}
       min={props.allowNegative ? undefined : 0}
       value={props.value ?? ""}
       onChange={(event) => {
