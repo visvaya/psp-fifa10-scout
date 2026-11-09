@@ -321,6 +321,27 @@ test.describe("filter panel", () => {
   });
 });
 
+// A phone's numeric keypad has no minus sign: a field that takes a negative value must not ask for it.
+test.describe("number fields", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  test("lets the gain over the OVR be typed below 0", async ({ page }) => {
+    await loadDatabase(page);
+    const rating = page.getByRole("group", { name: "Ocena na pozycji" });
+    await rating
+      .getByRole("combobox", { name: "Ocena na pozycji" })
+      .selectOption({ label: "Boczny obrońca (RB/LB)" });
+    const gainRange = rating.getByRole("group", { name: "Różnica do OVR" }).getByLabel("od");
+    await expect(gainRange).not.toHaveAttribute("inputmode", "numeric");
+    await expect(rating.getByRole("group", { name: "OVR RB/LB" }).getByLabel("od")).toHaveAttribute(
+      "inputmode",
+      "numeric",
+    );
+    await gainRange.fill("-2");
+    await expect(gainRange).toHaveValue("-2");
+  });
+});
+
 test.describe("game language", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
