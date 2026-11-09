@@ -14,8 +14,45 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Dependabot titles ("bump X from A to B in the <group> group") often pass the 72-character limit,
+  # and Dependabot has no setting for their form. This job shortens such a title before the check
+  # below reads it. It runs only the base branch's script (never the pull request's code) and installs
+  # nothing, so no updated package runs with the write token. An edit made with this token starts no
+  # new workflow run.
+  dependabot-title:
+    name: shorten a Dependabot title
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write # edit the title (Dependabot runs get read-only tokens unless granted)
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          check-latest: true
+      - name: Shorten the title past the limit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          title=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq .title)
+          short=$(node scripts/dependabot-title.ts "$title")
+          if [ "$short" != "$title" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" -f title="$short" --jq .title
+          fi
+
   title:
     name: title
+    needs: dependabot-title
+    # Also when the job above is skipped (not a Dependabot pull request) or failed (the check then
+    # reports the long title itself).
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
