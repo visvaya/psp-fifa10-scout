@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { decimalSeparator, formatNumber, formatRating, plural, TEXT } from "./text.ts";
 import { OFFER_TEXT } from "./text-offer.ts";
+import { TEST_CAREER } from "../logic/test-support/player-fixtures.ts";
 import { NBSP } from "./typeset.ts";
 
 const LAT = { one: "rok", few: "lata", many: "lat" } as const;
@@ -76,6 +77,20 @@ describe("OFFER_TEXT options", () => {
   it("marks the contract length the player wants", () => {
     expect(OFFER_TEXT.lengthOption("4 lata", true)).toBe("4 lata, tyle chce zawodnik");
     expect(OFFER_TEXT.lengthOption("3 lata", false)).toBe("3 lata");
+  });
+});
+
+describe("TEXT.careerLoaded", () => {
+  const career = { ...TEST_CAREER, managerName: "Ann Kariera", clubName: "Club" };
+
+  it("names the last game, or says none was played yet", () => {
+    const last = new Date(Date.UTC(2009, 6, 25));
+    expect(TEXT.careerLoaded({ ...career, lastGameDate: last })).toMatch(
+      /^Kariera: Ann Kariera, Club, ostatni mecz .*2009$/,
+    );
+    expect(TEXT.careerLoaded({ ...career, lastGameDate: null })).toBe(
+      "Kariera: Ann Kariera, Club, przed pierwszym meczem",
+    );
   });
 });
 

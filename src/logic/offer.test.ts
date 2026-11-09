@@ -9,6 +9,7 @@ import type { CareerSave } from "../data/career-save.ts";
 import { buildEaDb } from "../data/test-support/synthetic-ea-db.ts";
 import {
   attributes,
+  daysSince1582,
   flatCurves,
   playerRow,
   table,
@@ -262,7 +263,7 @@ describe("offerContextOf", () => {
             team_id: 9,
             firstname: "A",
             surname: "B",
-            last_game_number: 0,
+            last_game_number: daysSince1582(2009, 7, 25) * 1024,
             currency: 0,
             prestige: 3,
             upgrade_fin: 2,
