@@ -85,7 +85,9 @@ test.describe("notes view", () => {
     const items = notes.getByRole("listitem");
     await expect(items).toHaveCount(2);
     await expect(items.nth(0)).toContainText("Paweł Brożek");
-    await expect(items.nth(0)).toContainText("Szybki, lewa noga");
+    // The note goes on below its first line, so the line ends with an ellipsis.
+    await expect(items.nth(0)).toContainText("Szybki, lewa noga…");
+    await expect(items.nth(0)).not.toContainText("Do obserwacji");
     await expect(items.nth(0)).not.toContainText("Do obserwacji");
     await expect(items.nth(1)).toContainText("Jan Nowak");
     await expect(items.nth(1).getByRole("button", { name: "Jan Nowak", exact: true })).toHaveCount(

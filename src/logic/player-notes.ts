@@ -31,12 +31,14 @@ export const notedPlayer = (
 export const notesNewestFirst = (notes: readonly PlayerNote[]): readonly PlayerNote[] =>
   notes.toSorted((a, b) => Date.parse(b.changedAt) - Date.parse(a.changedAt));
 
-/** The first line of a note with text, trimmed. */
-export const firstLine = (text: string): string =>
-  text
+/** The first line of a note with text, trimmed, and whether another line with text follows it. */
+export const notePreview = (text: string): { readonly line: string; readonly more: boolean } => {
+  const [line = "", ...rest] = text
     .split("\n")
-    .map((line) => line.trim())
-    .find((line) => line !== "") ?? "";
+    .map((each) => each.trim())
+    .filter((each) => each !== "");
+  return { line, more: rest.length > 0 };
+};
 
 export type NoteAction =
   | { readonly type: "notes-restored"; readonly notes: readonly PlayerNote[] }
