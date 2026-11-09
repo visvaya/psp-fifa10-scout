@@ -34,14 +34,12 @@ declare module "react" {
  * The phone rows in rem, alike for the rows and their smaller labels: the name's least width, a rating's
  * width, a label's width per character and the padding of a label or a value. The name never takes more
  * than nameMaxCqw of the list's width, so with enlarged text the numbers keep room beside it. Before
- * scrolling the name keeps the room left by the first fullColumns number columns; a name longer than
- * initialAboveChars shows its first name as an initial once the list scrolls.
+ * scrolling the name keeps the room left by the first fullColumns number columns.
  */
 const PHONE = {
   nameMinRem: 9,
   nameMaxCqw: 45,
   fullColumns: 2,
-  initialAboveChars: 14,
   ratingRem: 2.25,
   paddingRem: 0.5,
   /** The fade at the right edge while columns follow (--space-6 in styles.css). */
@@ -210,10 +208,13 @@ const LabelButton = (props: {
   );
 };
 
-/** The name; a long one also as "A. Surname", which styles.css shows instead once the list scrolls. */
+/**
+ * The name, also as "A. Surname" when it has two parts, which styles.css shows instead once the full name
+ * no longer fits its column (fitNames measures each row, so no length decides it in advance).
+ */
 const PhoneName = (marks: ListMarks) => {
   const { player } = marks;
-  return player.initialName !== null && player.name.length > PHONE.initialAboveChars ? (
+  return player.initialName !== null ? (
     <span className="player-row-name has-initial">
       <ShortlistStar {...marks} />
       <span className="player-row-name-full">{player.name}</span>
