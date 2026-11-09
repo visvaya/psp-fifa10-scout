@@ -1,6 +1,6 @@
 // What a transfer offer needs to succeed, from the game's decision code (docs: negotiation spec, 4 of 4
-// stored offers reproduced): the fee the selling club accepts and the least wage the player signs for,
-// for the conditions chosen on the offer form (single or double offer, bonus, contract length; by default
+// stored offers reproduced): the fee the selling club accepts and the least wage the player signs for with
+// a point to spare, for the conditions chosen on the offer form (single or double offer, bonus, contract length; by default
 // a single offer, no bonus and the length he wants). The hard refusals (a thin squad, rival clubs, a full
 // squad of yours) are not checked here.
 import { careerManager, effectiveRows, seasonStartDate } from "../data/career-save.ts";
@@ -46,7 +46,7 @@ export interface OfferTerms {
   readonly longestYears: number;
   /** The contract length the wage is for. */
   readonly years: number;
-  /** The least wage per match he signs for at that length; null when he will not sign. */
+  /** The least wage per match he signs for at that length, with the reserve; null when he will not sign. */
   readonly wage: number | null;
   /** The wage is above what the first offer's limit allows (1.5 times the market wage). */
   readonly wageOverCap: boolean;
@@ -73,6 +73,13 @@ const OFFER_TUNING = {
   /** The form allows up to this multiple of its base: the value or the market wage, or the last offer. */
   capMultipleOfBase: 1.5,
   maxContractYears: 5,
+  /**
+   * The wage asked for gives the player this many points above the 0 he signs at. The squad average the
+   * game rates him against can be 1 OVR below the one read from the save (two refusals at 0 points in a
+   * second-season save, both reproduced by an average 1 lower), and 1 OVR moves the strength term by up to
+   * a point.
+   */
+  reservePoints: 1,
 } as const;
 
 /** The least fee the club accepts for a player of this value. */
@@ -172,7 +179,9 @@ export const offerTerms = (
     (choice.double ? t.doubleOfferPoints : 0) -
     Math.abs(years - wantedYears);
   const wage =
-    years < 1 || years > career ? null : wageNeeded(player.wage, -base, choice.bonusPercent);
+    years < 1 || years > career
+      ? null
+      : wageNeeded(player.wage, t.reservePoints - base, choice.bonusPercent);
   return {
     fee,
     feeOverCap: fee !== null && fee > value * t.capMultipleOfBase,
