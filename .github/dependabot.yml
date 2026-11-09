@@ -8,7 +8,7 @@ version: 2
 # here costs nothing because security updates skip the cooldown.
 #
 # Group names stay short: they end up in the pull request title, which CI holds to commitlint's
-# 72 characters. A longer title is shortened by pr-title.yml (group name, then the old version).
+# 72 characters. A longer title is shortened by pr-title.yml (directory count, group name, old version).
 updates:
   - package-ecosystem: npm
     directory: /

@@ -14,36 +14,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Dependabot titles ("bump X from A to B in the <group> group") often pass the 72-character limit,
-  # and Dependabot has no setting for their form. This job shortens such a title before the check
-  # below reads it. It runs only the base branch's script (never the pull request's code) and installs
-  # nothing, so no updated package runs with the write token. An edit made with this token starts no
-  # new workflow run.
+  # Dependabot titles ("bump X from A to B in /dir in the <group> group across 1 directory") often pass
+  # the 72-character limit, and Dependabot has no setting for their form. This job shortens such a
+  # title before the check below reads it. It uses no action and no repository code: a Dependabot
+  # pull request can update the actions themselves, and the workflow runs from the pull request, so
+  # an action here would run its new, unreviewed version with the write token. An edit made with this
+  # token starts no new workflow run.
   dependabot-title:
     name: shorten a Dependabot title
     if: github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
-      contents: read
       pull-requests: write # edit the title (Dependabot runs get read-only tokens unless granted)
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-          check-latest: true
       - name: Shorten the title past the limit
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          # commitlint's header-max-length (commitlint.config.mjs).
+          MAX_TITLE_CHARS: 72
+        # Drops in turn, while the title is too long: the directory count, the group's name, the version
+        # it updates from. A title that still does not fit stays, and the check reports it.
         run: |
           title=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq .title)
-          short=$(node scripts/dependabot-title.ts "$title")
-          if [ "$short" != "$title" ]; then
+          short=$title
+          for pattern in 's/ across [0-9]+ director(y|ies)//' 's/ in the [^ ]+ group$//' 's/ from [^ ]+ to / to /'; do
+            if [ "${#short}" -le "$MAX_TITLE_CHARS" ]; then break; fi
+            short=$(printf '%s' "$short" | sed -E "$pattern")
+          done
+          if [ "$short" != "$title" ] && [ "${#short}" -le "$MAX_TITLE_CHARS" ]; then
             gh api -X PATCH "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" -f title="$short" --jq .title
           fi
 
