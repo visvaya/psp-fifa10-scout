@@ -8,7 +8,7 @@ import type { PlayerNote } from "../logic/player-notes.ts";
 import type { Player } from "../logic/players.ts";
 import type { ScoutAction } from "../logic/scout-state.ts";
 import { ConfirmQuestion } from "./confirm-question.tsx";
-import { DialogButton } from "./modal-dialog.tsx";
+import { BarDialogButton } from "./modal-dialog.tsx";
 import { NOTES_TEXT } from "./text-notes.ts";
 
 /** A player the database lacks: his name and a button that removes his note after a question. */
@@ -137,12 +137,7 @@ export const NotesButton = (props: {
   players: readonly Player[];
   dispatch: Dispatch<ScoutAction>;
 }): JSX.Element => (
-  <DialogButton
-    label={NOTES_TEXT.title}
-    title={NOTES_TEXT.title}
-    className="notes"
-    buttonClassName="button"
-  >
+  <BarDialogButton title={NOTES_TEXT.title}>
     <NotesList {...props} />
-  </DialogButton>
+  </BarDialogButton>
 );

@@ -15,6 +15,7 @@ import { initialScoutState, scoutReducer } from "../logic/scout-state.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
 import { ListView } from "./list-view.tsx";
 import { NotesButton } from "./notes-dialog.tsx";
+import { WatchlistButton } from "./watchlist-dialog.tsx";
 import { PlayerCard } from "./player-card.tsx";
 import type { PositionNames } from "./position-name.tsx";
 import { StartScreen } from "./start-screen.tsx";
@@ -138,7 +139,15 @@ const TopBar = (props: {
         </button>
       ) : null}
       {list === null || !wide ? null : (
-        <NotesButton notes={state.notes} players={list.players} dispatch={dispatch} />
+        <>
+          <NotesButton notes={state.notes} players={list.players} dispatch={dispatch} />
+          <WatchlistButton
+            watchlist={state.watchlist}
+            players={list.players}
+            career={state.myTeamId !== null}
+            dispatch={dispatch}
+          />
+        </>
       )}
       {list === null ? null : (
         <button

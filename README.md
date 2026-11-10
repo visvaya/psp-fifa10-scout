@@ -52,7 +52,7 @@ What it does today:
   saved as named sets, the last change can be undone, and each filter can show or hide its value as
   a list column. The list sorts by its column labels, and each player has a detail card.
 - Keeps your own watchlist, without the game's limit of 20 players, and a note on any player, with a
-  view of all your notes.
+  view of all your notes and a view of your watchlist or, with a career save, the game's shortlist.
 - Installs as an app on a phone or a PC and works offline after the first visit. On an iPhone, pick
   the files in the Files app.
 

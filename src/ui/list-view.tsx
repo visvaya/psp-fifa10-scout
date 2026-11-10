@@ -18,6 +18,7 @@ import { FilterForm } from "./filter-form.tsx";
 import { FilterSets } from "./filter-sets.tsx";
 import { DialogButton } from "./modal-dialog.tsx";
 import { NotesButton } from "./notes-dialog.tsx";
+import { WatchlistButton } from "./watchlist-dialog.tsx";
 import { columnLabel, PlayerTable, RESULTS_TITLE_ID } from "./player-list.tsx";
 import { PlayerCards } from "./player-rows.tsx";
 import { ratingAbbreviation } from "./position-name.tsx";
@@ -192,6 +193,12 @@ const PhoneButtons = (props: {
       {props.form}
     </DialogButton>
     <NotesButton notes={props.state.notes} players={props.players} dispatch={props.dispatch} />
+    <WatchlistButton
+      watchlist={props.state.watchlist}
+      players={props.players}
+      career={props.state.myTeamId !== null}
+      dispatch={props.dispatch}
+    />
   </>
 );
 
