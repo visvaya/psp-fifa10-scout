@@ -182,13 +182,7 @@ const money = (
         ],
         [
           storedWage ? TEXT.card.contractWage : TEXT.card.wage,
-          wage === null ? (
-            <MissingValue key="wage" />
-          ) : storedWage ? (
-            TEXT.card.money(wage, currency)
-          ) : (
-            TEXT.card.wageEstimate(wage, currency)
-          ),
+          wage === null ? <MissingValue key="wage" /> : TEXT.card.money(wage, currency),
           FIELD_HELP.wage,
         ],
       ];

@@ -57,7 +57,7 @@ test.describe("player card", () => {
     await expect(cardValue(card, "Wypożyczony z")).toHaveText("FC Barcelona");
     // The dash, then its name for screen readers.
     await Promise.all(
-      ["Kontrakt do", "Cena", "Zarobki rynkowe"].map((label) =>
+      ["Kontrakt do", "Cena", "Zarobki rynkowe (szacunkowe)"].map((label) =>
         expect(cardValue(card, label)).toHaveText("–brak danych"),
       ),
     );

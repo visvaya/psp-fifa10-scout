@@ -265,7 +265,7 @@ test.describe("career prices on a phone", () => {
       );
     };
     await showsWhole("Cena", /\d\u00a0\d{3}\u00a0\d{3}$/u);
-    await showsWhole("Zarobki rynkowe (szacunek)", /\d\u00a0\d{3}$/u);
+    await showsWhole("Zarobki rynkowe (szacunkowe)", /\d\u00a0\d{3}$/u);
   });
 
   // Prices run to nine digits: the fields group them as they are typed and give them the row.

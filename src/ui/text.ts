@@ -114,7 +114,7 @@ export const RANGE_LABELS: Readonly<Record<RangeFields | PeakTwin, string>> = {
   cupCleanSheets: pl`Czyste konta w pucharach`,
   injuryDays: "Kontuzja (dni)",
   price: "Cena",
-  wage: "Zarobki rynkowe (szacunek)",
+  wage: "Zarobki rynkowe (szacunkowe)",
 };
 
 export const rangeLabel = (key: RangeKey | PeakTwin): string =>
@@ -447,14 +447,12 @@ export const TEXT = {
     onLoanAt: (club: string): string => `${club} (wypożyczenie do końca sezonu)`,
     parentClubRating: "Siła klubu macierzystego",
     price: "Cena",
-    wage: "Zarobki rynkowe",
+    wage: RANGE_LABELS.wage,
     contractWage: pl`Zarobki z kontraktu`,
     shortlisted: pl`Na twojej liście życzeń w grze`,
     watched: pl`Na twojej liście w narzędziu`,
     money: (amount: number, currency: CurrencyCode): string =>
       `${formatNumber(amount)}${NBSP}${CURRENCY_SYMBOLS[currency]}`,
-    wageEstimate: (wage: number, currency: CurrencyCode): string =>
-      `${formatNumber(wage)}${NBSP}${CURRENCY_SYMBOLS[currency]}${NBSP}(szacunek)`,
     none: "brak",
   },
 } as const;

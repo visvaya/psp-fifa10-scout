@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { decimalSeparator, formatNumber, formatRating, plural, TEXT } from "./text.ts";
+import { decimalSeparator, formatNumber, formatRating, plural, rangeLabel, TEXT } from "./text.ts";
 import { OFFER_TEXT } from "./text-offer.ts";
 import { TEST_CAREER } from "../logic/test-support/player-fixtures.ts";
 import { NBSP } from "./typeset.ts";
@@ -50,9 +50,9 @@ describe("TEXT.resultCount", () => {
 });
 
 describe("TEXT.card money", () => {
-  it("labels a wage in the save's currency as an estimate", () => {
-    expect(TEXT.card.wageEstimate(4500, 0)).toBe("4500 € (szacunek)");
-    expect(TEXT.card.wageEstimate(10_000, 2)).toBe(`${formatNumber(10_000)} $ (szacunek)`);
+  it("names the market wage an estimate in its label, the same on the card as in filters", () => {
+    expect(TEXT.card.wage).toBe("Zarobki rynkowe (szacunkowe)");
+    expect(TEXT.card.wage).toBe(rangeLabel("wage"));
   });
 
   it("shows money with the currency symbol", () => {
