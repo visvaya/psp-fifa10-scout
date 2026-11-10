@@ -95,7 +95,7 @@ const LIST_OPTIONS: readonly ("any" | ListMembership)[] = ["any", ...LIST_MEMBER
 const MY_CLUB_OPTIONS: readonly ("all" | MyClub)[] = ["all", "hide", "only"];
 
 /** One choice of a few, as radio buttons; the group takes its name from the legend's text alone. */
-const RadioField = <T extends string>(props: {
+export const RadioField = <T extends string>(props: {
   readonly legend: string;
   readonly help?: string;
   readonly name: string;

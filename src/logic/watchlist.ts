@@ -1,5 +1,6 @@
 // The user's own watchlist: players kept without the game's limit of 20. One list for the whole tool,
 // keyed by the player id that fifa.db and the career saves share. Notes live apart (player-notes.ts).
+import type { Player } from "./players.ts";
 import type { ScoutAction, ScoutState } from "./scout-state.ts";
 
 export interface WatchEntry {
@@ -23,6 +24,29 @@ export const unwatchedPlayer = (
 
 export const watchedIds = (list: readonly WatchEntry[]): ReadonlySet<number> =>
   new Set(list.map((entry) => entry.playerId));
+
+/** A player on a list; undefined for an id of the own list the loaded players lack. */
+export interface ListedPlayer {
+  readonly id: number;
+  readonly player: Player | undefined;
+}
+
+/** The own list latest added first, or the game's shortlist with the highest OVR first. */
+export const listedPlayers = (
+  which: "tool" | "game",
+  list: readonly WatchEntry[],
+  players: readonly Player[],
+): readonly ListedPlayer[] => {
+  if (which === "game")
+    return players
+      .filter((player) => player.shortlisted)
+      .toSorted((a, b) => b.overall - a.overall)
+      .map((player) => ({ id: player.id, player }));
+  const byId = new Map(players.map((player) => [player.id, player] as const));
+  return list
+    .toSorted((a, b) => Date.parse(b.addedAt) - Date.parse(a.addedAt))
+    .map(({ playerId }) => ({ id: playerId, player: byId.get(playerId) }));
+};
 
 export type WatchlistAction =
   | { readonly type: "watchlist-restored"; readonly watchlist: readonly WatchEntry[] }

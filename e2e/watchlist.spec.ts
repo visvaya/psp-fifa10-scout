@@ -3,9 +3,12 @@ import {
   expect,
   expectCount,
   expectNoAxeViolations,
+  expectNoHorizontalOverflow,
   expectStored,
   expectStoredSearchCleared,
+  loadCareer,
   loadDatabase,
+  PHONE,
   readStored,
   test,
   writeStored,
@@ -118,5 +121,49 @@ test.describe("own watchlist in the table", () => {
     await expect(name.locator(".watch-mark")).toBeVisible();
     const overflow = await name.evaluate((element) => element.scrollWidth - element.clientWidth);
     expect(overflow).toBeLessThanOrEqual(0);
+  });
+});
+
+/** Opens the dialog with the wish lists from the top bar. */
+const openWishLists = async (page: Page) => {
+  await page.getByRole("button", { name: "Lista życzeń", exact: true }).click();
+  return page.getByRole("dialog", { name: "Lista życzeń" });
+};
+
+test.describe("wish list dialog", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  // Without a career save only the own list is known, so the dialog has no switch.
+  test("lists the own list and opens a player's card from it", async ({ page }) => {
+    await loadDatabase(page);
+    let lists = await openWishLists(page);
+    await expect(lists).toContainText("Twoja lista w narzędziu jest pusta.");
+    await expect(lists.getByRole("radio")).toHaveCount(0);
+    await lists.getByRole("button", { name: "Zamknij" }).click();
+    const card = await openBrozek(page);
+    await card.getByRole("button", { name: "Dodaj do twojej listy w narzędziu" }).click();
+    await page.keyboard.press("Escape");
+
+    lists = await openWishLists(page);
+    await expect(lists.getByText(/ · OVR \d+$/u)).toHaveCount(1);
+    await expectNoAxeViolations(page);
+    await lists.getByRole("button", { name: "Paweł Brożek" }).click();
+    await expect(page.getByRole("dialog", { name: "Paweł Brożek" })).toBeVisible();
+  });
+});
+
+test.describe("wish list dialog on a phone", () => {
+  test.use(PHONE);
+
+  // The synthetic career has Messi on the game's shortlist and nobody on the own list.
+  test("switches to the game's shortlist with a career", async ({ page }) => {
+    await loadCareer(page);
+    const lists = await openWishLists(page);
+    await expect(lists.getByRole("radio", { name: "w narzędziu" })).toBeChecked();
+    await expect(lists).toContainText("Twoja lista w narzędziu jest pusta.");
+    await lists.getByRole("radio", { name: "w grze" }).check();
+    await expect(lists.getByRole("button", { name: "Lionel Messi" })).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await expectNoAxeViolations(page);
   });
 });

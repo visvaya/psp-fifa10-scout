@@ -6,4 +6,12 @@ export const WATCHLIST_TEXT = {
   title: pl`Twoja lista w narzędziu`,
   add: pl`Dodaj do twojej listy w narzędziu`,
   remove: pl`Usuń z twojej listy w narzędziu`,
+  /** The top bar's button and the title of the dialog with both lists (watchlist-dialog.tsx). */
+  dialogTitle: pl`Lista życzeń`,
+  /** The legend of the switch between the lists, shown with a career save. */
+  switchLegend: pl`Pokaż listę`,
+  emptyTool: pl`Twoja lista w narzędziu jest pusta. Zawodnika dodasz na jego karcie.`,
+  emptyGame: pl`Twoja lista życzeń w grze jest pusta.`,
+  /** Under a player's name: his position and OVR. */
+  line: (position: string, overall: number): string => `${position} · OVR ${overall}`,
 } as const;

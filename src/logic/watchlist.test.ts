@@ -1,11 +1,37 @@
 import { describe, expect, it } from "vitest";
 import { initialScoutState, scoutReducer } from "./scout-state.ts";
-import { unwatchedPlayer, watchedIds, watchedPlayer } from "./watchlist.ts";
+import { testPlayer } from "./test-support/player-fixtures.ts";
+import { listedPlayers, unwatchedPlayer, watchedIds, watchedPlayer } from "./watchlist.ts";
 import type { WatchEntry } from "./watchlist.ts";
 
-const entry = (playerId: number): WatchEntry => ({
+const entry = (playerId: number, addedAt = "2026-11-05T10:00:00.000Z"): WatchEntry => ({
   playerId,
-  addedAt: "2026-11-05T10:00:00.000Z",
+  addedAt,
+});
+
+describe("listedPlayers", () => {
+  const players = [
+    testPlayer({ id: 1, overall: 60, shortlisted: true }),
+    testPlayer({ id: 2, overall: 80 }),
+    testPlayer({ id: 3, overall: 70, shortlisted: true }),
+  ];
+
+  it("gives the own list latest added first, an id the players lack without a player", () => {
+    const list = [
+      entry(2, "2026-11-01T10:00:00.000Z"),
+      entry(9),
+      entry(1, "2026-11-03T10:00:00.000Z"),
+    ];
+    expect(listedPlayers("tool", list, players).map(({ id, player }) => [id, player?.id])).toEqual([
+      [9, undefined],
+      [1, 1],
+      [2, 2],
+    ]);
+  });
+
+  it("gives the game's shortlist by OVR, highest first", () => {
+    expect(listedPlayers("game", [entry(2)], players).map(({ id }) => id)).toEqual([3, 1]);
+  });
 });
 
 describe("watchedPlayer", () => {

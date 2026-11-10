@@ -124,3 +124,10 @@ export const DialogButton = (props: {
     </>
   );
 };
+
+/** A plain top-bar button named like the dialog it opens, such as the notes or the wish lists. */
+export const BarDialogButton = (props: { title: string; children: ReactNode }): JSX.Element => (
+  <DialogButton label={props.title} title={props.title} className="notes" buttonClassName="button">
+    {props.children}
+  </DialogButton>
+);
