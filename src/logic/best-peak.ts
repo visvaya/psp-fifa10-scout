@@ -47,18 +47,26 @@ export const TIE_RULES = [
 
 export type TieRule = (typeof TIE_RULES)[number];
 
-/** The codes each rule keeps, of a player in a formation. */
+/**
+ * The codes each rule keeps, of a player in a formation, as steps that narrow one after another. The
+ * better foot first drops the other side, so with nothing on the better foot's side the centre comes
+ * before the other side (owner's rule, 2026-11-10).
+ */
 const KEEPS: Readonly<
   Record<
     TieRule,
-    (player: PeakInput, formationCodes: readonly number[]) => (code: number) => boolean
+    (player: PeakInput, formationCodes: readonly number[]) => readonly ((code: number) => boolean)[]
   >
 > = {
-  formation: (_player, formationCodes) => (code) => formationCodes.includes(code),
-  weakFootCentre: (player) => (code) =>
-    player.weakFoot >= SCOUT_CONFIG.centralWeakFootStarsMin && sideOf(code) === "central",
-  betterFootSide: (player) => (code) => sideOf(code) === player.preferredFoot,
-  preferredPosition: (player) => (code) => code === player.positionCode,
+  formation: (_player, formationCodes) => [(code) => formationCodes.includes(code)],
+  weakFootCentre: (player) => [
+    (code) => player.weakFoot >= SCOUT_CONFIG.centralWeakFootStarsMin && sideOf(code) === "central",
+  ],
+  betterFootSide: (player) => [
+    (code) => sideOf(code) === player.preferredFoot || sideOf(code) === "central",
+    (code) => sideOf(code) === player.preferredFoot,
+  ],
+  preferredPosition: (player) => [(code) => code === player.positionCode],
 };
 
 /**
@@ -102,10 +110,9 @@ export const bestPeakFields = (
   if (peakByCode.length === 0) return NO_BEST_PEAK;
   const bestPeak = Math.max(...peakByCode);
   const code = Math.min(
-    ...order.reduce(
-      (codes, rule) => narrowed(codes, KEEPS[rule](player, formationCodes)),
-      codesAtPeak(peakByCode, bestPeak),
-    ),
+    ...order
+      .flatMap((rule) => KEEPS[rule](player, formationCodes))
+      .reduce(narrowed, codesAtPeak(peakByCode, bestPeak)),
   );
   return {
     bestPeak,

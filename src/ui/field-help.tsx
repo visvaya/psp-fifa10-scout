@@ -108,6 +108,8 @@ const PanelButton = (props: {
         id={id}
         popover="auto"
         className="field-help-panel"
+        // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- a long text scrolls inside the panel; focusable, its end is in a keyboard's reach (axe scrollable-region-focusable)
+        tabIndex={0}
         onToggle={(event) => {
           const opened = event.newState === "open";
           if (opened) follow();
