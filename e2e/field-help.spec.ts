@@ -224,6 +224,10 @@ test.describe("field explanations, phone", () => {
   });
 });
 
+/** An element scrolled to the end of its content, to the pixel. */
+const scrolledToEnd = (element: Element): boolean =>
+  element.scrollTop + element.clientHeight >= element.scrollHeight - 1;
+
 // A describe's opening, alike in every spec to the literal-blind duplicate check. jscpd:ignore-start
 test.describe("field explanations, short phone screen", () => {
   test.use({ ...PHONE, viewport: { width: 390, height: 320 } });
@@ -257,8 +261,14 @@ test.describe("field explanations, short phone screen", () => {
     expect(scrolled).toBe(true);
     // A panel that scrolls takes the focus too, or its hidden end is out of a keyboard's reach. Focused
     // directly: WebKit's Tab skips what is not a form control by default.
+    await panel.evaluate((element) => {
+      element.scrollTo(0, 0);
+    });
     await panel.focus();
     await expect(panel).toBeFocused();
+    // Focused, the panel scrolls by the keyboard to its end.
+    await page.keyboard.press("End");
+    await expect.poll(() => panel.evaluate(scrolledToEnd)).toBe(true);
     await expectNoAxeViolations(page);
     await expectOnScreen(page, panel);
   });
