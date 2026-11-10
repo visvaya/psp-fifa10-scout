@@ -8,6 +8,7 @@ import {
   expectStored,
   firstCellOf,
   loadDatabase,
+  openFilters,
   PHONE,
   readStored,
   resetSettings,
@@ -201,6 +202,34 @@ test.describe("phone", () => {
       "Klub",
     ]);
     await expect(meta).toHaveCount(0);
+  });
+});
+
+test.describe("phone attribute field", () => {
+  test.use(PHONE);
+
+  test("keeps an added attribute with its column on after the dialog closes, and its removal hides the column", async ({
+    page,
+  }) => {
+    await loadDatabase(page);
+    let dialog = await openFilters(page);
+    await dialog.getByText("Atrybuty", { exact: true }).click();
+    await dialog.getByLabel("Dodaj atrybut").selectOption({ label: "Siła strzału" });
+    // The column is on, with no range set.
+    await eyeOf(page, "Siła strzału").click();
+    await dialog.getByRole("button", { name: "Zamknij" }).click();
+    const labels = page.locator(".player-rows-header .column-label");
+    await expect(labels).toHaveCount(2);
+
+    dialog = await openFilters(page);
+    await expandSections(page);
+    await expect(dialog.getByRole("group", { name: "Siła strzału" })).toBeVisible();
+    await expect(eyeOf(page, "Siła strzału")).toHaveAttribute("aria-pressed", "true");
+    // Removing the field takes its column away too, or the field would come back with it.
+    await dialog.getByRole("button", { name: "Usuń atrybut: Siła strzału" }).click();
+    await expect(dialog.getByRole("group", { name: "Siła strzału" })).toHaveCount(0);
+    await dialog.getByRole("button", { name: "Zamknij" }).click();
+    await expect(labels).toHaveText(["OVR"]);
   });
 });
 
