@@ -255,6 +255,11 @@ test.describe("field explanations, short phone screen", () => {
       return element.scrollHeight > element.clientHeight && element.scrollTop > 0;
     });
     expect(scrolled).toBe(true);
+    // A panel that scrolls takes the focus too, or its hidden end is out of a keyboard's reach. Focused
+    // directly: WebKit's Tab skips what is not a form control by default.
+    await panel.focus();
+    await expect(panel).toBeFocused();
+    await expectNoAxeViolations(page);
     await expectOnScreen(page, panel);
   });
 });
