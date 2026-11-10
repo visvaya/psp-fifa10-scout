@@ -10,7 +10,7 @@ export interface ColumnToggle {
   /** The user turned the column on: the filters and the sort alone would not show it. */
   readonly chosen: boolean;
   readonly onToggle: () => void;
-  /** Drops the user's choice, so the column shows as the filters and the sort decide. */
+  /** Drops a choice that turned the column on; a column the user hid stays hidden. */
   readonly onReset: () => void;
 }
 
@@ -38,9 +38,10 @@ export const columnEye =
           automatic: automatic.includes(key),
         });
       },
-      // A change that agrees with the automatic choice stores nothing and drops the earlier choice.
+      // A visible column holds no "hidden" choice. Told it is hidden and not automatic, the reducer
+      // stores nothing and drops an earlier "shown".
       onReset: () => {
-        dispatch({ type: "column-shown", key, shown: false, automatic: false });
+        if (visible) dispatch({ type: "column-shown", key, shown: false, automatic: false });
       },
     };
   };

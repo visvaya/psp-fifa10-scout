@@ -111,20 +111,33 @@ test.describe("rating width", () => {
   });
 });
 
+/** Wide screen: filters by the dribbling from 10 and hides its column. */
+const hideFilteredDribbling = async (page: Page) => {
+  await loadDatabase(page);
+  await page.getByText("Atrybuty", { exact: true }).click();
+  await page.getByLabel("Dodaj atrybut").selectOption({ label: "Drybling" });
+  await page.getByRole("group", { name: "Drybling" }).getByLabel("od").fill("10");
+  await eyeOf(page, "Drybling").click();
+  await expect.poll(async () => storedColumns(page)).toBe('{"dribbling":"hidden"}');
+};
+
 test.describe("back to the automatic columns", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
   test("stores no choice once a column is back as the filters show it", async ({ page }) => {
-    await loadDatabase(page);
-    await page.getByText("Atrybuty", { exact: true }).click();
-    await page.getByLabel("Dodaj atrybut").selectOption({ label: "Drybling" });
-    await page.getByRole("group", { name: "Drybling" }).getByLabel("od").fill("10");
-    await eyeOf(page, "Drybling").click();
-    await expect.poll(async () => storedColumns(page)).toBe('{"dribbling":"hidden"}');
+    await hideFilteredDribbling(page);
     // Shown again, the column is what the filter gives: nothing is stored for it.
     await eyeOf(page, "Drybling").click();
     await expect(page.getByRole("columnheader", { name: /^Drybling/u })).toBeVisible();
     await expect.poll(async () => storedColumns(page)).toBe("{}");
+  });
+
+  test("keeps a hidden column hidden when its attribute field is removed", async ({ page }) => {
+    await hideFilteredDribbling(page);
+    // The table shows the dribbling without a filter too: only the stored choice keeps it hidden.
+    await page.getByRole("button", { name: "Usuń atrybut: Drybling" }).click();
+    await expect(page.getByRole("columnheader", { name: /^Drybling/u })).toBeHidden();
+    await expect.poll(async () => storedColumns(page)).toBe('{"dribbling":"hidden"}');
   });
 });
 
