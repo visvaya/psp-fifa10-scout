@@ -46,7 +46,11 @@ test.describe("career", () => {
     await page.getByRole("button", { name: "Lionel Messi" }).click();
     const card = page.getByRole("dialog", { name: "Lionel Messi" });
     await expect(card.getByRole("term").filter({ hasText: /^Cena(?:\?|$)/u })).toBeVisible();
-    await expect(card.getByText(/ \(szacunek\)$/u)).toBeVisible();
+    // The estimate is named once, in the label, so the value is the amount alone.
+    await expect(
+      card.getByRole("term").filter({ hasText: "Zarobki rynkowe (szacunkowe)" }),
+    ).toBeVisible();
+    await expect(card.getByText("(szacunek)")).toHaveCount(0);
     await page.keyboard.press("Escape");
     // The user's own player shows the wage stored in his contract, not the market's. Found by name: the
     // list renders only the rows near the screen.
@@ -64,7 +68,7 @@ test.describe("career", () => {
     await page.getByText("Kariera", { exact: true }).click();
     await page.getByRole("group", { name: "Cena (€)", exact: true }).getByLabel("od").fill("1");
     await page
-      .getByRole("group", { name: "Zarobki rynkowe (szacunek)" })
+      .getByRole("group", { name: "Zarobki rynkowe (szacunkowe)" })
       .getByLabel("od")
       .fill("1");
     // A fifth of the generated players' contracts run out in 2009: their price is 0. Gracz Numer 2, on
