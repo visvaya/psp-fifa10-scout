@@ -118,8 +118,15 @@ describe("the best peak position on a tie", () => {
     expect(chosen([21, 22, 23, 24, 25], { preferredFoot: "left", positionCode: 25 })).toBe(25);
     // A right-footed left midfielder still peaks on the right in a 4-4-2.
     expect(chosen([14, 15, 19, 20], { formationCodes: FOUR_FOUR_TWO, positionCode: 19 })).toBe(15);
-    // No right code among CB and LCB: both stay, and the preferred LCB wins over the first code.
-    expect(chosen([5, 6], { positionCode: 6 })).toBe(6);
+  });
+
+  it("takes the centre before the other side when nothing is on the side of the better foot", () => {
+    // Owner's rule, 2026-11-10: a left-footed player tied on RCB and CB, with no LCB, takes CB.
+    expect(chosen([4, 5], { preferredFoot: "left" })).toBe(5);
+    // The preferred LCB of a right-footed player comes after the centre.
+    expect(chosen([5, 6], { positionCode: 6 })).toBe(5);
+    // With no centre either, every code on the other side stays.
+    expect(chosen([2, 3], { preferredFoot: "left", positionCode: 3 })).toBe(3);
   });
 
   it("takes the first code left when nothing else decides", () => {
@@ -150,9 +157,9 @@ describe("the best peak position with the user's order of the tie rules", () => 
   });
 
   it("takes the better foot over the formation when it comes first", () => {
-    // Left-footed, with only the right forwards in the formation.
+    // Left-footed, with only RF and CF in the formation: neither is on the left, so the centre.
     const tie = { formationCodes: [26, 27], preferredFoot: "left" as const, positionCode: 17 };
-    expect(chosen(FORWARDS, tie)).toBe(26);
+    expect(chosen(FORWARDS, tie)).toBe(27);
     expect(chosen(FORWARDS, { ...tie, order: order("betterFootSide") })).toBe(28);
   });
 });
