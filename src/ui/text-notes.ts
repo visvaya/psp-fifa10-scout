@@ -3,14 +3,17 @@
 import { lazy } from "../logic/lazy.ts";
 import { pl } from "./typeset.ts";
 
-const changeFormat = lazy(() => new Intl.DateTimeFormat("pl", { dateStyle: "medium" }));
+const changeFormat = lazy(
+  () => new Intl.DateTimeFormat("pl", { dateStyle: "medium", timeStyle: "medium" }),
+);
 
 export const NOTES_TEXT = {
   /** The top bar's button and the list's title. */
   title: "Notatki",
+  /** The card's section and the name of its field; "?" says that a note does not add to the list. */
   cardTitle: "Twoja notatka",
-  /** Says by its name that a note is not the list. */
-  field: pl`Notatka (nie dodaje do listy)`,
+  clearQuestion: "Wyczyścić notatkę?",
+  clear: "Wyczyść",
   empty: pl`Nie masz jeszcze notatek. Notatkę dodasz na karcie zawodnika.`,
   /** A player the loaded database lacks, stored without a name. */
   unknownPlayer: (id: number): string => pl`Zawodnik nr ${id}`,

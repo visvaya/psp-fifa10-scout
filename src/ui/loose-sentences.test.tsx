@@ -71,7 +71,7 @@ const html = renderToStaticMarkup(
     showPotential
     names={NAMES}
     watched
-    note="Szybki"
+    note={{ playerId: 1, text: "Szybki", name: null, changedAt: "2026-11-10T21:31:05.000Z" }}
     dispatch={() => undefined}
     onClose={() => undefined}
   />,

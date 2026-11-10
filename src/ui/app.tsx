@@ -223,7 +223,7 @@ export const App = (props: { registering: Promise<UpdatableRegistration> | null 
           offer={offerFor(state, openPlayer)}
           showPotential={showPotential}
           watched={state.watchlist.some((entry) => entry.playerId === openPlayer.id)}
-          note={state.notes.find((note) => note.playerId === openPlayer.id)?.text ?? ""}
+          note={state.notes.find((note) => note.playerId === openPlayer.id)}
           dispatch={dispatch}
           onClose={() => {
             dispatch({ type: "player-closed" });
