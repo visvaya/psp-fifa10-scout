@@ -8,6 +8,7 @@ import type { OfferContext } from "../logic/offer.ts";
 import { skillCurveId } from "../logic/overall-rating.ts";
 import type { Curves } from "../logic/overall-rating.ts";
 import { SEASON_STAT_KEYS } from "../logic/players.ts";
+import type { PlayerNote } from "../logic/player-notes.ts";
 import type { AttributeName, Player } from "../logic/players.ts";
 import type { ScoutAction } from "../logic/scout-state.ts";
 import { ChoiceRatings } from "./card-folds.tsx";
@@ -370,8 +371,8 @@ export const PlayerCard = (props: {
   names: PositionNames;
   /** Whether the player is on the own watchlist. */
   watched: boolean;
-  /** The user's note on the player, empty while there is none. */
-  note: string;
+  /** The user's note on the player, undefined while there is none. */
+  note: PlayerNote | undefined;
   dispatch: Dispatch<ScoutAction>;
   onClose: () => void;
 }): JSX.Element => {
@@ -385,7 +386,7 @@ export const PlayerCard = (props: {
       <NoteSection
         playerId={player.id}
         playerName={player.name}
-        text={props.note}
+        note={props.note}
         dispatch={dispatch}
       />
       <Facts facts={basics(player, showPotential, currency, names)} />

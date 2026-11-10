@@ -134,10 +134,17 @@ export const FieldHelp = (props: { label: string; text: string }): JSX.Element =
 );
 
 /** A card section's heading with its "?" beside it, not in it, so the heading keeps its own name. */
-export const HelpHeading = (props: { id: string; title: string; help: string }): JSX.Element => (
+/** A section's heading with its "?"; `children`, such as a clear button, follow the "?". */
+export const HelpHeading = (props: {
+  id: string;
+  title: string;
+  help: string;
+  children?: ReactNode;
+}): JSX.Element => (
   <div className="heading-help">
     <h3 id={props.id}>{props.title}</h3>
     <FieldHelp label={props.title} text={props.help} />
+    {props.children}
   </div>
 );
 

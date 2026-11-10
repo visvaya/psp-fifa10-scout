@@ -10,7 +10,7 @@ import {
   writeStored,
 } from "./support.ts";
 
-const NOTE_FIELD = { name: "Notatka (nie dodaje do listy)" } as const;
+const NOTE_FIELD = { name: "Twoja notatka", exact: true } as const;
 const NOTE = "Szybki, lewa noga\nDo obserwacji w zimie";
 
 const brozekButton = (page: Page) => page.getByRole("button", { name: /^Paweł Brożek/u });
@@ -58,6 +58,31 @@ test.describe("notes on players", () => {
     await expect(note).toHaveValue(NOTE);
     // Emptied, the note is gone.
     await note.fill("");
+    await expectStored(page, "notes", { value: [] });
+  });
+
+  // The field is named by the section's heading alone; the clear button asks first, and the card shows
+  // when the note last changed, to the second.
+  test("clears a note with its button after a question and shows its time", async ({ page }) => {
+    await loadDatabase(page);
+    const card = await openBrozek(page);
+    const clear = card.getByRole("button", { name: "Wyczyść: Twoja notatka" });
+    await expect(clear).toHaveCount(0);
+    const note = card.getByRole("textbox", NOTE_FIELD);
+    await note.fill(NOTE);
+    await expect(card.locator(".note .note-date")).toHaveText(
+      /^zmieniona \d{1,2} \S+ \d{4}, \d{2}:\d{2}:\d{2}$/u,
+    );
+    await clear.click();
+    await expect(card.getByText("Wyczyścić notatkę?")).toBeVisible();
+    await expectNoAxeViolations(page);
+    await card.getByRole("button", { name: /^Anuluj/u }).click();
+    await expect(clear).toBeFocused();
+    await expect(note).toHaveValue(NOTE);
+    await clear.click();
+    await card.getByRole("button", { name: "Wyczyść", exact: true }).click();
+    await expect(note).toHaveValue("");
+    await expect(note).toBeFocused();
     await expectStored(page, "notes", { value: [] });
   });
 });
