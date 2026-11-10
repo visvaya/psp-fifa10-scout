@@ -49,8 +49,12 @@ export const AttributeRanges = (props: {
   onChange: (name: AttributeName, range: Range | undefined) => void;
 }) => {
   const [added, setAdded] = useState<readonly AttributeName[]>([]);
+  // A column the user turned on keeps its field after the form closes, which forgets `added`.
   const shown = ATTRIBUTE_NAMES.filter(
-    (name) => added.includes(name) || props.ranges?.[name] !== undefined,
+    (name) =>
+      added.includes(name) ||
+      props.ranges?.[name] !== undefined ||
+      props.eye(name)?.chosen === true,
   );
   return (
     <>
@@ -74,6 +78,7 @@ export const AttributeRanges = (props: {
             onClick={() => {
               setAdded(added.filter((item) => item !== name));
               props.onChange(name, undefined);
+              props.eye(name)?.onReset();
             }}
           >
             {TEXT.removeMark}

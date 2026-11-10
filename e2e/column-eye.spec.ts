@@ -8,6 +8,7 @@ import {
   expectStored,
   firstCellOf,
   loadDatabase,
+  openFilters,
   PHONE,
   readStored,
   resetSettings,
@@ -110,20 +111,33 @@ test.describe("rating width", () => {
   });
 });
 
+/** Wide screen: filters by the dribbling from 10 and hides its column. */
+const hideFilteredDribbling = async (page: Page) => {
+  await loadDatabase(page);
+  await page.getByText("Atrybuty", { exact: true }).click();
+  await page.getByLabel("Dodaj atrybut").selectOption({ label: "Drybling" });
+  await page.getByRole("group", { name: "Drybling" }).getByLabel("od").fill("10");
+  await eyeOf(page, "Drybling").click();
+  await expect.poll(async () => storedColumns(page)).toBe('{"dribbling":"hidden"}');
+};
+
 test.describe("back to the automatic columns", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
   test("stores no choice once a column is back as the filters show it", async ({ page }) => {
-    await loadDatabase(page);
-    await page.getByText("Atrybuty", { exact: true }).click();
-    await page.getByLabel("Dodaj atrybut").selectOption({ label: "Drybling" });
-    await page.getByRole("group", { name: "Drybling" }).getByLabel("od").fill("10");
-    await eyeOf(page, "Drybling").click();
-    await expect.poll(async () => storedColumns(page)).toBe('{"dribbling":"hidden"}');
+    await hideFilteredDribbling(page);
     // Shown again, the column is what the filter gives: nothing is stored for it.
     await eyeOf(page, "Drybling").click();
     await expect(page.getByRole("columnheader", { name: /^Drybling/u })).toBeVisible();
     await expect.poll(async () => storedColumns(page)).toBe("{}");
+  });
+
+  test("keeps a hidden column hidden when its attribute field is removed", async ({ page }) => {
+    await hideFilteredDribbling(page);
+    // The table shows the dribbling without a filter too: only the stored choice keeps it hidden.
+    await page.getByRole("button", { name: "Usuń atrybut: Drybling" }).click();
+    await expect(page.getByRole("columnheader", { name: /^Drybling/u })).toBeHidden();
+    await expect.poll(async () => storedColumns(page)).toBe('{"dribbling":"hidden"}');
   });
 });
 
@@ -201,6 +215,34 @@ test.describe("phone", () => {
       "Klub",
     ]);
     await expect(meta).toHaveCount(0);
+  });
+});
+
+test.describe("phone attribute field", () => {
+  test.use(PHONE);
+
+  test("keeps an added attribute with its column on after the dialog closes, and its removal hides the column", async ({
+    page,
+  }) => {
+    await loadDatabase(page);
+    let dialog = await openFilters(page);
+    await dialog.getByText("Atrybuty", { exact: true }).click();
+    await dialog.getByLabel("Dodaj atrybut").selectOption({ label: "Siła strzału" });
+    // The column is on, with no range set.
+    await eyeOf(page, "Siła strzału").click();
+    await dialog.getByRole("button", { name: "Zamknij" }).click();
+    const labels = page.locator(".player-rows-header .column-label");
+    await expect(labels).toHaveCount(2);
+
+    dialog = await openFilters(page);
+    await expandSections(page);
+    await expect(dialog.getByRole("group", { name: "Siła strzału" })).toBeVisible();
+    await expect(eyeOf(page, "Siła strzału")).toHaveAttribute("aria-pressed", "true");
+    // Removing the field takes its column away too, or the field would come back with it.
+    await dialog.getByRole("button", { name: "Usuń atrybut: Siła strzału" }).click();
+    await expect(dialog.getByRole("group", { name: "Siła strzału" })).toHaveCount(0);
+    await dialog.getByRole("button", { name: "Zamknij" }).click();
+    await expect(labels).toHaveText(["OVR"]);
   });
 });
 

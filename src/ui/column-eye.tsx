@@ -7,7 +7,11 @@ import { TEXT } from "./text.ts";
 export interface ColumnToggle {
   /** The column is in the list now. */
   readonly visible: boolean;
+  /** The user turned the column on: the filters and the sort alone would not show it. */
+  readonly chosen: boolean;
   readonly onToggle: () => void;
+  /** Drops a choice that turned the column on; a column the user hid stays hidden. */
+  readonly onReset: () => void;
 }
 
 /** The eye of a filter's column; undefined for a filter without one. */
@@ -25,6 +29,7 @@ export const columnEye =
     const visible = columns.includes(key);
     return {
       visible,
+      chosen: visible && !automatic.includes(key),
       onToggle: () => {
         dispatch({
           type: "column-shown",
@@ -32,6 +37,11 @@ export const columnEye =
           shown: !visible,
           automatic: automatic.includes(key),
         });
+      },
+      // A visible column holds no "hidden" choice. Told it is hidden and not automatic, the reducer
+      // stores nothing and drops an earlier "shown".
+      onReset: () => {
+        if (visible) dispatch({ type: "column-shown", key, shown: false, automatic: false });
       },
     };
   };
