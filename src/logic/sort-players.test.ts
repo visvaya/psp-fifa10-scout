@@ -197,6 +197,18 @@ describe("sortPlayers", () => {
     expect(sorted).toEqual([2, 3, 1]);
   });
 
+  it("sorts development types by code, early to late, not by their names", () => {
+    const types = [
+      testPlayer({ id: 1, nameOrder: 0, developmentType: 3 }),
+      testPlayer({ id: 2, nameOrder: 1, developmentType: 1 }),
+      testPlayer({ id: 3, nameOrder: 2, developmentType: 2 }),
+    ];
+    const order = (direction: SortDirection) =>
+      sortPlayers(types, "developmentType", direction).map((player) => player.id);
+    expect(order("ascending")).toEqual([2, 3, 1]);
+    expect(order("descending")).toEqual([1, 3, 2]);
+  });
+
   it("leaves the input untouched", () => {
     sortPlayers(PLAYERS, "age", "ascending");
     expect(PLAYERS.map((player) => player.id)).toEqual([5, 2, 1, 3]);
@@ -207,6 +219,19 @@ describe("nextDirection", () => {
   it("turns the sorted key round, either way", () => {
     expect(nextDirection({ key: "age", direction: "ascending" }, "age")).toBe("descending");
     expect(nextDirection({ key: "age", direction: "descending" }, "age")).toBe("ascending");
+  });
+
+  it("starts a list's values ascending, as text, and numbers descending", () => {
+    const from = { key: "overall", direction: "descending" } as const;
+    const lists = [
+      "positionGroup",
+      "preferredFoot",
+      "bodyType",
+      "developmentType",
+      "developmentStyle",
+    ] as const;
+    expect(lists.map((key) => nextDirection(from, key))).toEqual(lists.map(() => "ascending"));
+    expect(nextDirection({ key: "age", direction: "ascending" }, "overall")).toBe("descending");
   });
 });
 
