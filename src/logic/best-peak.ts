@@ -1,7 +1,7 @@
 // The position where a player's peak OVR is highest: the largest of the peaks counted for each position
 // code. It need not be the position he plays best today.
 import { SCOUT_CONFIG } from "./config.ts";
-import { positionOf, sideOf } from "./positions.ts";
+import { positionOf, ratingCodeOf, sideOf } from "./positions.ts";
 
 export const NO_BEST_PEAK = {
   bestPeak: null,
@@ -24,8 +24,23 @@ export interface PeakInput {
 }
 
 /** The codes whose peak is `peak`, in code order. */
-export const codesAtPeak = (peakByCode: readonly number[], peak: number): readonly number[] =>
+const codesAtPeak = (peakByCode: readonly number[], peak: number): readonly number[] =>
   peakByCode.flatMap((each, code) => (each === peak ? [code] : []));
+
+/**
+ * The other ways the game rates a position (rating choices, by their first code) that reach `peak`, in
+ * code order, without the one `code` belongs to: its side variants rate the same way, so they add nothing.
+ */
+export const otherPeakChoices = (
+  peakByCode: readonly number[],
+  peak: number,
+  code: number,
+): readonly number[] => {
+  const shown = ratingCodeOf(code);
+  return [...new Set(codesAtPeak(peakByCode, peak).map(ratingCodeOf))].filter(
+    (choice) => choice !== shown,
+  );
+};
 
 /** The codes that pass `keep`, or all of them when none does. */
 const narrowed = (codes: readonly number[], keep: (code: number) => boolean) => {

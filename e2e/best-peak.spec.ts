@@ -23,21 +23,6 @@ const peakEye = (page: Page) =>
   page.getByRole("button", { name: "Pokaż kolumnę: Szczyt OVR", exact: true });
 
 /**
- * How many lines an element's text takes: its boxes' middles, a line apart when more than 8 px apart. An
- * inline button's box starts a few pixels off its line's text in WebKit, so tops alone would count it twice.
- */
-const lineCount = async (element: Locator) =>
-  element.evaluate((node) => {
-    const range = document.createRange();
-    range.selectNodeContents(node);
-    const middles = [...range.getClientRects()]
-      .map((rect) => (rect.top + rect.bottom) / 2)
-      .toSorted((a, b) => a - b);
-    return middles.filter((middle, index) => index === 0 || middle - (middles[index - 1] ?? 0) > 8)
-      .length;
-  });
-
-/**
  * How far a card value's rating badge ends before its row's right edge: 0 when it ends the row, in line
  * with the badges of the rows above and below it.
  */
@@ -261,12 +246,12 @@ test.describe("peak at the best position, eye and card", () => {
     await expect(cardValue(card, "Szczyt OVR")).toHaveText("49");
     // The abbreviation first, the badge at the right edge in line with the OVR's.
     const bestValues = cardValue(card, "Szczyt na najlepszej pozycji");
-    const [best, note] = [bestValues.first(), bestValues.nth(1)];
-    // RCB, CB and LCB tie: the diamond's RCB and LCB, RCB on his right foot, the others named under it.
+    const best = bestValues.first();
+    // RCB, CB and LCB tie: the diamond's RCB and LCB, RCB on his right foot.
     await expect(best).toHaveText(/^RCB\s61$/u);
-    // The other positions shown at once, with no switch to unfold them (owner, 2026-11-07).
-    await expect(note).toHaveText("ten sam szczyt także na: CB, LCB");
-    await expect(note.getByRole("button")).toHaveCount(0);
+    // CB and LCB rate the same way as RCB, so no note names them (owner, 2026-11-10): the note names only
+    // other position groups that reach the same peak, and here there are none.
+    await expect(bestValues).toHaveCount(1);
     await expectNoAxeViolations(page);
     const values = [best, cardValue(card, "OVR"), cardValue(card, "Szczyt OVR")];
     expect(await Promise.all(values.map(badgeGap))).toEqual([0, 0, 0]);
@@ -300,15 +285,12 @@ test.describe("peak at the best position, phone", () => {
     ).toBeLessThanOrEqual(0);
     await expectAlignedPeaks(cells);
     await expectNoHorizontalOverflow(page);
-    // The positions with the same peak fit one line under the best peak on the card.
+    // The best peak fits on the card too.
     await page.getByRole("button", { name: /^Filtry/u }).click();
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("brozek");
     await page.getByRole("button", { name: "Zamknij" }).click();
     await page.getByRole("button", { name: /^Paweł Brożek/u }).click();
-    const card = page.getByRole("dialog", { name: "Paweł Brożek" });
-    const note = cardValue(card, "Szczyt na najlepszej pozycji").nth(1);
-    await expect(note).toHaveText("ten sam szczyt także na: CB, LCB");
-    expect(await lineCount(note)).toBe(1);
+    await expect(page.getByRole("dialog", { name: "Paweł Brożek" })).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });
 });

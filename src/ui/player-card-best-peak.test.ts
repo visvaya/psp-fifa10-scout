@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { abbreviationIn, positionNameIn } from "../logic/game-names.ts";
 import { testPlayer } from "../logic/test-support/player-fixtures.ts";
 import { bestPeak } from "./player-card.tsx";
+import { ratingChoiceName } from "./position-name.tsx";
 import type { PositionNames } from "./position-name.tsx";
 
 // Polish "ST" names the sweeper (code 1), which English "ST" calls the striker.
@@ -36,11 +37,21 @@ describe("the card's best peak row", () => {
     expect(html(sweeper)).toContain("ST (ang. SW)");
   });
 
-  it("names the other positions with the same peak under it, unfolded, and none when no other ties", () => {
-    // RS, ST and LS peak at 70; the card names RS.
-    const peakByCode = Array.from({ length: 32 }, (_, code) => (code >= 29 ? 70 : 60));
+  it("names the other position groups with the same peak under it, not its own group's", () => {
+    // RS, ST and LS peak at 70, and so does CB; the card names RS.
+    const peakByCode = Array.from({ length: 32 }, (_, code) =>
+      code >= 29 || code === 5 ? 70 : 60,
+    );
     const striker = { ...sweeper, peakByCode, bestPeakCode: 29, bestPeakName: "RS" };
-    expect(bestPeak(striker, true, names)[0]?.[3]).toBe("ten sam szczyt także na: ST, LS");
+    expect(bestPeak(striker, true, names)[0]?.[3]).toBe(
+      `ten sam szczyt także na: ${ratingChoiceName(5)}`,
+    );
+    // ST and LS rate as RS does: no note names them.
+    const forwardsOnly = {
+      ...striker,
+      peakByCode: peakByCode.map((peak, code) => (code === 5 ? 60 : peak)),
+    };
+    expect(bestPeak(forwardsOnly, true, names)[0]?.[3]).toBeUndefined();
     expect(bestPeak({ ...sweeper, peakByCode: [60, 70] }, true, names)[0]?.[3]).toBeUndefined();
   });
 

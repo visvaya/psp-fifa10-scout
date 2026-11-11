@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bestPeakFields, movedRule, TIE_RULES, tieOrderOf } from "./best-peak.ts";
+import { bestPeakFields, movedRule, otherPeakChoices, TIE_RULES, tieOrderOf } from "./best-peak.ts";
 import type { PeakInput, TieRule } from "./best-peak.ts";
 import { FOUR_FOUR_TWO } from "./test-support/player-fixtures.ts";
 
@@ -191,5 +191,15 @@ describe("the order of the tie rules", () => {
     ]);
     expect(movedRule(TIE_RULES, "formation", -1)).toEqual(TIE_RULES);
     expect(movedRule(TIE_RULES, "preferredPosition", 1)).toEqual(TIE_RULES);
+  });
+});
+
+// Owner, 2026-11-10: the note of the other positions with the same best peak names groups, not the side
+// variants of the shown position's own group.
+describe("otherPeakChoices", () => {
+  it("names each other way of rating that reaches the same peak, once, without the shown one's", () => {
+    // LB (7) shown; RB (3) rates the same way, CB (5) and RWB (2) do not.
+    expect(otherPeakChoices(tiedAt([3, 7]), 80, 7)).toEqual([]);
+    expect(otherPeakChoices(tiedAt([2, 3, 5, 6, 7, 8]), 80, 7)).toEqual([2, 5]);
   });
 });

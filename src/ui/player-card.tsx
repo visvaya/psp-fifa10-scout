@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import type { Dispatch, JSX, ReactNode } from "react";
 import type { CurrencyCode } from "../data/career-save.ts";
-import { codesAtPeak } from "../logic/best-peak.ts";
+import { otherPeakChoices } from "../logic/best-peak.ts";
 import { curveChart, ovrChart } from "../logic/curve-chart.ts";
 import { curveSparklines, ovrSparkline } from "../logic/curve-sparkline.ts";
 import type { OfferContext } from "../logic/offer.ts";
@@ -20,7 +20,7 @@ import { WatchlistSection } from "./watchlist-section.tsx";
 import { codeName } from "./text-code-names.ts";
 import { AttributeValue } from "./attribute-value.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
-import { PositionName } from "./position-name.tsx";
+import { PositionName, ratingChoiceName } from "./position-name.tsx";
 import type { PositionNames } from "./position-name.tsx";
 import { clubText, MissingValue, RESULTS_TITLE_ID } from "./player-list.tsx";
 import {
@@ -219,9 +219,12 @@ const clubFacts = (player: Player): readonly Fact[] =>
         [TEXT.card.loanedFrom, player.loanedFromName ?? TEXT.card.none],
       ];
 
-/** The other positions with the same best peak, in code order, or undefined without any. */
-const samePeakNote = (others: readonly number[], names: PositionNames): string | undefined =>
-  others.length === 0 ? undefined : TEXT.card.samePeakAlso(others.map(names.short));
+/**
+ * The other position groups with the same best peak, as "OVR na pozycjach" names them, or undefined
+ * without any: the side variants of the shown position's own group rate the same way and go unsaid.
+ */
+const samePeakNote = (others: readonly number[]): string | undefined =>
+  others.length === 0 ? undefined : TEXT.card.samePeakAlso(others.map(ratingChoiceName));
 
 /**
  * His best peak and where it comes, when that position peaks above the preferred one, with the other
@@ -246,12 +249,7 @@ export const bestPeak = (
             <AttributeValue value={player.bestPeak} />
           </>,
           HELP_TEXT.peakAtBest,
-          samePeakNote(
-            codesAtPeak(player.peakByCode, player.bestPeak).filter(
-              (code) => code !== player.bestPeakCode,
-            ),
-            names,
-          ),
+          samePeakNote(otherPeakChoices(player.peakByCode, player.bestPeak, player.bestPeakCode)),
         ],
       ]
     : [];
