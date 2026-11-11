@@ -19,3 +19,18 @@ describe("a missing value in the list", () => {
     expect(columnText(player, "positionPeak", null)).toBe("–");
   });
 });
+
+describe("a list's value in the list", () => {
+  it("names it as the filter does, not by its code", () => {
+    const player = testPlayer({
+      positionGroup: "centre-backs",
+      preferredFoot: "left",
+      developmentType: 3,
+      developmentStyle: 2,
+    });
+    expect(columnText(player, "positionGroup", null)).toBe("Środkowy obrońca");
+    expect(columnText(player, "preferredFoot", null)).toBe("lewa");
+    expect(columnText(player, "developmentType", null)).toBe("późny");
+    expect(columnText(player, "developmentStyle", null)).toBe("dobry");
+  });
+});

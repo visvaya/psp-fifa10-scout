@@ -52,6 +52,21 @@ test.describe("wide screen", () => {
     await expect(await firstCellOf(page, "Wzrost")).toHaveText(/^\d+$/u);
   });
 
+  test("shows a list's column with its values by name, sorted from its heading", async ({
+    page,
+  }) => {
+    await loadDatabase(page);
+    await expandSections(page);
+    const type = page.getByRole("columnheader", { name: /^Typ rozwoju/u });
+    await expect(type).toBeHidden();
+    await eyeOf(page, "Typ rozwoju").click();
+    await expect(type).toBeVisible();
+    // The value by its name, not its code; the order by code is a unit test's (sort-players.test.ts).
+    await expect(await firstCellOf(page, "Typ rozwoju")).toHaveText("wczesny");
+    await type.getByRole("button").click();
+    await expect(type).toHaveAttribute("aria-sort", "ascending");
+  });
+
   test("keeps the choice after a reload, and Resetuj brings the columns back", async ({ page }) => {
     await loadDatabase(page);
     const age = page.getByRole("columnheader", { name: /^Wiek/u });
@@ -147,9 +162,9 @@ test.describe("filter panel", () => {
   test("has an eye only at filters with a column, and passes axe", async ({ page }) => {
     await loadDatabase(page);
     await expandSections(page);
-    // No eye at a list without a column of its own.
-    await expect(eyeOf(page, "Pozycje")).toHaveCount(0);
-    await expect(eyeOf(page, "Lepsza noga")).toHaveCount(0);
+    // No eye at a yes / no field, which has no column of its own; every list has one.
+    await expect(eyeOf(page, "Podatny na kontuzje")).toHaveCount(0);
+    await expect(eyeOf(page, "Lepsza noga")).toBeVisible();
     await expect(eyeOf(page, "Pozycje szczegółowe")).toBeVisible();
     await expect(eyeOf(page, "Klub")).toBeVisible();
     await expect(eyeOf(page, "Kontrakt kończy się najpóźniej w")).toBeVisible();

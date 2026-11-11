@@ -340,6 +340,8 @@ export const TEXT = {
   /** A column's label with the direction it is sorted in, as its sort button's name. */
   sortedBy: (label: string, direction: "ascending" | "descending"): string =>
     `${label}, ${direction === "ascending" ? "rosnąco" : "malejąco"}`,
+  // A record of labels, alike line by line: jscpd reads it as a copy of itself shifted by a line.
+  // jscpd:ignore-start
   columns: {
     name: "Zawodnik",
     age: "Wiek",
@@ -351,7 +353,13 @@ export const TEXT = {
     price: "Cena",
     overall: "OVR",
     potential: "Potencjał",
+    positionGroup: "Grupa pozycji",
+    preferredFoot: "Noga",
+    bodyType: "Budowa",
+    developmentType: "Typ rozwoju",
+    developmentStyle: "Styl rozwoju",
   },
+  // jscpd:ignore-end
   potentialShort: "POT",
   freeAgent: "wolny zawodnik",
   youth: "junior",

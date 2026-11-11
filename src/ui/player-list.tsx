@@ -11,6 +11,8 @@ import type { ScoutAction, ScoutSort } from "../logic/scout-state.ts";
 import { ratingValueOf } from "../logic/sort-players.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 import { AttributeValue, GainValue } from "./attribute-value.tsx";
+import { CHOICE_VALUE_TEXT } from "./chip-text.ts";
+import type { ChoiceKey } from "./chip-text.ts";
 import { PositionName } from "./position-name.tsx";
 import { WatchMark } from "./stars.tsx";
 import { formatNumber, formatRating, RANGE_LABELS, TEXT } from "./text.ts";
@@ -27,6 +29,8 @@ type TextColumn = keyof typeof TEXT.columns;
 const isTextColumn = (key: string): key is TextColumn => key in TEXT.columns;
 
 const isRangeField = (key: string): key is keyof typeof RANGE_LABELS => key in RANGE_LABELS;
+
+const isChoiceKey = (key: string): key is ChoiceKey => key in CHOICE_VALUE_TEXT;
 
 /**
  * ratingName: the name of the position rating filter's position, in the game language; currency: the
@@ -179,7 +183,7 @@ const cellText = (player: Player, key: TextColumn): string | number | null => {
   if (key === "positionCode") return player.positionName;
   if (key === "clubName") return clubText(player);
   if (key === "price") return player.price === null ? null : formatNumber(player.price);
-  return player[key];
+  return isChoiceKey(key) ? CHOICE_VALUE_TEXT[key](player[key]) : player[key];
 };
 
 /** A cell without a value: a dash, named for screen readers. */
@@ -256,7 +260,9 @@ export const ColumnValue = (props: {
   return valueText(player, column) ?? <MissingValue />;
 };
 
-const isNumberColumn = (column: SortKey): boolean => column !== "name" && !column.endsWith("Name");
+/** Numbers align right; names and the values of lists that name themselves read from the left. */
+const isNumberColumn = (column: SortKey): boolean =>
+  column !== "name" && !column.endsWith("Name") && !isChoiceKey(column);
 
 const SortMark = (props: { column: SortKey; sort: ScoutSort }) => (
   <span aria-hidden="true" className="sort-mark">
@@ -319,7 +325,7 @@ const TableRow = ({
       </button>
     </th>
     {columns.slice(1).map((column) => (
-      <td key={column} className={column.endsWith("Name") ? "" : "num"}>
+      <td key={column} className={isNumberColumn(column) ? "num" : ""}>
         <ColumnValue player={player} column={column} ratingCode={ratingCode} />
       </td>
     ))}
