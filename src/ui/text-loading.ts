@@ -28,6 +28,11 @@ const STAGES: Readonly<Record<LoadStage, string>> = {
 const LOCALE_MISSING = pl`Wybierz oba pliki naraz: plik .loc i string.idx z tego samego folderu.`;
 
 export const LOAD_TEXT = {
+  // The maps themselves too, so the writing rules (text-rules.test.ts) read every message.
+  phases: PHASES,
+  errors: ERRORS,
+  stages: STAGES,
+  localeMissing: LOCALE_MISSING,
   phase: (phase: LoadPhase): string => PHASES[phase],
   error: (error: ScoutError): string =>
     `${STAGES[error.stage]}: ${
