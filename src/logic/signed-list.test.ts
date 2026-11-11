@@ -68,6 +68,14 @@ describe("the list after signing", () => {
     expect(scoutReducer(ready, failure).signed).toBe(ready.signed);
   });
 
+  it("keeps each player's money before signing: his value after a transfer is not counted", () => {
+    const richer = testPlayer({ id: 1, potential: 84, price: 20_000_000, priceEuro: 20_000_000 });
+    const ready = built(switched(loaded(initialScoutState)), [richer]);
+    expect(shownPlayers(ready)?.map(({ potential, price }) => ({ potential, price }))).toEqual([
+      { potential: 84, price: 15_000_000 },
+    ]);
+  });
+
   it("prices the built list in the shown currency, and again when it changes", () => {
     const pounds = scoutReducer(switched(loaded(initialScoutState)), {
       type: "currency-chosen",

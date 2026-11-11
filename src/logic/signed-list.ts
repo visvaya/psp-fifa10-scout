@@ -4,6 +4,7 @@
 // load, and the state keeps it beside the players, its best peak ties and money shown as theirs.
 import { TIE_RULES } from "./best-peak.ts";
 import { pricedIn, shownCurrency } from "./currency.ts";
+import { moneyOf } from "./player-finance.ts";
 import type { Player } from "./players.ts";
 import type { ScoutState } from "./scout-state.ts";
 import { tiesBroken } from "./tie-order.ts";
@@ -45,13 +46,28 @@ const shownAsPlayers = (state: ScoutState, players: readonly Player[]): readonly
   return currency === null ? ties : pricedIn(ties, currency);
 };
 
+/**
+ * The built list with each player's money before signing: his club's asking price and wage. His value
+ * after a transfer to the user's club (that club's prestige, a new contract) is not counted yet.
+ */
+const withMoneyBefore = ({ players }: ScoutState, built: readonly Player[]): readonly Player[] => {
+  const before = new Map(players?.map((player) => [player.id, player]));
+  return built.map((player) => {
+    const known = before.get(player.id);
+    return known === undefined ? player : { ...player, ...moneyOf(known) };
+  });
+};
+
 export const signingReducer = (state: ScoutState, action: SigningAction): ScoutState => {
   if (action.type === "signed-requested") return { ...state, signed: "pending" };
   if (action.type === "signed-built") {
     // A reply nothing waits for: the list was dropped by a newer load meanwhile.
     if (state.signed !== "pending") return state;
     const { players } = action;
-    return { ...state, signed: players === null ? "failed" : shownAsPlayers(state, players) };
+    return {
+      ...state,
+      signed: players === null ? "failed" : shownAsPlayers(state, withMoneyBefore(state, players)),
+    };
   }
   const { afterSigning: _shown, ...rest } = state;
   return action.shown ? { ...rest, afterSigning: true } : rest;

@@ -1,7 +1,6 @@
 // The card's section on signing (roadmap 56(a)): while the values after signing show, what the
 // transfer changes, before and after, for the values that change; nothing for anyone signing leaves as he is.
 import type { ReactNode } from "react";
-import type { CurrencyCode } from "../data/career-save.ts";
 import type { Player } from "../logic/players.ts";
 import { AttributeValue } from "./attribute-value.tsx";
 import { Facts } from "./facts.tsx";
@@ -38,29 +37,14 @@ const ratingFacts = (before: Player, after: Player, showPotential: boolean): rea
       : [[label, pair(<AttributeValue value={from} />, <AttributeValue value={to} />)]];
   });
 
-const priceFacts = (before: Player, after: Player, currency: CurrencyCode | null): Fact[] =>
-  currency === null || before.price === null || after.price === null || before.price === after.price
-    ? []
-    : [
-        [
-          TEXT.card.price,
-          pair(TEXT.card.money(before.price, currency), TEXT.card.money(after.price, currency)),
-        ],
-      ];
-
 export const SigningFacts = (props: {
   /** The player before signing, as the offer counts him. */
   before: Player;
   /** The player the card shows: after signing while that setting is on. */
   after: Player;
   showPotential: boolean;
-  currency: CurrencyCode | null;
 }) => {
-  const { before, after, showPotential, currency } = props;
-  const facts = [
-    ...ratingFacts(before, after, showPotential),
-    ...priceFacts(before, after, currency),
-  ];
+  const facts = ratingFacts(props.before, props.after, props.showPotential);
   return facts.length === 0 ? null : (
     <section aria-labelledby="signing-title">
       <h3 id="signing-title">{SIGNING_TEXT.card.title}</h3>

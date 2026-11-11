@@ -41,6 +41,25 @@ export const NO_FINANCE: Finance = {
   returnValuesEuro: null,
 };
 
+/** A player's money alone, to carry it over to another version of him. */
+export const moneyOf = ({
+  price,
+  wage,
+  priceEuro,
+  wageEuro,
+  storedWage,
+  signedValuesEuro,
+  returnValuesEuro,
+}: Finance): Finance => ({
+  price,
+  wage,
+  priceEuro,
+  wageEuro,
+  storedWage,
+  signedValuesEuro,
+  returnValuesEuro,
+});
+
 /**
  * A value by contract length (Finance.signedValuesEuro or returnValuesEuro) for a contract of `years`, in
  * the currency the list shows, rounded as the game rounds prices; null without values.
