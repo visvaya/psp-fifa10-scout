@@ -140,6 +140,35 @@ test.describe("club stars and prestige", () => {
   });
 });
 
+/**
+ * The level's "?" on its turned title's line, its glyph just past the title's top end: the word after it.
+ * The title's place comes from the svg's matrix: WebKit misplaces a turned text's bounding box.
+ */
+const expectHelpPastTitle = async (chart: Locator) => {
+  const { titleX, titleTop, glyphX, glyphBottom } = await chart
+    .locator(".chart-plot")
+    .evaluate((plot) => {
+      const title = plot.querySelector<SVGTextElement>("text[transform]");
+      const matrix = title?.ownerSVGElement?.getScreenCTM();
+      const help = plot.querySelector(".level-help .field-help");
+      if (title === null || matrix === null || matrix === undefined || help === null)
+        throw new Error("The chart has no level title with its help");
+      const glyph = document.createRange();
+      glyph.selectNodeContents(help);
+      const box = glyph.getBoundingClientRect();
+      const [x, y] = [title.x.baseVal.getItem(0).value, title.y.baseVal.getItem(0).value];
+      return {
+        titleX: x * matrix.a + matrix.e,
+        titleTop: (y - title.getComputedTextLength() / 2) * matrix.a + matrix.f,
+        glyphX: box.left + box.width / 2,
+        glyphBottom: box.bottom,
+      };
+    });
+  expect(Math.abs(titleX - glyphX)).toBeLessThan(3);
+  expect(glyphBottom).toBeLessThanOrEqual(titleTop);
+  expect(glyphBottom).toBeGreaterThan(titleTop - 16);
+};
+
 test.describe("development curves", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
@@ -197,8 +226,8 @@ test.describe("development chart", () => {
     await open.click();
     const chart = page.getByRole("dialog", { name: "Krzywa rozwoju: Paweł Brożek" });
     await expect(chart.locator("svg text").getByText("Wiek", { exact: true })).toBeVisible();
-    const level = "Poziom umiejętności (względny)";
-    await expect(chart.locator(".heading-help").getByText(level)).toBeVisible();
+    const level = "Poziom umiejętności";
+    await expect(chart.locator("svg text").getByText(level, { exact: true })).toBeVisible();
     await expect(chart.locator("svg text").getByText(/szczyt|sezonie/u)).toHaveCount(0);
     const legend = chart.locator(".chart-legend li");
     // The synthetic curve is flat: it peaks at 15, and every age is within the peak.
@@ -231,7 +260,10 @@ test.describe("development chart", () => {
     const card = page.getByRole("dialog", { name: "Lionel Messi" });
     await card.getByRole("button", { name: "Pokaż krzywą rozwoju: Lionel Messi" }).click();
     const chart = page.getByRole("dialog", { name: "Krzywa rozwoju: Lionel Messi" });
-    await expect(chart.locator(".heading-help").getByText("OVR", { exact: true })).toBeVisible();
+    // The level's title turned along the axis (owner, 2026-11-11), its "?" just past its top end.
+    const title = chart.locator("svg text").getByText("OVR", { exact: true });
+    await expect(title).toBeVisible();
+    await expectHelpPastTitle(chart);
     const legend = chart.locator(".chart-legend li");
     await expect(legend.first()).toHaveText(/, OVR \d+$/u);
     await expect(legend.last()).toHaveText(/^szczyt: \d+\s\S+, OVR \d+$/u);
@@ -239,6 +271,22 @@ test.describe("development chart", () => {
     await expectNoAxeViolations(page);
   });
 });
+
+/**
+ * For each legend item, whether its words start on its mark's line: their first line's top above the
+ * mark's bottom edge. Runs in the page.
+ */
+const wordsBesideMarks = (items: Element[]): boolean[] =>
+  items.map((item) => {
+    const mark = item.querySelector(".legend-mark");
+    if (mark === null) return false;
+    const words = document.createRange();
+    words.selectNodeContents(item);
+    words.setStartAfter(mark);
+    const first = words.getClientRects()[0];
+    const box = mark.getBoundingClientRect();
+    return first !== undefined && first.top < box.bottom && first.bottom > box.top;
+  });
 
 test.describe("development chart on a phone", () => {
   test.use(PHONE);
@@ -248,17 +296,60 @@ test.describe("development chart on a phone", () => {
     await page.locator("[data-player-id]").first().click();
     await page.getByRole("button", { name: /^Pokaż krzywą rozwoju: /u }).click();
     const chart = page.getByRole("dialog", { name: /^Krzywa rozwoju: /u });
-    await expect(chart.locator(".curve-chart > svg")).toBeVisible();
+    await expect(chart.locator(".chart-plot > svg")).toBeVisible();
     const [overflow, svgWidth, bodyWidth] = await chart
       .locator(".dialog-body")
       .evaluate((body) => [
         body.scrollWidth - body.clientWidth,
-        body.querySelector(".curve-chart > svg")?.getBoundingClientRect().width ?? 0,
+        body.querySelector(".chart-plot > svg")?.getBoundingClientRect().width ?? 0,
         body.clientWidth,
       ]);
     expect(overflow).toBe(0);
     expect(svgWidth).toBeLessThanOrEqual(bodyWidth);
     await expectNoAxeViolations(page);
+  });
+
+  // The owner, 2026-11-11 (iPhone): the dialog scrolled far past the legend. The data table for screen
+  // readers must not stretch it, and each legend mark stands beside its words, not above them.
+  test("ends the dialog's scroll at the legend, each mark beside its words", async ({ page }) => {
+    await loadCareer(page);
+    await page.getByRole("button", { name: /^Lionel Messi/u }).click();
+    await page.getByRole("button", { name: /^Pokaż krzywą rozwoju: /u }).click();
+    const chart = page.getByRole("dialog", { name: /^Krzywa rozwoju: /u });
+    await expect(chart.locator(".chart-plot > svg")).toBeVisible();
+    // A table ignores the 1px height of .visually-hidden and keeps its rows' height (705px here),
+    // which iOS Safari counts in the dialog's scroll and these engines do not.
+    const hidden = await chart.locator(".curve-chart .visually-hidden").boundingBox();
+    const lines = await chart.locator(".chart-legend li").evaluateAll(wordsBesideMarks);
+    expect(hidden?.height).toBeLessThanOrEqual(1);
+    expect(lines).toEqual([true, true, true]);
+  });
+
+  // With enlarged text the legend's words wrap over several lines: each mark stays level with their
+  // first line, and the plateau's "?" stays inside the legend's width.
+  test("keeps the legend within its width with enlarged text", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 844 });
+    await loadCareer(page);
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = "32px";
+    });
+    await page.getByRole("button", { name: /^Lionel Messi/u }).click();
+    await page.getByRole("button", { name: /^Pokaż krzywą rozwoju: /u }).click();
+    const chart = page.getByRole("dialog", { name: /^Krzywa rozwoju: /u });
+    const legend = chart.locator(".chart-legend");
+    const help = legend.getByRole("button");
+    await expect(help).toBeVisible();
+    const [overflow, legendBox, helpBox] = await Promise.all([
+      legend.evaluate((element) => element.scrollWidth - element.clientWidth),
+      legend.boundingBox(),
+      help.boundingBox(),
+    ]);
+    const lines = await legend.locator("li").evaluateAll(wordsBesideMarks);
+    expect(overflow).toBe(0);
+    expect((helpBox?.x ?? 0) + (helpBox?.width ?? Infinity)).toBeLessThanOrEqual(
+      (legendBox?.x ?? 0) + (legendBox?.width ?? 0),
+    );
+    expect(lines).toEqual([true, true, true]);
   });
 });
 

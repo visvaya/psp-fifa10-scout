@@ -18,13 +18,13 @@ const CURVES = new Map([
 describe("curveChart", () => {
   it("puts ages 15 to 45 on x, eight units a year, with a tick every five years", () => {
     const chart = curveChart(CURVES, 13, 22);
-    expect(chart?.viewBox).toBe("0 0 300 216");
-    expect(chart?.plot).toEqual({ left: 36, right: 276, top: 16, bottom: 176 });
+    expect(chart?.viewBox).toBe("0 0 318 216");
+    expect(chart?.plot).toEqual({ left: 54, right: 294, top: 16, bottom: 176 });
     expect(chart?.points).toHaveLength(31);
-    expect(chart?.points[0]).toEqual({ age: 15, value: 20, x: 36, y: 176 });
-    expect(chart?.points.at(-1)).toMatchObject({ age: 45, x: 276 });
+    expect(chart?.points[0]).toEqual({ age: 15, value: 20, x: 54, y: 176 });
+    expect(chart?.points.at(-1)).toMatchObject({ age: 45, x: 294 });
     expect(chart?.ageTicks).toEqual(
-      [15, 20, 25, 30, 35, 40, 45].map((age) => ({ label: age, at: 36 + 8 * (age - 15) })),
+      [15, 20, 25, 30, 35, 40, 45].map((age) => ({ label: age, at: 54 + 8 * (age - 15) })),
     );
   });
 
@@ -39,8 +39,8 @@ describe("curveChart", () => {
 
   it("marks the first age at the highest value and the player's age", () => {
     const chart = curveChart(CURVES, 13, 22);
-    expect(chart?.peak).toMatchObject({ age: 27, value: 80, x: 132 });
-    expect(chart?.now).toMatchObject({ age: 22, value: 55, x: 92 });
+    expect(chart?.peak).toMatchObject({ age: 27, value: 80, x: 150 });
+    expect(chart?.now).toMatchObject({ age: 22, value: 55, x: 110 });
   });
 
   it("marks no age outside the table's ages", () => {
@@ -64,11 +64,11 @@ describe("curveChart", () => {
     expect(curveChart(CURVES, 14, 22)?.plateau).toEqual({
       from: 27,
       to: 31,
-      left: 36 + 8 * 11.5,
-      right: 36 + 8 * 16.5,
+      left: 54 + 8 * 11.5,
+      right: 54 + 8 * 16.5,
     });
     // A flat curve peaks at every age, within the plot.
-    expect(curveChart(CURVES, 1, 22)?.plateau).toEqual({ from: 15, to: 45, left: 36, right: 276 });
+    expect(curveChart(CURVES, 1, 22)?.plateau).toEqual({ from: 15, to: 45, left: 54, right: 294 });
   });
 
   it.each([
@@ -93,8 +93,8 @@ describe("ovrChart", () => {
   it("spans his ages from this season's to the last projected, on the plot's width", () => {
     expect(chart?.kind).toBe("ovr");
     expect(chart?.points).toHaveLength(5);
-    expect(chart?.points[0]).toMatchObject({ age: 22, value: 60, x: 36, y: 176 });
-    expect(chart?.points.at(-1)).toMatchObject({ age: 26, x: 276 });
+    expect(chart?.points[0]).toMatchObject({ age: 22, value: 60, x: 54, y: 176 });
+    expect(chart?.points.at(-1)).toMatchObject({ age: 26, x: 294 });
     // Ticks at the ages that end in 0 or 5.
     expect(chart?.ageTicks.map((tick) => tick.label)).toEqual([25]);
   });
@@ -109,7 +109,7 @@ describe("ovrChart", () => {
   });
 
   it("draws one season too, and nothing without a projection", () => {
-    expect(ovrChart([70], 45)?.points).toEqual([{ age: 45, value: 70, x: 36, y: 16 }]);
+    expect(ovrChart([70], 45)?.points).toEqual([{ age: 45, value: 70, x: 54, y: 16 }]);
     expect(ovrChart([], 22)).toBeNull();
   });
 });

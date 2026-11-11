@@ -400,7 +400,7 @@ export const TEXT = {
     curveTitle: (name: string): string => `Krzywa rozwoju: ${name}`,
     /** The large chart's axes and the legend under it, which names each mark once. */
     curveAge: "Wiek",
-    curveValue: "Poziom umiejętności (względny)",
+    curveValue: "Poziom umiejętności",
     curveOvr: "OVR",
     legendNow: (age: number, phase: string, overall: number | null): string =>
       pl`wiek w tym sezonie: ${count(age, YEARS)}, ${phase}` +
