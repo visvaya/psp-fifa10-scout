@@ -56,6 +56,12 @@ describe("phoneColumns", () => {
     ]);
     expect(phoneColumns({ ...base, sortKey: "stamina" })).toEqual(["overall", "stamina"]);
     expect(phoneColumns({ ...base, sortKey: "clubName" })).toEqual(["overall", "stamina"]);
+    // A yes / no field it sorts by shows too: tak or nie, as short as a number.
+    expect(phoneColumns({ ...base, sortKey: "leadership" })).toEqual([
+      "overall",
+      "stamina",
+      "leadership",
+    ]);
   });
 
   it("leaves the potential's values out while the potential is hidden", () => {
