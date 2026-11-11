@@ -192,7 +192,7 @@ const readLanguages = async (db: EaDb, { game, locale }: LoadInput): Promise<Gam
 export const loadScout = async (
   input: LoadInput,
   onPhase: (phase: LoadPhase) => void,
-  onCareer: (build: SignedBuild) => void = () => undefined,
+  onCareer?: (build: SignedBuild) => void,
 ): Promise<LoadResult> => {
   onPhase("game");
   const { game, save } = input;
@@ -226,7 +226,7 @@ export const loadScout = async (
     const built = buildPlayers(db, career, names.curves);
     return { players: built, offer: offerContextOf(db, career, built) };
   });
-  onCareer(() => buildPlayers(db, career, names.curves, true));
+  onCareer?.(() => buildPlayers(db, career, names.curves, true));
   const clubName = players.find((player) => player.clubId === teamId)?.clubName ?? null;
   return {
     players,

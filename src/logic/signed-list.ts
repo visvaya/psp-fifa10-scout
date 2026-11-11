@@ -8,7 +8,7 @@ import type { ScoutState } from "./scout-state.ts";
 import { tiesBroken } from "./tie-order.ts";
 
 /** Asked for and not built yet, failed, or built. */
-export type SignedList = "pending" | "failed" | readonly Player[];
+type SignedList = "pending" | "failed" | readonly Player[];
 
 export interface SigningPreference {
   /** Values after signing for players outside the squad; unset as off. */
