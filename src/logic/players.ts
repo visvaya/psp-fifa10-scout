@@ -468,7 +468,15 @@ export const buildPlayers = (db: EaDb, save?: CareerSave, curves?: Curves): read
     ),
     rate: rater(db, save, curves),
     formationCodes: save === undefined ? [] : userFormationCodes(db, save),
-    finance: save === undefined ? null : financeOf(db, save, market.loanedFrom),
+    finance:
+      save === undefined
+        ? null
+        : financeOf(
+            db,
+            save,
+            market.loanedFrom,
+            teams.get(careerManager(db, save).teamId)?.prestige ?? null,
+          ),
     saleVerdict: save === undefined ? null : saleVerdictOf(db, save, placements),
   };
   // The game keeps generated players out of the leagues until it places them (overall-rating.md, F2).

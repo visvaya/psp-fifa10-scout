@@ -4,8 +4,10 @@ import { useState } from "react";
 import type { CurrencyCode } from "../data/career-save.ts";
 import { BONUS_PERCENTS, DEFAULT_CHOICE, offerTerms } from "../logic/offer.ts";
 import type { OfferChoice, OfferContext, OfferTerms } from "../logic/offer.ts";
+import { signedValueIn } from "../logic/player-finance.ts";
 import type { Player } from "../logic/players.ts";
 import { Facts } from "./facts.tsx";
+import type { Fact } from "./facts.tsx";
 import { HelpHeading, WarnedValue } from "./field-help.tsx";
 import { CheckField } from "./filter-fields.tsx";
 import { TEXT } from "./text.ts";
@@ -67,6 +69,12 @@ const OfferControls = (props: {
   );
 };
 
+/** A free agent's estimated value once signed, for the chosen contract; nothing for anyone else. */
+const signedValueFacts = (value: number | null, currency: CurrencyCode): readonly Fact[] =>
+  value === null
+    ? []
+    : [[OFFER_TEXT.signedValue, TEXT.card.money(value, currency), OFFER_TEXT.signedValueHelp]];
+
 export const OfferFacts = (props: {
   player: Player;
   context: OfferContext;
@@ -77,6 +85,7 @@ export const OfferFacts = (props: {
   const terms = offerTerms(player, context, choice);
   if (terms === null) return null;
   const { fee, wage, years, bonus } = terms;
+  const signedValue = signedValueIn(player, years, currency);
   return (
     <section aria-labelledby="offer-title">
       <HelpHeading id="offer-title" title={OFFER_TEXT.title} help={HELP_TEXT.offer} />
@@ -109,6 +118,7 @@ export const OfferFacts = (props: {
             ...(bonus === 0
               ? []
               : [[OFFER_TEXT.bonusAmount, TEXT.card.money(bonus, currency)] as const]),
+            ...signedValueFacts(signedValue, currency),
           ]}
         />
       </div>
