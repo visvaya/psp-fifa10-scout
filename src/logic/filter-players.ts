@@ -1,12 +1,7 @@
 // Declarative player filters: each set filter adds one predicate, and a player must pass them all.
 // Lists keep any of the chosen values, ranges are inclusive, flags require a trait or its absence.
-import {
-  ATTRIBUTE_NAMES,
-  isAttributeName,
-  searchKey,
-  SEASON_STAT_KEYS,
-  TRAIT_NAMES,
-} from "./players.ts";
+import { ATTRIBUTE_NAMES, isAttributeName, searchKey, TRAIT_NAMES } from "./players.ts";
+import { SEASON_STAT_KEYS } from "./season-stats.ts";
 import type { AttributeName, Player, TraitName } from "./players.ts";
 
 export interface Range {

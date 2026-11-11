@@ -45,6 +45,11 @@ const FIELD_BOUNDS: Readonly<Record<RangeFields, FieldBounds>> = {
   // playerstats.form / 10: a match counts 10..100, so KR stays within 1,0..10,0 (season-stats spec §4.1).
   form: { min: 1, max: 10, step: 0.1 },
   morale: whole(0, 99),
+  // A total is the league column and the four cup columns together.
+  totalAppearances: whole(0, 255 + 4 * 63),
+  totalGoals: whole(0, 511 + 4 * 255),
+  totalAssists: whole(0, 511 + 4 * 255),
+  totalCleanSheets: whole(0, 255 + 4 * 63),
   appearances: whole(0, 255),
   goals: whole(0, 511),
   cupAppearances: fourCups(63),

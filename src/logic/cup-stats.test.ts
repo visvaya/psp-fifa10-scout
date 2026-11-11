@@ -25,6 +25,12 @@ describe("cup stats", () => {
     expect(byId(1000)).toMatchObject({ cleanSheets: 2, cupCleanSheets: 1 });
   });
 
+  // Owner, 2026-11-11: one count over the league and the cups together.
+  it("adds the league and the cups into the totals", () => {
+    expect(byId(158_023)).toMatchObject({ totalAppearances: 8, totalGoals: 4, totalAssists: 3 });
+    expect(byId(1000)).toMatchObject({ totalCleanSheets: 3 });
+  });
+
   it("has no cup stats without a row in the save", () => {
     expect(byId(7)).toMatchObject({
       cupAppearances: null,
@@ -33,6 +39,8 @@ describe("cup stats", () => {
       cupAssists: null,
       cleanSheets: null,
       cupCleanSheets: null,
+      totalAppearances: null,
+      totalCleanSheets: null,
     });
   });
 

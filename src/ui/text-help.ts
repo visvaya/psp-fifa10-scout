@@ -9,6 +9,8 @@ const LEAGUE_STATS = pl`Liczby z zapisu kariery za bieżący sezon, z meczów li
 const PRESTIGE = pl`Suma prestiżu ligi i prestiżu klubu wchodzi do wzorów gry na cenę i zarobki rynkowe: od 33 podnosi cenę o 10%, poniżej 25 ją obniża (o 35% przy 8 i mniej), a zarobki rosną z kwadratem tej sumy.`;
 const CUP_STATS = pl`Liczby z zapisu kariery za bieżący sezon, z pucharów krajowych i europejskich razem; gra zeruje je na początku sezonu. Które puchary liczy, zależy od ligi twojego klubu, np. dla Ekstraklasy Puchar Polski, „Klubowe ME” i „Puchar EFA”.`;
 
+const TOTAL_STATS = pl`Liczby z zapisu kariery za bieżący sezon, z ligi i pucharów razem: suma pól „w lidze” i „w pucharach”; gra zeruje je na początku sezonu.`;
+
 export const FIELD_HELP: Partial<Readonly<Record<RangeKey | ListKey | FlagKey, string>>> = {
   positionGroup: pl`Pozycje zgrupowane według sposobu liczenia OVR w grze i miejsca na boisku: w jednej grupie te same wagi atrybutów. Skrzydłowy i boczny pomocnik mają też te same wagi, tak samo libero i boczny obrońca, ale grają w innym miejscu, więc są osobnymi grupami. Wagi libero gra sumuje w innej kolejności, więc jego OVR bywa o 1 inny niż bocznego obrońcy.`,
   weakFoot: pl`Gwiazdki z bazy gry, od 1 do 5: jak dobrze zawodnik gra słabszą nogą.`,
@@ -31,6 +33,10 @@ export const FIELD_HELP: Partial<Readonly<Record<RangeKey | ListKey | FlagKey, s
   nationalTeam: pl`Zawodnik kadry reprezentacji w bazie gry. Kariera tych kadr nie zmienia; na zgrupowania gra powołuje zawodników osobno, przed każdym oknem reprezentacyjnym.`,
   form: pl`KR z zapisu kariery, jak na ekranie statystyk zawodnika w grze: ocena krocząca ze wszystkich meczów, ligi i pucharów razem. Po każdym meczu z minutami to 80% poprzedniej wartości i 20% oceny z tego meczu. Zawodnik bez wcześniejszych meczów ma wartość startową 5,0. Na początku sezonu gra jej nie zeruje, więc zawodnik z meczami w poprzednim sezonie, a bez występów w obecnym, ma wartość z poprzedniego sezonu lub klubu.`,
   morale: pl`Wartość z zapisu kariery. Skala i wpływ morale na mecze nie są potwierdzone.`,
+  totalAppearances: pl`${TOTAL_STATS} Wejście z ławki to też występ.`,
+  totalGoals: TOTAL_STATS,
+  totalAssists: TOTAL_STATS,
+  totalCleanSheets: TOTAL_STATS,
   appearances: pl`${LEAGUE_STATS} Wejście z ławki to też występ.`,
   goals: LEAGUE_STATS,
   assists: LEAGUE_STATS,

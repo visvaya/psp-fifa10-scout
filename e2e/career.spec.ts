@@ -356,3 +356,17 @@ test.describe("bounds of the range fields", () => {
     await expect(from).toHaveValue("1");
   });
 });
+
+test.describe("season totals", () => {
+  // Owner, 2026-11-11: one count over the league and the cups, on the card and in the filters.
+  test("adds the league and the cups into a total and filters by it", async ({ page }) => {
+    await loadCareer(page);
+    await page.getByText("Kariera", { exact: true }).click();
+    await page.getByRole("group", { name: "Występy ogółem" }).getByLabel("od").fill("8");
+    await expectCount(page, "1\u00a0zawodnik");
+    await page.getByRole("button", { name: /^Lionel Messi/u }).click();
+    const card = page.getByRole("dialog", { name: "Lionel Messi" });
+    await expect(cardValue(card, "Występy ogółem")).toHaveText("8");
+    await expect(cardValue(card, "Gole ogółem")).toHaveText("4");
+  });
+});
