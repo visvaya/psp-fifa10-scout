@@ -6,6 +6,7 @@ import type { ScoutAction } from "../logic/scout-state.ts";
 import type { SigningState } from "../logic/signed-list.ts";
 import { OptionalHelp } from "./field-help.tsx";
 import { TEXT } from "./text.ts";
+import { SIGNING_TEXT } from "./text-signing.ts";
 
 /**
  * Shows the potential and its filters; set apart from the saved sets above it (owner, 2026-11-05). While
@@ -59,13 +60,13 @@ export const SigningSwitch = (props: {
               props.dispatch({ type: "after-signing-shown", shown: event.currentTarget.checked });
             }}
           />
-          {TEXT.afterSigning.label}
+          {SIGNING_TEXT.label}
         </label>
-        <OptionalHelp label={TEXT.afterSigning.label} help={TEXT.afterSigning.help} />
+        <OptionalHelp label={SIGNING_TEXT.label} help={SIGNING_TEXT.help} />
       </div>
       <output className="signing-status">
-        {on && signed === "pending" ? TEXT.afterSigning.pending : null}
-        {on && signed === "failed" ? TEXT.afterSigning.failed : null}
+        {on && signed === "pending" ? SIGNING_TEXT.pending : null}
+        {on && signed === "failed" ? SIGNING_TEXT.failed : null}
       </output>
     </div>
   );

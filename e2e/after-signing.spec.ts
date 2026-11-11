@@ -23,6 +23,14 @@ test.describe("values after signing", () => {
     await expect(page.getByText("Liczę wartości po podpisaniu…")).toBeHidden();
     await expectNoAxeViolations(page);
 
+    // His card pairs what signing changes, before and after.
+    await page.locator("tbody tr[aria-rowindex]").first().locator("th button").click();
+    const card = page.getByRole("dialog");
+    const signed = card.getByRole("region", { name: "Po podpisaniu" });
+    await expect(signed.getByText("Potencjał", { exact: true })).toBeVisible();
+    await expectNoAxeViolations(page);
+    await card.getByRole("button", { name: "Zamknij" }).click();
+
     await signing.uncheck();
     await expect.poll(highest).toBe(before);
   });
