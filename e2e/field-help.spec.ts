@@ -81,6 +81,23 @@ const expectSectionHelpOnSummary = async (page: Page, scope: Locator) => {
 test.describe("field explanations, wide", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
+  // Owner, 2026-11-11: what to pick and where it is stays in sight; details and exceptions go behind
+  // the step's "?".
+  test("keeps the start screen's details behind each step's ?", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByText(/^Zapis kariery jest zwykle w\sfolderze/u)).toBeVisible();
+    await expect(page.getByText(/^Pliki leżą w\sobrazie ISO/u)).toBeVisible();
+    const save = page.getByRole("button", { name: /^Wyjaśnienie: 2\.\sZapis kariery/u });
+    const folders = await panelOf(page, save);
+    await expect(folders).toBeHidden();
+    await save.click();
+    await expect(folders).toHaveText(/^DATA\.BIN kariery ma około/u);
+    await expect(folders).toBeVisible();
+    const language = page.getByRole("button", { name: /^Wyjaśnienie: 3\.\sJęzyk nazw/u });
+    await expect(await panelOf(page, language)).toHaveText(/^Obraz ISO zawiera nazwy/u);
+    await expectNoAxeViolations(page);
+  });
+
   test("open by keyboard, close by Escape back on the button, one at a time", async ({ page }) => {
     await loadCareer(page);
     const button = page.getByRole("button", { name: "Wyjaśnienie: Pozycje", exact: true });

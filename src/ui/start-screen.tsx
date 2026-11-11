@@ -6,6 +6,7 @@ import { listedCount } from "../logic/effective-filters.ts";
 import { isRestoring } from "../logic/scout-state.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
 import { About } from "./about.tsx";
+import { FieldHelp } from "./field-help.tsx";
 import { TEXT } from "./text.ts";
 import { LOAD_TEXT } from "./text-loading.ts";
 
@@ -39,8 +40,22 @@ interface FileStepProps {
   /** Controls shown after the file input. */
   readonly after?: ReactNode;
   readonly onFiles: (files: readonly File[]) => void;
+  /** What to pick and where it is: in sight, under the input. */
   readonly help: ReactNode;
+  /** Details and exceptions, behind a "?" after the title. */
+  readonly details?: string;
 }
+
+/** A step's title, with its details behind a "?" when it has any. */
+const StepHeading = (props: { readonly title: string; readonly details?: string | undefined }) =>
+  props.details === undefined ? (
+    <h3>{props.title}</h3>
+  ) : (
+    <div className="heading-help">
+      <h3>{props.title}</h3>
+      <FieldHelp label={props.title} text={props.details} />
+    </div>
+  );
 
 const FileStep = (props: FileStepProps): JSX.Element => {
   const { stage } = props;
@@ -56,7 +71,7 @@ const FileStep = (props: FileStepProps): JSX.Element => {
   };
   return (
     <div className="step">
-      <h3>{props.title}</h3>
+      <StepHeading title={props.title} details={props.details} />
       {props.before}
       {props.loaded === null ? null : <p className="loaded">{props.loaded}</p>}
       {/* The input stays focusable and labelled; the label shows as the button. */}
@@ -94,8 +109,8 @@ const StepSelect = (props: {
   readonly label: string;
   readonly value: string;
   readonly options: readonly (readonly [string, string])[];
-  /** The id of the step's help. */
-  readonly describedBy: string;
+  /** The id of the step's help, if it has one in sight. */
+  readonly describedBy?: string;
   readonly onChoice: (value: string) => void;
 }): JSX.Element => (
   <div className="field">
@@ -156,12 +171,8 @@ const LanguageStep = ({
       />
     }
     onFiles={onLocale}
-    help={
-      <>
-        <p>{TEXT.languageHelp}</p>
-        <p>{TEXT.localeHelp}</p>
-      </>
-    }
+    help={<p>{TEXT.localeHelp}</p>}
+    details={TEXT.languageHelp}
   />
 );
 
@@ -173,11 +184,10 @@ const CurrencyStep = ({
   if (state.career === null) return null;
   return (
     <div className="step">
-      <h3>{TEXT.currencyStep}</h3>
+      <StepHeading title={TEXT.currencyStep} details={TEXT.currencyHelp} />
       <StepSelect
         id="currency"
         label={TEXT.currencySelect}
-        describedBy="currency-help"
         value={state.currency === undefined ? "" : String(state.currency)}
         options={[
           ["", TEXT.currencyFromCareer(state.career.currency)],
@@ -190,9 +200,6 @@ const CurrencyStep = ({
             dispatch({ type: "currency-chosen", currency });
         }}
       />
-      <div id="currency-help" className="help">
-        <p>{TEXT.currencyHelp}</p>
-      </div>
     </div>
   );
 };
@@ -220,12 +227,8 @@ const SaveStep = ({
         </button>
       )
     }
-    help={
-      <>
-        <p>{TEXT.saveHelp}</p>
-        <p>{TEXT.saveFolders}</p>
-      </>
-    }
+    help={<p>{TEXT.saveHelp}</p>}
+    details={TEXT.saveFolders}
   />
 );
 
