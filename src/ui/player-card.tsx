@@ -192,6 +192,16 @@ const money = (
         ],
       ];
 
+/** The contract's end year and the years left to it, as the game counts them. */
+const contractFacts = (player: Player): readonly Fact[] => [
+  [TEXT.card.contract, player.contractEndYear ?? <MissingValue key="contract" />],
+  [
+    RANGE_LABELS.contractYearsLeft,
+    player.contractYearsLeft ?? <MissingValue key="contract-years" />,
+    FIELD_HELP.contractYearsLeft,
+  ],
+];
+
 /** The club; for a loaned player with the loan noted and his parent club right under it. */
 const clubFacts = (player: Player): readonly Fact[] =>
   player.loanedFromId === null
@@ -256,7 +266,7 @@ const basics = (
   ...clubFacts(player),
   [TEXT.card.league, optional(player.leagueName)],
   [TEXT.card.nationality, optional(player.nationalityName)],
-  [TEXT.card.contract, player.contractEndYear ?? <MissingValue key="contract" />],
+  ...contractFacts(player),
   ...money(player, currency),
   [
     TEXT.columns.overall,

@@ -45,6 +45,7 @@ export const FIELD_HELP: Partial<Readonly<Record<RangeKey | ListKey | FlagKey, s
   cupGoals: CUP_STATS,
   cupAssists: CUP_STATS,
   cupCleanSheets: CUP_STATS,
+  contractYearsLeft: pl`Lata do końca kontraktu tak, jak liczy je gra: rok końca kontraktu minus rok, w którym zaczął się sezon. 0 to kontrakt wygasający w tym sezonie, czyli wolny transfer; od nowego sezonu krótszy kontrakt obniża cenę zawodnika.`,
   injuryDays: pl`Dni przerwy z powodu kontuzji według zapisu kariery; 0 to brak kontuzji.`,
   price: pl`Wartość według wzoru gry, jak CENA na liście rynku transferowego. Zależy m.in. od OVR, wieku, lat do końca kontraktu, reputacji i pozycji. Przy wygasłym kontrakcie i u wolnego zawodnika 0. U wypożyczonego zawodnika zapis nie trzyma kontraktu, więc ceny nie ma.`,
   wage: pl`Zarobki na mecz według wzoru gry, jak „Zarobki rynkowe” w formularzu oferty. Przy wygasłym kontrakcie (też w tym roku) z doliczonymi 30% (wolny transfer). Wzór nie odtwarza każdej pensji zapisanej w kontraktach, stąd szacunek. U zawodników twojego klubu zarobki z kontraktu zapisanego w karierze. U zawodników wypożyczonych z twojego klubu albo do niego zarobki z kontraktu, u innych wypożyczonych brak danych.`,

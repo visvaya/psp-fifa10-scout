@@ -101,6 +101,7 @@ export const RANGE_LABELS: Readonly<Record<RangeFields | PeakTwin, string>> = {
   leaguePrestige: "Prestiż ligi",
   clubPrestige: "Prestiż klubu",
   contractEndYear: "Kontrakt",
+  contractYearsLeft: "Lata kontraktu",
   form: "KR (forma)",
   morale: "Morale",
   totalAppearances: pl`Występy ogółem`,

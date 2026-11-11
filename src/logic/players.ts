@@ -142,6 +142,11 @@ export interface Player extends Finance, SeasonStats, TeamFields {
   readonly academy: boolean;
   /** Linked to the game's free-agent team, so any club can sign him (careers only). */
   readonly freeAgent: boolean;
+  /**
+   * Years to the end of the contract as the game counts them: its end year minus the year the season
+   * started; 0 runs out this season (a free transfer). Null without a contract.
+   */
+  readonly contractYearsLeft: number | null;
   readonly age: number;
   /** His age on the season's first match day, his place on his curves all season; else `age`. */
   readonly seasonAge: number;
@@ -226,6 +231,8 @@ export interface Player extends Finance, SeasonStats, TeamFields {
 
 interface Context {
   readonly referenceDate: Date;
+  /** The year the season started, from which the game counts contract years. */
+  readonly seasonYear: number;
   readonly placements: ReadonlyMap<number, Placement>;
   readonly countries: ReadonlyMap<number, string>;
   readonly stats: ReadonlyMap<number, EaDbRow>;
@@ -264,6 +271,10 @@ export const nameCollator = lazy(() => new Intl.Collator(NAME_LOCALE));
 export const searchKey = (text: string): string =>
   text.normalize("NFD").replaceAll(/\p{M}/gu, "").replaceAll(/ł/giu, "l").toLowerCase();
 
+/** The years from `start` to `end`, as the game counts contract years; null without an end. */
+const yearsAfter = (end: number | null, start: number): number | null =>
+  end === null ? null : end - start;
+
 /** The rolling match rating, stored times ten. */
 const ratingOf = (stats: EaDbRow | undefined): number | null => {
   const tenths = statOf(stats, "form");
@@ -298,6 +309,7 @@ const summary = (row: EaDbRow, context: Context): Summary => {
   const rate = (code: number): number => overallByCode[code] ?? 0;
   const overall = rate(num(row, "preferredposition1"));
   const peak = peakByCode[num(row, "preferredposition1")] ?? null;
+  const team = teamFields(context.placements.get(id) ?? {}, context.market.loanedFrom.has(id));
   const player: Omit<Summary, BestPeakKey> = {
     id,
     name,
@@ -324,7 +336,8 @@ const summary = (row: EaDbRow, context: Context): Summary => {
     overallByCode,
     peakByCode,
     attributes,
-    ...teamFields(context.placements.get(id) ?? {}, context.market.loanedFrom.has(id)),
+    ...team,
+    contractYearsLeft: yearsAfter(team.contractEndYear, context.seasonYear),
     nationalityId,
     nationalityName: context.countries.get(nationalityId) ?? null,
     form: ratingOf(stats),
@@ -435,6 +448,10 @@ export const buildPlayers = (db: EaDb, save?: CareerSave, curves?: Curves): read
       save === undefined
         ? new Date(SCOUT_CONFIG.referenceDateIso)
         : (careerManager(db, save).lastGameDate ?? seasonStartDate(db, save)),
+    seasonYear: (save === undefined
+      ? new Date(SCOUT_CONFIG.referenceDateIso)
+      : seasonStartDate(db, save)
+    ).getUTCFullYear(),
     placements,
     countries: new Map(
       readTable(db, "country").map((row) => [num(row, "countryid"), String(row["countryname"])]),

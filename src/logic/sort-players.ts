@@ -19,8 +19,8 @@ type ScalarKey = {
 export type SortKey = ScalarKey | AttributeName | "positionRating" | "ratingGain" | "positionPeak";
 export type SortDirection = "ascending" | "descending";
 
-/** The sort keys the screens offer; anything else in storage falls back to the default sort. */
-export const SORTABLE_KEYS: readonly SortKey[] = [
+/** Keys whose first click sorts ascending (text, age, position, contract); numbers start high. */
+const ASCENDING_FIRST_KEYS = [
   "name",
   "age",
   "positionCode",
@@ -28,6 +28,12 @@ export const SORTABLE_KEYS: readonly SortKey[] = [
   "leagueName",
   "nationalityName",
   "contractEndYear",
+  "contractYearsLeft",
+] as const satisfies readonly SortKey[];
+
+/** The sort keys the screens offer; anything else in storage falls back to the default sort. */
+export const SORTABLE_KEYS: readonly SortKey[] = [
+  ...ASCENDING_FIRST_KEYS,
   "potential",
   "overall",
   "growth",
@@ -71,16 +77,7 @@ export const RATING_SORT_KEYS: ReadonlySet<SortKey> = new Set([
   "positionPeak",
 ]);
 
-/** Keys whose first click sorts ascending (text, age, position, contract); numbers start high. */
-const ASCENDING_FIRST = new Set<SortKey>([
-  "name",
-  "age",
-  "positionCode",
-  "clubName",
-  "leagueName",
-  "nationalityName",
-  "contractEndYear",
-]);
+const ASCENDING_FIRST: ReadonlySet<SortKey> = new Set(ASCENDING_FIRST_KEYS);
 
 /** The direction a click on a sort key gives: the sorted one turns round, another starts its own way. */
 export const nextDirection = (
