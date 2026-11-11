@@ -7,7 +7,7 @@ import type { EaDbRow } from "../data/ea-db.ts";
 import { buildEaDb } from "../data/test-support/synthetic-ea-db.ts";
 import { facetOptions } from "./facets.ts";
 import { filterPlayers } from "./filter-players.ts";
-import { NO_FINANCE, signedValueIn } from "./player-finance.ts";
+import { valueIn, valueRangeIn } from "./player-finance.ts";
 import { baseOverall, CURVE_COLUMNS } from "./overall-rating.ts";
 import { buildPlayers } from "./players.ts";
 import type { Player } from "./players.ts";
@@ -196,9 +196,17 @@ describe("career prices and wages", () => {
   it("gives the signed value for the offer's contract length, in the shown currency", () => {
     const player = byId(5);
     const twoYears = priceInEuro(input({ contractYearsLeft: 2, prestige: 16 }));
-    expect(player && signedValueIn(player, 2, 0)).toBe(roundPrice(twoYears));
-    expect(player && signedValueIn(player, 2, 1)).toBe(roundPrice(twoYears * 0.86));
-    expect(signedValueIn(byId(1) ?? NO_FINANCE, 2, 0)).toBeNull();
+    expect(valueIn(player?.signedValuesEuro ?? null, 2, 0)).toBe(roundPrice(twoYears));
+    expect(valueIn(player?.signedValuesEuro ?? null, 2, 1)).toBe(roundPrice(twoYears * 0.86));
+    expect(valueIn(byId(1)?.signedValuesEuro ?? null, 2, 0)).toBeNull();
+    // The range of the loaned player's values once back, in the shown currency.
+    const back = byId(7)?.returnValuesEuro ?? null;
+    const shown = [1, 2, 3, 4, 5].map((years) => valueIn(back, years, 0) ?? 0);
+    expect(valueRangeIn(back, 0)).toEqual({
+      lowest: Math.min(...shown),
+      highest: Math.max(...shown),
+    });
+    expect(valueRangeIn(null, 0)).toBeNull();
   });
 
   it("prices in the save's currency, the stored wages too", () => {
@@ -239,6 +247,21 @@ describe("career prices and wages", () => {
   it("keeps the stored wage of a player lent by the user's club or to it, without a price", () => {
     expect(byId(7)).toMatchObject({ price: null, wage: 1230, storedWage: true });
     expect(byId(8)).toMatchObject({ price: null, wage: 1230, storedWage: true });
+  });
+
+  // Owner, 2026-11-10: a loaned player's value once back. The season's turn renews his contract by one draw
+  // of 1 to 5 years for everyone (game-knowledge: loans), so his price comes for each, next season, at his
+  // parent club's prestige.
+  it("prices a loaned player once back at his parent club, for each length the renewal can draw", () => {
+    const fromUser = byId(7)?.returnValuesEuro;
+    const fromClub = byId(8)?.returnValuesEuro;
+    expect(fromUser).toHaveLength(5);
+    expect(fromClub).toHaveLength(5);
+    // Back at 241 (prestige 12 + 9) he is worth more than back at the user's club (12 + 4).
+    expect(fromClub?.[2] ?? 0).toBeGreaterThan(fromUser?.[2] ?? Infinity);
+    // A parent club in no league has no prestige to price him with; a player not on loan needs none.
+    expect(byId(9)?.returnValuesEuro).toBeNull();
+    expect(byId(1)?.returnValuesEuro).toBeNull();
   });
 
   it("leaves other loaned players without a price or a wage", () => {

@@ -15,6 +15,7 @@ import type { ScoutAction } from "../logic/scout-state.ts";
 import { ChoiceRatings } from "./card-folds.tsx";
 import { CurveButton } from "./curve-chart.tsx";
 import { Stars, WatchMark } from "./stars.tsx";
+import { contractFacts, money } from "./card-contract.tsx";
 import { NoteSection } from "./note-section.tsx";
 import { WatchlistSection } from "./watchlist-section.tsx";
 import { codeName } from "./text-code-names.ts";
@@ -174,39 +175,6 @@ const profile = (player: Player, showPotential: boolean, curves: Curves): readon
       ? TEXT.card.none
       : player.traits.map((trait) => FLAG_LABELS[trait]).join(", "),
     TEXT.traitsNote,
-  ],
-];
-
-/**
- * Price and wage, career only: the user's squad shows its stored wage, others an estimate. A loaned
- * player has no price and, unless lent by the user's club or to it, no wage: a dash for each.
- */
-const money = (
-  { price, wage, storedWage, loanedFromId }: Player,
-  currency: CurrencyCode | null,
-): readonly Fact[] =>
-  currency === null || (price === null && loanedFromId === null)
-    ? []
-    : [
-        [
-          TEXT.card.price,
-          price === null ? <MissingValue key="price" /> : TEXT.card.money(price, currency),
-          FIELD_HELP.price,
-        ],
-        [
-          storedWage ? TEXT.card.contractWage : TEXT.card.wage,
-          wage === null ? <MissingValue key="wage" /> : TEXT.card.money(wage, currency),
-          FIELD_HELP.wage,
-        ],
-      ];
-
-/** The contract's end year and the years left to it, as the game counts them. */
-const contractFacts = (player: Player): readonly Fact[] => [
-  [TEXT.card.contract, player.contractEndYear ?? <MissingValue key="contract" />],
-  [
-    RANGE_LABELS.contractYearsLeft,
-    player.contractYearsLeft ?? <MissingValue key="contract-years" />,
-    FIELD_HELP.contractYearsLeft,
   ],
 ];
 

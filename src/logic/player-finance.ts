@@ -23,6 +23,12 @@ export interface Finance extends EuroMoney {
    * signs. Null for anyone else.
    */
   readonly signedValuesEuro: readonly number[] | null;
+  /**
+   * A loaned player's value, in euro, once back at his parent club next season: the season's turn renews
+   * his contract by one draw of 1 to 5 years for every player (index 0 to 4). Null for anyone else, or
+   * when the parent club's prestige is unknown.
+   */
+  readonly returnValuesEuro: readonly number[] | null;
 }
 
 export const NO_FINANCE: Finance = {
@@ -32,22 +38,42 @@ export const NO_FINANCE: Finance = {
   wageEuro: null,
   storedWage: false,
   signedValuesEuro: null,
+  returnValuesEuro: null,
 };
 
 /**
- * A free agent's signed value (Finance.signedValuesEuro) for a contract of `years`, in the currency the
- * list shows, rounded as the game rounds prices; null for anyone else.
+ * A value by contract length (Finance.signedValuesEuro or returnValuesEuro) for a contract of `years`, in
+ * the currency the list shows, rounded as the game rounds prices; null without values.
  */
-export const signedValueIn = (
-  { signedValuesEuro }: Pick<Finance, "signedValuesEuro">,
+export const valueIn = (
+  valuesEuro: readonly number[] | null,
   years: number,
   currency: CurrencyCode,
 ): number | null => {
-  const euro = signedValuesEuro?.[years - 1];
+  const euro = valuesEuro?.[years - 1];
   return euro === undefined
     ? null
     : moneyIn({ priceEuro: euro, wageEuro: null, storedWage: false }, exchangeRate(currency)).price;
 };
+
+/** The lowest and highest of the values by contract length, in the shown currency; null without values. */
+export const valueRangeIn = (
+  valuesEuro: readonly number[] | null,
+  currency: CurrencyCode,
+): { readonly lowest: number; readonly highest: number } | null => {
+  const shown = (valuesEuro ?? []).flatMap(
+    (_, index) => valueIn(valuesEuro, index + 1, currency) ?? [],
+  );
+  return shown.length === 0 ? null : { lowest: Math.min(...shown), highest: Math.max(...shown) };
+};
+
+/** The links of the players at the game's free-agent team, by player. */
+const freeAgentLinksOf = (db: EaDb, save: CareerSave): ReadonlyMap<number, EaDbRow> =>
+  new Map(
+    effectiveRows(db, save, "teamplayerlinks")
+      .filter((link) => num(link, "teamid") === SCOUT_CONFIG.freeAgentTeamId)
+      .map((link) => [num(link, "playerid"), link]),
+  );
 
 /** The user's squad's wages as the save stores them, by player. */
 const storedWagesOf = (db: EaDb, save: CareerSave): ReadonlyMap<number, number> =>
@@ -59,6 +85,29 @@ const storedWagesOf = (db: EaDb, save: CareerSave): ReadonlyMap<number, number> 
       float32(num(row, "wage")),
     ]),
   );
+
+/**
+ * His price input `years` seasons on, at his preferred position (not the club one: 12 of 12 prices read
+ * off the game's screen agree); the caller sets the contract and the prestige.
+ */
+const priceInputOf =
+  ({ row, age, overallAt }: Omit<FinanceInput, "club">) =>
+  (years: number): PriceInput => {
+    const preferred = num(row, "preferredposition1");
+    return {
+      positionCode: preferred,
+      overall: overallAt(preferred, years),
+      overallIn5Years: overallAt(preferred, years + PROJECTION_YEARS),
+      age: age + years,
+      contractYearsLeft: 0,
+      internationalReputation: num(row, "internationalreputation"),
+      playingStyle: num(row, "playingstyle"),
+      prestige: 0,
+    };
+  };
+
+/** No value once signed or once back. */
+const NO_VALUES = { signedValuesEuro: null, returnValuesEuro: null } as const;
 
 /** The contract lengths the offer form offers, in years. */
 const CONTRACT_YEARS = [1, 2, 3, 4, 5] as const;
@@ -97,56 +146,54 @@ const float32 = (bits: number): number => {
 export const financeOf = (
   db: EaDb,
   save: CareerSave,
-  loanedFrom: ReadonlyMap<number, number>,
-  /** The user's club's league prestige plus team prestige; null when the club is unknown. */
-  userPrestige: number | null,
+  clubs: {
+    /** Each loaned player's parent club. */
+    readonly loanedFrom: ReadonlyMap<number, number>;
+    /** A club's league prestige plus team prestige; null for a club in no league. */
+    readonly prestigeOf: (teamId: number) => number | null;
+  },
 ): ((input: FinanceInput) => Finance) => {
+  const { loanedFrom, prestigeOf } = clubs;
   const { teamId: userTeamId, currency } = careerManager(db, save);
+  const userPrestige = prestigeOf(userTeamId);
   const rate = exchangeRate(currency);
-  const shown = (euro: EuroMoney, signedValuesEuro: readonly number[] | null = null): Finance => ({
-    ...euro,
-    ...moneyIn(euro, rate),
-    signedValuesEuro,
-  });
+  const shown = (
+    euro: EuroMoney,
+    values: Pick<Finance, "signedValuesEuro" | "returnValuesEuro"> = NO_VALUES,
+  ): Finance => ({ ...euro, ...moneyIn(euro, rate), ...values });
   // The game counts contract years from the year the season started: in April 2011 a contract to 2013
   // shows three years.
   const seasonYear = seasonStartDate(db, save).getUTCFullYear();
-  const freeAgentLinks = new Map(
-    effectiveRows(db, save, "teamplayerlinks")
-      .filter((link) => num(link, "teamid") === SCOUT_CONFIG.freeAgentTeamId)
-      .map((link) => [num(link, "playerid"), link]),
-  );
+  const freeAgentLinks = freeAgentLinksOf(db, save);
   const storedWages = storedWagesOf(db, save);
   return ({ row, age, club, overallAt }) => {
     const id = num(row, "playerid");
-    if (loanedFrom.has(id)) {
+    const inputIn = priceInputOf({ row, age, overallAt });
+    const parent = loanedFrom.get(id);
+    if (parent !== undefined) {
       const userLoan =
-        loanedFrom.get(id) === userTeamId ||
-        (club !== undefined && num(club.link, "teamid") === userTeamId);
+        parent === userTeamId || (club !== undefined && num(club.link, "teamid") === userTeamId);
       const stored = userLoan ? storedWages.get(id) : undefined;
+      const values = {
+        ...NO_VALUES,
+        returnValuesEuro: signedValuesOf(inputIn(1), prestigeOf(parent)),
+      };
       return stored === undefined
-        ? NO_FINANCE
-        : shown({ priceEuro: null, wageEuro: stored, storedWage: true });
+        ? { ...NO_FINANCE, ...values }
+        : shown({ priceEuro: null, wageEuro: stored, storedWage: true }, values);
     }
     const link = club?.link ?? freeAgentLinks.get(id);
     if (link === undefined) return NO_FINANCE;
-    // The preferred position, not the club one: 12 of 12 prices read off the game's screen agree.
-    const preferred = num(row, "preferredposition1");
-    const overall = overallAt(preferred, 0);
+    const now = inputIn(0);
     const input: PriceInput = {
-      positionCode: preferred,
-      overall,
-      overallIn5Years: overallAt(preferred, PROJECTION_YEARS),
-      age,
+      ...now,
       contractYearsLeft: num(link, "yearcontractvalidtil") - seasonYear,
-      internationalReputation: num(row, "internationalreputation"),
-      playingStyle: num(row, "playingstyle"),
       // A free agent counts OVR / 5 as both league and team prestige.
-      prestige: club?.prestige ?? 2 * Math.floor(overall / 5),
+      prestige: club?.prestige ?? 2 * Math.floor(now.overall / 5),
     };
     const stored = num(link, "teamid") === userTeamId ? storedWages.get(id) : undefined;
     const priceEuro = priceInEuro(input);
-    const signedValues = club === undefined ? signedValuesOf(input, userPrestige) : null;
+    const signedValuesEuro = club === undefined ? signedValuesOf(input, userPrestige) : null;
     return shown(
       stored === undefined
         ? {
@@ -155,7 +202,7 @@ export const financeOf = (
             storedWage: false,
           }
         : { priceEuro, wageEuro: stored, storedWage: true },
-      signedValues,
+      { ...NO_VALUES, signedValuesEuro },
     );
   };
 };
