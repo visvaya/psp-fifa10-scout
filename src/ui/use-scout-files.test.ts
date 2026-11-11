@@ -118,6 +118,17 @@ describe("the list after signing", () => {
     expect(posted).toHaveLength(2);
   });
 
+  it("keeps a superseded load's late failure from the state", async () => {
+    const { session, actions, reply } = await openSession();
+    session.pickGame(new File(["g"], "game.iso"));
+    session.pickGame(new File(["h"], "other.iso"));
+    reply({ type: "done", requestId: 2, result: EMPTY_LOAD_RESULT });
+    session.requestSigned();
+    const count = actions.length;
+    reply({ type: "failed", requestId: 1, error: { stage: "game", kind: "unexpected" } });
+    expect(actions).toHaveLength(count);
+  });
+
   it("builds none when the worker is gone", async () => {
     const { session, worker, actions } = await openSession();
     worker.dispatchEvent(new Event("error"));
