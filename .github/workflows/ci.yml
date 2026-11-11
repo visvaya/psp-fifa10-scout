@@ -99,7 +99,9 @@ jobs:
     name: scan
     permissions:
       contents: read
-    uses: $/.github/workflows/security.yml
+    # zizmor asks for the self-repository form "$/", which actionlint 1.7.12 rejects; "./" also calls
+    # the file from this commit.
+    uses: ./.github/workflows/security.yml # zizmor: ignore[self-repository]
 
   # The required check: passes only when every job above passed. Branch protection names this job alone
   # (with the PR title and CodeRabbit), so jobs can be added or renamed here without changing the
