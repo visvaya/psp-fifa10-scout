@@ -1,9 +1,10 @@
 // Declarative player filters: each set filter adds one predicate, and a player must pass them all.
 // Lists keep any of the chosen values, ranges are inclusive, flags require a trait or its absence.
-import { ATTRIBUTE_NAMES, isAttributeName, TRAIT_NAMES } from "./players.ts";
+import { ATTRIBUTE_NAMES, isAttributeName, TRAIT_NAMES } from "./attributes.ts";
 import { searchKey } from "./player-names.ts";
 import { SEASON_STAT_KEYS } from "./season-stats.ts";
-import type { AttributeName, Player, TraitName } from "./players.ts";
+import type { Player } from "./players.ts";
+import type { AttributeName, TraitName } from "./attributes.ts";
 
 export interface Range {
   readonly min?: number | undefined;
@@ -59,6 +60,7 @@ export type ListKey = (typeof LIST_FIELDS)[number];
 export type FlagKey =
   | TraitName
   | "nationalTeam"
+  | "retiring"
   | "transferListed"
   | "loanListed"
   | "loaned"
@@ -66,6 +68,7 @@ export type FlagKey =
 export const FLAG_KEYS: readonly FlagKey[] = [
   ...TRAIT_NAMES,
   "nationalTeam",
+  "retiring",
   "transferListed",
   "loanListed",
   "loaned",
@@ -198,6 +201,7 @@ export const rangeValue = (player: Player, key: RangeKey | PeakTwin): number | n
 
 const hasFlag = (player: Player, flag: FlagKey): boolean => {
   if (flag === "nationalTeam") return player.nationalTeamId !== null;
+  if (flag === "retiring") return player.retiring;
   if (flag === "clubWillSell") return player.clubWillSell === true;
   if (flag === "loaned") return player.loanedFromId !== null;
   if (flag === "loanListed") return player.loanListed;

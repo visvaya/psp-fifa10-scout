@@ -1,7 +1,7 @@
 // The values a range filter can take, in the units the list shows: the game's own limits, from the
 // ranges its database declares for each field (fifa.db schema, lo..hi) or from its rules. A filter
 // bound past them can only match nothing or everything, so the field moves it back onto the limit.
-import { isAttributeName } from "./players.ts";
+import { isAttributeName } from "./attributes.ts";
 import type { RangeFields, RangeKey } from "./filter-players.ts";
 
 export interface FieldBounds {

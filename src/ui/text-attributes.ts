@@ -1,6 +1,6 @@
 // The names of the attributes and of their groups on the player card, a part of the UI texts beside
 // text.ts.
-import type { AttributeName } from "../logic/players.ts";
+import type { AttributeName } from "../logic/attributes.ts";
 import { pl } from "./typeset.ts";
 
 // Label tables: plain data that only the literal-blind duplicate check sees as alike.

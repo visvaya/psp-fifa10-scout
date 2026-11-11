@@ -4,8 +4,8 @@
 // player, club or curve. The browser tests keep their own, hand-made database (src/logic/test-support/scout-db.ts).
 import { buildEaDb } from "../src/data/test-support/synthetic-ea-db.ts";
 import { CURVE_COLUMNS } from "../src/logic/overall-rating.ts";
-import { ATTRIBUTE_NAMES } from "../src/logic/players.ts";
-import type { AttributeName } from "../src/logic/players.ts";
+import { ATTRIBUTE_NAMES } from "../src/logic/attributes.ts";
+import type { AttributeName } from "../src/logic/attributes.ts";
 import {
   daysSince1582,
   formationTables,
