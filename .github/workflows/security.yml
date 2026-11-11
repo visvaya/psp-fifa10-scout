@@ -6,20 +6,17 @@ name: Security
 #
 # One job with one step per scanner: GitHub bills every job rounded up to a full minute and each scan
 # takes seconds. Later steps run even when an earlier one fails, so every scanner reports.
+#
+# Pushes and pull requests run it from the CI workflow (its scan job), whose ci job is the required
+# check; the weekly run starts it on its own.
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_call:
   schedule:
     - cron: "0 5 * * 1" # Monday 05:00 UTC
   workflow_dispatch:
 
 permissions:
   contents: read
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
-  cancel-in-progress: true
 
 jobs:
   scan:
