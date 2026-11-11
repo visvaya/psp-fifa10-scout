@@ -14,6 +14,9 @@ export const OFFER_TEXT = {
   wage: "Zawodnik podpisze od",
   wageValue: (wage: string, years: string): string => `${wage} na mecz, kontrakt ${years}`,
   bonusAmount: "Premia",
+  /** A free agent's estimated value once he signs for the user's club (player-finance.ts). */
+  signedValue: "Wartość po podpisaniu (szacunkowa)",
+  signedValueHelp: pl`Wolny zawodnik ma w grze wartość 0. To jego cena według wzoru gry, gdy podpisze z twoim klubem kontrakt o wybranej długości: z prestiżem twojego klubu i ligi zamiast prestiżu liczonego z OVR. Bez wzrostu potencjału, który gra dodaje przy podpisaniu.`,
   never: "nie podpisze: kontrakt sięgnąłby poza wiek zakończenia kariery",
   /** Why the game refuses any offer, whatever the fee (sale-rule.ts), with the game's own wording. */
   refusals: {

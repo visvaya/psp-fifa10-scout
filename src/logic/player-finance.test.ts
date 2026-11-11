@@ -7,6 +7,7 @@ import type { EaDbRow } from "../data/ea-db.ts";
 import { buildEaDb } from "../data/test-support/synthetic-ea-db.ts";
 import { facetOptions } from "./facets.ts";
 import { filterPlayers } from "./filter-players.ts";
+import { NO_FINANCE, signedValueIn } from "./player-finance.ts";
 import { baseOverall, CURVE_COLUMNS } from "./overall-rating.ts";
 import { buildPlayers } from "./players.ts";
 import type { Player } from "./players.ts";
@@ -178,6 +179,26 @@ describe("career prices and wages", () => {
       wage: roundPrice(wageInEuro(free, true)),
       storedWage: false,
     });
+  });
+
+  // Owner, 2026-11-09: a free agent's estimated value once he joins the user's club, which takes the
+  // prestige of that club and the contract the offer gives (1 to 5 years).
+  it("values a free agent as if he signed for the user's club, for each contract length", () => {
+    expect(byId(5)?.signedValuesEuro).toEqual(
+      [1, 2, 3, 4, 5].map((years) =>
+        priceInEuro(input({ contractYearsLeft: years, prestige: 16 })),
+      ),
+    );
+    expect(byId(1)?.signedValuesEuro).toBeNull();
+    expect(byId(4)?.signedValuesEuro).toBeNull();
+  });
+
+  it("gives the signed value for the offer's contract length, in the shown currency", () => {
+    const player = byId(5);
+    const twoYears = priceInEuro(input({ contractYearsLeft: 2, prestige: 16 }));
+    expect(player && signedValueIn(player, 2, 0)).toBe(roundPrice(twoYears));
+    expect(player && signedValueIn(player, 2, 1)).toBe(roundPrice(twoYears * 0.86));
+    expect(signedValueIn(byId(1) ?? NO_FINANCE, 2, 0)).toBeNull();
   });
 
   it("prices in the save's currency, the stored wages too", () => {

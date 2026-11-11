@@ -426,6 +426,29 @@ const rater = (db: EaDb, save: CareerSave | undefined, read?: Curves): Context["
 };
 
 /**
+ * The date ages are taken on (the last game, else the season's start) and the year the season started;
+ * without a save, the database's own start.
+ */
+const datesOf = (db: EaDb, save: CareerSave | undefined) => {
+  if (save === undefined) {
+    const start = new Date(SCOUT_CONFIG.referenceDateIso);
+    return { referenceDate: start, seasonYear: start.getUTCFullYear() };
+  }
+  const seasonStart = seasonStartDate(db, save);
+  return {
+    referenceDate: careerManager(db, save).lastGameDate ?? seasonStart,
+    seasonYear: seasonStart.getUTCFullYear(),
+  };
+};
+
+/** The user's club's league prestige plus team prestige; null when the save names no known club. */
+const userPrestigeOf = (
+  db: EaDb,
+  save: CareerSave,
+  teams: ReturnType<typeof teamsById>,
+): number | null => teams.get(careerManager(db, save).teamId)?.prestige ?? null;
+
+/**
  * Every player with his club and nationality; youth-pool players only when a team link, or the
  * save's youth academy, transfer list or shortlist, places them. With a save, links and stats come from it and ages are taken on its last game date.
  * `curves`: the database's curves when the caller has read them already.
@@ -444,14 +467,7 @@ export const buildPlayers = (db: EaDb, save?: CareerSave, curves?: Curves): read
   const shortlist = save === undefined ? [] : careerShortlist(db, save);
   const market = transferMarketOf(transferList, save === undefined ? [] : careerLoans(db, save));
   const context: Context = {
-    referenceDate:
-      save === undefined
-        ? new Date(SCOUT_CONFIG.referenceDateIso)
-        : (careerManager(db, save).lastGameDate ?? seasonStartDate(db, save)),
-    seasonYear: (save === undefined
-      ? new Date(SCOUT_CONFIG.referenceDateIso)
-      : seasonStartDate(db, save)
-    ).getUTCFullYear(),
+    ...datesOf(db, save),
     placements,
     countries: new Map(
       readTable(db, "country").map((row) => [num(row, "countryid"), String(row["countryname"])]),
@@ -468,7 +484,10 @@ export const buildPlayers = (db: EaDb, save?: CareerSave, curves?: Curves): read
     ),
     rate: rater(db, save, curves),
     formationCodes: save === undefined ? [] : userFormationCodes(db, save),
-    finance: save === undefined ? null : financeOf(db, save, market.loanedFrom),
+    finance:
+      save === undefined
+        ? null
+        : financeOf(db, save, market.loanedFrom, userPrestigeOf(db, save, teams)),
     saleVerdict: save === undefined ? null : saleVerdictOf(db, save, placements),
   };
   // The game keeps generated players out of the leagues until it places them (overall-rating.md, F2).
