@@ -67,6 +67,9 @@ importers:
       knip:
         specifier: 6.44.1
         version: 6.44.1
+      oxc-parser:
+        specifier: 0.155.0
+        version: 0.155.0
       oxfmt:
         specifier: 0.75.0
         version: 0.75.0
