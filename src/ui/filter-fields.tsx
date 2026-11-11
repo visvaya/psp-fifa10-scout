@@ -2,6 +2,8 @@
 // yes / no / any choice. Each takes its value and reports a new one; the form maps them to filters.
 import { useId, useLayoutEffect, useReducer, useRef, useState } from "react";
 import type { JSX, ReactNode } from "react";
+import { boundedValue } from "../logic/field-bounds.ts";
+import type { FieldBounds } from "../logic/field-bounds.ts";
 import { bounded } from "../logic/filter-players.ts";
 import type { Range } from "../logic/filter-players.ts";
 import { searchKey } from "../logic/players.ts";
@@ -149,6 +151,7 @@ const decimalShown = (value: number | undefined): string =>
 const DecimalInput = (props: {
   value: number | undefined;
   onChange: (value: number | undefined) => void;
+  onBlur: () => void;
 }) => {
   const [text, setText] = useState(decimalShown(props.value));
   const [seen, setSeen] = useState(props.value);
@@ -171,6 +174,7 @@ const DecimalInput = (props: {
       type="text"
       inputMode="decimal"
       value={text}
+      onBlur={props.onBlur}
       onChange={(event) => {
         const { value, selectionStart } = event.currentTarget;
         const typed = decimalText(value, decimalSeparator());
@@ -186,25 +190,37 @@ const DecimalInput = (props: {
   );
 };
 
-/** One bound of a range: grouped digits, a decimal or a whole number. */
+/**
+ * One bound of a range: grouped digits, a decimal or a whole number. A value past the field's bounds moves
+ * onto them when the field is left, not while it is typed ("2" on the way to "25" stays).
+ */
 const BoundInput = (props: {
   kind: "grouped" | "decimal" | "whole";
   allowNegative: boolean;
+  bounds: FieldBounds | undefined;
   value: number | undefined;
   onChange: (value: number | undefined) => void;
 }) => {
+  const { bounds } = props;
+  const onBlur = () => {
+    const moved = bounds === undefined ? props.value : boundedValue(bounds, props.value);
+    if (moved !== props.value) props.onChange(moved);
+  };
   if (props.kind === "grouped")
     return <GroupedInput value={props.value} onChange={props.onChange} />;
   if (props.kind === "decimal")
-    return <DecimalInput value={props.value} onChange={props.onChange} />;
+    return <DecimalInput value={props.value} onChange={props.onChange} onBlur={onBlur} />;
   // A phone's numeric keypad has no minus sign; without the hint a number field opens the keyboard's digits
   // and symbols, minus included.
   return (
     <input
       type="number"
       inputMode={props.allowNegative ? undefined : "numeric"}
-      min={props.allowNegative ? undefined : 0}
+      min={bounds?.min ?? (props.allowNegative ? undefined : 0)}
+      max={bounds?.max}
+      step={bounds?.step}
       value={props.value ?? ""}
+      onBlur={onBlur}
       onChange={(event) => {
         props.onChange(numberOrUndefined(event.currentTarget.value));
       }}
@@ -221,6 +237,8 @@ export const RangeField = (props: {
   grouped?: boolean;
   /** A decimal (a match rating), typed with the interface language's separator. */
   decimal?: boolean;
+  /** The values the game allows (field-bounds.ts); unset for a field without them. */
+  bounds?: FieldBounds | undefined;
   help?: string | undefined;
   /** The eye of the field's column; unset where it has none. */
   column?: ColumnToggle | undefined;
@@ -248,6 +266,7 @@ export const RangeField = (props: {
             <BoundInput
               kind={grouped ? "grouped" : props.decimal === true ? "decimal" : "whole"}
               allowNegative={props.allowNegative === true}
+              bounds={props.bounds}
               value={range[bound]}
               onChange={(value) => {
                 props.onChange({ ...range, [bound]: value });

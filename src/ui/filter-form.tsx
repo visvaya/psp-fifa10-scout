@@ -1,6 +1,7 @@
 import { useId, useMemo } from "react";
 import type { Dispatch, JSX } from "react";
 import type { CurrencyCode } from "../data/career-save.ts";
+import { boundsOf } from "../logic/field-bounds.ts";
 import { CLUB_STATUSES, LIST_MEMBERSHIPS, needsShortlist } from "../logic/filter-players.ts";
 import type { FlagKey, ListKey, ListMembership, RangeKey } from "../logic/filter-players.ts";
 import { SEASON_STAT_KEYS, TRAIT_NAMES } from "../logic/players.ts";
@@ -210,6 +211,7 @@ const controls = (
       range={filters.ranges?.[key]}
       grouped={GROUPED_RANGES.has(key)}
       decimal={key === "form" || key === "clubStars"}
+      bounds={boundsOf(key)}
       help={FIELD_HELP[key]}
       column={eye(key)}
       onChange={(range) => {

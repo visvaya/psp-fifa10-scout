@@ -332,3 +332,27 @@ test.describe("marks on the card and the list", () => {
     await expectNoAxeViolations(page);
   });
 });
+
+test.describe("bounds of the range fields", () => {
+  // KR runs from 1,0 to 10,0 and an attribute from 1 to 99: a bound past them moves onto them once the
+  // field is left, not while it is typed.
+  test("keeps KR and an attribute within the game's scales", async ({ page }) => {
+    await loadCareer(page);
+    await page.getByText("Kariera", { exact: true }).click();
+    const rating = page.getByRole("group", { name: "KR (forma)" });
+    const to = rating.getByLabel("do");
+    await to.pressSequentially("12");
+    await expect(to).toHaveValue("12");
+    await rating.getByLabel("od").focus();
+    await expect(to).toHaveValue("10");
+
+    await page.getByText("Atrybuty", { exact: true }).click();
+    await page.getByLabel("Dodaj atrybut").selectOption({ label: "Drybling" });
+    const from = page.getByRole("group", { name: "Drybling" }).getByLabel("od");
+    await expect(from).toHaveAttribute("min", "1");
+    await expect(from).toHaveAttribute("max", "99");
+    await from.fill("0");
+    await from.blur();
+    await expect(from).toHaveValue("1");
+  });
+});

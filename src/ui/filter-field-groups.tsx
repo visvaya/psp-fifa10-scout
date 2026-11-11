@@ -1,6 +1,7 @@
 // The filter fields of the form that are more than one control: the contract year with its eye, and the
 // attribute ranges the user adds from a list.
 import { useId, useState } from "react";
+import { boundsOf } from "../logic/field-bounds.ts";
 import type { Range } from "../logic/filter-players.ts";
 import { ATTRIBUTE_NAMES } from "../logic/players.ts";
 import type { AttributeName } from "../logic/players.ts";
@@ -63,6 +64,7 @@ export const AttributeRanges = (props: {
           <RangeField
             label={ATTRIBUTE_LABELS[name]}
             range={props.ranges?.[name]}
+            bounds={boundsOf(name)}
             column={props.eye(name)}
             onChange={(range) => {
               // A field being edited stays until removed: clearing its value to type a new one
