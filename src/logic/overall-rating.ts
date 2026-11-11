@@ -12,7 +12,7 @@ import { effectiveRows } from "../data/career-save.ts";
 import { num, readTable } from "../data/ea-db.ts";
 import type { EaDb } from "../data/ea-db.ts";
 import { SCOUT_CONFIG } from "./config.ts";
-import type { AttributeName, Attributes } from "./players.ts";
+import type { AttributeName, Attributes } from "./attributes.ts";
 
 type WeightRow = readonly (readonly [AttributeName, number])[];
 
@@ -228,7 +228,7 @@ export interface CareerRatingInput {
 }
 
 /** Whole years as the game counts them: days / 365.25, truncated. */
-const gameAge = (birthdate: Date, on: Date): number =>
+export const gameAge = (birthdate: Date, on: Date): number =>
   Math.trunc((on.getTime() - birthdate.getTime()) / DAY_MS / DAYS_PER_YEAR);
 
 /** A player's career ageing: his attributes in a season and how many seasons can still raise them. */

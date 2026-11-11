@@ -2,7 +2,7 @@
 import type { CurrencyCode } from "../data/career-save.ts";
 import type { CareerSummary } from "../logic/load-scout.ts";
 import type { FlagKey, ListKey, PeakTwin, RangeFields, RangeKey } from "../logic/filter-players.ts";
-import { isAttributeName } from "../logic/players.ts";
+import { isAttributeName } from "../logic/attributes.ts";
 import type { PositionGroup } from "../logic/positions.ts";
 import { lazy } from "../logic/lazy.ts";
 import { ATTRIBUTE_LABELS } from "./text-attributes.ts";
@@ -168,6 +168,7 @@ export const FLAG_LABELS: Readonly<Record<FlagKey, string>> = {
   staysongoalline: "Zostaje na linii",
   technicaldribbler: "Drybler techniczny",
   nationalTeam: "Reprezentant kraju",
+  retiring: pl`Kończy karierę po sezonie`,
   transferListed: "Na liście transferowej",
   loanListed: "Na liście do wypożyczenia",
   loaned: "Wypożyczony",

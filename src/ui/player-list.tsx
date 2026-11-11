@@ -4,7 +4,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { CSSProperties, Dispatch, JSX } from "react";
 import { isRangeKey, rangeValue } from "../logic/filter-players.ts";
-import { isAttributeName } from "../logic/players.ts";
+import { isAttributeName } from "../logic/attributes.ts";
 import type { CurrencyCode } from "../data/career-save.ts";
 import type { Player } from "../logic/players.ts";
 import type { ScoutAction, ScoutSort } from "../logic/scout-state.ts";

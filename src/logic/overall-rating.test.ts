@@ -17,7 +17,7 @@ import {
   readCurves,
 } from "./overall-rating.ts";
 import type { CareerRatingInput, Curves } from "./overall-rating.ts";
-import { attributesOf } from "./players.ts";
+import { attributesOf } from "./attributes.ts";
 import { attributes, flatCurves, grownRow, table } from "./test-support/player-fixtures.ts";
 import { buildEaDb } from "../data/test-support/synthetic-ea-db.ts";
 

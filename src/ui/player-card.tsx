@@ -9,7 +9,8 @@ import { skillCurveId } from "../logic/overall-rating.ts";
 import type { Curves } from "../logic/overall-rating.ts";
 import { SEASON_STAT_KEYS } from "../logic/season-stats.ts";
 import type { PlayerNote } from "../logic/player-notes.ts";
-import type { AttributeName, Player } from "../logic/players.ts";
+import type { Player } from "../logic/players.ts";
+import type { AttributeName } from "../logic/attributes.ts";
 import type { ScoutAction } from "../logic/scout-state.ts";
 import { ChoiceRatings } from "./card-folds.tsx";
 import { CurveButton } from "./curve-chart.tsx";
@@ -142,6 +143,7 @@ const profile = (player: Player, showPotential: boolean, curves: Curves): readon
     FIELD_HELP.learningSpeed,
   ],
   [RANGE_LABELS.retirementAge, TEXT.years(player.retirementAge), FIELD_HELP.retirementAge],
+  [FLAG_LABELS.retiring, yesNo(player.retiring), FIELD_HELP.retiring],
   [LIST_LABELS.bodyType, codeName("bodyType", player.bodyType), FIELD_HELP.bodyType],
   [
     LIST_LABELS.developmentType,

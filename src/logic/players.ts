@@ -11,7 +11,8 @@ import {
 import type { CareerSave } from "../data/career-save.ts";
 import { ageOn, birthdateToDate, num, readTable } from "../data/ea-db.ts";
 import type { EaDb, EaDbRow } from "../data/ea-db.ts";
-import { SaveFormatError } from "../data/save-format-error.ts";
+import { ATTRIBUTE_NAMES, attributesOf, TRAIT_NAMES } from "./attributes.ts";
+import type { Attributes, TraitName } from "./attributes.ts";
 import { bestPeakFields } from "./best-peak.ts";
 import type { BestPeakKey } from "./best-peak.ts";
 import { SCOUT_CONFIG } from "./config.ts";
@@ -36,94 +37,12 @@ import type { SaleRefusal } from "./sale-rule.ts";
 import type { Finance, FinanceInput } from "./player-finance.ts";
 import { positionOf } from "./positions.ts";
 import type { PositionGroup } from "./positions.ts";
+import { retiresAfterSeason } from "./retirement.ts";
 import { seasonStats, statOf } from "./season-stats.ts";
 import type { SeasonStats } from "./season-stats.ts";
 import { clubStarsOf } from "./team-stars.ts";
 import { marketFields, transferMarketOf } from "./transfer-market.ts";
 import type { TransferMarket } from "./transfer-market.ts";
-
-// Column names, alike by nature. jscpd:ignore-start
-/** The attribute columns of `players`, in table order (potential is a separate field). */
-export const ATTRIBUTE_NAMES = [
-  "acceleration",
-  "aggression",
-  "ballcontrol",
-  "crossing",
-  "dribbling",
-  "finishing",
-  "freekicks",
-  "heading",
-  "longpassing",
-  "longshotaccuracy",
-  "marking",
-  "playercomposure",
-  "positioning",
-  "reactions",
-  "shortpassing",
-  "shotpower",
-  "sprintspeed",
-  "stamina",
-  "strength",
-  "tackling",
-  "tacticalawareness",
-  "gkdiving",
-  "gkpositioning",
-  "handling",
-  "reflexes",
-] as const;
-
-export type AttributeName = (typeof ATTRIBUTE_NAMES)[number];
-
-/** The yes/no columns of `players` (0 or 1), in table order. */
-export const TRAIT_NAMES = [
-  "injuryprone",
-  "adaptability",
-  "ambition",
-  "comesforcrosses",
-  "diver",
-  "divesintotackles",
-  "earlycrosser",
-  "fansfavourite",
-  "flexibility",
-  "highclubidentification",
-  "hightrainingworkrate",
-  "holdsup",
-  "inflexible",
-  "latecrosser",
-  "leadership",
-  "longshottaker",
-  "longthrows",
-  "lowclubidentification",
-  "lowconcentration",
-  "lowtrainingworkrate",
-  "mediadarling",
-  "onetimepasser",
-  "playmaker",
-  "puncher",
-  "pushesupforcorners",
-  "rushesoutofgoal",
-  "scandalprone",
-  "selfish",
-  "staysongoalline",
-  "technicaldribbler",
-] as const;
-
-// jscpd:ignore-end
-export type TraitName = (typeof TRAIT_NAMES)[number];
-export type Attributes = Readonly<Record<AttributeName, number>>;
-
-export const isAttributeName = (name: string): name is AttributeName =>
-  (ATTRIBUTE_NAMES as readonly string[]).includes(name);
-
-const isAttributes = (record: Readonly<Record<string, number>>): record is Attributes =>
-  ATTRIBUTE_NAMES.every((name) => Number.isFinite(record[name]));
-
-/** The attribute columns of a players row; throws SaveFormatError when one is missing. */
-export const attributesOf = (row: EaDbRow): Attributes => {
-  const record = Object.fromEntries(ATTRIBUTE_NAMES.map((name) => [name, Number(row[name])]));
-  if (!isAttributes(record)) throw new SaveFormatError("Database players lack attribute columns");
-  return Object.freeze(record);
-};
 
 export interface Player extends Finance, SeasonStats, TeamFields {
   readonly id: number;
@@ -187,6 +106,8 @@ export interface Player extends Finance, SeasonStats, TeamFields {
   /** 1..5. */
   readonly learningSpeed: number;
   readonly retirementAge: number;
+  /** He retires when this season ends (retirement.ts). */
+  readonly retiring: boolean;
   /** developmenttypecode and developmentstylecode, the codes of the growth curves. */
   readonly developmentType: number;
   readonly developmentStyle: number;
@@ -279,12 +200,17 @@ const ratingOf = (stats: EaDbRow | undefined): number | null => {
   return tenths === null ? null : tenths / 10;
 };
 
-const profileFields = (row: EaDbRow) => ({
+const profileFields = (row: EaDbRow, seasonYear: number) => ({
   bodyType: num(row, "bodysizecode"),
   weakFoot: num(row, "weakfootability") + 1,
   internationalReputation: num(row, "internationalreputation"),
   learningSpeed: num(row, "learningspeed"),
   retirementAge: num(row, "retirementage"),
+  retiring: retiresAfterSeason(
+    birthdateToDate(num(row, "birthdate")),
+    num(row, "retirementage"),
+    seasonYear,
+  ),
   developmentType: num(row, "developmenttypecode"),
   developmentStyle: num(row, "developmentstylecode"),
   traits: TRAIT_NAMES.filter((trait) => num(row, trait) === 1),
@@ -331,7 +257,7 @@ const summary = (row: EaDbRow, context: Context): Summary => {
     overall,
     growth: potential - overall,
     peakGain: peak === null ? null : peak - overall,
-    ...profileFields(row),
+    ...profileFields(row, context.seasonYear),
     overallByCode,
     peakByCode,
     overallByAge,

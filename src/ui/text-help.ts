@@ -23,6 +23,7 @@ export const FIELD_HELP: Partial<Readonly<Record<RangeKey | ListKey | FlagKey, s
   bodyType: pl`Gra nie nazywa kodów. Przy podobnym wzroście typ 1 to średnio zawodnicy najlżejsi, typ 3 najciężsi.`,
   internationalReputation: pl`Gwiazdki z bazy gry, od 1 do 5. Według wzorów gry 4 i 5 gwiazdek podnoszą cenę i zarobki rynkowe; 1–3 gwiazdki ich nie zmieniają.`,
   learningSpeed: pl`Wartość z bazy gry. Gdy zawodnik trafia do twojego składu, gra dodaje ją do jego potencjału, razem z resztą z dzielenia potencjału przez 5.`,
+  retiring: pl`Gra kończy karierę zawodnika po sezonie, gdy jego wiek na 31 grudnia roku, w którym sezon się kończy, osiąga wiek zakończenia kariery z bazy. Na rynku transferowym gra oznacza go osobną ikoną, a po przełomie sezonu znika ze składu. Reguła ustalona na dwóch przełomach sezonu w zapisach kariery.`,
   retirementAge: pl`Wiek z bazy gry. Zawodnik nie podpisze kontraktu, który sięgałby poza ten wiek (licząc jego wiek na koniec sezonu), a długość kontraktu, której chce, gra skraca do tej granicy.`,
   developmentType: pl`Kiedy zawodnik osiąga szczyt według krzywych rozwoju gry: wcześnie, w typowym wieku albo późno.`,
   developmentStyle: pl`Kształt krzywej rozwoju umiejętności: jak wysoko i jak długo rośnie. Krótka kariera szybko spada po szczycie, nagły skok rośnie gwałtownie w kilka sezonów.`,

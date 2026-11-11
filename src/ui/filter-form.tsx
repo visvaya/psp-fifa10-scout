@@ -4,9 +4,10 @@ import type { CurrencyCode } from "../data/career-save.ts";
 import { boundsOf } from "../logic/field-bounds.ts";
 import { CLUB_STATUSES, LIST_MEMBERSHIPS, needsShortlist } from "../logic/filter-players.ts";
 import type { FlagKey, ListKey, ListMembership, RangeKey } from "../logic/filter-players.ts";
-import { TRAIT_NAMES } from "../logic/players.ts";
+import { TRAIT_NAMES } from "../logic/attributes.ts";
 import { SEASON_STAT_KEYS } from "../logic/season-stats.ts";
-import type { Player, TraitName } from "../logic/players.ts";
+import type { Player } from "../logic/players.ts";
+import type { TraitName } from "../logic/attributes.ts";
 import { POSITION_GROUPS } from "../logic/positions.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 import type { TieRule } from "../logic/best-peak.ts";
@@ -338,6 +339,7 @@ const characterSection = ({ facets, range, list, flag, sparkline }: Kit) => (
     {range("internationalReputation")}
     {range("learningSpeed")}
     {range("retirementAge")}
+    {flag("retiring")}
     {list("developmentType", codeChoices(facets.codes.developmentType, "developmentType"))}
     {list("developmentStyle", styleChoices(facets.codes.developmentStyle, sparkline))}
   </Section>

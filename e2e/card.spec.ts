@@ -32,6 +32,7 @@ test.describe("player card", () => {
         .locator(".stars > *"),
     ).toHaveClass([/star-full/u, /star-full/u, /star-full/u, /star-empty/u, /star-empty/u]);
     await expect(cardValue(card, "Wiek zakończenia kariery")).toHaveText("35 lat");
+    await expect(cardValue(card, "Kończy karierę po sezonie")).toHaveText("nie");
     await expect(cardValue(card, "Typ budowy")).toHaveText("typ 2");
     await expect(cardValue(card, "Typ rozwoju")).toHaveText("wczesny");
     await expect(cardValue(card, "Styl rozwoju")).toHaveText("dobry");

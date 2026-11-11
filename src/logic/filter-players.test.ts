@@ -211,6 +211,11 @@ describe("filterPlayers", () => {
 
   it("finds national team players and the transfer list", () => {
     expect(ids({ flags: { nationalTeam: true } })).toEqual([2]);
+    // Owner, 2026-11-11 (NZP): the game's mark for a player who retires when the season ends.
+    const retiring = [testPlayer({ id: 1, retiring: true }), testPlayer({ id: 2 })];
+    const kept = (flag: boolean) =>
+      filterPlayers(retiring, { flags: { retiring: flag } }).map((player) => player.id);
+    expect([kept(true), kept(false)]).toEqual([[1], [2]]);
     expect(ids({ flags: { nationalTeam: false } })).toEqual([1, 3, 4]);
     expect(ids({ flags: { transferListed: true } })).toEqual([4]);
     expect(ids({ flags: { transferListed: false } })).toEqual([1, 2, 3]);

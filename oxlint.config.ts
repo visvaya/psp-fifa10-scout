@@ -209,7 +209,7 @@ export default defineConfig({
     // The two tests that time themselves with performance.now() may read the clock; every other
     // restricted global stays forbidden in them.
     {
-      files: ["src/logic/players.test.ts", "src/data/iso9660.test.ts"],
+      files: ["src/logic/players-real.test.ts", "src/data/iso9660.test.ts"],
       rules: {
         "no-restricted-globals": ["error", ...BROWSER_AND_IO_GLOBALS],
       },

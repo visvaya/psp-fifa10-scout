@@ -3,8 +3,8 @@
 import { useId, useState } from "react";
 import { boundsOf } from "../logic/field-bounds.ts";
 import type { Range } from "../logic/filter-players.ts";
-import { ATTRIBUTE_NAMES } from "../logic/players.ts";
-import type { AttributeName } from "../logic/players.ts";
+import { ATTRIBUTE_NAMES } from "../logic/attributes.ts";
+import type { AttributeName } from "../logic/attributes.ts";
 import type { ScoutFilters } from "../logic/scout-state.ts";
 import { ColumnEye } from "./column-eye.tsx";
 import type { ColumnToggle, Eye } from "./column-eye.tsx";

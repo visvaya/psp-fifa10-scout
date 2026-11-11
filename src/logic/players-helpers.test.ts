@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { attributesOf } from "./players.ts";
+import { attributesOf } from "./attributes.ts";
 import { searchKey } from "./player-names.ts";
 import { playerRow } from "./test-support/player-fixtures.ts";
 
