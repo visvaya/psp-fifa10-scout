@@ -50,6 +50,10 @@ What it does today:
   needs to succeed (fee, wage, contract length) or why the game would refuse any offer, for example
   when the club will not sell. Money shows in your career's currency or one you choose (pound, euro,
   dollar), with the game's rates and rounding.
+- With a career save, can show every player outside your squad as he would be once signed: the game
+  raises his potential by a fixed amount when he joins your squad, which can lift his OVR and peak
+  too. The list, filters, sorting and card then use those values; the price and the offer stay as
+  before the transfer.
 - Shows each club's stars as the game computes them from its current squad, and the league and club
   prestige that feed the game's price and wage formulas.
 - Filters by position, league, club, nationality, preferred foot, body type, development type and
