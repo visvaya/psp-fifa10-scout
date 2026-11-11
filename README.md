@@ -4,6 +4,12 @@ A browser tool for the manager mode of FIFA 10 on the PlayStation Portable (also
 PPSSPP emulator): it reads the game's player database and your career save, and lets you filter and
 compare players to find the ones worth signing.
 
+![The player list with the filters on a wide screen](public/screenshots/list-wide.webp)
+
+![A player's card with his peak OVR, price and contract](public/screenshots/card-wide.webp)
+
+The screenshots show a sample database of invented players and clubs, not the game's data.
+
 ## Status
 
 Early development (November 2026). Use it at **<https://psp-fifa10-scout.visvaya.workers.dev/>**;
