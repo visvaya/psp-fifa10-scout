@@ -95,6 +95,17 @@ test.describe("stored state", () => {
 test.describe("wide screen", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
+  // Owner, 2026-11-11: the potential is the tool's main use, so the switch recommends itself while off.
+  test("recommends itself while off and drops the advice once on", async ({ page }) => {
+    await loadDatabase(page);
+    const potential = page.getByRole("checkbox", { name: "Pokaż potencjał" });
+    await expect(potential).toHaveAccessibleDescription(/^Zalecane\. Gra nie pokazuje potencjału/u);
+    await expectNoAxeViolations(page);
+    await potential.check();
+    await expect(page.getByText(/^Zalecane\./u)).toHaveCount(0);
+    await expect(potential).toHaveAccessibleDescription("");
+  });
+
   test("filters, sorts and opens a player card", async ({ page }) => {
     await loadDatabase(page);
     const table = page.getByRole("table");

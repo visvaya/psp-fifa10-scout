@@ -65,6 +65,8 @@ const SHOTS: readonly Shot[] = [
     arrange: async (page) => {
       await page.getByRole("button", { name: "Filtry" }).click();
       const dialog = page.getByRole("dialog", { name: "Filtry" });
+      // Every picture shows the potential: what the game hides is what the tool is for (owner, 2026-11-11).
+      await dialog.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
       await checkGroups(dialog);
       await dialog.getByRole("button", { name: "Zamknij" }).click();
       // The button that opened the dialog gets the focus back; its ring is not part of the picture.

@@ -252,6 +252,11 @@ export const TEXT = {
   noMatches: "Żaden zawodnik nie spełnia filtrów.",
   filters: "Filtry",
   showPotential: "Pokaż potencjał",
+  /** Under the potential switch while it is off: the tool's main use, so it says so (owner, 2026-11-11). */
+  showPotentialAdvice: {
+    lead: "Zalecane.",
+    text: pl`Gra nie pokazuje potencjału; to pole go pokazuje, a z zapisem kariery także szczyt OVR i zapas do szczytu.`,
+  },
   positionRating: "Ocena na pozycji",
   ratingAt: (position: string): string => `OVR ${position}`,
   ratingChoice: (group: string, abbreviation: string): string => `${group} (${abbreviation})`,
