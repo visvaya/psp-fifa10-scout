@@ -12,6 +12,7 @@ import { inClub } from "../logic/filter-players.ts";
 import type { OfferContext } from "../logic/offer.ts";
 import type { Player } from "../logic/players.ts";
 import { initialScoutState, scoutReducer } from "../logic/scout-state.ts";
+import { needsSignedList, shownPlayers } from "../logic/signed-list.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
 import { ListView } from "./list-view.tsx";
 import { NotesButton } from "./notes-dialog.tsx";
@@ -34,11 +35,12 @@ const useGameNames = (state: ScoutState) => {
   const language = activeLanguage(state, navigator.languages);
   const names = language === null ? null : (state.languages[language] ?? null);
   // The collator only once there are players: it is costly to build (lazy.ts).
+  const shown = shownPlayers(state);
   const list = useMemo(() => {
-    if (state.players === null) return null;
+    if (shown === null) return null;
     const collator = collatorFor(language);
-    return { players: localizePlayers(state.players, names, collator), collator };
-  }, [state.players, names, language]);
+    return { players: localizePlayers(shown, names, collator), collator };
+  }, [shown, names, language]);
   const positionNames = useMemo(
     (): PositionNames => ({
       short: (code) => positionNameIn(names, code),
@@ -62,6 +64,7 @@ const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFile
     filterSets,
     columns,
     tieOrder,
+    afterSigning,
     languages,
     watchlist,
     watchlistEdited,
@@ -80,6 +83,7 @@ const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFile
         ...(filterSets === undefined ? {} : { filterSets }),
         ...(columns === undefined ? {} : { columns }),
         ...(tieOrder === undefined ? {} : { tieOrder }),
+        ...(afterSigning === undefined ? {} : { afterSigning }),
       });
     }
   }, [
@@ -93,6 +97,7 @@ const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFile
     filterSets,
     columns,
     tieOrder,
+    afterSigning,
   ]);
 
   useEffect(() => {
@@ -173,6 +178,18 @@ const StorageNotice = ({ failed }: { failed: boolean }) => (
 const offerFor = ({ myTeamId, career }: ScoutState, player: Player): OfferContext | null =>
   myTeamId !== null && inClub(player, myTeamId) ? null : (career?.offer ?? null);
 
+/** The player as an offer counts him: before the transfer, whatever values the list shows. */
+const beforeSigning = ({ players }: ScoutState, player: Player): Player =>
+  players?.find((candidate) => candidate.id === player.id) ?? player;
+
+/** Asks the worker for the list after signing once the setting wants it and nothing asked yet. */
+const useSignedList = (state: ScoutState, requestSigned: () => void) => {
+  const wanted = needsSignedList(state);
+  useEffect(() => {
+    if (wanted) requestSigned();
+  }, [wanted, requestSigned]);
+};
+
 /** registering: the service worker's registration, null where none is made (main.tsx). */
 export const App = (props: { registering: Promise<UpdatableRegistration> | null }): JSX.Element => {
   const [state, dispatch] = useReducer(scoutReducer, initialScoutState);
@@ -182,6 +199,7 @@ export const App = (props: { registering: Promise<UpdatableRegistration> | null 
   const update = useAppUpdate(props.registering);
   useStoredState(state, files);
   const { view, showPotential } = state;
+  useSignedList(state, files.requestSigned);
 
   const openPlayer = list?.players.find((player) => player.id === state.openPlayerId);
   return (
@@ -221,6 +239,7 @@ export const App = (props: { registering: Promise<UpdatableRegistration> | null 
           currency={shownCurrency(state)}
           curves={state.curves}
           offer={offerFor(state, openPlayer)}
+          offerPlayer={beforeSigning(state, openPlayer)}
           showPotential={showPotential}
           watched={state.watchlist.some((entry) => entry.playerId === openPlayer.id)}
           note={state.notes.find((note) => note.playerId === openPlayer.id)}

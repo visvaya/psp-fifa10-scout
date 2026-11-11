@@ -68,6 +68,7 @@ const html = renderToStaticMarkup(
     currency={0}
     curves={new Map([[1, Array.from({ length: 31 }, () => 50)]])}
     offer={{ prestige: 0, negotiator: 0, squadAverage: 65, countryId: 37, seasonEndYear: 2010 }}
+    offerPlayer={player}
     showPotential
     names={NAMES}
     watched
