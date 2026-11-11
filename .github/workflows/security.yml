@@ -18,6 +18,11 @@ on:
 permissions:
   contents: read
 
+# A literal name: called from CI, github.workflow is the caller's, and its group would be the caller's.
+concurrency:
+  group: security-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   scan:
     name: scan
@@ -63,17 +68,18 @@ jobs:
           "$RUNNER_TEMP/zizmor/bin/zizmor" --persona pedantic .github/workflows .github/dependabot.yml
       # The CI workflow audits production dependencies on every push and pull request; the scheduled
       # run repeats it for advisories published since, and reports newer releases of the tools above.
+      # Only when this workflow runs on its own: called from CI, github.workflow is "CI".
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-        if: ${{ !cancelled() && github.event_name != 'pull_request' && github.event_name != 'push' }}
+        if: ${{ !cancelled() && github.workflow == 'Security' }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        if: ${{ !cancelled() && github.event_name != 'pull_request' && github.event_name != 'push' }}
+        if: ${{ !cancelled() && github.workflow == 'Security' }}
         with:
           node-version-file: .nvmrc
           check-latest: true # newest patch of the .nvmrc line; no bot updates .nvmrc
           package-manager-cache: false
       - name: Audit production dependencies
-        if: ${{ !cancelled() && github.event_name != 'pull_request' && github.event_name != 'push' }}
+        if: ${{ !cancelled() && github.workflow == 'Security' }}
         run: pnpm audit --prod
       - name: Hand-pinned tools are current
-        if: ${{ !cancelled() && github.event_name != 'pull_request' && github.event_name != 'push' }}
+        if: ${{ !cancelled() && github.workflow == 'Security' }}
         run: node scripts/check-pinned-tools.ts
