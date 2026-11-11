@@ -1,14 +1,13 @@
 // Reports tools pinned by hand in the security workflow (Dependabot does not see them) that have a
-// newer release.
-// Usage: node scripts/check-pinned-tools.ts   (optional GH_TOKEN raises the GitHub API rate limit)
+// newer release on PyPI. gitleaks and actionlint run from images Dependabot updates (.github/gitleaks,
+// .github/actionlint), so only zizmor is left here.
+// Usage: node scripts/check-pinned-tools.ts
 // Exit codes: 0 all current, 1 outdated or unreadable pins, 2 network or API failure.
 import { readFileSync } from "node:fs";
 
 interface PinRule {
   readonly name: string;
   readonly pattern: RegExp;
-  /** Where the newest version is read from. */
-  readonly source: { readonly kind: "github"; readonly repo: string } | { readonly kind: "pypi" };
   readonly howToBump: string;
 }
 
@@ -21,23 +20,8 @@ export const SECURITY_WORKFLOW = ".github/workflows/security.yml";
 
 export const PIN_RULES: readonly PinRule[] = [
   {
-    name: "gitleaks",
-    pattern: /^\s*GITLEAKS_VERSION:\s*(\d+\.\d+\.\d+)/m,
-    source: { kind: "github", repo: "gitleaks/gitleaks" },
-    howToBump:
-      "update GITLEAKS_VERSION and GITLEAKS_SHA256 (linux_x64 entry of the checksums file)",
-  },
-  {
-    name: "actionlint",
-    pattern: /^\s*ACTIONLINT_VERSION:\s*(\d+\.\d+\.\d+)/m,
-    source: { kind: "github", repo: "rhysd/actionlint" },
-    howToBump:
-      "update ACTIONLINT_VERSION and ACTIONLINT_SHA256 (linux_amd64 entry of the checksums file)",
-  },
-  {
     name: "zizmor",
     pattern: /^\s*ZIZMOR_VERSION:\s*(\d+\.\d+\.\d+)/m,
-    source: { kind: "pypi" },
     howToBump: "update ZIZMOR_VERSION and ZIZMOR_SHA256 (manylinux x86_64 wheel on PyPI)",
   },
 ];
@@ -107,21 +91,10 @@ const stringField = (body: unknown, ...keys: readonly string[]): string | undefi
 };
 
 const fetchLatest = async (rule: PinRule): Promise<string> => {
-  if (rule.source.kind === "pypi") {
-    const body = await fetchJson(`https://pypi.org/pypi/${rule.name}/json`, {});
-    const version = stringField(body, "info", "version");
-    if (version === undefined) throw new Error(`no version for ${rule.name} on PyPI`);
-    return version;
-  }
-  const token = process.env["GH_TOKEN"];
-  const body = await fetchJson(`https://api.github.com/repos/${rule.source.repo}/releases/latest`, {
-    accept: "application/vnd.github+json",
-    "user-agent": "pinned-tools-check",
-    ...(token === undefined || token === "" ? {} : { authorization: `Bearer ${token}` }),
-  });
-  const tag = stringField(body, "tag_name");
-  if (tag === undefined) throw new Error(`no tag_name for ${rule.source.repo}`);
-  return tag.replace(/^v/, "");
+  const body = await fetchJson(`https://pypi.org/pypi/${rule.name}/json`, {});
+  const version = stringField(body, "info", "version");
+  if (version === undefined) throw new Error(`no version for ${rule.name} on PyPI`);
+  return version;
 };
 
 const main = async (): Promise<number> => {
