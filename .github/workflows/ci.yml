@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   # The full local gate. Git hooks only guard commits made on a machine that ran `pnpm install`;
-  # this is the gate nothing can skip. The single required check.
+  # this is the gate nothing can skip.
   verify:
     name: verify
     runs-on: ubuntu-latest
@@ -94,12 +94,41 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-  # Publishes the build verify tested to Cloudflare Workers, after both gates, from main only. Off while the
+  # The secret scan and the workflow audits (security.yml), run here so the ci job below covers them.
+  scan:
+    name: scan
+    permissions:
+      contents: read
+    # zizmor asks for the self-repository form "$/", which actionlint 1.7.12 rejects; "./" also calls
+    # the file from this commit.
+    uses: ./.github/workflows/security.yml # zizmor: ignore[self-repository]
+
+  # The required check: passes only when every job above passed. Branch protection names this job alone
+  # (with the PR title and CodeRabbit), so jobs can be added or renamed here without changing the
+  # repository's settings. always(): a skipped required job counts as passed, so this job runs and fails
+  # on a cancelled run too.
+  ci:
+    name: ci
+    needs: [verify, e2e, scan]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - name: Every job passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          for result in $RESULTS; do
+            if [ "$result" != success ]; then echo "::error::a job ended with $result"; exit 1; fi
+          done
+
+  # Publishes the build verify tested to Cloudflare Workers, after the ci job, from main only. Off while the
   # repository has no CLOUDFLARE_ACCOUNT_ID variable (the job is then skipped); on, a missing or invalid
   # token fails the job. Installs only the pinned deployment tool (deploy/), never the app's dependencies.
   deploy:
     name: deploy
-    needs: [verify, e2e]
+    needs: [ci]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.CLOUDFLARE_ACCOUNT_ID != ''
     runs-on: ubuntu-latest
     timeout-minutes: 10
