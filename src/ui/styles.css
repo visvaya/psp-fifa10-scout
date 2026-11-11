@@ -1591,15 +1591,31 @@ input[inputmode="numeric"] {
   margin: 0;
 }
 
-/* The chart scales with the dialog; its text sizes are in viewBox units. */
-.curve-chart > svg {
+/* The chart scales with the dialog; its text sizes are in viewBox units. The "?" of its level's title
+   is laid over it, placed in shares of this box. */
+.chart-plot {
+  position: relative;
+  max-width: 25.5rem;
+  margin-inline: auto;
+}
+
+.chart-plot > svg {
   display: block;
   width: 100%;
-  max-width: 24rem;
   height: auto;
-  margin-inline: auto;
   overflow: visible;
   font-size: 13px;
+}
+
+.level-help {
+  position: absolute;
+  display: flex;
+  transform: translate(-50%, -50%);
+}
+
+/* Centred on its place: without the margins that pull a "?" towards the name before it. */
+.level-help .field-help {
+  margin: 0;
 }
 
 .curve-chart text {

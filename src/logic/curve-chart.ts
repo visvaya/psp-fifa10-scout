@@ -4,11 +4,11 @@ import { CURVE_AGE_MIN, curveValues } from "./overall-rating.ts";
 import type { Curves } from "./overall-rating.ts";
 
 /**
- * The chart's size and the margins around its plot: the value ticks' labels on the left, room for the
- * marks' size on top (the legend under the chart names them), the ages and their title below. Narrow, so
- * its text stays readable on a phone.
+ * The chart's size and the margins around its plot: the level's title turned along the axis and the
+ * value ticks' labels on the left, room for the marks' size on top (the legend under the chart names
+ * them), the ages and their title below. Narrow, so its text stays readable on a phone.
  */
-const LAYOUT_UNITS = { width: 300, height: 216, left: 36, right: 24, top: 16, bottom: 40 } as const;
+const LAYOUT_UNITS = { width: 318, height: 216, left: 54, right: 24, top: 16, bottom: 40 } as const;
 /** The peak spans the ages at this share of the curve's top or more: some curves stay flat for years. */
 const PEAK_SHARE = 0.98;
 const AGE_TICK_YEARS = 5;

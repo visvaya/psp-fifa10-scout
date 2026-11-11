@@ -140,6 +140,35 @@ test.describe("club stars and prestige", () => {
   });
 });
 
+/**
+ * The level's "?" on its turned title's line, its glyph just past the title's top end: the word after it.
+ * The title's place comes from the svg's matrix: WebKit misplaces a turned text's bounding box.
+ */
+const expectHelpPastTitle = async (chart: Locator) => {
+  const { titleX, titleTop, glyphX, glyphBottom } = await chart
+    .locator(".chart-plot")
+    .evaluate((plot) => {
+      const title = plot.querySelector<SVGTextElement>("text[transform]");
+      const matrix = title?.ownerSVGElement?.getScreenCTM();
+      const help = plot.querySelector(".level-help .field-help");
+      if (title === null || matrix === null || matrix === undefined || help === null)
+        throw new Error("The chart has no level title with its help");
+      const glyph = document.createRange();
+      glyph.selectNodeContents(help);
+      const box = glyph.getBoundingClientRect();
+      const [x, y] = [title.x.baseVal.getItem(0).value, title.y.baseVal.getItem(0).value];
+      return {
+        titleX: x * matrix.a + matrix.e,
+        titleTop: (y - title.getComputedTextLength() / 2) * matrix.a + matrix.f,
+        glyphX: box.left + box.width / 2,
+        glyphBottom: box.bottom,
+      };
+    });
+  expect(Math.abs(titleX - glyphX)).toBeLessThan(3);
+  expect(glyphBottom).toBeLessThanOrEqual(titleTop);
+  expect(glyphBottom).toBeGreaterThan(titleTop - 16);
+};
+
 test.describe("development curves", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
@@ -197,8 +226,8 @@ test.describe("development chart", () => {
     await open.click();
     const chart = page.getByRole("dialog", { name: "Krzywa rozwoju: Paweł Brożek" });
     await expect(chart.locator("svg text").getByText("Wiek", { exact: true })).toBeVisible();
-    const level = "Poziom umiejętności (względny)";
-    await expect(chart.locator(".heading-help").getByText(level)).toBeVisible();
+    const level = "Poziom umiejętności";
+    await expect(chart.locator("svg text").getByText(level, { exact: true })).toBeVisible();
     await expect(chart.locator("svg text").getByText(/szczyt|sezonie/u)).toHaveCount(0);
     const legend = chart.locator(".chart-legend li");
     // The synthetic curve is flat: it peaks at 15, and every age is within the peak.
@@ -231,7 +260,10 @@ test.describe("development chart", () => {
     const card = page.getByRole("dialog", { name: "Lionel Messi" });
     await card.getByRole("button", { name: "Pokaż krzywą rozwoju: Lionel Messi" }).click();
     const chart = page.getByRole("dialog", { name: "Krzywa rozwoju: Lionel Messi" });
-    await expect(chart.locator(".heading-help").getByText("OVR", { exact: true })).toBeVisible();
+    // The level's title turned along the axis (owner, 2026-11-11), its "?" just past its top end.
+    const title = chart.locator("svg text").getByText("OVR", { exact: true });
+    await expect(title).toBeVisible();
+    await expectHelpPastTitle(chart);
     const legend = chart.locator(".chart-legend li");
     await expect(legend.first()).toHaveText(/, OVR \d+$/u);
     await expect(legend.last()).toHaveText(/^szczyt: \d+\s\S+, OVR \d+$/u);
@@ -263,12 +295,12 @@ test.describe("development chart on a phone", () => {
     await page.locator("[data-player-id]").first().click();
     await page.getByRole("button", { name: /^Pokaż krzywą rozwoju: /u }).click();
     const chart = page.getByRole("dialog", { name: /^Krzywa rozwoju: /u });
-    await expect(chart.locator(".curve-chart > svg")).toBeVisible();
+    await expect(chart.locator(".chart-plot > svg")).toBeVisible();
     const [overflow, svgWidth, bodyWidth] = await chart
       .locator(".dialog-body")
       .evaluate((body) => [
         body.scrollWidth - body.clientWidth,
-        body.querySelector(".curve-chart > svg")?.getBoundingClientRect().width ?? 0,
+        body.querySelector(".chart-plot > svg")?.getBoundingClientRect().width ?? 0,
         body.clientWidth,
       ]);
     expect(overflow).toBe(0);
@@ -283,7 +315,7 @@ test.describe("development chart on a phone", () => {
     await page.getByRole("button", { name: /^Lionel Messi/u }).click();
     await page.getByRole("button", { name: /^Pokaż krzywą rozwoju: /u }).click();
     const chart = page.getByRole("dialog", { name: /^Krzywa rozwoju: /u });
-    await expect(chart.locator(".curve-chart > svg")).toBeVisible();
+    await expect(chart.locator(".chart-plot > svg")).toBeVisible();
     // A table ignores the 1px height of .visually-hidden and keeps its rows' height (705px here),
     // which iOS Safari counts in the dialog's scroll and these engines do not.
     const hidden = await chart.locator(".curve-chart .visually-hidden").boundingBox();
