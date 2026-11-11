@@ -2,8 +2,8 @@ import { useCallback } from "react";
 import type { Dispatch, JSX, ReactNode } from "react";
 import type { CurrencyCode } from "../data/career-save.ts";
 import { codesAtPeak } from "../logic/best-peak.ts";
-import { curveChart } from "../logic/curve-chart.ts";
-import { curveSparklines } from "../logic/curve-sparkline.ts";
+import { curveChart, ovrChart } from "../logic/curve-chart.ts";
+import { curveSparklines, ovrSparkline } from "../logic/curve-sparkline.ts";
 import type { OfferContext } from "../logic/offer.ts";
 import { skillCurveId } from "../logic/overall-rating.ts";
 import type { Curves } from "../logic/overall-rating.ts";
@@ -74,26 +74,32 @@ const CLEAN_SHEETS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * His own skill curve, the one his projection follows, when the game has curves; it opens a large chart
- * marking the age this season's development uses (the season's first match day, not the card's age).
+ * With a career, his OVR projected from this season's age; without one, his own skill curve, the one his
+ * projection follows, when the game has curves. Either opens a large chart marking the age this season's
+ * development uses (the season's first match day, not the card's age).
  */
-const curveFacts = (
-  { name, seasonAge, developmentStyle: style, developmentType: type }: Player,
-  curves: Curves,
-): readonly Fact[] => {
+const curveOf = (player: Player, curves: Curves) => {
+  const { seasonAge, overallByAge, developmentStyle: style, developmentType: type } = player;
+  if (overallByAge.length > 0)
+    return { line: ovrSparkline(overallByAge), chart: ovrChart(overallByAge, seasonAge) };
   const id = skillCurveId(style, type);
-  const line = curveSparklines(curves)(id);
-  const chart = curveChart(curves, id, seasonAge);
+  return { line: curveSparklines(curves)(id), chart: curveChart(curves, id, seasonAge) };
+};
+
+const curveFacts = (player: Player, curves: Curves): readonly Fact[] => {
+  const { line, chart } = curveOf(player, curves);
   return line === null || chart === null
     ? []
     : [
         [
           TEXT.card.curve,
           <span key="curve" className="curve-row">
-            <CurveButton name={name} line={line} chart={chart} />
+            <CurveButton name={player.name} line={line} chart={chart} />
             {TEXT.card.curvePhases[chart.phase]}
           </span>,
-          HELP_TEXT.curve(chart.peak.age),
+          chart.kind === "ovr"
+            ? HELP_TEXT.ovrCurve(chart.peak.age)
+            : HELP_TEXT.curve(chart.peak.age),
         ],
       ];
 };

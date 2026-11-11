@@ -11,6 +11,7 @@ import {
   cappedOverall,
   careerAgeing,
   OVR_WEIGHTS,
+  overallsByAge,
   peaksByPositionCode,
   potentialDeltas,
   readCurves,
@@ -204,6 +205,17 @@ const RISING: Curves = new Map([
 /** The test player's OVR at a position when he is `age`. */
 const at = (age: number, code: number, curves = RISING): number =>
   careerOverall(player(), code, new Date(`${String(1989 + age)}-03-01`), curves);
+
+// Owner, 2026-11-07: the large development chart's axis in OVR, his OVR at each age of the curves.
+describe("overallsByAge", () => {
+  it("rates each age from his age this season to 45 as the player would be then", () => {
+    // The test player is 21 on LATER: 25 ages, 21 to 45.
+    const byAge = overallsByAge(careerAgeing(player(), LATER, RISING), ST, player().potential);
+    expect(byAge).toHaveLength(25);
+    for (const age of [21, 22, 24, 30, 45]) expect(byAge[age - 21]).toBe(at(age, ST));
+    expect(byAge[24 - 21]).toBeGreaterThan(byAge[0] ?? 99);
+  });
+});
 
 describe("peaksByPositionCode", () => {
   it("takes at each position the OVR of his best season there", () => {

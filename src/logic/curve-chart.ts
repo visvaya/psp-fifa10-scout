@@ -4,10 +4,11 @@ import { CURVE_AGE_MIN, curveValues } from "./overall-rating.ts";
 import type { Curves } from "./overall-rating.ts";
 
 /**
- * The chart's size and the margins around its plot: the value ticks' labels on the left, three rows of
- * marks' labels on top, the ages and their title below. Narrow, so its text stays readable on a phone.
+ * The chart's size and the margins around its plot: the value ticks' labels on the left, room for the
+ * marks' size on top (the legend under the chart names them), the ages and their title below. Narrow, so
+ * its text stays readable on a phone.
  */
-const LAYOUT_UNITS = { width: 300, height: 256, left: 36, right: 24, top: 56, bottom: 40 } as const;
+const LAYOUT_UNITS = { width: 300, height: 216, left: 36, right: 24, top: 16, bottom: 40 } as const;
 /** The peak spans the ages at this share of the curve's top or more: some curves stay flat for years. */
 const PEAK_SHARE = 0.98;
 const AGE_TICK_YEARS = 5;
@@ -27,6 +28,7 @@ interface ChartTick {
 }
 
 export interface CurveChart {
+  readonly kind: ChartKind;
   readonly viewBox: string;
   /** The plot's edges in viewBox units; the axes run along its left and bottom edges. */
   readonly plot: {
@@ -64,19 +66,34 @@ const valueStep = (span: number): number => {
   return Math.max(step ?? raw, 1);
 };
 
-/** Curve `id` on the table's shared scale, with the player at `age`; null without curves. */
-export const curveChart = (curves: Curves, id: number, age: number): CurveChart | null => {
-  const values = curveValues(curves, id);
-  if (values.length === 0) return null;
-  const { top, height } = curveScale(curves);
+/** What the chart's y measures: the curve's relative level, or his OVR projected by the game's model. */
+type ChartKind = "curve" | "ovr";
+
+/**
+ * `values` from `firstAge` on, one a year, on the plot's width; y from `top` down `height`; the player at
+ * `age`. The ticks fall on the ages that end in 0 or 5.
+ */
+const chartOf = ({
+  values,
+  firstAge,
+  scale: { top, height },
+  age,
+  kind,
+}: {
+  readonly values: readonly number[];
+  readonly firstAge: number;
+  readonly scale: { readonly top: number; readonly height: number };
+  readonly age: number;
+  readonly kind: ChartKind;
+}): CurveChart => {
   const { width, height: chartHeight, left, right, top: plotTop, bottom } = LAYOUT_UNITS;
   const plot = { left, right: width - right, top: plotTop, bottom: chartHeight - bottom };
-  const lastAge = CURVE_AGE_MIN + values.length - 1;
-  const xOf = (at: number) =>
-    left + ((at - CURVE_AGE_MIN) / (lastAge - CURVE_AGE_MIN)) * (plot.right - left);
+  // One season alone still has a width to divide.
+  const span = Math.max(values.length - 1, 1);
+  const xOf = (at: number) => left + ((at - firstAge) / span) * (plot.right - left);
   const yOf = (value: number) => plotTop + ((top - value) / height) * (plot.bottom - plotTop);
   const point = (value: number, index: number): ChartPoint => {
-    const at = CURVE_AGE_MIN + index;
+    const at = firstAge + index;
     return { age: at, value, x: xOf(at), y: yOf(value) };
   };
   const points = values.map(point);
@@ -87,19 +104,20 @@ export const curveChart = (curves: Curves, id: number, age: number): CurveChart 
   const from = Math.min(...atPeak);
   const to = Math.max(...atPeak);
   return {
+    kind,
     viewBox: `0 0 ${String(width)} ${String(chartHeight)}`,
     plot,
     points,
     ageTicks: points
-      .filter((at) => (at.age - CURVE_AGE_MIN) % AGE_TICK_YEARS === 0)
+      .filter((at) => at.age % AGE_TICK_YEARS === 0)
       .map((at) => ({ label: at.age, at: at.x })),
     valueTicks: Array.from(
       { length: Math.floor((top - lowestTick) / step) + 1 },
       (_, index) => lowestTick + index * step,
     ).map((value) => ({ label: value, at: yOf(value) })),
     peak: point(max, values.indexOf(max)),
-    // Negative or past the last age: no point.
-    now: points[age - CURVE_AGE_MIN],
+    // Before the first age or past the last: no point.
+    now: points[age - firstAge],
     plateau: {
       from,
       to,
@@ -108,4 +126,30 @@ export const curveChart = (curves: Curves, id: number, age: number): CurveChart 
     },
     phase: age < from ? "before" : age > to ? "after" : "peak",
   };
+};
+
+/** Curve `id` on the table's shared scale, with the player at `age`; null without curves. */
+export const curveChart = (curves: Curves, id: number, age: number): CurveChart | null => {
+  const values = curveValues(curves, id);
+  return values.length === 0
+    ? null
+    : chartOf({ values, firstAge: CURVE_AGE_MIN, scale: curveScale(curves), age, kind: "curve" });
+};
+
+/**
+ * His OVR from this season's age on (Player.overallByAge), from its lowest to its highest; null
+ * without a projection (no career).
+ */
+export const ovrChart = (overallByAge: readonly number[], seasonAge: number): CurveChart | null => {
+  if (overallByAge.length === 0) return null;
+  const top = Math.max(...overallByAge);
+  // A flat projection spans no height: one OVR keeps the chart drawable.
+  const height = Math.max(top - Math.min(...overallByAge), 1);
+  return chartOf({
+    values: overallByAge,
+    firstAge: seasonAge,
+    scale: { top, height },
+    age: seasonAge,
+    kind: "ovr",
+  });
 };

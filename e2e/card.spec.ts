@@ -176,13 +176,14 @@ test.describe("development curves", () => {
 test.describe("development chart", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
-  // The small chart opens a large one: ages and levels on labelled axes, the level explained behind a
-  // "?", the peak and his age marked, and the same in words and in a table for screen readers.
+  // The small chart opens a large one, narrower than the card: ages and levels on labelled axes, the
+  // level explained behind a "?", no labels on the chart, each mark named once in the legend under it,
+  // and the data in a table for screen readers.
   test("opens the large chart from the card and returns to it", async ({ page }) => {
     await loadDatabase(page);
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("brozek");
     await page.getByRole("button", { name: "Paweł Brożek" }).click();
-    const card = page.getByRole("dialog", { name: "Paweł Brożek" });
+    const card = page.getByRole("dialog", { name: "Paweł Brożek", exact: true });
     const age = await cardValue(card, "Wiek").innerText();
     const open = card.getByRole("button", { name: "Pokaż krzywą rozwoju: Paweł Brożek" });
     // Flat: the peak spans every age, so he is within it, on the card and on the chart.
@@ -192,19 +193,17 @@ test.describe("development chart", () => {
     await expect(chart.locator("svg text").getByText("Wiek", { exact: true })).toBeVisible();
     const level = "Poziom umiejętności (względny)";
     await expect(chart.locator(".heading-help").getByText(level)).toBeVisible();
-    // The synthetic curve is flat: it peaks at 15.
-    await expect(chart.locator("svg text").getByText(/^szczyt: 15\slat, \d+$/u)).toBeVisible();
-    await expect(
-      chart.locator("svg text").getByText(new RegExp(`^w\\stym sezonie: ${age}$`, "u")),
-    ).toBeVisible();
-    await expect(cardValue(chart, "Szczyt")).toHaveText(/^15\slat, poziom \d+$/u);
-    await expect(cardValue(chart, "Wiek w tym sezonie")).toHaveText(
-      new RegExp(`^${age}, poziom \\d+$`, "u"),
-    );
-    await expect(chart.locator("svg text").getByText(/^w\sszczycie$/u)).toBeVisible();
-    await expect(cardValue(chart, "Okres szczytu")).toHaveText(/^15–45\slat$/u);
-    await expect(cardValue(chart, "Faza")).toHaveText(/^w\sszczycie$/u);
+    await expect(chart.locator("svg text").getByText(/szczyt|sezonie/u)).toHaveCount(0);
+    const legend = chart.locator(".chart-legend li");
+    // The synthetic curve is flat: it peaks at 15, and every age is within the peak.
+    await expect(legend).toHaveText([
+      new RegExp(`^wiek w\\stym sezonie: ${age}, w\\sszczycie$`, "u"),
+      /^okres szczytu: 15–45\slat/u,
+      /^szczyt: 15\slat, poziom \d+$/u,
+    ]);
     await expect(chart.getByRole("table").getByRole("row")).toHaveCount(32);
+    const [chartBox, cardBox] = await Promise.all([chart.boundingBox(), card.boundingBox()]);
+    expect(chartBox?.width ?? 0).toBeLessThan(cardBox?.width ?? 0);
     await expectNoAxeViolations(page);
     const explanation = chart.getByText(/^Gra\sliczy umiejętności techniczne/u);
     await chart.getByRole("button", { name: `Wyjaśnienie: ${level}` }).click();
@@ -218,6 +217,21 @@ test.describe("development chart", () => {
     await expect(card).toBeVisible();
     await expect(open).toBeFocused();
   });
+
+  // Owner, 2026-11-07: with a career the axis is his OVR, projected from this season's age to 45.
+  test("draws his projected OVR with a career", async ({ page }) => {
+    await loadCareer(page);
+    await page.getByRole("button", { name: /^Lionel Messi/u }).click();
+    const card = page.getByRole("dialog", { name: "Lionel Messi" });
+    await card.getByRole("button", { name: "Pokaż krzywą rozwoju: Lionel Messi" }).click();
+    const chart = page.getByRole("dialog", { name: "Krzywa rozwoju: Lionel Messi" });
+    await expect(chart.locator(".heading-help").getByText("OVR", { exact: true })).toBeVisible();
+    const legend = chart.locator(".chart-legend li");
+    await expect(legend.first()).toHaveText(/, OVR \d+$/u);
+    await expect(legend.last()).toHaveText(/^szczyt: \d+\s\S+, OVR \d+$/u);
+    await expect(chart.getByRole("columnheader", { name: "OVR" })).toBeAttached();
+    await expectNoAxeViolations(page);
+  });
 });
 
 test.describe("development chart on a phone", () => {
@@ -228,12 +242,12 @@ test.describe("development chart on a phone", () => {
     await page.locator("[data-player-id]").first().click();
     await page.getByRole("button", { name: /^Pokaż krzywą rozwoju: /u }).click();
     const chart = page.getByRole("dialog", { name: /^Krzywa rozwoju: /u });
-    await expect(chart.locator("svg")).toBeVisible();
+    await expect(chart.locator(".curve-chart > svg")).toBeVisible();
     const [overflow, svgWidth, bodyWidth] = await chart
       .locator(".dialog-body")
       .evaluate((body) => [
         body.scrollWidth - body.clientWidth,
-        body.querySelector("svg")?.getBoundingClientRect().width ?? 0,
+        body.querySelector(".curve-chart > svg")?.getBoundingClientRect().width ?? 0,
         body.clientWidth,
       ]);
     expect(overflow).toBe(0);

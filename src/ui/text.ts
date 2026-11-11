@@ -389,26 +389,23 @@ export const TEXT = {
     /** The small curve's button, which opens the large chart, and that chart's dialog. */
     showCurve: (name: string): string => `Pokaż krzywą rozwoju: ${name}`,
     curveTitle: (name: string): string => `Krzywa rozwoju: ${name}`,
-    /** The large chart's axes, its marks and the facts under it. */
+    /** The large chart's axes and the legend under it, which names each mark once. */
     curveAge: "Wiek",
     curveValue: "Poziom umiejętności (względny)",
-    curvePeakMark: (age: number, value: number): string =>
-      `szczyt: ${count(age, YEARS)}, ${formatNumber(value)}`,
-    curveNowMark: (age: number): string => pl`w tym sezonie: ${count(age, YEARS)}`,
-    curvePeakLabel: "Szczyt",
-    curveNowLabel: pl`Wiek w tym sezonie`,
+    curveOvr: "OVR",
+    legendNow: (age: number, phase: string, overall: number | null): string =>
+      pl`wiek w tym sezonie: ${count(age, YEARS)}, ${phase}` +
+      (overall === null ? "" : `, OVR ${formatNumber(overall)}`),
+    legendPlateau: (from: number, to: number): string =>
+      `okres szczytu: ${from === to ? count(from, YEARS) : `${String(from)}–${count(to, YEARS)}`}`,
+    legendPeak: (age: number, value: number, ovr: boolean): string =>
+      `szczyt: ${count(age, YEARS)}, ${ovr ? "OVR" : "poziom"} ${formatNumber(value)}`,
     /** Where his age this season falls on the curve: before, within or after the peak's ages. */
-    curvePhaseLabel: "Faza",
     curvePhases: {
       before: "przed szczytem",
       peak: pl`w szczycie`,
       after: "po szczycie",
     },
-    curvePlateauLabel: "Okres szczytu",
-    curvePlateau: (from: number, to: number): string =>
-      from === to ? count(from, YEARS) : `${String(from)}–${count(to, YEARS)}`,
-    curvePoint: (age: number, value: number): string =>
-      `${count(age, YEARS)}, poziom ${formatNumber(value)}`,
     yes: "tak",
     no: "nie",
     left: "lewa",

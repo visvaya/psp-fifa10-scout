@@ -6,7 +6,7 @@ import { boundedValue } from "../logic/field-bounds.ts";
 import type { FieldBounds } from "../logic/field-bounds.ts";
 import { bounded } from "../logic/filter-players.ts";
 import type { Range } from "../logic/filter-players.ts";
-import { searchKey } from "../logic/players.ts";
+import { searchKey } from "../logic/player-names.ts";
 import { ColumnEye } from "./column-eye.tsx";
 import { FieldHelp, OptionalHelp } from "./field-help.tsx";
 import type { ColumnToggle } from "./column-eye.tsx";

@@ -85,6 +85,11 @@ export const HELP_TEXT = {
     pl`Krzywa z danych gry według typu i stylu rozwoju zawodnika: względny poziom jego umiejętności technicznych w wieku od 15 do 45 lat, na jednej skali dla wszystkich krzywych, więc ich kształty można porównać. Obok krzywej faza zawodnika w tym sezonie: przed szczytem, w szczycie albo po nim. Przycisk z krzywą otwiera duży wykres z opisem. Szczyt w wieku ${peakAge} lat.`,
   /** The large chart's phase: the rule for the peak's ages. */
   curvePhase: pl`Okres szczytu to wiek, w którym krzywa ma co najmniej 98% swojego maksimum; wykres zaznacza go tłem, bo niektóre krzywe są płaskie przez kilka lat. Faza mówi, czy wiek zawodnika w tym sezonie przypada przed tym okresem, w nim czy po nim.`,
+  /** The player's projected OVR on the card, with a career, peaking at `peakAge`. */
+  ovrCurve: (peakAge: number): string =>
+    pl`Prognoza OVR zawodnika na pozycji preferowanej od wieku w tym sezonie do 45 lat według modelu rozwoju gry. Obok faza zawodnika w tym sezonie: przed szczytem, w szczycie albo po nim. Przycisk z krzywą otwiera duży wykres. Szczyt w wieku ${peakAge} lat.`,
+  /** The large chart's OVR axis, with a career. */
+  ovrLevel: pl`OVR na pozycji preferowanej w każdym wieku według modelu gry: atrybuty techniczne idą za krzywą stylu i typu rozwoju, fizyczne (przyspieszenie, szybkość, refleks, wytrzymałość, siła) za krzywą typu rozwoju, a OVR łączy jedne i drugie. Nie wyżej niż potencjał i bez przyszłych przyrostów z meczów i treningu, jak szczyt OVR.`,
   /** The large chart's level axis. */
   curveLevel: pl`Gra liczy umiejętności techniczne zawodnika z wartości w bazie danych proporcjonalnie do tej krzywej: wartość z bazy odpowiada poziomowi krzywej w jego wieku na 1 stycznia 2009, a w innym wieku rośnie albo maleje w tej samej proporcji, nie wyżej niż 99 i potencjał (albo wyższa od niego wartość z bazy). Poziom 43 rosnący do 100 oznacza więc, że te umiejętności urosną do ponad dwukrotności. Umiejętności fizyczne (przyspieszenie, szybkość, refleks, wytrzymałość, siła) idą za inną krzywą, zależną tylko od typu rozwoju.`,
 } as const;

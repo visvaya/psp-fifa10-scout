@@ -15,13 +15,14 @@ import { SaveFormatError } from "../data/save-format-error.ts";
 import { bestPeakFields } from "./best-peak.ts";
 import type { BestPeakKey } from "./best-peak.ts";
 import { SCOUT_CONFIG } from "./config.ts";
-import { lazy } from "./lazy.ts";
+import { nameCollator, searchKey } from "./player-names.ts";
 import {
   attributeGains,
   baseOverall,
   byPositionCode,
   cappedOverall,
   careerAgeing,
+  overallsByAge,
   peaksByPositionCode,
   potentialDeltas,
   readCurves,
@@ -195,6 +196,11 @@ export interface Player extends Finance, SeasonStats, TeamFields {
   readonly overallByCode: readonly number[];
   /** The peak OVR at each position code 0..31; empty without a career. */
   readonly peakByCode: readonly number[];
+  /**
+   * OVR at the preferred position at each age from seasonAge to 45, the curves' last: index 0 is this
+   * season. Empty without a career.
+   */
+  readonly overallByAge: readonly number[];
   readonly attributes: Attributes;
   /** The club's stars 0.5..5 by the game's rule, from its current squad (team-stars.ts). */
   readonly clubStars: number | null;
@@ -257,19 +263,11 @@ interface Rating {
   readonly overallAt: (positionCode: number, yearsAhead?: number) => number;
   /** The peak OVR at each position code; empty without a save, as nothing ages. */
   readonly peakByCode: readonly number[];
+  /** OVR at the preferred position from his age this season to 45; empty without a save. */
+  readonly overallByAge: readonly number[];
   /** His age on the career date the ratings are aged to; absent without a save. */
   readonly seasonAge?: number;
 }
-
-/** The locale of the default text order. */
-export const NAME_LOCALE = "pl";
-
-/** Polish alphabetical order: the default of every text sort. */
-export const nameCollator = lazy(() => new Intl.Collator(NAME_LOCALE));
-
-/** Text without case and diacritics (ł included, which has no decomposition), for search. */
-export const searchKey = (text: string): string =>
-  text.normalize("NFD").replaceAll(/\p{M}/gu, "").replaceAll(/ł/giu, "l").toLowerCase();
 
 /** The years from `start` to `end`, as the game counts contract years; null without an end. */
 const yearsAfter = (end: number | null, start: number): number | null =>
@@ -301,7 +299,8 @@ const summary = (row: EaDbRow, context: Context): Summary => {
   const nationalityId = num(row, "nationality");
   const [firstName, surname] = [String(row["firstname"]).trim(), String(row["surname"]).trim()];
   const name = `${firstName} ${surname}`.trim();
-  const { attributes, potential, overallAt, peakByCode, seasonAge } = context.rate(row);
+  const { attributes, potential, overallAt, peakByCode, overallByAge, seasonAge } =
+    context.rate(row);
   const age = ageOn(birthdateToDate(num(row, "birthdate")), context.referenceDate);
   const { club } = context.placements.get(id) ?? {};
   const money = club && { link: club.link, prestige: club.team.prestige };
@@ -335,6 +334,7 @@ const summary = (row: EaDbRow, context: Context): Summary => {
     ...profileFields(row),
     overallByCode,
     peakByCode,
+    overallByAge,
     attributes,
     ...team,
     contractYearsLeft: yearsAfter(team.contractEndYear, context.seasonYear),
@@ -380,6 +380,7 @@ const rater = (db: EaDb, save: CareerSave | undefined, read?: Curves): Context["
         potential: num(row, "potential"),
         overallAt: (code) => baseOverall(attributes, code),
         peakByCode: [],
+        overallByAge: [],
       };
     };
   const curves = read ?? readCurves(db);
@@ -420,6 +421,7 @@ const rater = (db: EaDb, save: CareerSave | undefined, read?: Curves): Context["
       potential,
       overallAt,
       peakByCode: peaksByPositionCode(ageing, potential),
+      overallByAge: overallsByAge(ageing, num(row, "preferredposition1"), potential),
       seasonAge: ageing.age,
     };
   };

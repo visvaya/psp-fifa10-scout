@@ -1,6 +1,7 @@
 // Hand-made inputs for the player logic tests: databases from plain rows and complete summaries.
 import type { TableSpec } from "../../data/test-support/synthetic-ea-db.ts";
-import { ATTRIBUTE_NAMES, attributesOf, searchKey, TRAIT_NAMES } from "../players.ts";
+import { ATTRIBUTE_NAMES, attributesOf, TRAIT_NAMES } from "../players.ts";
+import { searchKey } from "../player-names.ts";
 import type { Attributes, Player } from "../players.ts";
 import { NO_BEST_PEAK } from "../best-peak.ts";
 import { CURVE_COLUMNS } from "../overall-rating.ts";
@@ -172,6 +173,7 @@ export const testPlayer = (overrides: Partial<Player> = {}): Player => {
     academy: false,
     freeAgent: false,
     contractYearsLeft: 3,
+    overallByAge: [],
     age: 25,
     seasonAge: 25,
     birthYear: 1984,

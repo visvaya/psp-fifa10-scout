@@ -1,7 +1,8 @@
 // Club, league, country and position names in a language of the game (from its locale files), applied
 // over the English fifa.db names; any name the game does not have keeps the fifa.db one.
 import { countryKey, labelKey, leagueKey, teamKey, textKey } from "../data/game-locale.ts";
-import { NAME_LOCALE, nameCollator, withNameOrder } from "./players.ts";
+import { withNameOrder } from "./players.ts";
+import { NAME_LOCALE, nameCollator } from "./player-names.ts";
 import type { Player } from "./players.ts";
 import { nameTextIdOf, POSITION_CODES, positionOf } from "./positions.ts";
 

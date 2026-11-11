@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { curveSparklines } from "./curve-sparkline.ts";
+import { curveSparklines, ovrSparkline } from "./curve-sparkline.ts";
 import { CURVE_COLUMNS } from "./overall-rating.ts";
 
 /** A curve over every age of the table: `value` at each column index. */
@@ -40,5 +40,20 @@ describe("curveSparklines", () => {
     expect(new Set(line?.points.split(" ").map((point) => point.split(",")[1]))).toEqual(
       new Set(["0"]),
     );
+  });
+});
+
+// With a career the card's small curve is his OVR projection, the large chart's line in small.
+describe("ovrSparkline", () => {
+  it("draws his projected OVR from its highest at the top to its lowest at the bottom", () => {
+    expect(ovrSparkline([60, 62, 64, 63])).toEqual({
+      viewBox: "0 0 3 4",
+      points: "0,4 1,2 2,0 3,1",
+    });
+  });
+
+  it("keeps one season drawable, and draws nothing without a projection", () => {
+    expect(ovrSparkline([70])).toEqual({ viewBox: "0 0 1 1", points: "0,0" });
+    expect(ovrSparkline([])).toBeNull();
   });
 });

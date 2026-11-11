@@ -8,7 +8,7 @@ import {
   localizePlayers,
   positionNameIn,
 } from "./game-names.ts";
-import { nameCollator } from "./players.ts";
+import { nameCollator } from "./player-names.ts";
 import { testPlayer } from "./test-support/player-fixtures.ts";
 
 const TABLE = new Map([

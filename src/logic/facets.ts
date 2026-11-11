@@ -1,5 +1,5 @@
 // The choices the filter form offers for leagues, clubs, nationalities and codes, from the loaded players.
-import { nameCollator } from "./players.ts";
+import { nameCollator } from "./player-names.ts";
 import type { Player } from "./players.ts";
 import type { ScoutFilters } from "./scout-state.ts";
 

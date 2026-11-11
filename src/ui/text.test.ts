@@ -61,10 +61,17 @@ describe("TEXT.card money", () => {
 });
 
 describe("the development chart's texts", () => {
-  it("names the peak's and the player's ages in years and the curve's values", () => {
-    expect(TEXT.card.curvePeakMark(27, 80)).toBe(`szczyt: 27${NBSP}lat, 80`);
-    expect(TEXT.card.curveNowMark(22)).toBe(`w${NBSP}tym sezonie: 22${NBSP}lata`);
-    expect(TEXT.card.curvePoint(21, 55)).toBe(`21${NBSP}lat, poziom 55`);
+  it("names each mark of the legend once, with ages in years", () => {
+    expect(TEXT.card.legendNow(22, "przed szczytem", null)).toBe(
+      `wiek w${NBSP}tym sezonie: 22${NBSP}lata, przed szczytem`,
+    );
+    expect(TEXT.card.legendNow(22, "przed szczytem", 61)).toBe(
+      `wiek w${NBSP}tym sezonie: 22${NBSP}lata, przed szczytem, OVR 61`,
+    );
+    expect(TEXT.card.legendPlateau(26, 29)).toBe(`okres szczytu: 26–29${NBSP}lat`);
+    expect(TEXT.card.legendPlateau(27, 27)).toBe(`okres szczytu: 27${NBSP}lat`);
+    expect(TEXT.card.legendPeak(27, 80, true)).toBe(`szczyt: 27${NBSP}lat, OVR 80`);
+    expect(TEXT.card.legendPeak(27, 80, false)).toBe(`szczyt: 27${NBSP}lat, poziom 80`);
   });
 });
 
