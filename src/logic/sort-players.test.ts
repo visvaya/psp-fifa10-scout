@@ -187,6 +187,16 @@ describe("sortPlayers", () => {
     expect(RANGE_KEYS.filter((key) => !SORTABLE_KEYS.includes(key))).toEqual([]);
   });
 
+  it("sorts position groups from the goal forward, not by their names", () => {
+    const lines = [
+      testPlayer({ id: 1, nameOrder: 0, positionGroup: "forwards" }),
+      testPlayer({ id: 2, nameOrder: 1, positionGroup: "goalkeeper" }),
+      testPlayer({ id: 3, nameOrder: 2, positionGroup: "centre-backs" }),
+    ];
+    const sorted = sortPlayers(lines, "positionGroup", "ascending").map((player) => player.id);
+    expect(sorted).toEqual([2, 3, 1]);
+  });
+
   it("leaves the input untouched", () => {
     sortPlayers(PLAYERS, "age", "ascending");
     expect(PLAYERS.map((player) => player.id)).toEqual([5, 2, 1, 3]);
