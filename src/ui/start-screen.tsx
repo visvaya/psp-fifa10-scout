@@ -7,6 +7,7 @@ import { isRestoring } from "../logic/scout-state.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
 import { About } from "./about.tsx";
 import { TEXT } from "./text.ts";
+import { LOAD_TEXT } from "./text-loading.ts";
 
 interface StartScreenProps {
   readonly state: ScoutState;
@@ -76,7 +77,7 @@ const FileStep = (props: FileStepProps): JSX.Element => {
       {/* Right under the button that picked the file (owner, 2026-11-05). */}
       {failed === null ? null : (
         <p id={`${stage}-error`} className="error" role="alert">
-          {TEXT.error(failed)}
+          {LOAD_TEXT.error(failed)}
         </p>
       )}
       {props.after}
@@ -268,7 +269,7 @@ export const StartScreen = (props: StartScreenProps): JSX.Element => {
   const { state, ready, onGame, dispatch } = props;
   const { players, loading } = state;
   if (isRestoring(state) && loading !== null)
-    return <ListSkeleton phase={TEXT.phase(loading.phase)} />;
+    return <ListSkeleton phase={LOAD_TEXT.phase(loading.phase)} />;
   const shared = { state, ready };
   return (
     <div className="start">
@@ -282,7 +283,7 @@ export const StartScreen = (props: StartScreenProps): JSX.Element => {
           <ShowPlayers count={listedCount(state)} dispatch={dispatch} />
         )}
         <output className="status">
-          {loading === null ? (ready ? "" : TEXT.preparing) : TEXT.phase(loading.phase)}
+          {loading === null ? (ready ? "" : TEXT.preparing) : LOAD_TEXT.phase(loading.phase)}
         </output>
         <FileStep
           {...shared}

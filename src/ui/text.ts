@@ -1,11 +1,10 @@
 /** Every text the user reads, in one module, with the Polish number and plural helpers. */
 import type { CurrencyCode } from "../data/career-save.ts";
-import type { CareerSummary, LoadErrorKind, LoadPhase, LoadStage } from "../logic/load-scout.ts";
+import type { CareerSummary } from "../logic/load-scout.ts";
 import type { FlagKey, ListKey, PeakTwin, RangeFields, RangeKey } from "../logic/filter-players.ts";
 import { isAttributeName } from "../logic/players.ts";
 import type { PositionGroup } from "../logic/positions.ts";
 import { lazy } from "../logic/lazy.ts";
-import type { ScoutError } from "../logic/scout-state.ts";
 import { ATTRIBUTE_LABELS } from "./text-attributes.ts";
 import { NBSP, pl } from "./typeset.ts";
 
@@ -182,29 +181,6 @@ export const FILTER_SECTION_LABELS = {
 
 // jscpd:ignore-end
 
-const PHASES: Readonly<Record<LoadPhase, string>> = {
-  game: "Czytam plik gry…",
-  save: "Czytam zapis…",
-  players: "Przygotowuję listę…",
-};
-
-const ERRORS: Readonly<Record<LoadErrorKind | "missing-file", string>> = {
-  "wrong-game": pl`To plik innej gry. Narzędzie obsługuje FIFA 10 na PSP (ULES01328).`,
-  "wrong-file": "To nie jest właściwy plik. Sprawdź, czy wybrano dobry plik.",
-  "not-career": pl`To zapis profilu albo składów, nie kariery. Wybierz pliki z folderu kariery, zwykle ULES01328081.`,
-  damaged: "Plik jest uszkodzony albo niepełny. Skopiuj go jeszcze raz.",
-  unexpected: "Nie udało się odczytać pliku. Spróbuj ponownie.",
-  "missing-file": pl`Wybierz oba pliki naraz: DATA.BIN i PARAM.SFO.`,
-};
-
-const STAGES: Readonly<Record<LoadStage, string>> = {
-  game: "Plik gry",
-  save: "Zapis kariery",
-  locale: "Plik języka",
-};
-
-const LOCALE_MISSING = pl`Wybierz oba pliki naraz: plik .loc i string.idx z tego samego folderu.`;
-
 export const TEXT = {
   traitsNote: pl`Cechy pochodzą z bazy gry. Czy wpływają na rozgrywkę w wersji PSP, nie jest potwierdzone.`,
   appTitle: pl`PSP FIFA 10 Scout`,
@@ -228,13 +204,6 @@ export const TEXT = {
   careerLoaded: ({ managerName, clubName, lastGameDate }: CareerSummary): string =>
     `Kariera: ${managerName}, ${clubName ?? "bez klubu"}, ${lastGame(lastGameDate)}`,
   forgetSave: "Usuń zapis kariery",
-  phase: (phase: LoadPhase): string => PHASES[phase],
-  error: (error: ScoutError): string =>
-    `${STAGES[error.stage]}: ${
-      error.stage === "locale" && error.kind === "missing-file"
-        ? LOCALE_MISSING
-        : ERRORS[error.kind]
-    }`,
   languageStep: pl`3. Język nazw`,
   languageSelect: pl`Nazwy klubów, lig i krajów`,
   languageFromDb: pl`Angielskie z bazy fifa.db`,
