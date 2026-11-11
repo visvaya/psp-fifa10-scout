@@ -266,7 +266,8 @@ export const useAppUpdate = (registering: Promise<UpdatableRegistration> | null)
 
   useEffect(() => {
     if (registering === null) return undefined;
-    let mounted = true;
+    // Aborted once the effect is cleaned up: a registration found after that changes nothing.
+    const unmounted = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
     const report = (next: UpdateStatus) => {
       clearTimeout(timer);
@@ -275,19 +276,19 @@ export const useAppUpdate = (registering: Promise<UpdatableRegistration> | null)
     };
     registering.then(
       (found) => {
-        if (!mounted) return;
+        if (unmounted.signal.aborted) return;
         registration.current = found;
         setWorker("active");
         stopWatching.current = watchForUpdates(found, report);
       },
       () => {
-        if (!mounted) return;
+        if (unmounted.signal.aborted) return;
         setStatus("unregistered");
         setWorker("failed");
       },
     );
     return () => {
-      mounted = false;
+      unmounted.abort();
       clearTimeout(timer);
       stopWatching.current?.();
     };
