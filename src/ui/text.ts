@@ -372,6 +372,8 @@ export const TEXT = {
       `ten sam szczyt także na: ${positions.join(", ")}`,
     peakNote: pl`Szczyt OVR na pozycji preferowanej zawodnika: prognoza z krzywych rozwoju gry, ta sama co na jej wykresie rozwoju; nie obejmuje przyszłych przyrostów z meczów i treningu. Realniejszy cel niż potencjał, którego zawodnicy rzadko osiągają.`,
     overallByGroup: "OVR na pozycjach",
+    showPeaks: "Pokaż szczyt OVR",
+    peakAtChoice: (peak: number): string => `szczyt ${String(peak)}`,
     openMark: "▾",
     closedMark: "▸",
     positionWithName: (name: string, abbreviation: string): string => `${name} (${abbreviation})`,

@@ -412,7 +412,7 @@ export const PlayerCard = (props: {
         <h3 id="profile-title">{TEXT.card.profile}</h3>
         <Facts facts={profile(player, showPotential, props.curves)} />
       </section>
-      <ChoiceRatings player={player} names={names} />
+      <ChoiceRatings player={player} names={names} showPotential={showPotential} />
       <div className="attribute-groups">
         {ATTRIBUTE_GROUPS.map(([group, attributes]) => (
           <section key={group} aria-labelledby={`group-${group}`}>
