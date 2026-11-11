@@ -108,6 +108,13 @@ export const CAREER_FLAG_KEYS = [
   "clubWillSell",
 ] as const satisfies readonly FlagKey[];
 
+/** The columns and sort keys only a career save fills, the peak at a chosen position among them. */
+export const CAREER_SORT_KEYS = [
+  ...CAREER_RANGE_KEYS,
+  ...CAREER_FLAG_KEYS,
+  "positionPeak",
+] as const;
+
 export interface PlayerFilters {
   /** Part of the name, ignoring case and diacritics. */
   readonly text?: string;
@@ -199,10 +206,16 @@ export const peakAt = (player: Player, code: number): number | null =>
 export const rangeValue = (player: Player, key: RangeKey | PeakTwin): number | null =>
   isAttributeName(key) ? player.attributes[key] : player[key];
 
-const hasFlag = (player: Player, flag: FlagKey): boolean => {
+// A set: the sort asks it once per player.
+const FLAG_KEY_SET: ReadonlySet<string> = new Set(FLAG_KEYS);
+
+export const isFlagKey = (key: string): key is FlagKey => FLAG_KEY_SET.has(key);
+
+/** A yes / no field's value for its column and sort; null where only a career save would tell. */
+export const flagValue = (player: Player, flag: FlagKey): boolean | null => {
   if (flag === "nationalTeam") return player.nationalTeamId !== null;
   if (flag === "retiring") return player.retiring;
-  if (flag === "clubWillSell") return player.clubWillSell === true;
+  if (flag === "clubWillSell") return player.clubWillSell;
   if (flag === "loaned") return player.loanedFromId !== null;
   if (flag === "loanListed") return player.loanListed;
   return flag === "transferListed" ? player.transferListed : player.traits.includes(flag);
@@ -277,7 +290,10 @@ const predicates = (filters: PlayerFilters): readonly Predicate[] => {
       : [inRange(rating.peak, (player) => peakAt(player, rating.code))]),
     ...FLAG_KEYS.flatMap((flag) => {
       const wanted = filters.flags?.[flag];
-      return wanted === undefined ? [] : [(player: Player) => hasFlag(player, flag) === wanted];
+      // An unknown value counts as no, as the filter always had it.
+      return wanted === undefined
+        ? []
+        : [(player: Player) => (flagValue(player, flag) === true) === wanted];
     }),
     ...(clubStatus === undefined ? [] : [CLUB_STATUS_TESTS[clubStatus]]),
     ...(onList === undefined ? [] : [onLists(onList, filters.myListIds)]),

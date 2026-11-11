@@ -162,8 +162,9 @@ test.describe("filter panel", () => {
   test("has an eye only at filters with a column, and passes axe", async ({ page }) => {
     await loadDatabase(page);
     await expandSections(page);
-    // No eye at a yes / no field, which has no column of its own; every list has one.
-    await expect(eyeOf(page, "Podatny na kontuzje")).toHaveCount(0);
+    // No eye at a choice of who to list, which has no column; every list and yes / no field has one.
+    await expect(eyeOf(page, "Zawodnicy")).toHaveCount(0);
+    await expect(eyeOf(page, "Podatny na kontuzje")).toBeVisible();
     await expect(eyeOf(page, "Lepsza noga")).toBeVisible();
     await expect(eyeOf(page, "Pozycje szczegółowe")).toBeVisible();
     await expect(eyeOf(page, "Klub")).toBeVisible();
@@ -172,6 +173,22 @@ test.describe("filter panel", () => {
       page.getByRole("combobox", { name: "Kontrakt kończy się najpóźniej w" }),
     ).toBeVisible();
     await expectNoAxeViolations(page);
+  });
+
+  test("shows a yes / no field's column in words, sorted yes first from its heading", async ({
+    page,
+  }) => {
+    await loadDatabase(page);
+    await expandSections(page);
+    const label = "Reprezentant kraju";
+    const column = page.getByRole("columnheader", { name: new RegExp(`^${label}`, "u") });
+    await expect(column).toBeHidden();
+    await eyeOf(page, label).click();
+    await expect(column).toBeVisible();
+    await column.getByRole("button").click();
+    await expect(column).toHaveAttribute("aria-sort", "descending");
+    // A word, not true or false; the sample has no international, and yes before no is a unit test's.
+    await expect(await firstCellOf(page, label)).toHaveText("nie");
   });
 });
 

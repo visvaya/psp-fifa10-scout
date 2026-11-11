@@ -1,6 +1,7 @@
 // The number columns of the phone rows: OVR and the potential first, then what the position rating (its
-// peak only when ranged or sorted by), the range filters and the sort add. The rows scroll sideways when they do not fit.
-import { isRangeKey, rangedKeys } from "./filter-players.ts";
+// peak only when ranged or sorted by), the range filters and the sort by a number or a yes / no field add.
+// The rows scroll sideways when they do not fit.
+import { isFlagKey, isRangeKey, rangedKeys } from "./filter-players.ts";
 import type { PlayerFilters } from "./filter-players.ts";
 import { POTENTIAL_KEYS } from "./sort-players.ts";
 import type { SortKey } from "./sort-players.ts";
@@ -22,7 +23,7 @@ export const phoneColumns = (options: {
     ...(ratingCode === null ? [] : (["positionRating", "ratingGain"] as const)),
     ...(peakShown ? (["positionPeak"] as const) : []),
     ...rangedKeys(ranges),
-    ...(isRangeKey(sortKey) ? [sortKey] : []),
+    ...(isRangeKey(sortKey) || isFlagKey(sortKey) ? [sortKey] : []),
   ];
   return [...new Set(columns)].filter((key) => showPotential || !POTENTIAL_KEYS.has(key));
 };

@@ -125,7 +125,16 @@ describe("effectiveColumns", () => {
 
 describe("isKeyAvailable", () => {
   it("offers a career's values only with a career", () => {
-    for (const key of ["price", "wage", "form", "morale", "injuryDays", "goals"] as const) {
+    const keys = [
+      "price",
+      "wage",
+      "form",
+      "morale",
+      "injuryDays",
+      "goals",
+      "transferListed",
+    ] as const;
+    for (const key of keys) {
       expect(isKeyAvailable(key, PLAIN)).toBe(false);
       expect(isKeyAvailable(key, { ...PLAIN, career: true })).toBe(true);
     }

@@ -3,7 +3,7 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { CSSProperties, Dispatch, JSX } from "react";
-import { isRangeKey, rangeValue } from "../logic/filter-players.ts";
+import { flagValue, isFlagKey, isRangeKey, rangeValue } from "../logic/filter-players.ts";
 import { isAttributeName } from "../logic/attributes.ts";
 import type { CurrencyCode } from "../data/career-save.ts";
 import type { Player } from "../logic/players.ts";
@@ -15,7 +15,7 @@ import { CHOICE_VALUE_TEXT } from "./chip-text.ts";
 import type { ChoiceKey } from "./chip-text.ts";
 import { PositionName } from "./position-name.tsx";
 import { WatchMark } from "./stars.tsx";
-import { formatNumber, formatRating, RANGE_LABELS, TEXT } from "./text.ts";
+import { FLAG_LABELS, formatNumber, formatRating, RANGE_LABELS, TEXT } from "./text.ts";
 import { ATTRIBUTE_LABELS } from "./text-attributes.ts";
 import { useColumnWidths } from "./use-column-widths.ts";
 import type { WidthSource } from "./use-column-widths.ts";
@@ -49,6 +49,7 @@ export const columnLabel = (
   if (key === "positionPeak")
     return ratingName === null ? RANGE_LABELS.peak : TEXT.peakAt(ratingName);
   if (isAttributeName(key)) return ATTRIBUTE_LABELS[key];
+  if (isFlagKey(key)) return FLAG_LABELS[key];
   if (isTextColumn(key)) return TEXT.columns[key];
   return isRangeField(key) ? RANGE_LABELS[key] : key;
 };
@@ -213,6 +214,10 @@ const numberIn = (player: Player, column: SortKey, ratingCode: number | null): n
 
 /** A column's text when it has no badge, or null when the player has no value for it. */
 const valueText = (player: Player, column: SortKey): string | null => {
+  if (isFlagKey(column)) {
+    const flag = flagValue(player, column);
+    return flag === null ? null : TEXT.flagValues[flag ? "yes" : "no"];
+  }
   if (isTextColumn(column)) {
     const text = cellText(player, column);
     return text === null ? null : String(text);
@@ -260,9 +265,9 @@ export const ColumnValue = (props: {
   return valueText(player, column) ?? <MissingValue />;
 };
 
-/** Numbers align right; names and the values of lists that name themselves read from the left. */
+/** Numbers align right; names, yes / no and the lists' named values read from the left. */
 const isNumberColumn = (column: SortKey): boolean =>
-  column !== "name" && !column.endsWith("Name") && !isChoiceKey(column);
+  column !== "name" && !column.endsWith("Name") && !isChoiceKey(column) && !isFlagKey(column);
 
 const SortMark = (props: { column: SortKey; sort: ScoutSort }) => (
   <span aria-hidden="true" className="sort-mark">

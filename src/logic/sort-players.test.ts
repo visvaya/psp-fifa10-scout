@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { RANGE_KEYS } from "./filter-players.ts";
+import { FLAG_KEYS, RANGE_KEYS } from "./filter-players.ts";
 import { nextDirection, ratingValueOf, SORTABLE_KEYS, sortPlayers } from "./sort-players.ts";
 import type { SortDirection, SortKey } from "./sort-players.ts";
 import { attributes, testPlayer } from "./test-support/player-fixtures.ts";
@@ -207,6 +207,23 @@ describe("sortPlayers", () => {
       sortPlayers(types, "developmentType", direction).map((player) => player.id);
     expect(order("ascending")).toEqual([2, 3, 1]);
     expect(order("descending")).toEqual([1, 3, 2]);
+  });
+
+  it("sorts by every yes / no field", () => {
+    expect(FLAG_KEYS.filter((key) => !SORTABLE_KEYS.includes(key))).toEqual([]);
+  });
+
+  it("sorts a yes / no field by the filter's value, the unknown last", () => {
+    const flagged = [
+      testPlayer({ id: 1, nameOrder: 0, traits: [], clubWillSell: null }),
+      testPlayer({ id: 2, nameOrder: 1, traits: ["leadership"], clubWillSell: false }),
+      testPlayer({ id: 3, nameOrder: 2, traits: [], clubWillSell: true }),
+    ];
+    const order = (key: SortKey, direction: SortDirection) =>
+      sortPlayers(flagged, key, direction).map((player) => player.id);
+    expect(order("leadership", "descending")).toEqual([2, 1, 3]);
+    expect(order("clubWillSell", "descending")).toEqual([3, 2, 1]);
+    expect(order("clubWillSell", "ascending")).toEqual([2, 3, 1]);
   });
 
   it("leaves the input untouched", () => {
