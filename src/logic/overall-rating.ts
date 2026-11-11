@@ -10,7 +10,7 @@
 import type { CareerSave } from "../data/career-save.ts";
 import { effectiveRows } from "../data/career-save.ts";
 import { num, readTable } from "../data/ea-db.ts";
-import type { EaDb } from "../data/ea-db.ts";
+import type { EaDb, EaDbRow } from "../data/ea-db.ts";
 import { SCOUT_CONFIG } from "./config.ts";
 import type { AttributeName, Attributes } from "./attributes.ts";
 
@@ -154,6 +154,8 @@ const DAY_MS = 86_400_000;
 const DAYS_PER_YEAR = 365.25;
 const RATING_MAX = 99;
 const AGED_ATTRIBUTE_MIN = 10;
+/** CAREER/POTENTIAL_MAX_ADDITION_TO_LEARNING_SPEED, the game's default. */
+const SIGNING_DELTA_MODULUS = 5;
 
 export const readCurves = (db: EaDb): Curves =>
   new Map(
@@ -171,6 +173,13 @@ export const potentialDeltas = (db: EaDb, save: CareerSave): ReadonlyMap<number,
       num(row, "potential_delta"),
     ]),
   );
+
+/**
+ * The potential_delta the game gives a player when he joins the user's squad, once: learningspeed plus
+ * potential mod 5, both from fifa.db (match-growth.md, 50 of 50 rows).
+ */
+export const signingDelta = (row: EaDbRow): number =>
+  num(row, "learningspeed") + (num(row, "potential") % SIGNING_DELTA_MODULUS);
 
 /**
  * The attribute gains the save records per player id (`<attribute>_delta`, the user's squad): from

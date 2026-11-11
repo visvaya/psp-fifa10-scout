@@ -29,7 +29,8 @@ import { OVR_WEIGHTS } from "./overall-rating.ts";
 import { POSITION_GROUPS, ratingCodeOf } from "./positions.ts";
 import { isCurrencyCode } from "../data/career-save.ts";
 import { tieOrderOf } from "./best-peak.ts";
-import { compactFilters, DEFAULT_SORT, inRecordOrder } from "./scout-state.ts";
+import { compactFilters, inRecordOrder } from "./filter-changes.ts";
+import { DEFAULT_SORT } from "./scout-state.ts";
 import type { MyClub, Preferences, ScoutFilters, ScoutSort } from "./scout-state.ts";
 import type { ColumnPreference } from "./column-preference.ts";
 import type { FilterSet } from "./saved-filters.ts";
@@ -226,6 +227,7 @@ const parsePreferences = (value: unknown): Preferences | null => {
       : {}),
     ...(isCurrencyCode(value["currency"]) ? { currency: value["currency"] } : {}),
     ...(Array.isArray(value["tieOrder"]) ? { tieOrder: tieOrderOf(value["tieOrder"]) } : {}),
+    ...(value["afterSigning"] === true ? { afterSigning: true } : {}),
   };
 };
 

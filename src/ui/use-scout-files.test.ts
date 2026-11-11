@@ -6,10 +6,13 @@ import { createSession } from "./use-scout-files.ts";
 
 /** A session over a stand-in worker that records its requests and replies when told. */
 const openSession = async () => {
-  const posted: WorkerRequest[] = [];
+  const posted: Exclude<WorkerRequest, { type: "signed" }>[] = [];
+  /** The requestIds the list after signing was asked for. */
+  const signedAsked: number[] = [];
   const worker = Object.assign(new EventTarget(), {
     postMessage: (request: WorkerRequest) => {
-      posted.push(request);
+      if ("type" in request) signedAsked.push(request.requestId);
+      else posted.push(request);
     },
     terminate: () => undefined,
   });
@@ -31,7 +34,7 @@ const openSession = async () => {
   const reply = (message: WorkerMessage) => {
     worker.dispatchEvent(new MessageEvent("message", { data: message }));
   };
-  return { session, worker, posted, actions, reply };
+  return { session, worker, posted, signedAsked, actions, reply };
 };
 
 const saveFiles = (byte: number) => [
@@ -97,5 +100,31 @@ describe("createSession", () => {
     session.pickSave(saveFiles(2));
     expect(posted).toHaveLength(2);
     expect(posted[1]?.game).toBe(game);
+  });
+});
+
+describe("the list after signing", () => {
+  it("asks the worker for the latest load's list, whose reply ends no load", async () => {
+    const { session, posted, signedAsked, actions, reply } = await openSession();
+    session.pickGame(new File(["g"], "game.iso"));
+    reply({ type: "done", requestId: 1, result: EMPTY_LOAD_RESULT });
+    session.requestSigned();
+    expect(signedAsked).toEqual([1]);
+    expect(actions.at(-1)).toEqual({ type: "signed-requested" });
+    reply({ type: "signed", requestId: 1, players: [] });
+    expect(actions.at(-1)).toEqual({ type: "signed-built", players: [] });
+    // The game stays the loaded one: a picked save loads it again.
+    session.pickSave(saveFiles(1));
+    expect(posted).toHaveLength(2);
+  });
+
+  it("builds none when the worker is gone", async () => {
+    const { session, worker, actions } = await openSession();
+    worker.dispatchEvent(new Event("error"));
+    session.requestSigned();
+    expect(actions.slice(-2)).toEqual([
+      { type: "signed-requested" },
+      { type: "signed-built", players: null },
+    ]);
   });
 });

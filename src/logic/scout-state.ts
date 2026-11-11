@@ -2,15 +2,10 @@
 import type { CurrencyCode } from "../data/career-save.ts";
 import { currencyChosen, withShownCurrency } from "./currency.ts";
 import {
-  bounded,
   CAREER_FLAG_KEYS,
   CAREER_RANGE_KEYS,
-  FLAG_KEYS,
   isRangeKey,
-  LIST_FIELDS,
   needsShortlist,
-  RANGE_KEYS,
-  compactRating,
   peakField,
 } from "./filter-players.ts";
 import type { FlagKey, ListKey, PlayerFilters, RangeKey } from "./filter-players.ts";
@@ -22,6 +17,7 @@ import { nextDirection, POTENTIAL_KEYS, RATING_SORT_KEYS } from "./sort-players.
 import type { SortDirection, SortKey } from "./sort-players.ts";
 import { filterSetsAfter } from "./saved-filters.ts";
 import { withUndo } from "./undo.ts";
+import { compactFilters, withoutFilter } from "./filter-changes.ts";
 import { columnReducer, isColumnAction } from "./column-preference.ts";
 import type { ColumnAction, ColumnPreference } from "./column-preference.ts";
 import { isNoteAction, notesReducer } from "./player-notes.ts";
@@ -33,6 +29,8 @@ import type { FilterSet, FilterSetAction } from "./saved-filters.ts";
 import type { TieRule } from "./best-peak.ts";
 import { tieOrderAfter, tieOrderChosen, tiesBroken } from "./tie-order.ts";
 import type { TieOrderAction } from "./tie-order.ts";
+import { isSigningAction, signingReducer, withSignedList } from "./signed-list.ts";
+import type { SigningAction, SigningPreference, SigningState } from "./signed-list.ts";
 
 /** The user's club in the list: unset shows it with everyone, "hide" leaves it out, "only" keeps it alone. */
 export type MyClub = "hide" | "only";
@@ -60,7 +58,7 @@ export interface ScoutSort {
   readonly direction: SortDirection;
 }
 
-export interface Preferences {
+export interface Preferences extends SigningPreference {
   readonly filters: ScoutFilters;
   readonly sort: ScoutSort;
   /** Potential, growth room and their filters and sort show only when the user asks. */
@@ -81,7 +79,7 @@ export type ScoutError =
   | LoadError
   | { readonly stage: "save" | "locale"; readonly kind: "missing-file" };
 
-export interface ScoutState extends Preferences {
+export interface ScoutState extends Preferences, SigningState {
   /** The states before the user's last changes, newest first (undo.ts). */
   readonly undo: readonly UndoStep[];
   readonly players: readonly Player[] | null;
@@ -161,7 +159,8 @@ export type ScoutAction =
   | NoteAction
   | ColumnAction
   | { readonly type: "player-opened"; readonly id: number }
-  | { readonly type: "player-closed" };
+  | { readonly type: "player-closed" }
+  | SigningAction;
 
 export const DEFAULT_SORT: ScoutSort = { key: "overall", direction: "descending" };
 
@@ -185,88 +184,6 @@ export const initialScoutState: ScoutState = {
   notes: [],
   notesEdited: false,
 };
-
-/** The known keys in the order the record holds them: the order filters were added orders the columns. */
-export const inRecordOrder = <K extends PropertyKey>(keys: readonly K[], record: object): K[] => {
-  const order = Object.keys(record);
-  return keys.toSorted((a, b) => order.indexOf(String(a)) - order.indexOf(String(b)));
-};
-
-/** The entries of `keys` in `record` whose value passes `keep`, or undefined when none does. */
-const pick = <T extends object>(
-  record: T | undefined,
-  keys: readonly (keyof T)[],
-  keep: (value: NonNullable<T[keyof T]>) => boolean,
-): Partial<T> | undefined => {
-  const kept: Partial<T> = {};
-  for (const key of inRecordOrder(keys, record ?? {})) {
-    const item = record?.[key];
-    if (item !== undefined && item !== null && keep(item)) kept[key] = item;
-  }
-  return Object.keys(kept).length === 0 ? undefined : kept;
-};
-
-const isNonEmpty = (values: readonly unknown[] | undefined): boolean =>
-  values !== undefined && values.length > 0;
-const isDefined = (value: unknown): boolean => value !== undefined;
-
-/** Each filter that narrows the list, in a fixed order (for chips and the count on the button). */
-export const activeFilters = (filters: FilterChange): readonly FilterId[] => [
-  ...(filters.text === undefined || filters.text.trim() === "" ? [] : ["text" as const]),
-  ...RANGE_KEYS.filter((key) => bounded(filters.ranges?.[key])).map(
-    (key) => `ranges.${key}` as const,
-  ),
-  ...(filters.positionRating === undefined ? [] : ["positionRating" as const]),
-  ...LIST_FIELDS.filter((key) => isNonEmpty(filters.lists?.[key])).map(
-    (key) => `lists.${key}` as const,
-  ),
-  ...FLAG_KEYS.filter((key) => isDefined(filters.flags?.[key])).map(
-    (key) => `flags.${key}` as const,
-  ),
-  // The choices as compactFilters keeps them: a club status only when it is not the default.
-  ...(["onList", "clubStatus", "myClub"] as const).filter((key) =>
-    isDefined(compactFilters(filters)[key]),
-  ),
-];
-
-/** Only the active filters, so empty values never linger in state or storage. */
-export const compactFilters = (filters: FilterChange): ScoutFilters => {
-  const { text, clubStatus, onList, myClub, positionRating, peakAtBest } = filters;
-  const ranges = pick(filters.ranges, RANGE_KEYS, bounded);
-  const lists = pick(filters.lists, LIST_FIELDS, isNonEmpty);
-  // An exclusion means nothing without its list's values.
-  const excludedLists = pick(
-    filters.excludedLists,
-    LIST_FIELDS.filter((key) => lists?.[key] !== undefined),
-    (excluded) => excluded,
-  );
-  const flags = pick(filters.flags, FLAG_KEYS, isDefined);
-  return {
-    ...(text === undefined || text.trim() === "" ? {} : { text }),
-    ...(ranges === undefined ? {} : { ranges }),
-    ...(positionRating === undefined ? {} : { positionRating: compactRating(positionRating) }),
-    ...(peakAtBest === true ? { peakAtBest } : {}),
-    ...(lists === undefined ? {} : { lists }),
-    ...(excludedLists === undefined ? {} : { excludedLists }),
-    ...(flags === undefined ? {} : { flags }),
-    ...(onList === undefined ? {} : { onList }),
-    ...(clubStatus === undefined || clubStatus === "available" ? {} : { clubStatus }),
-    ...(myClub === undefined ? {} : { myClub }),
-  };
-};
-
-/** The filters without one of them. */
-const withoutFilter = (filters: ScoutFilters, id: FilterId): ScoutFilters => {
-  const [group, key = ""] = id.split(".");
-  if (group === "ranges")
-    return compactFilters({ ...filters, ranges: { ...filters.ranges, [key]: undefined } });
-  if (group === "lists")
-    return compactFilters({ ...filters, lists: { ...filters.lists, [key]: undefined } });
-  if (group === "flags")
-    return compactFilters({ ...filters, flags: { ...filters.flags, [key]: undefined } });
-  return compactFilters({ ...filters, [id]: undefined });
-};
-
 /** The position rating filter without its peak range, which needs a career and potential shown. */
 const withoutRatingPeak = (filters: ScoutFilters): FilterChange => {
   const { positionRating } = filters;
@@ -318,6 +235,7 @@ const withPreferences = (state: ScoutState, preferences: Preferences): ScoutStat
     ...(filterSets === undefined ? {} : { filterSets }),
     ...(columns === undefined ? {} : { columns }),
     ...(currency === undefined ? {} : { currency }),
+    ...(preferences.afterSigning === true ? { afterSigning: true } : {}),
   };
 };
 
@@ -409,15 +327,15 @@ type ResetAction = Extract<ScoutAction, { readonly type: keyof typeof RESETS }>;
 const isResetAction = (action: ScoutAction): action is ResetAction => action.type in RESETS;
 
 /**
- * The state after a reset; "Resetuj" also brings the columns back to the automatic choice and the best
- * peak tie rules to their default order. The settings alone are enough for it, so canResetSettings
+ * The state after a reset; "Resetuj" also brings the columns back to the automatic choice, the best
+ * peak tie rules to their default order and the values to before signing. The settings alone are enough for it, so canResetSettings
  * (settings-reset.ts) asks the reset itself.
  */
-export const resetState = <S extends Pick<ScoutState, "columns" | "tieOrder">>(
+export const resetState = <S extends Pick<ScoutState, "columns" | "tieOrder" | "afterSigning">>(
   state: S,
   type: ResetAction["type"],
 ) => {
-  const { columns: _columns, tieOrder: _tieOrder, ...kept } = state;
+  const { columns: _columns, tieOrder: _tieOrder, afterSigning: _signing, ...kept } = state;
   return { ...(type === "settings-reset" ? kept : state), ...RESETS[type] };
 };
 
@@ -425,7 +343,7 @@ const changes = (
   state: ScoutState,
   action: Exclude<
     ScoutAction,
-    UndoAction | WatchlistAction | NoteAction | ColumnAction | ViewAction
+    UndoAction | WatchlistAction | NoteAction | ColumnAction | ViewAction | SigningAction
   >,
 ): ScoutState => {
   if (isLoadAction(action)) return loadReducer(state, action);
@@ -472,15 +390,21 @@ const changes = (
   }
 };
 
-/** The state after an action, with undo for the user's changes and the players priced in the shown currency. */
-export const scoutReducer = withUndo((state, action) => {
+/** One action's change, with the players priced in the shown currency. */
+const reduced = (state: ScoutState, action: Exclude<ScoutAction, UndoAction>): ScoutState => {
   if (isWatchlistAction(action)) return watchlistReducer(state, action);
   if (isNoteAction(action)) return notesReducer(state, action);
+  if (isSigningAction(action)) return signingReducer(state, action);
   if (action.type === "currency-chosen") return currencyChosen(state, action.currency);
   if (action.type === "tie-order-chosen") return tieOrderChosen(state, action.order);
   const next = isColumnAction(action) ? columnReducer(state, action) : changes(state, action);
   return withShownCurrency(state, next);
-});
+};
+
+/** The state after an action, with undo for the user's changes and the list after signing in step. */
+export const scoutReducer = withUndo((state, action) =>
+  withSignedList(state, reduced(state, action)),
+);
 
 /** The stored game is loading and nothing shows yet: the list skeleton stands in for it. */
 export const isRestoring = ({ loading, players }: ScoutState): boolean =>

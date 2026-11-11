@@ -1,22 +1,24 @@
 // Whether "Resetuj" would change anything, asked of the reset itself so the two cannot drift apart.
-import { activeFilters, resetState } from "./scout-state.ts";
+import { activeFilters } from "./filter-changes.ts";
+import { resetState } from "./scout-state.ts";
 import type { ScoutState } from "./scout-state.ts";
 
 /** The settings "Resetuj" brings back. */
 export type ResetSettings = Pick<
   ScoutState,
-  "filters" | "sort" | "showPotential" | "columns" | "tieOrder"
+  "filters" | "sort" | "showPotential" | "columns" | "tieOrder" | "afterSigning"
 >;
 
 /** The settings as far as they change the list: the active filters, not an empty one. */
 const shownSettings = (settings: ResetSettings): string => {
-  const { filters, sort, showPotential, columns, tieOrder } = settings;
+  const { filters, sort, showPotential, columns, tieOrder, afterSigning } = settings;
   return JSON.stringify([
     activeFilters(filters),
     sort,
     showPotential,
     columns ?? {},
     tieOrder ?? [],
+    afterSigning === true,
   ]);
 };
 

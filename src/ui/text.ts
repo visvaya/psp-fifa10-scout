@@ -257,6 +257,13 @@ export const TEXT = {
     lead: "Zalecane.",
     text: pl`Gra nie pokazuje potencjału; to pole go pokazuje, a z zapisem kariery także szczyt OVR i zapas do szczytu.`,
   },
+  /** The switch to values after signing, its "?" and what it says while the list is built (roadmap 56). */
+  afterSigning: {
+    label: pl`Wartość po podpisaniu`,
+    help: pl`Zawodnicy spoza twojego składu z wartościami, jakie gra da im po podpisaniu: przy wejściu do twojego składu potencjał rośnie o szybkość nauki plus resztę z dzielenia potencjału przez 5 (razem od 1 do 9), więc OVR, szczyty i cena, które stały na potencjale, rosną razem z nim. Filtry, sortowanie, kolumny i karta liczą wtedy z tych wartości; formularz oferty dalej liczy dla zawodnika przed transferem. Pierwsze włączenie po wczytaniu plików liczy listę kilka sekund.`,
+    pending: pl`Liczę wartości po podpisaniu…`,
+    failed: pl`Nie udało się policzyć wartości po podpisaniu; lista pokazuje wartości sprzed podpisania.`,
+  },
   positionRating: "Ocena na pozycji",
   ratingAt: (position: string): string => `OVR ${position}`,
   ratingChoice: (group: string, abbreviation: string): string => `${group} (${abbreviation})`,

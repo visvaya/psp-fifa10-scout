@@ -2,7 +2,7 @@
 import { useMemo } from "react";
 import type { Dispatch, JSX } from "react";
 import type { Player } from "../logic/players.ts";
-import { activeFilters } from "../logic/scout-state.ts";
+import { activeFilters } from "../logic/filter-changes.ts";
 import type { ScoutAction, ScoutFilters } from "../logic/scout-state.ts";
 import { chipText, namesById } from "./chip-text.ts";
 import { SettingsActions } from "./settings-actions.tsx";

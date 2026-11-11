@@ -15,6 +15,7 @@ import {
   peaksByPositionCode,
   potentialDeltas,
   readCurves,
+  signingDelta,
 } from "./overall-rating.ts";
 import type { CareerRatingInput, Curves } from "./overall-rating.ts";
 import { attributesOf } from "./attributes.ts";
@@ -272,6 +273,12 @@ describe("readCurves and potentialDeltas", () => {
     ]);
     expect(potentialDeltas(db, save)).toEqual(new Map([[7, 6]]));
   });
+
+  it("give a signed player learning speed plus potential mod 5", () => {
+    expect(signingDelta({ learningspeed: 3, potential: 82 })).toBe(5);
+    expect(signingDelta({ learningspeed: 5, potential: 84 })).toBe(9);
+    expect(signingDelta({ learningspeed: 1, potential: 70 })).toBe(1);
+  });
 });
 
 /** Player 7's gains from a save holding one grown-attributes row. */
@@ -323,6 +330,17 @@ describe.runIf(existsSync(realDbPath))("real fifa.db", () => {
     expect(rate("Lionel Messi")).toBe(89);
     expect(rate("Wayne Rooney")).toBe(90);
     expect(rate("Robert Lewandowski")).toBe(73);
+  });
+
+  it.runIf(existsSync(realCareerPath))("gives each squad player the save's potential delta", () => {
+    const { db, players } = loadReal();
+    const deltas = potentialDeltas(db, parseCareerSave(db, readFileSync(realCareerPath)));
+    const wrong = [...deltas].filter(([id, delta]) => {
+      const row = players.get(id);
+      return row !== undefined && signingDelta(row) !== delta;
+    });
+    expect(deltas.size).toBeGreaterThan(0);
+    expect(wrong).toEqual([]);
   });
 
   it.runIf(existsSync(realCareerPath))("matches the save's stored ratings", () => {

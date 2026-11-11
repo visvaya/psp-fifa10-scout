@@ -15,6 +15,12 @@ export type LoadStarted = Pick<
 
 export type GameLoad = { readonly source: Blob; readonly started: LoadStarted };
 
+/** A load's end; its phases and the list after signing end none. */
+const endsLoad = (
+  message: WorkerMessage,
+): message is Extract<WorkerMessage, { readonly type: "done" | "failed" }> =>
+  message.type === "done" || message.type === "failed";
+
 const bytes = async ({ dataBin, paramSfo }: SaveFiles<Blob>): Promise<SaveFiles<Uint8Array>> => ({
   dataBin: new Uint8Array(await dataBin.arrayBuffer()),
   paramSfo: new Uint8Array(await paramSfo.arrayBuffer()),
@@ -51,7 +57,7 @@ export const createSaveMemory = (withStore: WithStore) => {
       [unsaved, picked, latest] = [picked ?? unsaved, null, requestId];
     },
     finished: (message: WorkerMessage) => {
-      if (message.type === "phase" || message.requestId !== latest) return;
+      if (!endsLoad(message) || message.requestId !== latest) return;
       const save = unsaved;
       const savesFailed = message.type === "failed" && message.error.stage === "save";
       // A load that failed before the save keeps it for the next one.
@@ -86,7 +92,7 @@ export const createGameMemory = (withStore: WithStore) => {
       if (restored === undefined && typeof gameName === "string") fromFile.set(requestId, gameName);
     },
     finished: (message: WorkerMessage) => {
-      if (message.type === "phase") return;
+      if (!endsLoad(message)) return;
       const name = fromFile.get(message.requestId);
       fromFile.delete(message.requestId);
       if (message.requestId !== latest) return;

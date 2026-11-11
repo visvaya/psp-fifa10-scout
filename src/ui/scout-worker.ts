@@ -1,13 +1,16 @@
 // The worker that parses the user's files off the UI thread: one WorkerRequest in, phase messages
-// and one result or failure out. It reads the picked files; loadScout decides what to read.
+// and one result or failure out. It reads the picked files; loadScout decides what to read. It keeps
+// the latest career's list after signing unbuilt until a "signed" request asks for it.
 import { classifyLoadError, LoadFailure, loadScout } from "../logic/load-scout.ts";
 import type {
   FileSource,
   LoadInput,
   LoadRequest,
+  SignedBuild,
   WorkerMessage,
   WorkerRequest,
 } from "../logic/load-scout.ts";
+import type { Player } from "../logic/players.ts";
 
 const bytesOf = async (blob: Blob): Promise<Uint8Array> => new Uint8Array(await blob.arrayBuffer());
 
@@ -28,11 +31,31 @@ const post = (message: WorkerMessage, transfer: Transferable[] = []): void => {
   globalThis.postMessage(message, { transfer });
 };
 
-const handle = async ({ requestId, ...request }: WorkerRequest): Promise<void> => {
+/** The latest career load's list after signing, built only when the UI asks for it. */
+let signed: { readonly requestId: number; readonly build: SignedBuild } | null = null;
+
+const handleSigned = (requestId: number): void => {
+  let players: readonly Player[] | null = null;
   try {
-    const result = await loadScout(inputOf(request), (phase) => {
-      post({ type: "phase", requestId, phase });
-    });
+    if (signed?.requestId === requestId) players = signed.build();
+  } catch {
+    // A list that cannot be built leaves the players before signing; the UI says so.
+  }
+  post({ type: "signed", requestId, players });
+};
+
+const handle = async ({ requestId, ...request }: LoadRequest & { requestId: number }) => {
+  signed = null;
+  try {
+    const result = await loadScout(
+      inputOf(request),
+      (phase) => {
+        post({ type: "phase", requestId, phase });
+      },
+      (build) => {
+        signed = { requestId, build };
+      },
+    );
     post({ type: "done", requestId, result }, [result.gameDb.buffer]);
   } catch (error) {
     const failure = error instanceof LoadFailure ? error.error : classifyLoadError("game", error);
@@ -40,6 +63,7 @@ const handle = async ({ requestId, ...request }: WorkerRequest): Promise<void> =
   }
 };
 
-globalThis.addEventListener("message", (event: MessageEvent<WorkerRequest>) => {
-  void handle(event.data);
+globalThis.addEventListener("message", ({ data }: MessageEvent<WorkerRequest>) => {
+  if ("type" in data) handleSigned(data.requestId);
+  else void handle(data);
 });

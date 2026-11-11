@@ -6,7 +6,7 @@ import { phoneColumns } from "../logic/phone-columns.ts";
 import type { Player } from "../logic/players.ts";
 import { effectiveFilters } from "../logic/effective-filters.ts";
 import { shownCurrency } from "../logic/currency.ts";
-import { activeFilters } from "../logic/scout-state.ts";
+import { activeFilters } from "../logic/filter-changes.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
 import { SORTABLE_KEYS, sortPlayers } from "../logic/sort-players.ts";
 import type { SortKey } from "../logic/sort-players.ts";
