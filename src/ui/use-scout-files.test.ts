@@ -129,6 +129,16 @@ describe("the list after signing", () => {
     expect(actions).toHaveLength(count);
   });
 
+  it("takes the shown players' list after signing while a newer load runs", async () => {
+    const { session, actions, reply } = await openSession();
+    session.pickGame(new File(["g"], "game.iso"));
+    reply({ type: "done", requestId: 1, result: EMPTY_LOAD_RESULT });
+    session.requestSigned();
+    session.pickGame(new File(["h"], "other.iso"));
+    reply({ type: "signed", requestId: 1, players: [] });
+    expect(actions.at(-1)).toEqual({ type: "signed-built", players: [] });
+  });
+
   it("builds none when the worker is gone", async () => {
     const { session, worker, actions } = await openSession();
     worker.dispatchEvent(new Event("error"));

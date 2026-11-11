@@ -111,9 +111,10 @@ export const createSession = (dispatch: Dispatch<ScoutAction>, onStorageFailed: 
     const latest = message.requestId === lastRequestId;
     if (latest && message.type === "failed" && message.error.stage === "save")
       pending = saveMemory.kept();
-    // The state hears the latest request only: a superseded load's late failure must not end the list
-    // after signing that a newer load's players wait for.
-    if (latest) dispatch(actionOf(message));
+    // The state hears the latest load only: a superseded load's late failure must not end the list
+    // after signing that the shown players wait for. That list itself is always theirs: the worker
+    // answers before it starts any load asked for later.
+    if (latest || message.type === "signed") dispatch(actionOf(message));
   };
   const workerFailed = () => finish(workerFailure(lastRequestId));
 
