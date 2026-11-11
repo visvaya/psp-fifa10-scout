@@ -357,7 +357,7 @@ test.describe("bounds of the range fields", () => {
   });
 });
 
-test.describe("season totals", () => {
+test.describe("career values on the card", () => {
   // Owner, 2026-11-11: one count over the league and the cups, on the card and in the filters.
   test("adds the league and the cups into a total and filters by it", async ({ page }) => {
     await loadCareer(page);
@@ -369,9 +369,7 @@ test.describe("season totals", () => {
     await expect(cardValue(card, "Występy ogółem")).toHaveText("8");
     await expect(cardValue(card, "Gole ogółem")).toHaveText("4");
   });
-});
 
-test.describe("contract years", () => {
   // Owner, 2026-11-10: the years left as the game counts them (end year minus the season's start
   // year), shown and ranged from and to.
   test("shows the years left on the contract and filters by them", async ({ page }) => {
@@ -389,5 +387,22 @@ test.describe("contract years", () => {
     const card = page.getByRole("dialog", { name: "Lionel Messi" });
     await expect(cardValue(card, "Kontrakt do")).toHaveText("2014");
     await expect(cardValue(card, "Lata kontraktu")).toHaveText("5");
+  });
+
+  // Owner, 2026-11-09: a checkbox in "OVR na pozycjach" that shows the projected peak at each choice.
+  test("shows the peak beside each position rating while potential shows", async ({ page }) => {
+    await loadCareer(page);
+    await page.getByRole("button", { name: /^Lionel Messi/u }).click();
+    let card = page.getByRole("dialog", { name: "Lionel Messi" });
+    await expect(card.getByRole("checkbox", { name: "Pokaż szczyt OVR" })).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(card).toBeHidden();
+    await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
+    await page.getByRole("button", { name: /^Lionel Messi/u }).click();
+    card = page.getByRole("dialog", { name: "Lionel Messi" });
+    const row = card.locator(".facts > div").filter({ hasText: /^Napastnik/u });
+    await expect(row.getByText(/szczyt/u)).toHaveCount(0);
+    await card.getByRole("checkbox", { name: "Pokaż szczyt OVR" }).check();
+    await expect(row.getByRole("definition")).toHaveText(/szczyt \d+$/u);
   });
 });
