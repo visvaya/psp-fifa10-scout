@@ -16,6 +16,7 @@ import { CODE_NAMES } from "./text-code-names.ts";
 import { FIELD_HELP, HELP_TEXT, WARNING_TEXT } from "./text-help.ts";
 import { OFFER_TEXT } from "./text-offer.ts";
 import { startDescription } from "./test-support/start-description.ts";
+import { LOAD_TEXT } from "./text-loading.ts";
 import { NOTES_TEXT } from "./text-notes.ts";
 import { WATCHLIST_TEXT } from "./text-watchlist.ts";
 import { tie } from "./typeset.ts";
@@ -48,6 +49,7 @@ const STRINGS = stringsIn([
   OFFER_TEXT,
   WATCHLIST_TEXT,
   NOTES_TEXT,
+  LOAD_TEXT,
   FIELD_HELP,
   HELP_TEXT,
   WARNING_TEXT,
