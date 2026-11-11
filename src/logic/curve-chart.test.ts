@@ -18,10 +18,10 @@ const CURVES = new Map([
 describe("curveChart", () => {
   it("puts ages 15 to 45 on x, eight units a year, with a tick every five years", () => {
     const chart = curveChart(CURVES, 13, 22);
-    expect(chart?.viewBox).toBe("0 0 300 256");
-    expect(chart?.plot).toEqual({ left: 36, right: 276, top: 56, bottom: 216 });
+    expect(chart?.viewBox).toBe("0 0 300 216");
+    expect(chart?.plot).toEqual({ left: 36, right: 276, top: 16, bottom: 176 });
     expect(chart?.points).toHaveLength(31);
-    expect(chart?.points[0]).toEqual({ age: 15, value: 20, x: 36, y: 216 });
+    expect(chart?.points[0]).toEqual({ age: 15, value: 20, x: 36, y: 176 });
     expect(chart?.points.at(-1)).toMatchObject({ age: 45, x: 276 });
     expect(chart?.ageTicks).toEqual(
       [15, 20, 25, 30, 35, 40, 45].map((age) => ({ label: age, at: 36 + 8 * (age - 15) })),
@@ -31,10 +31,10 @@ describe("curveChart", () => {
   it("puts the table's lowest to highest value on y, the scale every curve shares, with round ticks", () => {
     const chart = curveChart(CURVES, 13, 22);
     // 160 units for the 79 between 20 and 99.
-    expect(chart?.points[12]?.y).toBeCloseTo(56 + (160 * 19) / 79);
-    expect(curveChart(CURVES, 1, 22)?.points[0]?.y).toBe(56);
+    expect(chart?.points[12]?.y).toBeCloseTo(16 + (160 * 19) / 79);
+    expect(curveChart(CURVES, 1, 22)?.points[0]?.y).toBe(16);
     expect(chart?.valueTicks.map((tick) => tick.label)).toEqual([20, 40, 60, 80]);
-    expect(chart?.valueTicks[0]?.at).toBe(216);
+    expect(chart?.valueTicks[0]?.at).toBe(176);
   });
 
   it("marks the first age at the highest value and the player's age", () => {
@@ -57,7 +57,7 @@ describe("curveChart", () => {
   it("ticks whole values only, also on a flat table", () => {
     const chart = curveChart(new Map([[1, byAge(() => 50)]]), 1, 22);
     expect(chart?.valueTicks.map((tick) => tick.label)).toEqual([49, 50]);
-    expect(chart?.points[0]?.y).toBe(56);
+    expect(chart?.points[0]?.y).toBe(16);
   });
 
   it("spans the peak over the ages at 98 % of the curve's top or more, half a year past each end", () => {
@@ -93,14 +93,14 @@ describe("ovrChart", () => {
   it("spans his ages from this season's to the last projected, on the plot's width", () => {
     expect(chart?.kind).toBe("ovr");
     expect(chart?.points).toHaveLength(5);
-    expect(chart?.points[0]).toMatchObject({ age: 22, value: 60, x: 36, y: 216 });
+    expect(chart?.points[0]).toMatchObject({ age: 22, value: 60, x: 36, y: 176 });
     expect(chart?.points.at(-1)).toMatchObject({ age: 26, x: 276 });
     // Ticks at the ages that end in 0 or 5.
     expect(chart?.ageTicks.map((tick) => tick.label)).toEqual([25]);
   });
 
   it("puts his lowest to highest OVR on y and marks the peak, its ages and this season", () => {
-    expect(chart?.points[2]?.y).toBe(56);
+    expect(chart?.points[2]?.y).toBe(16);
     expect(chart?.peak).toMatchObject({ age: 24, value: 64 });
     expect(chart?.now).toMatchObject({ age: 22, value: 60 });
     // 98 % of 64 is 62,72: 64, 64 and 63.
@@ -109,7 +109,7 @@ describe("ovrChart", () => {
   });
 
   it("draws one season too, and nothing without a projection", () => {
-    expect(ovrChart([70], 45)?.points).toEqual([{ age: 45, value: 70, x: 36, y: 56 }]);
+    expect(ovrChart([70], 45)?.points).toEqual([{ age: 45, value: 70, x: 36, y: 16 }]);
     expect(ovrChart([], 22)).toBeNull();
   });
 });

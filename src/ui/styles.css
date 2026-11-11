@@ -1566,6 +1566,13 @@ input[inputmode="numeric"] {
   vector-effect: non-scaling-stroke;
 }
 
+/* The card's small curve opens the large chart; it keeps the large plot's proportions (3:2), so the
+   curve has the same shape in both. */
+.curve-button .sparkline {
+  width: 2.25em;
+  height: 1.5em;
+}
+
 /* The card's small curve opens the large chart. */
 .curve-button {
   display: inline-flex;
@@ -1585,7 +1592,7 @@ input[inputmode="numeric"] {
 }
 
 /* The chart scales with the dialog; its text sizes are in viewBox units. */
-.curve-chart svg {
+.curve-chart > svg {
   display: block;
   width: 100%;
   max-width: 24rem;
@@ -1599,19 +1606,9 @@ input[inputmode="numeric"] {
   fill: var(--color-muted);
 }
 
-.curve-chart .axis-title,
-.curve-chart .peak text,
-.curve-chart .now text {
+.curve-chart .axis-title {
   fill: var(--color-ink);
   font-weight: 600;
-}
-
-/* The marks' labels stay readable where a grid line or the season's line runs behind them. */
-.curve-chart :is(.peak, .now) text {
-  paint-order: stroke;
-  stroke: var(--color-surface);
-  stroke-width: 4px;
-  stroke-linejoin: round;
 }
 
 .curve-chart .grid {
@@ -1623,9 +1620,16 @@ input[inputmode="numeric"] {
   stroke: var(--color-muted);
 }
 
-.curve-chart .now line {
+.curve-chart .now {
   stroke: var(--color-muted);
   stroke-dasharray: 4 3;
+}
+
+/* The season's point on the curve: a diamond, unlike the peak's dot. */
+.curve-chart .now-mark {
+  fill: var(--color-surface);
+  stroke: var(--color-ink);
+  stroke-width: 1.5;
 }
 
 .curve-chart .curve {
@@ -1649,12 +1653,36 @@ input[inputmode="numeric"] {
   white-space: nowrap;
 }
 
-.curve-chart .peak circle {
+.curve-chart .peak {
   fill: var(--color-accent);
 }
 
-.curve-chart figcaption .facts {
-  margin: var(--space-4) 0 0;
+/* The legend under the chart: each mark's sample and what it stands for, once. */
+.chart-legend {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chart-legend li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.legend-mark {
+  flex: none;
+  width: 1.5em;
+  height: 1em;
+  overflow: visible;
+}
+
+/* The chart's dialog is narrower than the card it opens over, so the card shows around it. */
+.dialog.curve {
+  width: min(28rem, 100% - 2 * var(--space-6));
 }
 
 /* Options with a curve: the names share one column, so the curves start at one edge. Without subgrid

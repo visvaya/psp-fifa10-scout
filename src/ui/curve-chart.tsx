@@ -3,7 +3,6 @@ import type { JSX } from "react";
 import type { CurveChart } from "../logic/curve-chart.ts";
 import type { Sparkline } from "../logic/curve-sparkline.ts";
 import { CurveSparkline } from "./curve-sparkline.tsx";
-import { Facts } from "./facts.tsx";
 import { FieldHelp } from "./field-help.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
 import { formatNumber, TEXT } from "./text.ts";
@@ -12,12 +11,6 @@ import { HELP_TEXT } from "./text-help.ts";
 /** Room in viewBox units between a label and its axis, a mark or the chart's edge. */
 const GAP = 6;
 const LABEL_LINE = 14;
-
-/** A label over x: from x near the plot's left edge, up to x near its right edge, else centred. */
-const edgeAnchor = (x: number, { left, right }: CurveChart["plot"]): "start" | "middle" | "end" => {
-  const third = (right - left) / 3;
-  return x < left + third ? "start" : x > right - third ? "end" : "middle";
-};
 
 /** Grid lines at the value ticks, the ticks' labels, both axes and the ages' title. */
 const ChartAxes = ({ chart: { plot, valueTicks, ageTicks } }: { chart: CurveChart }) => (
@@ -50,10 +43,12 @@ const ChartAxes = ({ chart: { plot, valueTicks, ageTicks } }: { chart: CurveChar
   </>
 );
 
+/** Half the size of the season's mark on the curve: a diamond, unlike the peak's round dot. */
+const NOW_MARK = 5;
+
 /**
- * The peak's ages shaded, the curve, the season's age as a dashed line labelled with its phase on the
- * top two rows, and the peak's dot labelled right above it: nothing of the curve rises past its peak,
- * so no line crosses that label.
+ * The peak's ages shaded, the season's age as a dashed line with a diamond where it meets the curve,
+ * the curve, and the peak's dot. Nothing is labelled on the chart: the legend under it names each mark.
  */
 const ChartMarks = ({ chart }: { chart: CurveChart }) => {
   const { plot, points, peak, now, plateau } = chart;
@@ -67,44 +62,35 @@ const ChartMarks = ({ chart }: { chart: CurveChart }) => {
         height={plot.bottom - plot.top}
       />
       {now === undefined ? null : (
-        <g className="now">
-          <line x1={now.x} x2={now.x} y1={plot.top} y2={plot.bottom} />
-          {[TEXT.card.curveNowMark(now.age), TEXT.card.curvePhases[chart.phase]].map(
-            (label, row) => (
-              <text
-                key={label}
-                x={now.x}
-                y={plot.top - GAP - (2 - row) * LABEL_LINE}
-                textAnchor={edgeAnchor(now.x, plot)}
-              >
-                {label}
-              </text>
-            ),
-          )}
-        </g>
+        <line className="now" x1={now.x} x2={now.x} y1={plot.top} y2={plot.bottom} />
       )}
       <polyline
         className="curve"
         points={points.map(({ x, y }) => `${String(x)},${String(y)}`).join(" ")}
       />
-      <g className="peak">
-        <circle cx={peak.x} cy={peak.y} r={GAP / 2 + 1} />
-        <text x={peak.x} y={peak.y - GAP} textAnchor={edgeAnchor(peak.x, plot)}>
-          {TEXT.card.curvePeakMark(peak.age, peak.value)}
-        </text>
-      </g>
+      <circle className="peak" cx={peak.x} cy={peak.y} r={GAP / 2 + 1} />
+      {now === undefined ? null : (
+        <path
+          className="now-mark"
+          d={`M${String(now.x)},${String(now.y - NOW_MARK)}l${String(NOW_MARK)},${String(NOW_MARK)}l${String(-NOW_MARK)},${String(NOW_MARK)}l${String(-NOW_MARK)},${String(-NOW_MARK)}z`}
+        />
+      )}
     </>
   );
 };
 
-/** Every age with the curve's value, for screen readers. */
+/** What the chart's y measures: his OVR with a career, the curve's relative level without one. */
+const levelName = (chart: CurveChart): string =>
+  chart.kind === "ovr" ? TEXT.card.curveOvr : TEXT.card.curveValue;
+
+/** Every age with the chart's value, for screen readers. */
 const ChartTable = ({ chart }: { chart: CurveChart }) => (
   <table className="visually-hidden">
     <caption>{TEXT.card.curve}</caption>
     <thead>
       <tr>
         <th scope="col">{TEXT.card.curveAge}</th>
-        <th scope="col">{TEXT.card.curveValue}</th>
+        <th scope="col">{levelName(chart)}</th>
       </tr>
     </thead>
     <tbody>
@@ -118,39 +104,77 @@ const ChartTable = ({ chart }: { chart: CurveChart }) => (
   </table>
 );
 
-/**
- * The curve with labelled axes and its marks, drawn for the eye only; the peak and his age as facts
- * under it, and the data in a table for screen readers.
- */
-const CurveFigure = ({ chart }: { chart: CurveChart }): JSX.Element => {
-  const { peak, now, plateau } = chart;
+/** A legend item's sample of its mark, drawn as on the chart. */
+const LegendMark = ({ kind }: { kind: "now" | "plateau" | "peak" }) => (
+  <svg className="legend-mark" viewBox="0 0 24 16" aria-hidden="true">
+    {kind === "now" ? (
+      <>
+        <line className="now" x1={12} x2={12} y1={0} y2={16} />
+        <path className="now-mark" d="M12,3l5,5l-5,5l-5,-5z" />
+      </>
+    ) : kind === "plateau" ? (
+      <rect className="plateau" x={2} y={1} width={20} height={14} />
+    ) : (
+      <circle className="peak" cx={12} cy={8} r={4} />
+    )}
+  </svg>
+);
+
+/** Each mark of the chart named once: the season's age and phase, the peak's ages, the peak. */
+const ChartLegend = ({ chart }: { chart: CurveChart }) => {
+  const { peak, now, plateau, kind } = chart;
   return (
-    <figure className="curve-chart">
-      {/* The level's title above the chart rather than turned along its axis: readable, with its "?". */}
-      <div className="heading-help">
-        <span className="axis-title">{TEXT.card.curveValue}</span>
-        <FieldHelp label={TEXT.card.curveValue} text={HELP_TEXT.curveLevel} />
-      </div>
-      <svg viewBox={chart.viewBox} aria-hidden="true">
-        <ChartAxes chart={chart} />
-        <ChartMarks chart={chart} />
-      </svg>
-      <figcaption>
-        <Facts
-          facts={[
-            [TEXT.card.curvePeakLabel, TEXT.card.curvePoint(peak.age, peak.value)],
-            [TEXT.card.curvePlateauLabel, TEXT.card.curvePlateau(plateau.from, plateau.to)],
-            ...(now === undefined
-              ? []
-              : [[TEXT.card.curveNowLabel, TEXT.card.curvePoint(now.age, now.value)] as const]),
-            [TEXT.card.curvePhaseLabel, TEXT.card.curvePhases[chart.phase], HELP_TEXT.curvePhase],
-          ]}
+    <ul className="chart-legend">
+      {now === undefined ? null : (
+        <li>
+          <LegendMark kind="now" />
+          {TEXT.card.legendNow(
+            now.age,
+            TEXT.card.curvePhases[chart.phase],
+            kind === "ovr" ? now.value : null,
+          )}
+        </li>
+      )}
+      <li>
+        <LegendMark kind="plateau" />
+        {TEXT.card.legendPlateau(plateau.from, plateau.to)}
+        <FieldHelp
+          label={TEXT.card.legendPlateau(plateau.from, plateau.to)}
+          text={HELP_TEXT.curvePhase}
         />
-      </figcaption>
-      <ChartTable chart={chart} />
-    </figure>
+      </li>
+      <li>
+        <LegendMark kind="peak" />
+        {TEXT.card.legendPeak(peak.age, peak.value, kind === "ovr")}
+      </li>
+    </ul>
   );
 };
+
+/**
+ * The chart with its level's name and "?" over the axis, the legend under it, and the data in a table
+ * for screen readers.
+ */
+const CurveFigure = ({ chart }: { chart: CurveChart }): JSX.Element => (
+  <figure className="curve-chart">
+    {/* The level's title above the chart rather than turned along its axis: readable, with its "?". */}
+    <div className="heading-help">
+      <span className="axis-title">{levelName(chart)}</span>
+      <FieldHelp
+        label={levelName(chart)}
+        text={chart.kind === "ovr" ? HELP_TEXT.ovrLevel : HELP_TEXT.curveLevel}
+      />
+    </div>
+    <svg viewBox={chart.viewBox} aria-hidden="true">
+      <ChartAxes chart={chart} />
+      <ChartMarks chart={chart} />
+    </svg>
+    <figcaption>
+      <ChartLegend chart={chart} />
+    </figcaption>
+    <ChartTable chart={chart} />
+  </figure>
+);
 
 /** The small curve as a button that opens the large chart over the card. */
 export const CurveButton = ({
