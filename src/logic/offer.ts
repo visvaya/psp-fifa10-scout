@@ -72,6 +72,8 @@ const OFFER_TUNING = {
   bonusMultiplier: 20,
   /** The form allows up to this multiple of its base: the value or the market wage, or the last offer. */
   capMultipleOfBase: 1.5,
+  /** ...and no less than this share of it (handler 0x08893648): a lower fee or wage cannot be typed. */
+  floorShareOfBase: 0.5,
   maxContractYears: 5,
   /**
    * The wage asked for gives the player this many points above the 0 he signs at. The squad average the
@@ -168,7 +170,9 @@ export const offerTerms = (
   if (player.wage === null) return null;
   const t = OFFER_TUNING;
   const value = player.price ?? 0;
-  const fee = value === 0 ? null : feeNeeded(value, player.transferListed, context);
+  const floor = (base: number): number => Math.ceil(base * t.floorShareOfBase);
+  const fee =
+    value === 0 ? null : Math.max(feeNeeded(value, player.transferListed, context), floor(value));
   const endAge = context.seasonEndYear - player.birthYear;
   const career = Math.max(0, player.retirementAge - endAge);
   const wantedYears = Math.min(career, (player.id % 5) + 1);
@@ -181,7 +185,10 @@ export const offerTerms = (
   const wage =
     years < 1 || years > career
       ? null
-      : wageNeeded(player.wage, t.reservePoints - base, choice.bonusPercent);
+      : Math.max(
+          wageNeeded(player.wage, t.reservePoints - base, choice.bonusPercent),
+          floor(player.wage),
+        );
   return {
     fee,
     feeOverCap: fee !== null && fee > value * t.capMultipleOfBase,
