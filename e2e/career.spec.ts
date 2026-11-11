@@ -392,17 +392,22 @@ test.describe("career values on the card", () => {
   // Owner, 2026-11-09: a checkbox in "OVR na pozycjach" that shows the projected peak at each choice.
   test("shows the peak beside each position rating while potential shows", async ({ page }) => {
     await loadCareer(page);
-    await page.getByRole("button", { name: /^Lionel Messi/u }).click();
-    let card = page.getByRole("dialog", { name: "Lionel Messi" });
+    const open = async () => {
+      await page.getByRole("searchbox", { name: "Nazwisko" }).fill("brozek");
+      await page.getByRole("button", { name: /^Paweł Brożek/u }).click();
+      return page.getByRole("dialog", { name: "Paweł Brożek" });
+    };
+    let card = await open();
     await expect(card.getByRole("checkbox", { name: "Pokaż szczyt OVR" })).toHaveCount(0);
     await page.keyboard.press("Escape");
     await expect(card).toBeHidden();
     await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
-    await page.getByRole("button", { name: /^Lionel Messi/u }).click();
-    card = page.getByRole("dialog", { name: "Lionel Messi" });
-    const row = card.locator(".facts > div").filter({ hasText: /^Napastnik/u });
-    await expect(row.getByText(/szczyt/u)).toHaveCount(0);
+    card = await open();
+    const row = (label: RegExp) => card.locator(".facts > div").filter({ hasText: label });
+    await expect(row(/^Napastnik/u).getByText(/szczyt/u)).toHaveCount(0);
     await card.getByRole("checkbox", { name: "Pokaż szczyt OVR" }).check();
-    await expect(row.getByRole("definition")).toHaveText(/szczyt \d+$/u);
+    // Two positions, two peaks: each row takes its own.
+    await expect(row(/^Napastnik/u).getByRole("definition")).toHaveText(/ · szczyt 49$/u);
+    await expect(row(/^Środkowy obrońca/u).getByRole("definition")).toHaveText(/ · szczyt 61$/u);
   });
 });
