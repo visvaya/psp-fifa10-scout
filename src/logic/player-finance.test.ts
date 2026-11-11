@@ -209,6 +209,8 @@ describe("career prices and wages", () => {
     expect(player).toMatchObject({
       price: roundPrice(priceInEuro(oneYear)),
       wage: roundPrice(wageInEuro(oneYear, false)),
+      // The shown years count from the same season as the price: 2011 from 2010/11 is one.
+      contractYearsLeft: 1,
     });
   });
 

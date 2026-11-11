@@ -217,6 +217,8 @@ describe("buildPlayers from fifa.db", () => {
       leagueId: 53,
       leagueName: "Spain Primera Division (1)",
       contractEndYear: 2014,
+      // Without a career, counted from the season the database starts (2009).
+      contractYearsLeft: 5,
       jerseyNumber: 10,
       nationalTeamId: 1369,
       nationalTeamName: "Argentina",
@@ -286,6 +288,8 @@ describe("buildPlayers with a career save", () => {
       leagueName: "Rest of World",
       jerseyNumber: 9,
       contractEndYear: 2012,
+      // The game counts the years from the year the save's season started (2009).
+      contractYearsLeft: 3,
     });
     // The save links clubs only; the national team comes from fifa.db.
     expect(byId(players, 158_023)).toMatchObject({ nationalTeamName: "Argentina", clubId: 241 });

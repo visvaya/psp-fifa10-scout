@@ -357,6 +357,7 @@ const clubSection = ({ filters, change, facets, range, list, flag, eye }: Kit, c
         change({ ranges: { ...filters.ranges, contractEndYear: next } });
       }}
     />
+    {range("contractYearsLeft")}
     {flag("nationalTeam")}
     {career ? <CareerClubFields filters={filters} change={change} /> : null}
   </Section>

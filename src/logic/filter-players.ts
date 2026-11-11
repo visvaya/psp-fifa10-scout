@@ -28,6 +28,7 @@ const RANGE_FIELDS = [
   "leaguePrestige",
   "clubPrestige",
   "contractEndYear",
+  "contractYearsLeft",
   "form",
   "morale",
   ...SEASON_STAT_KEYS,

@@ -19,6 +19,17 @@ const panelOf = async (page: Page, button: Locator): Promise<Locator> => {
 };
 
 /** The panel lies within the viewport's width. */
+/** The right edges of elements on the screen. */
+const rightEdges = (elements: Element[]): number[] =>
+  elements.map((element) => element.getBoundingClientRect().right);
+
+/** The card's "?" nearest its right edge, whichever field the card's layout puts there. */
+const rightmostHelp = async (card: Locator): Promise<Locator> => {
+  const buttons = card.locator(".facts").getByRole("button", { name: /^Wyjaśnienie: /u });
+  const edges = await buttons.evaluateAll(rightEdges);
+  return buttons.nth(edges.indexOf(Math.max(...edges)));
+};
+
 const expectOnScreen = async (page: Page, panel: Locator) => {
   const box = await panel.boundingBox();
   const width = page.viewportSize()?.width ?? 0;
@@ -126,7 +137,7 @@ test.describe("field explanations on the wide card", () => {
     await loadCareer(page);
     await page.getByRole("button", { name: "Lionel Messi" }).click();
     const card = page.getByRole("dialog", { name: "Lionel Messi" });
-    const button = card.getByRole("button", { name: "Wyjaśnienie: Zarobki rynkowe" });
+    const button = await rightmostHelp(card);
     await button.click();
     const panel = await panelOf(page, button);
     await expect(panel).toBeVisible();

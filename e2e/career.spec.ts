@@ -370,3 +370,24 @@ test.describe("season totals", () => {
     await expect(cardValue(card, "Gole ogółem")).toHaveText("4");
   });
 });
+
+test.describe("contract years", () => {
+  // Owner, 2026-11-10: the years left as the game counts them (end year minus the season's start
+  // year), shown and ranged from and to.
+  test("shows the years left on the contract and filters by them", async ({ page }) => {
+    await loadCareer(page);
+    await page.getByRole("searchbox", { name: "Nazwisko" }).fill("messi");
+    await page.getByText("Klub i kontrakt", { exact: true }).click();
+    const years = page.getByRole("group", { name: "Lata kontraktu" });
+    await years.getByLabel("od").fill("5");
+    await years.getByLabel("do").fill("5");
+    await expectCount(page, "1\u00a0zawodnik");
+    await years.getByLabel("od").fill("6");
+    await expectCount(page, "0 zawodników");
+    await years.getByLabel("od").fill("5");
+    await page.getByRole("button", { name: /^Lionel Messi/u }).click();
+    const card = page.getByRole("dialog", { name: "Lionel Messi" });
+    await expect(cardValue(card, "Kontrakt do")).toHaveText("2014");
+    await expect(cardValue(card, "Lata kontraktu")).toHaveText("5");
+  });
+});

@@ -42,6 +42,8 @@ const FIELD_BOUNDS: Readonly<Record<RangeFields, FieldBounds>> = {
   leaguePrestige: whole(0, 20),
   clubPrestige: whole(0, 20),
   contractEndYear: whole(2005, 2030),
+  // The end years 2005..2030 from a season the game starts in 2009 or later.
+  contractYearsLeft: whole(0, 21),
   // playerstats.form / 10: a match counts 10..100, so KR stays within 1,0..10,0 (season-stats spec §4.1).
   form: { min: 1, max: 10, step: 0.1 },
   morale: whole(0, 99),
