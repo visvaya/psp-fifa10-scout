@@ -176,9 +176,21 @@ describe("offerTerms", () => {
       const needed = 5 - Math.trunc((65 - overall) * 0.75);
       for (const bonusPercent of BONUS_PERCENTS) {
         const terms = offerTerms(player({ overall }), CONTEXT, { ...DEFAULT_CHOICE, bonusPercent });
-        expect(terms?.wage).toBe(scan(needed, bonusPercent));
+        // The form takes no wage under half the market wage (below).
+        expect(terms?.wage).toBe(Math.max(scan(needed, bonusPercent), 1500));
       }
     }
+  });
+
+  // The offer form takes no fee under half the value and no wage under half the market wage (handler
+  // 0x08893648), however many points a cheaper offer would leave to spare.
+  it("asks for no less than the form takes, half the value and half the market wage", () => {
+    const novice = player({ overall: 30 });
+    expect(offerTerms(novice, CONTEXT)?.wage).toBe(1500);
+    expect(offerTerms(novice, CONTEXT, { ...DEFAULT_CHOICE, bonusPercent: 15 })?.wage).toBe(1500);
+    const listed = player({ transferListed: true, price: 100_000 });
+    expect(offerTerms(listed, { ...CONTEXT, prestige: 10, negotiator: 10 })?.fee).toBe(66_102);
+    expect(offerTerms(listed, { ...CONTEXT, prestige: 99, negotiator: 99 })?.fee).toBe(50_000);
   });
 
   it("skips the club when the contract has run out, and needs a wage", () => {
