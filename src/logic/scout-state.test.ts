@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { activeFilters, DEFAULT_SORT, initialScoutState, scoutReducer } from "./scout-state.ts";
+import { activeFilters } from "./filter-changes.ts";
+import { DEFAULT_SORT, initialScoutState, scoutReducer } from "./scout-state.ts";
 import type { FilterId, ScoutState } from "./scout-state.ts";
 import { actionOf } from "./worker-action.ts";
 import { listedCount } from "./effective-filters.ts";

@@ -7,6 +7,7 @@ export const actionOf = (message: WorkerMessage): ScoutAction => {
   const { requestId } = message;
   if (message.type === "phase") return { type: "load-phase", requestId, phase: message.phase };
   if (message.type === "failed") return { type: "load-failed", requestId, error: message.error };
+  if (message.type === "signed") return { type: "signed-built", players: message.players };
   const { gameDb: _gameDb, ...result } = message.result;
   return { type: "load-succeeded", requestId, ...result };
 };

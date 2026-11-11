@@ -80,6 +80,20 @@ const startWorker = (onMessage: (message: WorkerMessage) => void, onFailed: () =
   };
 };
 
+/**
+ * Asks the worker for a load's list after signing; a gone worker builds none. The UI asks only after
+ * the latest load ended, so the reply comes before the end of any later load.
+ */
+const requestSigned = (
+  dispatch: Dispatch<ScoutAction>,
+  worker: Pick<ReturnType<typeof startWorker>, "post"> | null,
+  requestId: number,
+) => {
+  dispatch({ type: "signed-requested" });
+  if (worker?.post({ type: "signed", requestId }) !== true)
+    dispatch({ type: "signed-built", players: null });
+};
+
 export const createSession = (dispatch: Dispatch<ScoutAction>, onStorageFailed: () => void) => {
   let worker: ReturnType<typeof startWorker> | null = null;
   /** The store once open; saves wait for it, so a game picked before it opens is still kept. */
@@ -97,7 +111,10 @@ export const createSession = (dispatch: Dispatch<ScoutAction>, onStorageFailed: 
     const latest = message.requestId === lastRequestId;
     if (latest && message.type === "failed" && message.error.stage === "save")
       pending = saveMemory.kept();
-    dispatch(actionOf(message));
+    // The state hears the latest load only: a superseded load's late failure must not end the list
+    // after signing that the shown players wait for. That list itself is always theirs: the worker
+    // answers before it starts any load asked for later.
+    if (latest || message.type === "signed") dispatch(actionOf(message));
   };
   const workerFailed = () => finish(workerFailure(lastRequestId));
 
@@ -142,6 +159,7 @@ export const createSession = (dispatch: Dispatch<ScoutAction>, onStorageFailed: 
       return stored.gameDb !== null;
     },
     close: () => worker?.terminate(),
+    requestSigned: () => requestSigned(dispatch, worker, lastRequestId),
     pickGame: (file: File) => start(file, { gameName: file.name }),
     pickSave: (files: readonly File[]) => pickFiles("save", pickSaveFiles(files)),
     pickLocale: (files: readonly File[]) => pickFiles("locale", pickLocaleFiles(files)),
@@ -188,6 +206,7 @@ export const useScoutFiles = (dispatch: Dispatch<ScoutAction>) => {
     pickSave: session.pickSave,
     pickLocale: session.pickLocale,
     forgetSave: session.forgetSave,
+    requestSigned: session.requestSigned,
     savePreferences: session.savePreferences,
     saveLanguages: session.saveLanguages,
     saveWatchlist: session.saveWatchlist,

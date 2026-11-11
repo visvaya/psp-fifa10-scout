@@ -209,7 +209,8 @@ export const scrollToEnd = (element: Element) => {
 /** The first row's cell in the column whose heading starts with the text. */
 export const firstCellOf = async (page: Page, heading: string) => {
   const headings = await page.locator("thead th").allTextContents();
-  const index = headings.findIndex((text) => text.startsWith(heading));
+  // A sorted column's heading starts with its direction mark.
+  const index = headings.findIndex((text) => text.replace(/^[▲▼]/u, "").startsWith(heading));
   expect(index).toBeGreaterThan(0);
   return page.locator("tbody tr[aria-rowindex]").first().locator("th, td").nth(index);
 };

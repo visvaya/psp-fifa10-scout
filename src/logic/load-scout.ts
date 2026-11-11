@@ -93,12 +93,26 @@ export interface LoadResult {
   readonly attachedLanguage: string | null;
 }
 
-/** Messages between the UI and the worker; requestId lets the UI drop results of a superseded load. */
-export type WorkerRequest = LoadRequest & { readonly requestId: number };
+/** Builds the loaded career's players as the game rates them once signed (signed-list.ts). */
+export type SignedBuild = () => readonly Player[];
+
+/**
+ * Messages between the UI and the worker; requestId lets the UI drop results of a superseded load. A
+ * "signed" request asks for the list after signing of the players the UI shows (scout-worker.ts).
+ */
+export type WorkerRequest =
+  | (LoadRequest & { readonly requestId: number })
+  | { readonly type: "signed"; readonly requestId: number };
 export type WorkerMessage =
   | { readonly type: "phase"; readonly requestId: number; readonly phase: LoadPhase }
   | { readonly type: "done"; readonly requestId: number; readonly result: LoadResult }
-  | { readonly type: "failed"; readonly requestId: number; readonly error: LoadError };
+  | { readonly type: "failed"; readonly requestId: number; readonly error: LoadError }
+  | {
+      readonly type: "signed";
+      readonly requestId: number;
+      /** null: the list could not be built. */
+      readonly players: readonly Player[] | null;
+    };
 
 /** What went wrong in user terms: only SaveFormatError comes from the file itself. */
 export const classifyLoadError = (stage: LoadStage, error: unknown): LoadError => {
@@ -172,10 +186,14 @@ const readLanguages = async (db: EaDb, { game, locale }: LoadInput): Promise<Gam
   });
 };
 
-/** Reads the game database, its languages and the optional save; throws LoadFailure. */
+/**
+ * Reads the game database, its languages and the optional save; throws LoadFailure. onCareer gets the
+ * build of the list after signing, for the worker to keep until the UI asks for it.
+ */
 export const loadScout = async (
   input: LoadInput,
   onPhase: (phase: LoadPhase) => void,
+  onCareer?: (build: SignedBuild) => void,
 ): Promise<LoadResult> => {
   onPhase("game");
   const { game, save } = input;
@@ -209,6 +227,7 @@ export const loadScout = async (
     const built = buildPlayers(db, career, names.curves);
     return { players: built, offer: offerContextOf(db, career, built) };
   });
+  onCareer?.(() => buildPlayers(db, career, names.curves, true));
   const clubName = players.find((player) => player.clubId === teamId)?.clubName ?? null;
   return {
     players,

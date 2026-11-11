@@ -26,6 +26,7 @@ import {
   overallsByAge,
   peaksByPositionCode,
   potentialDeltas,
+  signingDelta,
   readCurves,
 } from "./overall-rating.ts";
 import type { Curves } from "./overall-rating.ts";
@@ -292,12 +293,25 @@ export const withNameOrder = (
     players.map((player) => Object.freeze({ ...player, nameOrder: order.get(player) ?? 0 })),
   );
 };
+/**
+ * A player's potential_delta: the save's for the user's squad; outside it none, or after signing the one
+ * the game gives then.
+ */
+const deltaOf =
+  (deltas: ReadonlyMap<number, number>, afterSigning: boolean) =>
+  (row: EaDbRow): number =>
+    deltas.get(num(row, "playerid")) ?? (afterSigning ? signingDelta(row) : 0);
 
 /**
  * Attributes and OVR from fifa.db without a save; with one, aged to the season's first match day, as
  * the game shows them in the career (overall-rating.md).
  */
-const rater = (db: EaDb, save: CareerSave | undefined, read?: Curves): Context["rate"] => {
+const rater = (
+  db: EaDb,
+  save: CareerSave | undefined,
+  read: Curves | undefined,
+  afterSigning: boolean,
+): Context["rate"] => {
   if (save === undefined)
     return (row) => {
       const attributes = attributesOf(row);
@@ -310,11 +324,11 @@ const rater = (db: EaDb, save: CareerSave | undefined, read?: Curves): Context["
       };
     };
   const curves = read ?? readCurves(db);
-  const deltas = potentialDeltas(db, save);
+  const delta = deltaOf(potentialDeltas(db, save), afterSigning);
   const gains = attributeGains(db, save);
   const date = seasonStartDate(db, save);
   return (row) => {
-    const potential = num(row, "potential") + (deltas.get(num(row, "playerid")) ?? 0);
+    const potential = num(row, "potential") + delta(row);
     const gain = gains.get(num(row, "playerid"));
     const input = {
       // The gains count before ageing, as the database attributes they add to.
@@ -372,9 +386,15 @@ const datesOf = (db: EaDb, save: CareerSave | undefined) => {
 /**
  * Every player with his club and nationality; youth-pool players only when a team link, or the
  * save's youth academy, transfer list or shortlist, places them. With a save, links and stats come from it and ages are taken on its last game date.
- * `curves`: the database's curves when the caller has read them already.
+ * `curves`: the database's curves when the caller has read them already. `afterSigning`: players
+ * outside the user's squad as the game rates them once signed, their potential up by signingDelta.
  */
-export const buildPlayers = (db: EaDb, save?: CareerSave, curves?: Curves): readonly Player[] => {
+export const buildPlayers = (
+  db: EaDb,
+  save?: CareerSave,
+  curves?: Curves,
+  afterSigning = false,
+): readonly Player[] => {
   const links =
     save === undefined
       ? readTable(db, "teamplayerlinks")
@@ -403,7 +423,7 @@ export const buildPlayers = (db: EaDb, save?: CareerSave, curves?: Curves): read
         .filter((row) => num(row, "teamid") === SCOUT_CONFIG.freeAgentTeamId)
         .map((row) => num(row, "playerid")),
     ),
-    rate: rater(db, save, curves),
+    rate: rater(db, save, curves, afterSigning),
     formationCodes: save === undefined ? [] : userFormationCodes(db, save),
     finance:
       save === undefined

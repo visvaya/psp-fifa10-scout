@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { facetOptions } from "./facets.ts";
 import { attributeBand } from "./attribute-band.ts";
-import { activeFilters, compactFilters } from "./scout-state.ts";
+import { activeFilters, compactFilters } from "./filter-changes.ts";
 import { testPlayer } from "./test-support/player-fixtures.ts";
 
 describe("activeFilters", () => {

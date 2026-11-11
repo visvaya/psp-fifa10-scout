@@ -8,6 +8,7 @@ import { buildIso } from "../data/test-support/synthetic-iso.ts";
 import { buildParamSfo } from "../data/test-support/synthetic-save.ts";
 import { classifyLoadError, loadScout, pickLocaleFiles, pickSaveFiles } from "./load-scout.ts";
 import type { FileSource, LoadInput, LoadPhase } from "./load-scout.ts";
+import type { Player } from "./players.ts";
 import {
   buildPlainSave,
   buildScoutDb,
@@ -102,6 +103,7 @@ describe("loadScout", () => {
 
   it("applies a career save and names the user's team", async () => {
     const phases: LoadPhase[] = [];
+    let signed: readonly Player[] | undefined;
     const { dataBin, paramSfo } = buildPlainSave();
     const result = await loadScout(
       {
@@ -109,9 +111,19 @@ describe("loadScout", () => {
         save: { dataBin: source(dataBin), paramSfo: source(paramSfo) },
       },
       (phase) => phases.push(phase),
+      (build) => {
+        signed = build();
+      },
     );
     expect(phases).toEqual(["game", "save", "players"]);
     expect(result.myTeamId).toBe(SCOUT_USER_TEAM_ID);
+    // The list after signing: the same players, some potentials up (the squad's, players.test.ts).
+    const raised = (signed ?? []).filter((player) => {
+      const before = result.players.find((candidate) => candidate.id === player.id);
+      return before !== undefined && player.potential > before.potential;
+    });
+    expect(signed).toHaveLength(result.players.length);
+    expect(raised.length).toBeGreaterThan(0);
     expect(result.career).toMatchObject({
       managerName: "Anna Kariera",
       clubName: "Wisła Kraków",

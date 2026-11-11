@@ -4,7 +4,7 @@ import type { ColumnPreference } from "./column-preference.ts";
 import { CAREER_SORT_KEYS } from "./filter-players.ts";
 import type { ListKey } from "./filter-players.ts";
 import type { AttributeName } from "./attributes.ts";
-import { inRecordOrder } from "./scout-state.ts";
+import { inRecordOrder } from "./filter-changes.ts";
 import { POTENTIAL_KEYS, RATING_SORT_KEYS, SORTABLE_KEYS } from "./sort-players.ts";
 import type { SortKey } from "./sort-players.ts";
 

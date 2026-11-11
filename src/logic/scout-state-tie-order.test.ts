@@ -74,3 +74,21 @@ describe("the user's order of the best peak tie rules", () => {
     expect(scoutReducer(reordered, { type: "filters-reset" }).tieOrder).toEqual(PREFERRED_FIRST);
   });
 });
+
+/** The best peak position of the list after signing's player, once built. */
+const signedCode = ({ signed }: ScoutState): number | null | undefined =>
+  typeof signed === "object" ? signed[0]?.bestPeakCode : undefined;
+
+describe("the tie order on the list after signing", () => {
+  it("breaks its ties in the chosen order, and again in the default one", () => {
+    const requested = scoutReducer(
+      scoutReducer(loaded(initialScoutState), { type: "after-signing-shown", shown: true }),
+      { type: "signed-requested" },
+    );
+    const built = scoutReducer(requested, { type: "signed-built", players: [striker()] });
+    expect(signedCode(built)).toBe(29);
+    const reordered = chosen(built, PREFERRED_FIRST);
+    expect(signedCode(reordered)).toBe(30);
+    expect(signedCode(chosen(reordered, TIE_RULES))).toBe(29);
+  });
+});

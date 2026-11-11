@@ -354,6 +354,8 @@ export const PlayerCard = (props: {
   curves: Curves;
   /** The user's side of an offer; null without a career and for the user's own players. */
   offer: OfferContext | null;
+  /** The player as an offer counts him: before signing, whatever values the card shows. */
+  offerPlayer: Player;
   showPotential: boolean;
   /** Position names in the chosen language. */
   names: PositionNames;
@@ -379,7 +381,12 @@ export const PlayerCard = (props: {
       />
       <Facts facts={basics(player, showPotential, currency, names)} />
       {offer === null || currency === null ? null : (
-        <OfferFacts key={player.id} player={player} context={offer} currency={currency} />
+        <OfferFacts
+          key={player.id}
+          player={props.offerPlayer}
+          context={offer}
+          currency={currency}
+        />
       )}
       {career ? <CareerFacts player={player} /> : null}
       <section aria-labelledby="profile-title">

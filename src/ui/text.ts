@@ -257,6 +257,13 @@ export const TEXT = {
     lead: "Zalecane.",
     text: pl`Gra nie pokazuje potencjału; to pole go pokazuje, a z zapisem kariery także szczyt OVR i zapas do szczytu.`,
   },
+  /** The switch to values after signing, its "?" and what it says while the list is built (roadmap 56). */
+  afterSigning: {
+    label: pl`Wartość po podpisaniu`,
+    help: pl`Zawodnicy spoza twojego składu z wartościami, jakie gra da im po podpisaniu: przy wejściu do twojego składu potencjał rośnie o szybkość nauki plus resztę z dzielenia potencjału przez 5 (razem od 1 do 9), więc OVR, szczyty i cena, które stały na potencjale, rosną razem z nim. Filtry, sortowanie, kolumny i karta liczą wtedy z tych wartości; formularz oferty dalej liczy dla zawodnika przed transferem. Pierwsze włączenie po wczytaniu plików liczy listę kilka sekund.`,
+    pending: pl`Liczę wartości po podpisaniu…`,
+    failed: pl`Nie udało się policzyć wartości po podpisaniu; lista pokazuje wartości sprzed podpisania.`,
+  },
   positionRating: "Ocena na pozycji",
   ratingAt: (position: string): string => `OVR ${position}`,
   ratingChoice: (group: string, abbreviation: string): string => `${group} (${abbreviation})`,
@@ -311,7 +318,7 @@ export const TEXT = {
   undo: "Cofnij",
   /** Filters, sort, columns and the potential switch back to their defaults, after a question. */
   resetSettings: "Resetuj",
-  resetQuestion: pl`Przywrócić domyślne filtry, sortowanie, kolumny, kolejność reguł remisu szczytu i widok bez potencjału? Wgrane pliki, język nazw i zapisane zestawy zostaną.`,
+  resetQuestion: pl`Przywrócić domyślne filtry, sortowanie, kolumny, kolejność reguł remisu szczytu oraz widok bez potencjału i bez wartości po podpisaniu? Wgrane pliki, język nazw i zapisane zestawy zostaną.`,
   cancel: "Anuluj",
   /** Clears one field's filter; the label names the field for screen readers. */
   /** A mark right after a field's name (owner, 2026-11-05: an icon, not a word); the label names it. */

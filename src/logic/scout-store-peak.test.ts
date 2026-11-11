@@ -54,3 +54,20 @@ describe("stored order of the best peak tie rules", () => {
     expect(await loadOrder("formation")).toBeUndefined();
   });
 });
+
+/** The setting after signing loaded from stored preferences that hold `afterSigning`. */
+const loadSigning = async (afterSigning: unknown) => {
+  const backend = memoryBackend();
+  await backend.set("preferences", {
+    schemaVersion: SCHEMA_VERSION.preferences,
+    value: { filters: {}, sort: DEFAULT_SORT, showPotential: false, afterSigning },
+  });
+  return (await createScoutStore(backend).load()).preferences?.afterSigning;
+};
+
+describe("stored values after signing", () => {
+  it("restores the setting only when it is on", async () => {
+    expect(await loadSigning(true)).toBe(true);
+    expect(await loadSigning("yes")).toBeUndefined();
+  });
+});

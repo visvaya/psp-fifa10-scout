@@ -334,6 +334,13 @@ describe("buildPlayers with a career save", () => {
     expect(byId(players, 7)).toMatchObject({ potential: 45, growth: 0 });
   });
 
+  it("after signing, adds the signing delta to players outside the squad, and keeps the squad's", () => {
+    const signed = buildPlayers(DB, SAVE, undefined, true);
+    // Messi: learning speed 4 plus potential 95 mod 5.
+    expect(byId(signed, 158_023)).toMatchObject({ potential: 99, growth: 39 });
+    expect(byId(signed, 7)).toEqual(byId(players, 7));
+  });
+
   it("projects the peak OVR, and the OVR from this season's age to 45, with a save only", () => {
     // Flat curves: the projection stays at today's OVR, at every position and age.
     const messi = byId(players, 158_023);
