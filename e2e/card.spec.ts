@@ -240,6 +240,21 @@ test.describe("development chart", () => {
   });
 });
 
+/**
+ * For each legend item, whether its words start on its mark's line: their first line's top above the
+ * mark's bottom edge. Runs in the page.
+ */
+const wordsBesideMarks = (items: Element[]): boolean[] =>
+  items.map((item) => {
+    const mark = item.querySelector(".legend-mark");
+    if (mark === null) return false;
+    const words = document.createRange();
+    words.selectNodeContents(item);
+    words.setStartAfter(mark);
+    const first = words.getClientRects()[0];
+    return first !== undefined && first.top < mark.getBoundingClientRect().bottom;
+  });
+
 test.describe("development chart on a phone", () => {
   test.use(PHONE);
 
@@ -259,6 +274,22 @@ test.describe("development chart on a phone", () => {
     expect(overflow).toBe(0);
     expect(svgWidth).toBeLessThanOrEqual(bodyWidth);
     await expectNoAxeViolations(page);
+  });
+
+  // The owner, 2026-11-11 (iPhone): the dialog scrolled far past the legend. The data table for screen
+  // readers must not stretch it, and each legend mark stands beside its words, not above them.
+  test("ends the dialog's scroll at the legend, each mark beside its words", async ({ page }) => {
+    await loadCareer(page);
+    await page.getByRole("button", { name: /^Lionel Messi/u }).click();
+    await page.getByRole("button", { name: /^Pokaż krzywą rozwoju: /u }).click();
+    const chart = page.getByRole("dialog", { name: /^Krzywa rozwoju: /u });
+    await expect(chart.locator(".curve-chart > svg")).toBeVisible();
+    // A table ignores the 1px height of .visually-hidden and keeps its rows' height (705px here),
+    // which iOS Safari counts in the dialog's scroll and these engines do not.
+    const hidden = await chart.locator(".curve-chart .visually-hidden").boundingBox();
+    const lines = await chart.locator(".chart-legend li").evaluateAll(wordsBesideMarks);
+    expect(hidden?.height).toBeLessThanOrEqual(1);
+    expect(lines).toEqual([true, true, true]);
   });
 });
 

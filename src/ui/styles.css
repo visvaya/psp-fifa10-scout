@@ -1666,9 +1666,9 @@ input[inputmode="numeric"] {
   list-style: none;
 }
 
+/* The words wrap beside their mark rather than under it. */
 .chart-legend li {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
 }

@@ -83,25 +83,30 @@ const ChartMarks = ({ chart }: { chart: CurveChart }) => {
 const levelName = (chart: CurveChart): string =>
   chart.kind === "ovr" ? TEXT.card.curveOvr : TEXT.card.curveValue;
 
-/** Every age with the chart's value, for screen readers. */
+/**
+ * Every age with the chart's value, for screen readers. Hidden by a wrapper: a table keeps its rows'
+ * height whatever height it is given, and iOS Safari let a dialog scroll through it.
+ */
 const ChartTable = ({ chart }: { chart: CurveChart }) => (
-  <table className="visually-hidden">
-    <caption>{TEXT.card.curve}</caption>
-    <thead>
-      <tr>
-        <th scope="col">{TEXT.card.curveAge}</th>
-        <th scope="col">{levelName(chart)}</th>
-      </tr>
-    </thead>
-    <tbody>
-      {chart.points.map(({ age, value }) => (
-        <tr key={age}>
-          <th scope="row">{age}</th>
-          <td>{formatNumber(value)}</td>
+  <div className="visually-hidden">
+    <table>
+      <caption>{TEXT.card.curve}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{TEXT.card.curveAge}</th>
+          <th scope="col">{levelName(chart)}</th>
         </tr>
-      ))}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {chart.points.map(({ age, value }) => (
+          <tr key={age}>
+            <th scope="row">{age}</th>
+            <td>{formatNumber(value)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
 );
 
 /** A legend item's sample of its mark, drawn as on the chart. */
