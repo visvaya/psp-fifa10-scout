@@ -3,7 +3,8 @@
 // turned into its rank among the distinct values first: text in the given collation (Polish by
 // default), numbers by size, the name by nameOrder.
 import { peakAt, ratingGain } from "./filter-players.ts";
-import { ATTRIBUTE_NAMES, isAttributeName, nameCollator } from "./players.ts";
+import { ATTRIBUTE_NAMES, isAttributeName } from "./players.ts";
+import { nameCollator } from "./player-names.ts";
 import { SEASON_STAT_KEYS } from "./season-stats.ts";
 import type { AttributeName, Player } from "./players.ts";
 

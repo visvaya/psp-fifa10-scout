@@ -32,3 +32,17 @@ export const curveSparklines = (curves: Curves): ((id: number) => Sparkline | nu
     };
   };
 };
+
+/**
+ * His projected OVR (Player.overallByAge) as a polyline, from its highest at the top to its lowest: the
+ * large OVR chart's line in small. Null without a projection.
+ */
+export const ovrSparkline = (overallByAge: readonly number[]): Sparkline | null => {
+  if (overallByAge.length === 0) return null;
+  const top = Math.max(...overallByAge);
+  const height = Math.max(top - Math.min(...overallByAge), 1);
+  return {
+    viewBox: `0 0 ${String(Math.max(overallByAge.length - 1, 1))} ${String(height)}`,
+    points: overallByAge.map((value, index) => `${String(index)},${String(top - value)}`).join(" "),
+  };
+};

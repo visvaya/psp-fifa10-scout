@@ -206,6 +206,7 @@ describe("buildPlayers from fifa.db", () => {
       traits: ["playmaker", "technicaldribbler"],
       overallByCode: byPositionCode((code) => baseOverall(MESSI_ATTRIBUTES, code)),
       peakByCode: [],
+      overallByAge: [],
       attributes: MESSI_ATTRIBUTES,
       clubId: 241,
       clubName: "FC Barcelona",
@@ -336,10 +337,14 @@ describe("buildPlayers with a career save", () => {
     expect(byId(players, 7)).toMatchObject({ potential: 45, growth: 0 });
   });
 
-  it("projects the peak OVR with a save only", () => {
-    // Flat curves: the projection stays at today's OVR, at every position.
-    expect(byId(players, 158_023)).toMatchObject({ peak: 60, overall: 60, peakGain: 0 });
-    expect(byId(players, 158_023)?.peakByCode).toEqual(byId(players, 158_023)?.overallByCode);
+  it("projects the peak OVR, and the OVR from this season's age to 45, with a save only", () => {
+    // Flat curves: the projection stays at today's OVR, at every position and age.
+    const messi = byId(players, 158_023);
+    expect(messi).toMatchObject({ peak: 60, overall: 60, peakGain: 0 });
+    expect(messi?.peakByCode).toEqual(messi?.overallByCode);
+    const ages = 46 - (messi?.seasonAge ?? 0);
+    expect(messi?.overallByAge).toEqual(Array.from({ length: ages }, () => 60));
+    // Without a save (the summary test checks overallByAge empty there too).
     expect(byId(buildPlayers(DB), 158_023)).toMatchObject({ peak: null, ...NO_BEST_PEAK });
   });
 

@@ -253,14 +253,16 @@ export const careerAgeing = (
   curves: Curves,
 ): CareerAgeing => {
   const { attributes, potential, developmentTypeCode: type, developmentStyleCode: style } = player;
-  const curveAt = (id: number, age: number): number => {
-    const values = curveValues(curves, id);
-    return values[clamp(age, CURVE_AGE_MIN, CURVE_AGE_MAX) - CURVE_AGE_MIN] ?? 0;
-  };
+  // His two curves, looked up once: the hot path (every player of a save, many seasons each) reads
+  // them for every attribute of every season.
+  const physical = curveValues(curves, type + 14);
+  const technical = curveValues(curves, skillCurveId(style, type));
+  const curveAt = (values: readonly number[], age: number): number =>
+    values[clamp(age, CURVE_AGE_MIN, CURVE_AGE_MAX) - CURVE_AGE_MIN] ?? 0;
   const age = gameAge(player.birthdate, careerDate);
   const ageRef = gameAge(player.birthdate, CAREER_REFERENCE_DATE);
-  const [physical, technical] = [type + 14, skillCurveId(style, type)];
-  const curveOf = (name: AttributeName): number => (PHYSICAL.has(name) ? physical : technical);
+  const curveOf = (name: AttributeName): readonly number[] =>
+    PHYSICAL.has(name) ? physical : technical;
   const curveAges = Array.from(
     { length: CURVE_AGE_MAX - CURVE_AGE_MIN },
     (_, index) => CURVE_AGE_MIN + index + 1,
@@ -298,6 +300,23 @@ export const cappedOverall = (
   positionCode: number,
   potential: number,
 ): number => cappedRating(weightRow(positionCode), value, potential);
+
+/** The last age of the curves' columns. */
+const CURVE_COLUMN_AGE_MAX = CURVE_AGE_MIN + CURVE_COLUMNS.length - 1;
+
+/**
+ * OVR at a position from his age this season to the curves' last, 45: his attributes aged along their
+ * curves, capped at the potential. A projection, so none for the ages behind him. The large development
+ * chart draws it.
+ */
+export const overallsByAge = (
+  ageing: CareerAgeing,
+  positionCode: number,
+  potential: number,
+): readonly number[] =>
+  Array.from({ length: Math.max(0, CURVE_COLUMN_AGE_MAX - ageing.age + 1) }, (_, years) =>
+    cappedOverall(ageing.attributesIn(years), positionCode, potential),
+  );
 
 /** The weight rows that differ, and the attributes they weigh. */
 const DISTINCT_ROWS = [...new Set(OVR_WEIGHTS)];

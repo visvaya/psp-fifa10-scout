@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { curveChart } from "./curve-chart.ts";
+import { curveChart, ovrChart } from "./curve-chart.ts";
 import { CURVE_COLUMNS } from "./overall-rating.ts";
 
 /** Each age of the table, 15..45, at `value(age)`. */
@@ -82,5 +82,34 @@ describe("curveChart", () => {
     [1, 46, "after"],
   ] as const)("places curve %i at age %i %s its peak", (id, age, phase) => {
     expect(curveChart(CURVES, id, age)?.phase).toBe(phase);
+  });
+});
+
+// Owner, 2026-11-07: with a career the large chart's axis is his OVR, projected from this season's age.
+describe("ovrChart", () => {
+  // 22 this season: 60, then 62, 64 at 24, 64, 63 at 26.
+  const chart = ovrChart([60, 62, 64, 64, 63], 22);
+
+  it("spans his ages from this season's to the last projected, on the plot's width", () => {
+    expect(chart?.kind).toBe("ovr");
+    expect(chart?.points).toHaveLength(5);
+    expect(chart?.points[0]).toMatchObject({ age: 22, value: 60, x: 36, y: 216 });
+    expect(chart?.points.at(-1)).toMatchObject({ age: 26, x: 276 });
+    // Ticks at the ages that end in 0 or 5.
+    expect(chart?.ageTicks.map((tick) => tick.label)).toEqual([25]);
+  });
+
+  it("puts his lowest to highest OVR on y and marks the peak, its ages and this season", () => {
+    expect(chart?.points[2]?.y).toBe(56);
+    expect(chart?.peak).toMatchObject({ age: 24, value: 64 });
+    expect(chart?.now).toMatchObject({ age: 22, value: 60 });
+    // 98 % of 64 is 62,72: 64, 64 and 63.
+    expect(chart?.plateau).toMatchObject({ from: 24, to: 26 });
+    expect(chart?.phase).toBe("before");
+  });
+
+  it("draws one season too, and nothing without a projection", () => {
+    expect(ovrChart([70], 45)?.points).toEqual([{ age: 45, value: 70, x: 36, y: 56 }]);
+    expect(ovrChart([], 22)).toBeNull();
   });
 });
