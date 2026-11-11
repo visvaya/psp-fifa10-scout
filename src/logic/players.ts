@@ -369,13 +369,6 @@ const datesOf = (db: EaDb, save: CareerSave | undefined) => {
   };
 };
 
-/** The user's club's league prestige plus team prestige; null when the save names no known club. */
-const userPrestigeOf = (
-  db: EaDb,
-  save: CareerSave,
-  teams: ReturnType<typeof teamsById>,
-): number | null => teams.get(careerManager(db, save).teamId)?.prestige ?? null;
-
 /**
  * Every player with his club and nationality; youth-pool players only when a team link, or the
  * save's youth academy, transfer list or shortlist, places them. With a save, links and stats come from it and ages are taken on its last game date.
@@ -415,7 +408,10 @@ export const buildPlayers = (db: EaDb, save?: CareerSave, curves?: Curves): read
     finance:
       save === undefined
         ? null
-        : financeOf(db, save, market.loanedFrom, userPrestigeOf(db, save, teams)),
+        : financeOf(db, save, {
+            loanedFrom: market.loanedFrom,
+            prestigeOf: (teamId) => teams.get(teamId)?.prestige ?? null,
+          }),
     saleVerdict: save === undefined ? null : saleVerdictOf(db, save, placements),
   };
   // The game keeps generated players out of the leagues until it places them (overall-rating.md, F2).

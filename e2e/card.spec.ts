@@ -64,6 +64,11 @@ test.describe("player card", () => {
     );
     await expect(cardValue(card, "Siła klubu")).toHaveText("66");
     await expect(cardValue(card, "Siła klubu macierzystego")).toHaveText("84");
+    // Once back at his parent club: the renewal's draw and the prices it can give (owner, 2026-11-10).
+    await expect(cardValue(card, "Kontrakt po powrocie")).toHaveText(
+      /^od\s1\sdo\s5\slat,\slosowo$/u,
+    );
+    await expect(cardValue(card, "Cena po powrocie (prognoza)")).toHaveText(/€$/u);
   });
 
   // Forced colours drop the stars' fill: the value shows as text instead.

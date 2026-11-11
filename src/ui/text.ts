@@ -423,6 +423,12 @@ export const TEXT = {
     price: "Cena",
     wage: RANGE_LABELS.wage,
     contractWage: pl`Zarobki z kontraktu`,
+    /** A loaned player's prospects once back at his parent club: the renewal's draw and the prices for it. */
+    returnContract: pl`Kontrakt po powrocie`,
+    returnContractYears: pl`od 1 do 5 lat, losowo`,
+    returnPrice: pl`Cena po powrocie (prognoza)`,
+    moneyRange: (lowest: string, highest: string): string =>
+      lowest === highest ? lowest : `${lowest} – ${highest}`,
     shortlisted: pl`Na twojej liście życzeń w grze`,
     watched: pl`Na twojej liście w narzędziu`,
     money: (amount: number, currency: CurrencyCode): string =>

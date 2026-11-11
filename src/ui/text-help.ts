@@ -57,6 +57,8 @@ export const FIELD_HELP: Partial<Readonly<Record<RangeKey | ListKey | FlagKey, s
 
 /** Explanations of fields outside the keyed filters. */
 export const HELP_TEXT = {
+  /** A loaned player's prospects once back at his parent club. */
+  loanReturn: pl`Wypożyczenie kończy się z sezonem. Na przełomie sezonu gra przedłuża kontrakt zawodnika w klubie macierzystym o liczbę lat od 1 do 5, losowaną raz dla wszystkich zawodników z wygasającym kontraktem. Cena to zakres wartości według wzoru gry w nowym sezonie (rok starszy, OVR po roku rozwoju, prestiż klubu macierzystego) dla tych długości. U wypożyczonych z twojego klubu pensja z kontraktu zostaje; czy przedłużenie ją zmienia, nie jest sprawdzone.`,
   /** The "?" button's name. */
   label: (field: string): string => `Wyjaśnienie: ${field}`,
   mark: "?",

@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { CurrencyCode } from "../data/career-save.ts";
 import { BONUS_PERCENTS, DEFAULT_CHOICE, offerTerms } from "../logic/offer.ts";
 import type { OfferChoice, OfferContext, OfferTerms } from "../logic/offer.ts";
-import { signedValueIn } from "../logic/player-finance.ts";
+import { valueIn } from "../logic/player-finance.ts";
 import type { Player } from "../logic/players.ts";
 import { Facts } from "./facts.tsx";
 import type { Fact } from "./facts.tsx";
@@ -85,7 +85,7 @@ export const OfferFacts = (props: {
   const terms = offerTerms(player, context, choice);
   if (terms === null) return null;
   const { fee, wage, years, bonus } = terms;
-  const signedValue = signedValueIn(player, years, currency);
+  const signedValue = valueIn(player.signedValuesEuro, years, currency);
   return (
     <section aria-labelledby="offer-title">
       <HelpHeading id="offer-title" title={OFFER_TEXT.title} help={HELP_TEXT.offer} />
