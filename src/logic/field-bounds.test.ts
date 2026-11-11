@@ -19,6 +19,14 @@ describe("the bounds of the range fields", () => {
     expect(boundsOf("weakFoot")).toEqual({ min: 1, max: 5, step: 1 });
   });
 
+  // A total takes the league column and the four cup columns, each at its own maximum.
+  it("bounds a season total by the league and the cups together", () => {
+    expect(boundsOf("totalAppearances")).toEqual({ min: 0, max: 507, step: 1 });
+    expect(boundsOf("totalCleanSheets")).toEqual({ min: 0, max: 507, step: 1 });
+    expect(boundsOf("totalGoals")).toEqual({ min: 0, max: 1531, step: 1 });
+    expect(boundsOf("totalAssists")).toEqual({ min: 0, max: 1531, step: 1 });
+  });
+
   it("moves a value past a bound onto it and leaves the rest, an empty one included", () => {
     expect(boundedValue(boundsOf("form"), 12)).toBe(10);
     expect(boundedValue(boundsOf("form"), 0.4)).toBe(1);

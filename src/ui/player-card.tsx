@@ -7,7 +7,7 @@ import { curveSparklines } from "../logic/curve-sparkline.ts";
 import type { OfferContext } from "../logic/offer.ts";
 import { skillCurveId } from "../logic/overall-rating.ts";
 import type { Curves } from "../logic/overall-rating.ts";
-import { SEASON_STAT_KEYS } from "../logic/players.ts";
+import { SEASON_STAT_KEYS } from "../logic/season-stats.ts";
 import type { PlayerNote } from "../logic/player-notes.ts";
 import type { AttributeName, Player } from "../logic/players.ts";
 import type { ScoutAction } from "../logic/scout-state.ts";
@@ -67,7 +67,11 @@ const known = (label: string, value: string | null, help?: string): readonly Fac
   value === null ? [] : [[label, value, help]];
 
 /** Clean sheets, which the game counts for goalkeepers only. */
-const CLEAN_SHEETS: ReadonlySet<string> = new Set(["cleanSheets", "cupCleanSheets"]);
+const CLEAN_SHEETS: ReadonlySet<string> = new Set([
+  "totalCleanSheets",
+  "cleanSheets",
+  "cupCleanSheets",
+]);
 
 /**
  * His own skill curve, the one his projection follows, when the game has curves; it opens a large chart

@@ -6,6 +6,7 @@ import { NO_BEST_PEAK } from "../best-peak.ts";
 import { CURVE_COLUMNS } from "../overall-rating.ts";
 import type { CareerSummary, LoadResult } from "../load-scout.ts";
 import { NO_FINANCE } from "../player-finance.ts";
+import { seasonStats } from "../season-stats.ts";
 
 type Row = Readonly<Record<string, number | string>>;
 
@@ -138,14 +139,7 @@ export const EMPTY_LOAD_RESULT: LoadResult = {
 export const NO_STATS = {
   form: null,
   morale: null,
-  goals: null,
-  appearances: null,
-  cupAppearances: null,
-  cupGoals: null,
-  assists: null,
-  cupAssists: null,
-  cleanSheets: null,
-  cupCleanSheets: null,
+  ...seasonStats(undefined),
   injuryDays: null,
 } as const;
 
