@@ -291,6 +291,7 @@ export const ListView = (props: ListViewProps): JSX.Element => {
         columns={columns}
         automaticColumns={automatic}
         tieOrder={state.tieOrder ?? TIE_RULES}
+        signing={state}
         dispatch={dispatch}
       />
     </>

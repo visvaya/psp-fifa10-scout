@@ -27,7 +27,8 @@ import { OptionalHelp } from "./field-help.tsx";
 import { codeName } from "./text-code-names.ts";
 import type { CodedKey } from "./text-code-names.ts";
 import type { Choice } from "./filter-fields.tsx";
-import { PotentialSwitch } from "./filter-panel-controls.tsx";
+import { PotentialSwitch, SigningSwitch } from "./filter-panel-controls.tsx";
+import type { SigningState } from "../logic/signed-list.ts";
 import { SettingsActions } from "./settings-actions.tsx";
 import type { Settings } from "./settings-actions.tsx";
 import { FIELD_HELP, HELP_TEXT } from "./text-help.ts";
@@ -63,6 +64,8 @@ interface FilterFormProps {
   readonly automaticColumns: readonly SortKey[];
   /** The order of the rules that break a best peak tie. */
   readonly tieOrder: readonly TieRule[];
+  /** The switch to values after signing and the state of its list; shown with a career only. */
+  readonly signing: SigningState;
   readonly dispatch: Dispatch<ScoutAction>;
 }
 
@@ -374,6 +377,18 @@ const careerSection = ({ range, flag }: Kit) => (
   </Section>
 );
 
+const attributeSection = ({ filters, change, eye }: Kit) => (
+  <Section title={FILTER_SECTION_LABELS.attributes}>
+    <AttributeRanges
+      ranges={filters.ranges}
+      eye={eye}
+      onChange={(name, next) => {
+        change({ ranges: { ...filters.ranges, [name]: next } });
+      }}
+    />
+  </Section>
+);
+
 export const FilterForm = ({
   players,
   collator,
@@ -387,6 +402,7 @@ export const FilterForm = ({
   columns,
   automaticColumns,
   tieOrder,
+  signing,
   dispatch,
 }: FilterFormProps): JSX.Element => {
   const facets = useMemo(
@@ -412,17 +428,10 @@ export const FilterForm = ({
   return (
     <form className="filter-form" onSubmit={(event) => event.preventDefault()}>
       <PotentialSwitch shown={showPotential} dispatch={dispatch} />
+      {myTeamId === null ? null : <SigningSwitch signing={signing} dispatch={dispatch} />}
       {basicSection(kit, showPotential, myTeamId !== null)}
       {physiqueSection(kit)}
-      <Section title={FILTER_SECTION_LABELS.attributes}>
-        <AttributeRanges
-          ranges={filters.ranges}
-          eye={kit.eye}
-          onChange={(name, next) => {
-            change({ ranges: { ...filters.ranges, [name]: next } });
-          }}
-        />
-      </Section>
+      {attributeSection(kit)}
       <Section title={FILTER_SECTION_LABELS.traits} help={TEXT.traitsNote}>
         {PLAY_TRAITS.map(kit.flag)}
       </Section>

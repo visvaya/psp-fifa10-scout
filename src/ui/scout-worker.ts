@@ -34,6 +34,9 @@ const post = (message: WorkerMessage, transfer: Transferable[] = []): void => {
 /** The latest career load's list after signing, built only when the UI asks for it. */
 let signed: { readonly requestId: number; readonly build: SignedBuild } | null = null;
 
+/** The load kept its database for the list after signing. */
+const keepsDatabase = (requestId: number): boolean => signed?.requestId === requestId;
+
 const handleSigned = (requestId: number): void => {
   let players: readonly Player[] | null = null;
   try {
@@ -56,7 +59,10 @@ const handle = async ({ requestId, ...request }: LoadRequest & { requestId: numb
         signed = { requestId, build };
       },
     );
-    post({ type: "done", requestId, result }, [result.gameDb.buffer]);
+    // The bytes go to the UI without a copy, which detaches them here; the list after signing still
+    // reads the database, so a career's load sends a copy and keeps them.
+    const gameDb = keepsDatabase(requestId) ? result.gameDb.slice() : result.gameDb;
+    post({ type: "done", requestId, result: { ...result, gameDb } }, [gameDb.buffer]);
   } catch (error) {
     const failure = error instanceof LoadFailure ? error.error : classifyLoadError("game", error);
     post({ type: "failed", requestId, error: failure });

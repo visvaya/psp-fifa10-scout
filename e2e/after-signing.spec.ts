@@ -15,7 +15,7 @@ test.describe("values after signing", () => {
     const highest = async () => Number(await (await firstCellOf(page, "Potencjał")).textContent());
     const before = await highest();
 
-    const signing = page.getByLabel("Wartość po podpisaniu");
+    const signing = page.getByRole("checkbox", { name: "Wartość po podpisaniu" });
     await signing.check();
     // The game adds learning speed plus potential mod 5: 1 to 9.
     await expect.poll(highest).toBeGreaterThan(before);
