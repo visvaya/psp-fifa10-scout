@@ -1682,11 +1682,17 @@ input[inputmode="numeric"] {
   list-style: none;
 }
 
-/* The words wrap beside their mark rather than under it. */
+/* The words wrap beside their mark rather than under it, the mark level with their first line; with
+   enlarged text a long word breaks rather than pushing the "?" out of the dialog. */
 .chart-legend li {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: var(--space-2);
+}
+
+.legend-words {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .legend-mark {

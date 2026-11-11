@@ -284,7 +284,8 @@ const wordsBesideMarks = (items: Element[]): boolean[] =>
     words.selectNodeContents(item);
     words.setStartAfter(mark);
     const first = words.getClientRects()[0];
-    return first !== undefined && first.top < mark.getBoundingClientRect().bottom;
+    const box = mark.getBoundingClientRect();
+    return first !== undefined && first.top < box.bottom && first.bottom > box.top;
   });
 
 test.describe("development chart on a phone", () => {
@@ -321,6 +322,33 @@ test.describe("development chart on a phone", () => {
     const hidden = await chart.locator(".curve-chart .visually-hidden").boundingBox();
     const lines = await chart.locator(".chart-legend li").evaluateAll(wordsBesideMarks);
     expect(hidden?.height).toBeLessThanOrEqual(1);
+    expect(lines).toEqual([true, true, true]);
+  });
+
+  // With enlarged text the legend's words wrap over several lines: each mark stays level with their
+  // first line, and the plateau's "?" stays inside the legend's width.
+  test("keeps the legend within its width with enlarged text", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 844 });
+    await loadCareer(page);
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = "32px";
+    });
+    await page.getByRole("button", { name: /^Lionel Messi/u }).click();
+    await page.getByRole("button", { name: /^Pokaż krzywą rozwoju: /u }).click();
+    const chart = page.getByRole("dialog", { name: /^Krzywa rozwoju: /u });
+    const legend = chart.locator(".chart-legend");
+    const help = legend.getByRole("button");
+    await expect(help).toBeVisible();
+    const [overflow, legendBox, helpBox] = await Promise.all([
+      legend.evaluate((element) => element.scrollWidth - element.clientWidth),
+      legend.boundingBox(),
+      help.boundingBox(),
+    ]);
+    const lines = await legend.locator("li").evaluateAll(wordsBesideMarks);
+    expect(overflow).toBe(0);
+    expect((helpBox?.x ?? 0) + (helpBox?.width ?? Infinity)).toBeLessThanOrEqual(
+      (legendBox?.x ?? 0) + (legendBox?.width ?? 0),
+    );
     expect(lines).toEqual([true, true, true]);
   });
 });

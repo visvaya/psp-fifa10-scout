@@ -161,24 +161,30 @@ const ChartLegend = ({ chart }: { chart: CurveChart }) => {
       {now === undefined ? null : (
         <li>
           <LegendMark kind="now" />
-          {TEXT.card.legendNow(
-            now.age,
-            TEXT.card.curvePhases[chart.phase],
-            kind === "ovr" ? now.value : null,
-          )}
+          <span className="legend-words">
+            {TEXT.card.legendNow(
+              now.age,
+              TEXT.card.curvePhases[chart.phase],
+              kind === "ovr" ? now.value : null,
+            )}
+          </span>
         </li>
       )}
       <li>
         <LegendMark kind="plateau" />
-        {TEXT.card.legendPlateau(plateau.from, plateau.to)}
-        <FieldHelp
-          label={TEXT.card.legendPlateau(plateau.from, plateau.to)}
-          text={HELP_TEXT.curvePhase}
-        />
+        <span className="legend-words">
+          {TEXT.card.legendPlateau(plateau.from, plateau.to)}
+          <FieldHelp
+            label={TEXT.card.legendPlateau(plateau.from, plateau.to)}
+            text={HELP_TEXT.curvePhase}
+          />
+        </span>
       </li>
       <li>
         <LegendMark kind="peak" />
-        {TEXT.card.legendPeak(peak.age, peak.value, kind === "ovr")}
+        <span className="legend-words">
+          {TEXT.card.legendPeak(peak.age, peak.value, kind === "ovr")}
+        </span>
       </li>
     </ul>
   );
