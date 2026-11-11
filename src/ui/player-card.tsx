@@ -37,6 +37,7 @@ import { ATTRIBUTE_GROUP_LABELS, ATTRIBUTE_LABELS } from "./text-attributes.ts";
 import { Facts } from "./facts.tsx";
 import type { Fact } from "./facts.tsx";
 import { OfferFacts } from "./offer-facts.tsx";
+import { SigningFacts } from "./signing-facts.tsx";
 import { HelpHeading, WarnedValue } from "./field-help.tsx";
 import { FIELD_HELP, HELP_TEXT, WARNING_TEXT } from "./text-help.ts";
 
@@ -380,6 +381,7 @@ export const PlayerCard = (props: {
         dispatch={dispatch}
       />
       <Facts facts={basics(player, showPotential, currency, names)} />
+      <SigningFacts before={props.offerPlayer} after={player} showPotential={showPotential} />
       {offer === null || currency === null ? null : (
         <OfferFacts
           key={player.id}
@@ -394,19 +396,24 @@ export const PlayerCard = (props: {
         <Facts facts={profile(player, showPotential, props.curves)} />
       </section>
       <ChoiceRatings player={player} names={names} showPotential={showPotential} />
-      <div className="attribute-groups">
-        {ATTRIBUTE_GROUPS.map(([group, attributes]) => (
-          <section key={group} aria-labelledby={`group-${group}`}>
-            <h3 id={`group-${group}`}>{ATTRIBUTE_GROUP_LABELS[group]}</h3>
-            <Facts
-              facts={attributes.map((name) => [
-                ATTRIBUTE_LABELS[name],
-                <AttributeValue key={name} value={player.attributes[name]} />,
-              ])}
-            />
-          </section>
-        ))}
-      </div>
+      <AttributeGroups player={player} />
     </ModalDialog>
   );
 };
+
+/** Every attribute, in the game's groups. */
+const AttributeGroups = ({ player }: { player: Player }) => (
+  <div className="attribute-groups">
+    {ATTRIBUTE_GROUPS.map(([group, attributes]) => (
+      <section key={group} aria-labelledby={`group-${group}`}>
+        <h3 id={`group-${group}`}>{ATTRIBUTE_GROUP_LABELS[group]}</h3>
+        <Facts
+          facts={attributes.map((name) => [
+            ATTRIBUTE_LABELS[name],
+            <AttributeValue key={name} value={player.attributes[name]} />,
+          ])}
+        />
+      </section>
+    ))}
+  </div>
+);
