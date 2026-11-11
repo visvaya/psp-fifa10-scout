@@ -411,6 +411,8 @@ export const FlagField = (props: {
   help: string | undefined;
   wanted: boolean | undefined;
   onChange: (wanted: boolean | undefined) => void;
+  /** The eye of the field's column; unset where it has none. */
+  column?: ColumnToggle | undefined;
 }): JSX.Element => {
   const id = useId();
   return (
@@ -418,6 +420,7 @@ export const FlagField = (props: {
       <div className="field-legend">
         <label htmlFor={id}>{props.label}</label>
         <OptionalHelp label={props.label} help={props.help} />
+        <ColumnEye label={props.label} column={props.column} />
       </div>
       <select
         id={id}
