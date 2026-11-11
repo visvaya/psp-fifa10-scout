@@ -98,7 +98,7 @@ export type SignedBuild = () => readonly Player[];
 
 /**
  * Messages between the UI and the worker; requestId lets the UI drop results of a superseded load. A
- * "signed" request asks for the list after signing of the load with its requestId; null: not built.
+ * "signed" request asks for the list after signing of the players the UI shows (scout-worker.ts).
  */
 export type WorkerRequest =
   | (LoadRequest & { readonly requestId: number })
@@ -110,6 +110,7 @@ export type WorkerMessage =
   | {
       readonly type: "signed";
       readonly requestId: number;
+      /** null: the list could not be built. */
       readonly players: readonly Player[] | null;
     };
 

@@ -401,7 +401,7 @@ const reduced = (state: ScoutState, action: Exclude<ScoutAction, UndoAction>): S
 
 /** The state after an action, with undo for the user's changes and the list after signing in step. */
 export const scoutReducer = withUndo((state, action) =>
-  withSignedList(state, reduced(state, action)),
+  withSignedList(state, reduced(state, action), action),
 );
 
 /** The stored game is loading and nothing shows yet: the list skeleton stands in for it. */

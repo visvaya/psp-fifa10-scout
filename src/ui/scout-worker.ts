@@ -31,16 +31,18 @@ const post = (message: WorkerMessage, transfer: Transferable[] = []): void => {
   globalThis.postMessage(message, { transfer });
 };
 
-/** The latest career load's list after signing, built only when the UI asks for it. */
-let signed: { readonly requestId: number; readonly build: SignedBuild } | null = null;
-
-/** The load kept its database for the list after signing. */
-const keepsDatabase = (requestId: number): boolean => signed?.requestId === requestId;
+/** The id of the latest load asked for: a load it superseded changes nothing here. */
+let latestLoad = 0;
+/**
+ * The list after signing of the players the UI shows: those of the latest load that succeeded, built
+ * only when the UI asks for it; null after a load without a career. A failed load leaves it.
+ */
+let signed: SignedBuild | null = null;
 
 const handleSigned = (requestId: number): void => {
   let players: readonly Player[] | null = null;
   try {
-    if (signed?.requestId === requestId) players = signed.build();
+    players = signed?.() ?? null;
   } catch {
     // A list that cannot be built leaves the players before signing; the UI says so.
   }
@@ -48,7 +50,8 @@ const handleSigned = (requestId: number): void => {
 };
 
 const handle = async ({ requestId, ...request }: LoadRequest & { requestId: number }) => {
-  signed = null;
+  latestLoad = requestId;
+  const career: { build?: SignedBuild } = {};
   try {
     const result = await loadScout(
       inputOf(request),
@@ -56,12 +59,14 @@ const handle = async ({ requestId, ...request }: LoadRequest & { requestId: numb
         post({ type: "phase", requestId, phase });
       },
       (build) => {
-        signed = { requestId, build };
+        career.build = build;
       },
     );
+    const kept = requestId === latestLoad && career.build !== undefined;
+    if (requestId === latestLoad) signed = career.build ?? null;
     // The bytes go to the UI without a copy, which detaches them here; the list after signing still
-    // reads the database, so a career's load sends a copy and keeps them.
-    const gameDb = keepsDatabase(requestId) ? result.gameDb.slice() : result.gameDb;
+    // reads the database, so a kept career's load sends a copy and keeps them.
+    const gameDb = kept ? result.gameDb.slice() : result.gameDb;
     post({ type: "done", requestId, result: { ...result, gameDb } }, [gameDb.buffer]);
   } catch (error) {
     const failure = error instanceof LoadFailure ? error.error : classifyLoadError("game", error);

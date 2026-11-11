@@ -56,6 +56,18 @@ describe("the list after signing", () => {
     expect(shownPlayers(failed)).toEqual([BEFORE]);
   });
 
+  it("fails a list still pending when the worker is gone, and keeps a built one through a failed load", () => {
+    const failure = {
+      type: "load-failed",
+      requestId: 1,
+      error: { stage: "game", kind: "unexpected" },
+    } as const;
+    const pending = scoutReducer(switched(loaded(initialScoutState)), { type: "signed-requested" });
+    expect(scoutReducer(pending, failure).signed).toBe("failed");
+    const ready = built(switched(loaded(initialScoutState)));
+    expect(scoutReducer(ready, failure).signed).toBe(ready.signed);
+  });
+
   it("prices the built list in the shown currency, and again when it changes", () => {
     const pounds = scoutReducer(switched(loaded(initialScoutState)), {
       type: "currency-chosen",

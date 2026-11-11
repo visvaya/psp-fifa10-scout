@@ -2,6 +2,7 @@
 // once signed (buildPlayers, afterSigning). A view setting like the columns: kept in the preferences, out
 // of the filters, the sets and undo. The worker builds that list only when the setting is on, once per
 // load, and the state keeps it beside the players, its best peak ties and money shown as theirs.
+import { TIE_RULES } from "./best-peak.ts";
 import { pricedIn, shownCurrency } from "./currency.ts";
 import type { Player } from "./players.ts";
 import type { ScoutState } from "./scout-state.ts";
@@ -37,10 +38,9 @@ export const isSigningAction = (action: { readonly type: string }): action is Si
 
 /** A built list with the state's best peak tie order and shown currency, as its players have them. */
 const shownAsPlayers = (state: ScoutState, players: readonly Player[]): readonly Player[] => {
+  // Broken again in the default order too: a list broken in another order keeps those ties otherwise.
   const ties =
-    state.tieOrder === undefined
-      ? players
-      : (tiesBroken({ players, career: state.career }, state.tieOrder) ?? players);
+    tiesBroken({ players, career: state.career }, state.tieOrder ?? TIE_RULES) ?? players;
   const currency = shownCurrency(state);
   return currency === null ? ties : pricedIn(ties, currency);
 };
@@ -72,10 +72,16 @@ export const shownPlayers = (state: ScoutState): readonly Player[] | null =>
 /**
  * The state after any action, its list after signing kept in step: a new load drops it (the worker
  * builds it for the career it loaded), and a new tie order or currency applies to it as to the players.
+ * A failed load while it is pending means a gone worker: a reply to an earlier request comes first.
  */
-export const withSignedList = (before: ScoutState, after: ScoutState): ScoutState => {
+export const withSignedList = (
+  before: ScoutState,
+  after: ScoutState,
+  action: { readonly type: string },
+): ScoutState => {
   const { signed } = after;
   if (signed === undefined) return after;
+  if (signed === "pending" && action.type === "load-failed") return { ...after, signed: "failed" };
   if (before.loading !== null && after.loading === null && after.players !== before.players) {
     const { signed: _dropped, ...rest } = after;
     return rest;
