@@ -58,6 +58,30 @@ updates:
       deploy:
         patterns: ["*"]
 
+  - package-ecosystem: docker
+    directory: /.github/gitleaks
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Europe/Warsaw
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: ci
+      include: scope
+
+  - package-ecosystem: docker
+    directory: /.github/actionlint
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Europe/Warsaw
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: ci
+      include: scope
+
   - package-ecosystem: github-actions
     directory: /
     schedule:

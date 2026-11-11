@@ -29,34 +29,30 @@ describe("extractPins", () => {
   });
 
   it("ignores a commented-out pin before the active one", () => {
-    const workflow = "# GITLEAKS_VERSION: 8.0.0\n      GITLEAKS_VERSION: 8.30.1";
-    expect(extractPins(workflow).pins[0]?.pinned).toBe("8.30.1");
+    const workflow = "# ZIZMOR_VERSION: 1.0.0\n      ZIZMOR_VERSION: 1.30.1";
+    expect(extractPins(workflow).pins[0]?.pinned).toBe("1.30.1");
   });
 
   it("reports a rule whose pin is gone", () => {
-    expect(extractPins("GITLEAKS_VERSION: 8.30.1").missing).toEqual(["actionlint", "zizmor"]);
+    expect(extractPins("GITLEAKS_VERSION: 8.30.1").missing).toEqual(["zizmor"]);
   });
 });
 
 /** The latest releases: the pins in formatReport's tests, except where a test says otherwise. */
 const latestReleases = (changed: Readonly<Record<string, string>> = {}) =>
-  new Map(
-    Object.entries({ gitleaks: "8.30.1", actionlint: "1.7.12", zizmor: "1.30.1", ...changed }),
-  );
+  new Map(Object.entries({ zizmor: "1.30.1", ...changed }));
 
 describe("formatReport", () => {
-  const { pins } = extractPins(
-    "GITLEAKS_VERSION: 8.30.1\nACTIONLINT_VERSION: 1.7.12\nZIZMOR_VERSION: 1.30.1",
-  );
+  const { pins } = extractPins("ZIZMOR_VERSION: 1.30.1");
 
   it("passes when every pin is the latest release", () => {
     expect(formatReport(pins, latestReleases(), []).exitCode).toBe(0);
   });
 
   it("fails and says how to bump an outdated pin", () => {
-    const report = formatReport(pins, latestReleases({ gitleaks: "8.31.0" }), []);
+    const report = formatReport(pins, latestReleases({ zizmor: "1.31.0" }), []);
     expect(report.exitCode).toBe(1);
-    expect(report.text).toContain("gitleaks: pinned 8.30.1, latest 8.31.0: OUTDATED");
+    expect(report.text).toContain("zizmor: pinned 1.30.1, latest 1.31.0: OUTDATED");
   });
 
   it("fails when the latest version cannot be read, rather than calling the pin current", () => {

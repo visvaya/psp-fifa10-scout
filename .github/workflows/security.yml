@@ -26,13 +26,11 @@ jobs:
     name: scan
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # Pinned by hand with checksums from each release: Dependabot does not bump a tool downloaded in a
-    # run step. scripts/check-pinned-tools.ts reports newer releases (weekly, below).
+    # gitleaks and actionlint run from images pinned by tag and digest in .github/gitleaks and
+    # .github/actionlint, which Dependabot updates. zizmor is pinned by hand with a checksum: Dependabot does
+    # not bump a tool installed in a run step, so scripts/check-pinned-tools.ts reports newer releases
+    # (weekly, below).
     env:
-      GITLEAKS_VERSION: 8.30.1
-      GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
-      ACTIONLINT_VERSION: 1.7.12
-      ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
       # Checksum of the manylinux x86_64 wheel on PyPI.
       ZIZMOR_VERSION: 1.32.0
       ZIZMOR_SHA256: 84a6acb975accc13408786a2bd274b572537ca19c933ebbc13e78f3988562071
@@ -43,23 +41,16 @@ jobs:
           persist-credentials: false
       - name: Scan the full history for secrets
         run: |
-          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
-          curl -sSfL -o "$RUNNER_TEMP/$archive" \
-            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/$archive"
-          echo "$GITLEAKS_SHA256  $RUNNER_TEMP/$archive" | sha256sum --check
-          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP" gitleaks
-          "$RUNNER_TEMP/gitleaks" git . --redact --no-banner --log-opts=--all
+          docker build --quiet --tag gitleaks .github/gitleaks
+          docker run --rm --volume "$GITHUB_WORKSPACE:/repo" gitleaks \
+            git /repo --redact --no-banner --log-opts=--all
       # actionlint checks that the workflows are correct (expressions, action inputs, ShellCheck on the
       # run scripts); zizmor checks that they are safe.
       - name: Workflows pass actionlint
         if: ${{ !cancelled() }}
         run: |
-          archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
-          curl -sSfL -o "$RUNNER_TEMP/$archive" \
-            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/$archive"
-          echo "$ACTIONLINT_SHA256  $RUNNER_TEMP/$archive" | sha256sum --check
-          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP" actionlint
-          "$RUNNER_TEMP/actionlint" -color
+          docker build --quiet --tag actionlint .github/actionlint
+          docker run --rm --volume "$GITHUB_WORKSPACE:/repo" --workdir /repo actionlint -color
       - name: Workflows pass the zizmor security audit
         if: ${{ !cancelled() }}
         env:
@@ -88,6 +79,4 @@ jobs:
         run: pnpm audit --prod
       - name: Hand-pinned tools are current
         if: ${{ !cancelled() && github.event_name != 'pull_request' && github.event_name != 'push' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: node scripts/check-pinned-tools.ts
