@@ -325,7 +325,7 @@ test.describe("filter panel", () => {
     await expect(chips).toHaveText(["Szybkość: od 90×", "Narodowość: Argentina, Poland×"]);
     await page.getByRole("button", { name: "Usuń atrybut: Szybkość" }).click();
     await page.getByText("Cechy", { exact: true }).click();
-    await page.getByLabel("Drybler techniczny").selectOption("yes");
+    await page.getByLabel("Drybler techniczny", { exact: true }).selectOption("yes");
     await expectCount(page, "1 zawodnik");
     await page.getByRole("button", { name: "Usuń filtr: Drybler techniczny: tak" }).click();
     await expectCount(page, "62 zawodników");

@@ -1,7 +1,8 @@
 // The columns both layouts show, from one place: what the filters and the sort choose on their own (the
 // table's here, the phone rows' in phone-columns.ts), less what the user hid and plus what they showed.
 import type { ColumnPreference } from "./column-preference.ts";
-import { CAREER_RANGE_KEYS } from "./filter-players.ts";
+import { CAREER_SORT_KEYS } from "./filter-players.ts";
+import type { ListKey } from "./filter-players.ts";
 import type { AttributeName } from "./attributes.ts";
 import { inRecordOrder } from "./scout-state.ts";
 import { POTENTIAL_KEYS, RATING_SORT_KEYS, SORTABLE_KEYS } from "./sort-players.ts";
@@ -25,8 +26,21 @@ const TABLE_ATTRIBUTES: readonly AttributeName[] = [
   "reactions",
 ];
 
+/** The list column of each list filter whose value it shows. */
+export const LIST_COLUMNS: Readonly<Record<ListKey, SortKey>> = {
+  positionCode: "positionCode",
+  positionGroup: "positionGroup",
+  preferredFoot: "preferredFoot",
+  bodyType: "bodyType",
+  developmentType: "developmentType",
+  developmentStyle: "developmentStyle",
+  leagueId: "leagueName",
+  clubId: "clubName",
+  nationalityId: "nationalityName",
+};
+
 /** The values only a career has, which an override cannot show without one. */
-const CAREER_KEYS: ReadonlySet<SortKey> = new Set([...CAREER_RANGE_KEYS, "positionPeak"]);
+const CAREER_KEYS: ReadonlySet<SortKey> = new Set(CAREER_SORT_KEYS);
 
 /** What decides which keys have values to show or sort by. */
 export interface KeyContext {

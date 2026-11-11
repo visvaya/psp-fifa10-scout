@@ -2,7 +2,8 @@
 // and ties fall back to the name, then the id (nameOrder), so the order is total. Every value is
 // turned into its rank among the distinct values first: text in the given collation (Polish by
 // default), numbers by size, the name by nameOrder.
-import { peakAt, ratingGain } from "./filter-players.ts";
+import { FLAG_KEYS, flagValue, isFlagKey, peakAt, ratingGain } from "./filter-players.ts";
+import type { FlagKey } from "./filter-players.ts";
 import { ATTRIBUTE_NAMES, isAttributeName } from "./attributes.ts";
 import { nameCollator } from "./player-names.ts";
 import { POSITION_GROUPS } from "./positions.ts";
@@ -19,7 +20,13 @@ type ScalarKey = {
  * positionRating: the OVR at a chosen position code; ratingGain: that OVR minus the OVR; positionPeak:
  * the peak OVR there.
  */
-export type SortKey = ScalarKey | AttributeName | "positionRating" | "ratingGain" | "positionPeak";
+export type SortKey =
+  | ScalarKey
+  | AttributeName
+  | FlagKey
+  | "positionRating"
+  | "ratingGain"
+  | "positionPeak";
 export type SortDirection = "ascending" | "descending";
 
 /** Keys whose first click sorts ascending (text, codes, age, position, contract); numbers start high. */
@@ -67,6 +74,8 @@ export const SORTABLE_KEYS: readonly SortKey[] = [
   "ratingGain",
   "positionPeak",
   ...ATTRIBUTE_NAMES,
+  // Yes / no fields start with yes, as numbers start high.
+  ...FLAG_KEYS,
 ];
 
 /** Values that reveal potential: they show only when the user asks for potential. */
@@ -117,6 +126,7 @@ const valueOf = (player: Player, key: SortKey, ratingCode: number | undefined): 
   if (key === "positionGroup") return POSITION_GROUPS.indexOf(player.positionGroup);
   if (key === "positionRating" || key === "ratingGain" || key === "positionPeak")
     return ratingValueOf(player, key, ratingCode ?? null);
+  if (isFlagKey(key)) return flagValue(player, key);
   return isAttributeName(key) ? player.attributes[key] : player[key];
 };
 

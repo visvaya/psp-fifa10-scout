@@ -5,6 +5,7 @@ import {
   bounded,
   CAREER_FLAG_KEYS,
   CAREER_RANGE_KEYS,
+  CAREER_SORT_KEYS,
   FLAG_KEYS,
   isRangeKey,
   LIST_FIELDS,
@@ -341,10 +342,7 @@ const withoutCareer = ({ filters, sort }: Pick<Preferences, "filters" | "sort">)
       ...Object.fromEntries(CAREER_FLAG_KEYS.map((key) => [key, undefined])),
     },
   }),
-  sort:
-    sort.key === "positionPeak" || CAREER_RANGE_KEYS.some((key) => key === sort.key)
-      ? DEFAULT_SORT
-      : sort,
+  sort: CAREER_SORT_KEYS.some((key) => key === sort.key) ? DEFAULT_SORT : sort,
 });
 
 /** A filter set's action; a set loaded without a career leaves out what needs one, the set itself kept. */

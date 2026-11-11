@@ -1,6 +1,7 @@
 import { useId, useMemo } from "react";
 import type { Dispatch, JSX } from "react";
 import type { CurrencyCode } from "../data/career-save.ts";
+import { LIST_COLUMNS } from "../logic/columns.ts";
 import { boundsOf } from "../logic/field-bounds.ts";
 import { CLUB_STATUSES, LIST_MEMBERSHIPS, needsShortlist } from "../logic/filter-players.ts";
 import type { FlagKey, ListKey, ListMembership, RangeKey } from "../logic/filter-players.ts";
@@ -66,19 +67,6 @@ interface FilterFormProps {
 }
 
 type Change = (filters: FilterChange) => void;
-
-/** The list column of each list filter whose value it shows. */
-const LIST_COLUMNS: Readonly<Record<ListKey, SortKey>> = {
-  positionCode: "positionCode",
-  positionGroup: "positionGroup",
-  preferredFoot: "preferredFoot",
-  bodyType: "bodyType",
-  developmentType: "developmentType",
-  developmentStyle: "developmentStyle",
-  leagueId: "leagueName",
-  clubId: "clubName",
-  nationalityId: "nationalityName",
-};
 
 /** Traits about character and renown; the other traits describe play. */
 const CHARACTER_TRAITS: readonly TraitName[] = [
@@ -251,6 +239,7 @@ const controls = (
       onChange={(wanted) => {
         change({ flags: { ...filters.flags, [key]: wanted } });
       }}
+      column={eye(key)}
     />
   ),
 });
