@@ -227,6 +227,27 @@ test.describe("enlarged text", () => {
     const [rowBox, listBox] = await Promise.all([row.boundingBox(), list.boundingBox()]);
     expect(Math.abs((rowBox?.y ?? Number.NaN) - (listBox?.y ?? Number.NaN))).toBeLessThan(4);
   });
+
+  // On the narrowest phone with enlarged text a dialog wraps its title, buttons and facts instead of
+  // scrolling sideways: there the focused "Zamknij" scrolled the chart's title and plot out of view.
+  test("keeps the card and its chart without a sideways scroll", async ({ page }) => {
+    await page.addInitScript(enlargeText);
+    await page.setViewportSize({ width: 320, height: 844 });
+    await loadCareer(page);
+    await page.getByRole("button", { name: /^Lionel Messi/u }).click();
+    const card = page.getByRole("dialog", { name: "Lionel Messi" });
+    const sideways = () =>
+      page
+        .locator("dialog[open]")
+        .last()
+        .evaluate((dialog) => dialog.scrollWidth - dialog.clientWidth);
+    await expect(card).toBeVisible();
+    expect(await sideways()).toBe(0);
+    await card.getByRole("button", { name: /^Pokaż krzywą rozwoju: /u }).click();
+    const chart = page.getByRole("dialog", { name: /^Krzywa rozwoju: /u });
+    await expect(chart.locator(".chart-plot > svg")).toBeVisible();
+    expect(await sideways()).toBe(0);
+  });
 });
 
 test.describe("open dialog", () => {

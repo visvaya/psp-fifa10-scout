@@ -1384,6 +1384,7 @@ input[inputmode="numeric"] {
   /* Above the body's own layers (a half-transparent clear button forms one), which scroll under it. */
   z-index: 2;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
@@ -1407,17 +1408,60 @@ input[inputmode="numeric"] {
   padding-bottom: var(--space-4);
 }
 
+/* The title keeps "Zamknij" beside it while both fit; on a narrow screen with enlarged text the button
+   goes under it rather than pushing the dialog sideways. */
 .dialog-header h2 {
+  flex: 1 1 8rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-size: var(--font-size-lg);
 }
 
+/* A container for the narrow layout below. */
 .dialog-body {
+  container-type: inline-size;
   padding: var(--space-4);
+}
+
+/* Narrower than 14rem only with enlarged text on a narrow phone: a fact's value goes under its label
+   rather than beside it, and a curve's words, stars or a "?" on the next line, instead of pushing the dialog
+   sideways. */
+@container (width < 14rem) {
+  .facts > div {
+    flex-wrap: wrap;
+  }
+
+  .facts dd {
+    margin-inline-start: auto;
+  }
+
+  /* A label, heading or button word longer than the line, such as "międzynarodowa", breaks: hyphenated
+     where the browser can. */
+  .facts dt,
+  .dialog-body h3,
+  .dialog-body .button {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
+
+  .curve-row,
+  .check-help,
+  .heading-help {
+    flex-wrap: wrap;
+    white-space: normal;
+  }
+
+  .facts .stars {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
 }
 
 .facts {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  /* One column narrower than 12rem when the dialog is (enlarged text on a narrow phone). */
+  grid-template-columns: repeat(auto-fill, minmax(min(12rem, 100%), 1fr));
   gap: var(--space-1) var(--space-4);
   margin: 0 0 var(--space-4);
 }
@@ -1488,7 +1532,8 @@ input[inputmode="numeric"] {
 
 .attribute-groups {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  /* One column narrower than 14rem when the dialog is (enlarged text on a narrow phone). */
+  grid-template-columns: repeat(auto-fill, minmax(min(14rem, 100%), 1fr));
   gap: var(--space-4);
 }
 
@@ -1504,8 +1549,10 @@ input[inputmode="numeric"] {
   min-width: 0;
 }
 
+/* One column no wider than the card: a select's longest option no longer sets its width. */
 .offer-controls {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-2);
   margin-bottom: var(--space-2);
 }
