@@ -68,8 +68,13 @@ interface FilterFormProps {
 type Change = (filters: FilterChange) => void;
 
 /** The list column of each list filter whose value it shows. */
-const LIST_COLUMNS: Readonly<Partial<Record<ListKey, SortKey>>> = {
+const LIST_COLUMNS: Readonly<Record<ListKey, SortKey>> = {
   positionCode: "positionCode",
+  positionGroup: "positionGroup",
+  preferredFoot: "preferredFoot",
+  bodyType: "bodyType",
+  developmentType: "developmentType",
+  developmentStyle: "developmentStyle",
   leagueId: "leagueName",
   clubId: "clubName",
   nationalityId: "nationalityName",

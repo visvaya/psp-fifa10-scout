@@ -63,17 +63,30 @@ const nameText =
   (value: unknown, names: ChipNames): string =>
     names.byId(key, Number(value)) ?? String(value);
 
-/** How a chip names one chosen value of each list. */
-const LIST_VALUE_TEXT: Readonly<Record<ListKey, (value: unknown, names: ChipNames) => string>> = {
+/** The lists whose values name themselves, without the game's names: their chips and list columns. */
+export type ChoiceKey =
+  | "positionGroup"
+  | "preferredFoot"
+  | "bodyType"
+  | "developmentType"
+  | "developmentStyle";
+
+/** How a chip and a list column name one value of a list that names itself. */
+export const CHOICE_VALUE_TEXT: Readonly<Record<ChoiceKey, (value: unknown) => string>> = {
   positionGroup: (value) => {
     const group = POSITION_GROUPS.find((item) => item === value);
     return group === undefined ? String(value) : POSITION_GROUP_LABELS[group];
   },
-  positionCode: (value, names) => names.positionName(Number(value)),
   preferredFoot: (value) => (value === "left" ? TEXT.card.left : TEXT.card.right),
   bodyType: codeText("bodyType"),
   developmentType: codeText("developmentType"),
   developmentStyle: codeText("developmentStyle"),
+};
+
+/** How a chip names one chosen value of each list. */
+const LIST_VALUE_TEXT: Readonly<Record<ListKey, (value: unknown, names: ChipNames) => string>> = {
+  ...CHOICE_VALUE_TEXT,
+  positionCode: (value, names) => names.positionName(Number(value)),
   leagueId: nameText("leagueId"),
   clubId: nameText("clubId"),
   nationalityId: nameText("nationalityId"),

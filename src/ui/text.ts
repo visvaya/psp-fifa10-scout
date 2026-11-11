@@ -345,6 +345,8 @@ export const TEXT = {
   /** A column's label with the direction it is sorted in, as its sort button's name. */
   sortedBy: (label: string, direction: "ascending" | "descending"): string =>
     `${label}, ${direction === "ascending" ? "rosnąco" : "malejąco"}`,
+  // A record of labels, alike line by line: jscpd reads it as a copy of itself shifted by a line.
+  // jscpd:ignore-start
   columns: {
     name: "Zawodnik",
     age: "Wiek",
@@ -356,7 +358,13 @@ export const TEXT = {
     price: "Cena",
     overall: "OVR",
     potential: "Potencjał",
+    positionGroup: "Grupa pozycji",
+    preferredFoot: "Noga",
+    bodyType: "Budowa",
+    developmentType: "Typ rozwoju",
+    developmentStyle: "Styl rozwoju",
   },
+  // jscpd:ignore-end
   potentialShort: "POT",
   freeAgent: "wolny zawodnik",
   youth: "junior",
@@ -397,7 +405,7 @@ export const TEXT = {
     curveTitle: (name: string): string => `Krzywa rozwoju: ${name}`,
     /** The large chart's axes and the legend under it, which names each mark once. */
     curveAge: "Wiek",
-    curveValue: "Poziom umiejętności (względny)",
+    curveValue: "Poziom umiejętności",
     curveOvr: "OVR",
     legendNow: (age: number, phase: string, overall: number | null): string =>
       pl`wiek w tym sezonie: ${count(age, YEARS)}, ${phase}` +

@@ -5,6 +5,7 @@
 import { peakAt, ratingGain } from "./filter-players.ts";
 import { ATTRIBUTE_NAMES, isAttributeName } from "./attributes.ts";
 import { nameCollator } from "./player-names.ts";
+import { POSITION_GROUPS } from "./positions.ts";
 import { SEASON_STAT_KEYS } from "./season-stats.ts";
 import type { Player } from "./players.ts";
 import type { AttributeName } from "./attributes.ts";
@@ -21,11 +22,16 @@ type ScalarKey = {
 export type SortKey = ScalarKey | AttributeName | "positionRating" | "ratingGain" | "positionPeak";
 export type SortDirection = "ascending" | "descending";
 
-/** Keys whose first click sorts ascending (text, age, position, contract); numbers start high. */
+/** Keys whose first click sorts ascending (text, codes, age, position, contract); numbers start high. */
 const ASCENDING_FIRST_KEYS = [
   "name",
   "age",
   "positionCode",
+  "positionGroup",
+  "preferredFoot",
+  "bodyType",
+  "developmentType",
+  "developmentStyle",
   "clubName",
   "leagueName",
   "nationalityName",
@@ -107,6 +113,8 @@ export const ratingValueOf = (
 
 const valueOf = (player: Player, key: SortKey, ratingCode: number | undefined): Scalar => {
   if (key === "name") return player.nameOrder;
+  // The groups go from the goal forward, as the game lists them, not by their names.
+  if (key === "positionGroup") return POSITION_GROUPS.indexOf(player.positionGroup);
   if (key === "positionRating" || key === "ratingGain" || key === "positionPeak")
     return ratingValueOf(player, key, ratingCode ?? null);
   return isAttributeName(key) ? player.attributes[key] : player[key];

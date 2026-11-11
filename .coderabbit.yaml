@@ -29,4 +29,7 @@ reviews:
       instructions: >-
         User-facing text only in the text modules src/ui/text.ts and src/ui/text-*.ts (Polish; one part
         per screen once text.ts nears its size limit); styling only from CSS tokens in styles.css, no
-        inline styles (the Content Security Policy in public/_headers blocks them); accessible markup.
+        style attributes or style elements in markup (the Content Security Policy in public/_headers
+        blocks them). Geometry measured at run time (a virtual list's sizes, a position over a chart) may
+        go through React's style prop: React writes it through the CSSOM, which the policy allows, and CSS
+        alone cannot know it. Accessible markup.
