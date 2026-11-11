@@ -85,6 +85,20 @@ describe("sortPlayers", () => {
     expect(order("descending")).toEqual([5, 3, 1, 2]);
   });
 
+  // Like the end year, the years left start ascending: the contracts that run out first come first.
+  it("sorts by the years left on a contract, ascending first, players without one last", () => {
+    const players = [2, null, 0, 5].map((contractYearsLeft, index) =>
+      testPlayer({ id: index + 1, name: `P${String(index)}`, contractYearsLeft }),
+    );
+    const order = (direction: SortDirection) =>
+      sortPlayers(players, "contractYearsLeft", direction).map((player) => player.id);
+    expect(order("ascending")).toEqual([3, 1, 4, 2]);
+    expect(order("descending")).toEqual([4, 1, 3, 2]);
+    expect(nextDirection({ key: "overall", direction: "descending" }, "contractYearsLeft")).toBe(
+      "ascending",
+    );
+  });
+
   // The sort packs each value into one integer key: a rating with a decimal must not lose a player.
   it("sorts by the rolling match rating (KR), one decimal, keeping every player", () => {
     const rated = PLAYERS.map((player, index) => ({

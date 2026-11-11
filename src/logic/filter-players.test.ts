@@ -155,6 +155,17 @@ describe("filterPlayers", () => {
     expect(kept({ ranges: { wage: { max: 1000 } } })).toEqual([1]);
   });
 
+  it("ranges the years left on a contract, bounds included, without those who have no contract", () => {
+    const players = [0, 3, null, 1].map((contractYearsLeft, index) =>
+      testPlayer({ id: index + 1, contractYearsLeft }),
+    );
+    const kept = (range: { min?: number; max?: number }) =>
+      filterPlayers(players, { ranges: { contractYearsLeft: range } }).map((player) => player.id);
+    expect(kept({ min: 0, max: 1 })).toEqual([1, 4]);
+    expect(kept({ min: 3 })).toEqual([2]);
+    expect(kept({ max: 0 })).toEqual([1]);
+  });
+
   it("leaves out players without the value when a range applies to it", () => {
     expect(ids({ ranges: { clubRating: { max: 99 } } })).toEqual([1, 2, 4]);
     expect(ids({ ranges: { contractEndYear: { max: 2012 } } })).toEqual([1, 4]);
