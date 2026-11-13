@@ -126,7 +126,7 @@ export const flagOf = (countryId: number): ImageName => ({
   names: [`ls${String(countryId)}`],
   shape: "flag",
 });
-/** His real portrait where the game has one, else the composed one. */
+/** The player's real portrait where the game has one, else the composed one. */
 export const portraitOf = (player: Player): ImageName => ({
   names: [realPortraitOf(player.id), player.composedPortrait],
   shape: "portrait",
