@@ -15,10 +15,9 @@ import type { TieRule } from "../logic/best-peak.ts";
 import { curveSparklines } from "../logic/curve-sparkline.ts";
 import { facetOptions } from "../logic/facets.ts";
 import type { FacetOption } from "../logic/facets.ts";
-import { skillCurveId } from "../logic/overall-rating.ts";
 import type { Curves } from "../logic/overall-rating.ts";
 import type { FilterChange, MyClub, ScoutAction, ScoutFilters } from "../logic/scout-state.ts";
-import { CurveSparkline } from "./curve-sparkline.tsx";
+import { styleChoices } from "./curve-sparkline.tsx";
 import { CheckField, ChoiceField, FlagField, RangeField, Section } from "./filter-fields.tsx";
 import { AttributeRanges, ContractField } from "./filter-field-groups.tsx";
 import { columnEye } from "./column-eye.tsx";
@@ -27,7 +26,7 @@ import { OptionalHelp } from "./field-help.tsx";
 import { codeName } from "./text-code-names.ts";
 import type { CodedKey } from "./text-code-names.ts";
 import type { Choice } from "./filter-fields.tsx";
-import { PotentialSwitch, SigningSwitch } from "./filter-panel-controls.tsx";
+import { PortraitSwitch, PotentialSwitch, SigningSwitch } from "./filter-panel-controls.tsx";
 import type { SigningState } from "../logic/signed-list.ts";
 import { SettingsActions } from "./settings-actions.tsx";
 import type { Settings } from "./settings-actions.tsx";
@@ -175,23 +174,6 @@ const facetChoices = (options: readonly FacetOption[]): readonly Choice<number>[
 
 const codeChoices = (codes: readonly number[], key: CodedKey): readonly Choice<number>[] =>
   codes.map((code) => ({ value: code, label: codeName(key, code) }));
-
-/** The typical development type (text-code-names.ts): the styles' curves are drawn for it. */
-const TYPICAL_DEVELOPMENT_TYPE = 2;
-
-/** Each style with its skill curve for the typical development type, when the game has curves. */
-const styleChoices = (
-  codes: readonly number[],
-  sparkline: ReturnType<typeof curveSparklines>,
-): readonly Choice<number>[] =>
-  codes.map((code) => {
-    const line = sparkline(skillCurveId(code, TYPICAL_DEVELOPMENT_TYPE));
-    return {
-      value: code,
-      label: codeName("developmentStyle", code),
-      mark: line && <CurveSparkline line={line} />,
-    };
-  });
 
 /** Ranges of large amounts, typed with grouped digits. */
 const GROUPED_RANGES: ReadonlySet<RangeKey> = new Set(["price", "wage"]);
@@ -430,6 +412,7 @@ export const FilterForm = ({
   return (
     <form className="filter-form" onSubmit={(event) => event.preventDefault()}>
       <PotentialSwitch shown={showPotential} dispatch={dispatch} />
+      <PortraitSwitch shown={settings.approximatePortraits === true} dispatch={dispatch} />
       {myTeamId === null ? null : <SigningSwitch signing={signing} dispatch={dispatch} />}
       {basicSection(kit, showPotential, myTeamId !== null)}
       {physiqueSection(kit)}

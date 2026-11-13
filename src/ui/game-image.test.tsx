@@ -151,8 +151,8 @@ describe("columnImage", () => {
     expect(columnImage("leagueName", freeAgent)).toBeNull();
   });
 
-  it("makes room for a flag at 3:2 like the game's, half as wide again as a crest", () => {
-    expect(columnImageWidth("nationalityName")).toBe(1.5);
+  it("makes room for a flag at 3:2 two thirds as high as a crest, so as wide as one", () => {
+    expect(columnImageWidth("nationalityName")).toBe(1);
     expect(columnImageWidth("clubName")).toBe(1);
     expect(columnImageWidth("age")).toBe(0);
   });

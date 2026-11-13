@@ -55,19 +55,25 @@ describe("stored order of the best peak tie rules", () => {
   });
 });
 
-/** The setting after signing loaded from stored preferences that hold `afterSigning`. */
-const loadSigning = async (afterSigning: unknown) => {
+/** The preferences loaded from stored ones that hold these view switches. */
+const loadSwitches = async (switches: Readonly<Record<string, unknown>>) => {
   const backend = memoryBackend();
   await backend.set("preferences", {
     schemaVersion: SCHEMA_VERSION.preferences,
-    value: { filters: {}, sort: DEFAULT_SORT, showPotential: false, afterSigning },
+    value: { filters: {}, sort: DEFAULT_SORT, showPotential: false, ...switches },
   });
-  return (await createScoutStore(backend).load()).preferences?.afterSigning;
+  return (await createScoutStore(backend).load()).preferences;
 };
 
-describe("stored values after signing", () => {
-  it("restores the setting only when it is on", async () => {
-    expect(await loadSigning(true)).toBe(true);
-    expect(await loadSigning("yes")).toBeUndefined();
+describe("stored view switches", () => {
+  it("restores the values after signing only when on", async () => {
+    expect((await loadSwitches({ afterSigning: true }))?.afterSigning).toBe(true);
+    expect((await loadSwitches({ afterSigning: "yes" }))?.afterSigning).toBeUndefined();
+  });
+
+  it("restores the approximate portraits only when on", async () => {
+    expect((await loadSwitches({ approximatePortraits: true }))?.approximatePortraits).toBe(true);
+    const wrong = await loadSwitches({ approximatePortraits: "yes" });
+    expect(wrong?.approximatePortraits).toBeUndefined();
   });
 });

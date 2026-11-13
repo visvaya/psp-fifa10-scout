@@ -45,7 +45,7 @@
   --topbar-height: 3.5rem;
   --filter-panel-width: 18rem;
   --rating-width: 2.25rem;
-  /* The game's crests and logos before a name; its flags are half as wide again (game-image.tsx). */
+  /* The game's crests and logos before a name; its flags are as wide, at 3:2 (game-image.tsx). */
   --game-image-size: 1.25em;
   /* A portrait's slot before a name in the list: 85 by 75 like the game's, as high as the row allows. */
   --portrait-slot-width: 2em;
@@ -735,9 +735,12 @@ input[inputmode="numeric"] {
   vertical-align: middle;
 }
 
-/* 3:2 as the game shows its 2:1 flag textures (its flag placeholder is 72 by 48), squeezed. */
+/*
+ * 3:2 as the game shows its 2:1 flag textures (its flag placeholder is 72 by 48), squeezed; two thirds
+ * of a crest's height, as larger shows the textures' pixels (owner, 2026-11-13).
+ */
 .game-image.flag {
-  width: calc(1.5 * var(--game-image-size));
+  height: calc(var(--game-image-size) * 2 / 3);
   object-fit: fill;
 }
 
@@ -771,6 +774,17 @@ input[inputmode="numeric"] {
   border-radius: var(--radius-md);
   background: var(--color-line);
   overflow: hidden;
+}
+
+/* Under an approximate portrait: what differs from his own look. */
+.card-portrait:has(+ .portrait-note) {
+  margin-bottom: var(--space-1);
+}
+
+.portrait-note {
+  margin: 0 0 var(--space-3);
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
 }
 
 /* A cell without a value: its dash quieter than the values around it. */

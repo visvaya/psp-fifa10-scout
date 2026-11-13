@@ -9,6 +9,7 @@ import {
   loadCareer,
   loadDatabase,
   PHONE,
+  showPotential,
   test,
 } from "./support.ts";
 
@@ -176,6 +177,7 @@ test.describe("development curves", () => {
   // own under his style, explained behind a "?".
   test("draws the curve beside each style and on the card", async ({ page }) => {
     await loadDatabase(page);
+    await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
     await expandSections(page);
     const styles = page.getByRole("group", { name: "Styl rozwoju", exact: true });
     await expect(styles.locator("label.check svg.sparkline").first()).toBeVisible();
@@ -216,6 +218,7 @@ test.describe("development chart", () => {
   // and the data in a table for screen readers.
   test("opens the large chart from the card and returns to it", async ({ page }) => {
     await loadDatabase(page);
+    await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("brozek");
     await page.getByRole("button", { name: "Paweł Brożek" }).click();
     const card = page.getByRole("dialog", { name: "Paweł Brożek", exact: true });
@@ -256,6 +259,7 @@ test.describe("development chart", () => {
   // Owner, 2026-11-07: with a career the axis is his OVR, projected from this season's age to 45.
   test("draws his projected OVR with a career", async ({ page }) => {
     await loadCareer(page);
+    await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
     await page.getByRole("button", { name: /^Lionel Messi/u }).click();
     const card = page.getByRole("dialog", { name: "Lionel Messi" });
     await card.getByRole("button", { name: "Pokaż krzywą rozwoju: Lionel Messi" }).click();
@@ -293,6 +297,7 @@ test.describe("development chart on a phone", () => {
 
   test("fits the chart's dialog without a horizontal scroll", async ({ page }) => {
     await loadDatabase(page);
+    await showPotential(page);
     await page.locator("[data-player-id]").first().click();
     await page.getByRole("button", { name: /^Pokaż krzywą rozwoju: /u }).click();
     const chart = page.getByRole("dialog", { name: /^Krzywa rozwoju: /u });
@@ -313,6 +318,7 @@ test.describe("development chart on a phone", () => {
   // readers must not stretch it, and each legend mark stands beside its words, not above them.
   test("ends the dialog's scroll at the legend, each mark beside its words", async ({ page }) => {
     await loadCareer(page);
+    await showPotential(page);
     await page.getByRole("button", { name: /^Lionel Messi/u }).click();
     await page.getByRole("button", { name: /^Pokaż krzywą rozwoju: /u }).click();
     const chart = page.getByRole("dialog", { name: /^Krzywa rozwoju: /u });
@@ -330,10 +336,13 @@ test.describe("development chart on a phone", () => {
   test("keeps the legend within its width with enlarged text", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 844 });
     await loadCareer(page);
+    await showPotential(page);
+    await page.getByRole("button", { name: /^Lionel Messi/u }).click();
+    // Enlarged once the card is open: with the potential shown, the list at 320 px and a 32 px root
+    // font shows no rows (a fault of its own, reported apart).
     await page.evaluate(() => {
       document.documentElement.style.fontSize = "32px";
     });
-    await page.getByRole("button", { name: /^Lionel Messi/u }).click();
     await page.getByRole("button", { name: /^Pokaż krzywą rozwoju: /u }).click();
     const chart = page.getByRole("dialog", { name: /^Krzywa rozwoju: /u });
     const legend = chart.locator(".chart-legend");

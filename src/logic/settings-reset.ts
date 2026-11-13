@@ -6,12 +6,19 @@ import type { ScoutState } from "./scout-state.ts";
 /** The settings "Resetuj" brings back. */
 export type ResetSettings = Pick<
   ScoutState,
-  "filters" | "sort" | "showPotential" | "columns" | "tieOrder" | "afterSigning"
+  | "filters"
+  | "sort"
+  | "showPotential"
+  | "columns"
+  | "tieOrder"
+  | "afterSigning"
+  | "approximatePortraits"
 >;
 
 /** The settings as far as they change the list: the active filters, not an empty one. */
 const shownSettings = (settings: ResetSettings): string => {
-  const { filters, sort, showPotential, columns, tieOrder, afterSigning } = settings;
+  const { filters, sort, showPotential, columns, tieOrder, afterSigning, approximatePortraits } =
+    settings;
   return JSON.stringify([
     activeFilters(filters),
     sort,
@@ -19,6 +26,7 @@ const shownSettings = (settings: ResetSettings): string => {
     columns ?? {},
     tieOrder ?? [],
     afterSigning === true,
+    approximatePortraits === true,
   ]);
 };
 

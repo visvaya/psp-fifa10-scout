@@ -6,8 +6,8 @@
 // version or shape is ignored, and
 // unknown or malformed filter values and column overrides are dropped one by one (a record without the
 // columns loads as none, without a chosen currency as the career's, a set without a currency with its
-// amounts in the career's currency, without the order of the best peak tie rules as the default, so
-// they needed no new version).
+// amounts in the career's currency, without the order of the best peak tie rules as the default, without
+// the approximate portraits switch as off, so they needed no new version).
 import type { GameLanguages, GameNames } from "./game-names.ts";
 import {
   bounded,
@@ -234,6 +234,7 @@ const parsePreferences = (value: unknown): Preferences | null => {
     ...(isCurrencyCode(value["currency"]) ? { currency: value["currency"] } : {}),
     ...(Array.isArray(value["tieOrder"]) ? { tieOrder: tieOrderOf(value["tieOrder"]) } : {}),
     ...(value["afterSigning"] === true ? { afterSigning: true } : {}),
+    ...(value["approximatePortraits"] === true ? { approximatePortraits: true } : {}),
   };
 };
 

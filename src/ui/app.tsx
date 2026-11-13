@@ -66,6 +66,7 @@ const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFile
     columns,
     tieOrder,
     afterSigning,
+    approximatePortraits,
     languages,
     watchlist,
     watchlistEdited,
@@ -85,6 +86,7 @@ const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFile
         ...(columns === undefined ? {} : { columns }),
         ...(tieOrder === undefined ? {} : { tieOrder }),
         ...(afterSigning === undefined ? {} : { afterSigning }),
+        ...(approximatePortraits === undefined ? {} : { approximatePortraits }),
       });
     }
   }, [
@@ -99,6 +101,7 @@ const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFile
     columns,
     tieOrder,
     afterSigning,
+    approximatePortraits,
   ]);
 
   useEffect(() => {
@@ -231,7 +234,7 @@ export const App = (props: { registering: Promise<UpdatableRegistration> | null 
   useSignedList(state, files.requestSigned);
 
   return (
-    <GameImages pack={state.graphics}>
+    <GameImages pack={state.graphics} approximate={state.approximatePortraits === true}>
       <div className="app">
         <TopBar state={state} list={list} wide={wide} update={update} dispatch={dispatch} />
         <UpdatePrompt status={update.status} install={update.install} dismiss={update.dismiss} />

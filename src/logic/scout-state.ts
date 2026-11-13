@@ -77,6 +77,8 @@ export interface Preferences extends SigningPreference {
   readonly columns?: ColumnPreference;
   /** The order of the best peak tie rules (tie-order.ts); unset as the default. */
   readonly tieOrder?: readonly TieRule[];
+  /** A lookalike's portrait for a player the game has none of (roadmap 110); unset as off. */
+  readonly approximatePortraits?: true;
 }
 
 export type ScoutError =
@@ -120,8 +122,9 @@ export interface ScoutState extends Preferences, SigningState {
 
 /** Null goes back to the career's currency. */
 type CurrencyAction = { readonly type: "currency-chosen"; readonly currency: CurrencyCode | null };
+type PortraitAction = { readonly type: "approximate-portraits-shown"; readonly shown: boolean };
 /** The actions of the view settings with a reducer of their own. */
-type ViewAction = CurrencyAction | TieOrderAction;
+type ViewAction = CurrencyAction | TieOrderAction | PortraitAction;
 
 type LoadAction =
   | {
@@ -246,6 +249,7 @@ const withPreferences = (state: ScoutState, preferences: Preferences): ScoutStat
     ...(columns === undefined ? {} : { columns }),
     ...(currency === undefined ? {} : { currency }),
     ...(preferences.afterSigning === true ? { afterSigning: true } : {}),
+    ...(preferences.approximatePortraits === true ? { approximatePortraits: true } : {}),
   };
 };
 
@@ -360,14 +364,22 @@ const isResetAction = (action: ScoutAction): action is ResetAction => action.typ
 
 /**
  * The state after a reset; "Resetuj" also brings the columns back to the automatic choice, the best
- * peak tie rules to their default order and the values to before signing. The settings alone are enough for it, so canResetSettings
- * (settings-reset.ts) asks the reset itself.
+ * peak tie rules to their default order, the values to before signing and the portraits to the game's.
+ * The settings alone are enough for it, so canResetSettings (settings-reset.ts) asks the reset itself.
  */
-export const resetState = <S extends Pick<ScoutState, "columns" | "tieOrder" | "afterSigning">>(
+export const resetState = <
+  S extends Pick<ScoutState, "columns" | "tieOrder" | "afterSigning" | "approximatePortraits">,
+>(
   state: S,
   type: ResetAction["type"],
 ) => {
-  const { columns: _columns, tieOrder: _tieOrder, afterSigning: _signing, ...kept } = state;
+  const {
+    columns: _columns,
+    tieOrder: _tieOrder,
+    afterSigning: _signing,
+    approximatePortraits: _portraits,
+    ...kept
+  } = state;
   return { ...(type === "settings-reset" ? kept : state), ...RESETS[type] };
 };
 
@@ -437,6 +449,10 @@ const reduced = (state: ScoutState, action: Exclude<ScoutAction, UndoAction>): S
   if (action.type === "graphics-loaded")
     return action.graphics === null ? state : { ...state, graphics: action.graphics };
   if (action.type === "tie-order-chosen") return tieOrderChosen(state, action.order);
+  if (action.type === "approximate-portraits-shown") {
+    const { approximatePortraits: _shown, ...rest } = state;
+    return action.shown ? { ...rest, approximatePortraits: true } : rest;
+  }
   const next = isColumnAction(action) ? columnReducer(state, action) : changes(state, action);
   return withShownCurrency(state, next);
 };

@@ -29,8 +29,8 @@ import {
   GameImage,
   kitsOf,
   leagueLogoOf,
-  portraitOf,
   useHasGameImages,
+  usePortrait,
 } from "./game-image.tsx";
 import type { ImageName } from "./game-image.tsx";
 import {
@@ -49,6 +49,7 @@ import { OfferFacts } from "./offer-facts.tsx";
 import { SigningFacts } from "./signing-facts.tsx";
 import { WarnedValue } from "./field-help.tsx";
 import { FIELD_HELP, HELP_TEXT, WARNING_TEXT } from "./text-help.ts";
+import { PORTRAIT_TEXT } from "./text-portraits.ts";
 
 const ATTRIBUTE_GROUPS: readonly (readonly [
   keyof typeof ATTRIBUTE_GROUP_LABELS,
@@ -149,7 +150,8 @@ const profile = (player: Player, showPotential: boolean, curves: Curves): readon
     codeName("developmentStyle", player.developmentStyle),
     FIELD_HELP.developmentStyle,
   ],
-  ...curveFacts(player, curves),
+  // The curve gives the projected OVR away (owner, 2026-11-13).
+  ...(showPotential ? curveFacts(player, curves) : []),
   [RANGE_LABELS.clubRating, optional(player.clubRating), FIELD_HELP.clubRating],
   ...clubFields(player),
   ...(player.loanedFromId === null
@@ -201,13 +203,23 @@ const clubFacts = (player: Player): readonly Fact[] =>
         [TEXT.card.loanedFrom, imaged(crestOf(player.loanedFromId), player.loanedFromName)],
       ];
 
-/** His portrait at the top of the card; a neutral box where the game has none. */
-const CardPortrait = ({ player }: { player: Player }) =>
-  useHasGameImages() ? (
-    <div className="card-portrait">
-      <GameImage image={portraitOf(player)} />
-    </div>
+/**
+ * His portrait at the top of the card, a neutral box where the game has none; under a lookalike's, what
+ * differs from his own.
+ */
+const CardPortrait = ({ player }: { player: Player }) => {
+  const { image, differences } = usePortrait(player);
+  return useHasGameImages() ? (
+    <>
+      <div className="card-portrait">
+        <GameImage image={image} />
+      </div>
+      {differences === null ? null : (
+        <p className="portrait-note">{PORTRAIT_TEXT.differences(differences)}</p>
+      )}
+    </>
   ) : null;
+};
 
 /**
  * The other position groups with the same best peak, as "OVR na pozycjach" names them, or undefined
