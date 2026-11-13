@@ -82,11 +82,14 @@ export const createSaveMemory = (withStore: WithStore) => {
  * The game to load again when a save or language file is picked (the load in progress or the one that
  * failed on the save, else the last good fifa.db), and the fifa.db of the latest load from a picked
  * file, stored under that file's name, with the graphics that load read after it (a load without them
- * leaves the stored ones).
+ * leaves the stored ones). Until those graphics arrive, a reload reads the picked file again: from the
+ * fifa.db alone it would supersede the load and stop the graphics.
  */
 export const createGameMemory = (withStore: WithStore) => {
   const fromFile = new Map<number, string>();
   let [inFlight, latest, game]: [GameLoad | null, number, Blob | null] = [null, 0, null];
+  /** The latest load from a picked file whose graphics have not arrived yet. */
+  let awaiting: { readonly requestId: number; readonly load: GameLoad } | null = null;
   return {
     started: (requestId: number, load: GameLoad) => {
       [inFlight, latest] = [load, requestId];
@@ -95,6 +98,7 @@ export const createGameMemory = (withStore: WithStore) => {
     },
     finished: (message: WorkerMessage) => {
       if (message.type === "graphics") {
+        if (message.requestId === awaiting?.requestId) awaiting = null;
         const { graphics } = message;
         if (message.requestId === latest && graphics !== null)
           withStore(async (opened) => opened.saveGraphics(graphics));
@@ -106,13 +110,15 @@ export const createGameMemory = (withStore: WithStore) => {
       if (message.requestId !== latest) return;
       // A load that failed on the save had a good game: a corrected save loads it again.
       if (message.type === "failed" && message.error.stage === "save") return;
+      const load = inFlight;
       inFlight = null;
       if (message.type !== "done") return;
+      if (name !== undefined && load !== null) awaiting = { requestId: latest, load };
       game = new Blob([message.result.gameDb.slice()]);
       if (name !== undefined)
         withStore(async (opened) => opened.saveGameDb(message.result.gameDb, name));
     },
     reload: (): GameLoad | null =>
-      inFlight ?? (game === null ? null : { source: game, started: {} }),
+      inFlight ?? awaiting?.load ?? (game === null ? null : { source: game, started: {} }),
   };
 };

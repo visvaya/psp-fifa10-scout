@@ -172,6 +172,7 @@ describe("createGameMemory", () => {
     expect(memory.reload()?.source).toBe(b);
     memory.finished(done(2));
     memory.finished(done(1));
+    memory.finished(graphics(2, null));
     await settled();
     expect(writes).toEqual(["b.iso"]);
     const reloaded = memory.reload();
@@ -190,5 +191,16 @@ describe("createGameMemory", () => {
     memory.finished(graphics(3, null));
     await settled();
     expect(writes).toEqual([[2]]);
+  });
+
+  it("reloads the picked file until its graphics arrived, so a save picked meanwhile keeps them", () => {
+    const memory = createGameMemory(recordingStore().withStore);
+    const iso = new Blob(["iso"]);
+    memory.started(1, { source: iso, started: { gameName: "a.iso" } });
+    memory.finished(done(1));
+    expect(memory.reload()).toEqual({ source: iso, started: { gameName: "a.iso" } });
+    memory.finished(graphics(1, null));
+    expect(memory.reload()?.source).not.toBe(iso);
+    expect(memory.reload()?.started).toEqual({});
   });
 });
