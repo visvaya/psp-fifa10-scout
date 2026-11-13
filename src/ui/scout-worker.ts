@@ -57,7 +57,7 @@ const postGraphics = async (requestId: number, { game }: LoadInput): Promise<voi
   if (requestId !== latestLoad) return;
   let graphics: GraphicsPack | null = null;
   try {
-    graphics = await readGameGraphics(game.read, game.size);
+    graphics = await readGameGraphics(game.read, game.size, () => requestId === latestLoad);
   } catch {
     // The tool works without them.
   }

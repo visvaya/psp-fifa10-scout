@@ -53,7 +53,7 @@ export interface GraphicsPack {
 export interface DecodedImage {
   readonly width: number;
   readonly height: number;
-  readonly rgba: Uint8ClampedArray;
+  readonly rgba: Uint8ClampedArray<ArrayBuffer>;
 }
 
 const viewOf = (bytes: Uint8Array): DataView =>
@@ -223,7 +223,10 @@ const wantedOf = (table: ReadonlyMap<string, BigEntry>, wanted: RegExp) =>
  * The packed images of a disc image's graphics archives. Each archive is read with one read and only
  * the wanted entries are copied out, so the archive's buffer can be freed.
  */
-const readPack = async (volume: Volume): Promise<GraphicsPack> => {
+const readPack = async (
+  volume: Volume,
+  stillWanted: () => boolean,
+): Promise<GraphicsPack | null> => {
   const boot = await readVolumeFile(volume, BOOT_PATH, MAX_TABLE_BYTES);
   const baseTable = parseBig4(boot).get(BASE_TABLE);
   if (baseTable === undefined) throw new SaveFormatError("Disc image has no graphics table");
@@ -245,39 +248,32 @@ const readPack = async (volume: Volume): Promise<GraphicsPack> => {
     .flatMap(({ entries }) => entries)
     .reduce((sum, [, { size }]) => sum + size, 0);
   if (packBytes > MAX_PACK_BYTES) throw new SaveFormatError("Graphics are too large");
-  // One archive after the other, so only one is in memory at a time.
-  const kept = await sources.reduce<Promise<readonly (readonly [string, Uint8Array])[]>>(
-    async (done, { path, entries }) => {
-      const before = await done;
-      const archive = await readVolumeFile(volume, path, MAX_ARCHIVE_BYTES);
-      return [
-        ...before,
-        ...entries.map(
-          ([name, entry]) =>
-            [name.slice(0, -".msh".length), entryBytes(archive, entry).slice()] as const,
-        ),
-      ];
-    },
-    Promise.resolve([]),
-  );
   const bytes = new Uint8Array(packBytes);
+  const entries: (readonly [string, number, number])[] = [];
   let offset = 0;
-  const entries = kept.map(([name, packed]) => {
-    bytes.set(packed, offset);
-    offset += packed.length;
-    return [name, offset - packed.length, packed.length] as const;
-  });
-  return { bytes, entries };
+  // One archive after the other, so only one is in memory at a time; none once the load is superseded.
+  const complete = await sources.reduce(async (before: Promise<boolean>, source) => {
+    if (!(await before) || !stillWanted()) return false;
+    const archive = await readVolumeFile(volume, source.path, MAX_ARCHIVE_BYTES);
+    for (const [name, entry] of source.entries) {
+      bytes.set(entryBytes(archive, entry), offset);
+      entries.push([name.slice(0, -".msh".length), offset, entry.size]);
+      offset += entry.size;
+    }
+    return true;
+  }, Promise.resolve(true));
+  return complete ? { bytes, entries } : null;
 };
 
 /**
- * The game's graphics, or null when the file is no disc image (a bare fifa.db). Throws SaveFormatError
- * on a malformed image, table or entry.
+ * The game's graphics, or null when the file is no disc image (a bare fifa.db) or stillWanted says no
+ * before an archive is read. Throws SaveFormatError on a malformed image, table or entry.
  */
 export const readGameGraphics = async (
   read: ReadRange,
   fileBytes: number,
+  stillWanted: () => boolean,
 ): Promise<GraphicsPack | null> => {
   const volume = await openDiscImage(read, fileBytes);
-  return volume === null ? null : readPack(volume);
+  return volume === null ? null : readPack(volume, stillWanted);
 };

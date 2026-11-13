@@ -7,6 +7,7 @@ import { buildIso } from "./test-support/synthetic-iso.ts";
 
 const ascii = (text: string): Uint8Array => new TextEncoder().encode(text);
 const text = (bytes: Uint8Array): string => new TextDecoder().decode(bytes);
+const always = (): boolean => true;
 
 /** A copy of `bytes` with one byte changed. */
 const at = (bytes: Uint8Array, offset: number, value: number): Uint8Array => {
@@ -224,7 +225,7 @@ describe("readGameGraphics", () => {
 
   it("packs the crests, logos, portraits, flags and kits, without their .msh", async () => {
     const image = iso();
-    const pack = await readGameGraphics(reader(image), image.length);
+    const pack = await readGameGraphics(reader(image), image.length, always);
     expect(pack?.entries.map(([name]) => name)).toEqual([
       "tl1873",
       "ll31",
@@ -245,22 +246,39 @@ describe("readGameGraphics", () => {
   it("reads each archive with one read", async () => {
     const image = iso();
     const lengths: number[] = [];
-    await readGameGraphics(async (offset, length) => {
-      lengths.push(length);
-      return reader(image)(offset, length);
-    }, image.length);
+    await readGameGraphics(
+      async (offset, length) => {
+        lengths.push(length);
+        return reader(image)(offset, length);
+      },
+      image.length,
+      always,
+    );
     expect(lengths).toContain(base.data.length);
     expect(lengths).toContain(fe.data.length);
   });
 
+  it("stops before the next archive once the load is no longer wanted", async () => {
+    const image = iso();
+    // Both archives are 29 bytes long here, and no other read is.
+    let archives = 0;
+    const read: ReadRange = async (offset, length) => {
+      if (length === base.data.length) archives += 1;
+      return reader(image)(offset, length);
+    };
+    expect(await readGameGraphics(read, image.length, () => archives === 0)).toBeNull();
+    expect([base.data.length, fe.data.length, archives]).toEqual([29, 29, 1]);
+    expect(await readGameGraphics(reader(image), image.length, () => false)).toBeNull();
+  });
+
   it("returns null for a bare fifa.db", async () => {
     const db = Uint8Array.of(0, 0, 0, 0, 4, 0, 0, 0);
-    expect(await readGameGraphics(reader(db), db.length)).toBeNull();
+    expect(await readGameGraphics(reader(db), db.length, always)).toBeNull();
   });
 
   it("rejects a boot archive without the table of cro_base", async () => {
     const image = iso(buildBig4([["other", 0, 1]]));
-    await expect(readGameGraphics(reader(image), image.length)).rejects.toThrow(
+    await expect(readGameGraphics(reader(image), image.length, always)).rejects.toThrow(
       "Disc image has no graphics table",
     );
   });
@@ -273,14 +291,14 @@ describe("readGameGraphics", () => {
     ],
   ])("rejects %s", async (_, boot) => {
     const image = iso(boot());
-    await expect(readGameGraphics(reader(image), image.length)).rejects.toThrow(
+    await expect(readGameGraphics(reader(image), image.length, always)).rejects.toThrow(
       expect.objectContaining({ message: "Graphics entry is out of range" }),
     );
   });
 
   it("rejects a packed image over 64 KiB", async () => {
     const image = iso(bootArchive(buildBig4([["tl1.msh", 0, 64 * 1024 + 1]])));
-    await expect(readGameGraphics(reader(image), image.length)).rejects.toThrow(
+    await expect(readGameGraphics(reader(image), image.length, always)).rejects.toThrow(
       expect.objectContaining({ message: "Graphics entry is too large" }),
     );
   });
@@ -292,7 +310,7 @@ describe("readGameGraphics", () => {
       lengths.push(length);
       return reader(image)(offset, length);
     };
-    await expect(readGameGraphics(read, image.length)).rejects.toThrow(
+    await expect(readGameGraphics(read, image.length, always)).rejects.toThrow(
       expect.objectContaining({ name: "SaveFormatError", message: "Graphics are too large" }),
     );
     expect(lengths).not.toContain(base.data.length);
@@ -301,7 +319,7 @@ describe("readGameGraphics", () => {
       ([name, { offset, size }]) => [name, offset, size] as const,
     );
     const atCap = iso(bootArchive(buildBig4([...exact, ["ll1.msh", 0, 64 * 1024 - 18]])));
-    await expect(readGameGraphics(reader(atCap), atCap.length)).rejects.toThrow(
+    await expect(readGameGraphics(reader(atCap), atCap.length, always)).rejects.toThrow(
       "Graphics entry is out of range",
     );
   });
