@@ -24,7 +24,15 @@ import { ModalDialog } from "./modal-dialog.tsx";
 import { PositionName, ratingChoiceName } from "./position-name.tsx";
 import type { PositionNames } from "./position-name.tsx";
 import { clubText, MissingValue, RESULTS_TITLE_ID } from "./player-list.tsx";
-import { crestOf, flagOf, GameImage, leagueLogoOf } from "./game-image.tsx";
+import {
+  crestOf,
+  flagOf,
+  GameImage,
+  kitsOf,
+  leagueLogoOf,
+  portraitOf,
+  useHasGameImages,
+} from "./game-image.tsx";
 import type { ImageName } from "./game-image.tsx";
 import {
   FILTER_SECTION_LABELS,
@@ -192,16 +200,32 @@ const imaged = (image: ImageName | null, name: string | null): ReactNode =>
     </>
   );
 
+/** The club with its home and away kits after its name. */
+const clubWithKits = (player: Player, name: string): ReactNode => (
+  <>
+    {imaged(crestOf(player.clubId), name)}
+    {kitsOf(player.clubId).map((kit) => (
+      <GameImage key={kit.names.join()} image={kit} />
+    ))}
+  </>
+);
+
 /** The club; for a loaned player with the loan noted and his parent club right under it. */
-const clubFacts = (player: Player): readonly Fact[] => {
-  const club = crestOf(player.clubId);
-  return player.loanedFromId === null
-    ? [[TEXT.card.club, imaged(club, clubText(player))]]
+const clubFacts = (player: Player): readonly Fact[] =>
+  player.loanedFromId === null
+    ? [[TEXT.card.club, clubWithKits(player, clubText(player))]]
     : [
-        [TEXT.card.club, imaged(club, TEXT.card.onLoanAt(clubText(player)))],
+        [TEXT.card.club, clubWithKits(player, TEXT.card.onLoanAt(clubText(player)))],
         [TEXT.card.loanedFrom, imaged(crestOf(player.loanedFromId), player.loanedFromName)],
       ];
-};
+
+/** His portrait at the top of the card; a neutral box where the game has none. */
+const CardPortrait = ({ player }: { player: Player }) =>
+  useHasGameImages() ? (
+    <div className="card-portrait">
+      <GameImage image={portraitOf(player)} />
+    </div>
+  ) : null;
 
 /**
  * The other position groups with the same best peak, as "OVR na pozycjach" names them, or undefined
@@ -387,6 +411,7 @@ export const PlayerCard = (props: {
   const returnFocus = useCallback(() => cardOpener(player.id), [player.id]);
   return (
     <ModalDialog title={player.name} className="card" onClose={onClose} returnFocus={returnFocus}>
+      <CardPortrait player={player} />
       <ListMarks shortlisted={player.shortlisted} watched={watched} />
       <WatchlistSection playerId={player.id} watched={watched} dispatch={dispatch} />
       <NoteSection

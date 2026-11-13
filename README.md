@@ -36,8 +36,8 @@ What it does today:
 - Reads the player database (`fifa.db`) straight from your disc image (ISO), or from a `fifa.db`
   file you extracted yourself. From the image it reads only the database, the language files, the
   game's identifier and its graphics.
-- Shows the game's own club crests, nationality flags and league logos beside their names, read
-  from your ISO on your device.
+- Shows the game's own club crests, nationality flags, league logos, player portraits and club kits
+  beside their names, read from your ISO on your device.
 - Optionally reads a manager-mode career save (`DATA.BIN` and `PARAM.SFO`): decrypts it, verifies
   its checksum and shows the current state of the career: clubs and leagues after promotions and
   relegations, contracts, loans, the transfer list, rolling match rating (KR), morale, injuries, the

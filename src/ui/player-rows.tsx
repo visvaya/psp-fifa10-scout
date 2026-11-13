@@ -21,7 +21,7 @@ import {
 } from "./player-list.tsx";
 import type { ListMarks, ListProps } from "./player-list.tsx";
 import { fitRows } from "./fit-rows.ts";
-import { crestOf, GameImage } from "./game-image.tsx";
+import { crestOf, GameImage, PortraitSlot } from "./game-image.tsx";
 import { PositionName } from "./position-name.tsx";
 import { TEXT } from "./text.ts";
 import { NBSP } from "./typeset.ts";
@@ -232,6 +232,7 @@ const PhoneName = (marks: ListMarks) => {
   const { player } = marks;
   return player.initialName !== null ? (
     <span className="player-row-name has-initial">
+      <PortraitSlot player={player} />
       <ShortlistStar {...marks} />
       <span className="player-row-name-full">{player.name}</span>
       <span className="player-row-name-short" aria-hidden="true">
@@ -241,6 +242,7 @@ const PhoneName = (marks: ListMarks) => {
     </span>
   ) : (
     <span className="player-row-name">
+      <PortraitSlot player={player} />
       <ShortlistStar {...marks} />
       {player.name}
       <ShortlistWords {...marks} />

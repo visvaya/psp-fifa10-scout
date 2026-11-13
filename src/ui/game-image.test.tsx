@@ -99,9 +99,9 @@ describe("GameImage", () => {
 describe("columnImage", () => {
   it("puts the crest before the club, the logo before the league and the flag before the country", () => {
     const player = testPlayer({ clubId: 1873, leagueId: 31, nationalityId: 37 });
-    expect(columnImage("clubName", player)).toEqual({ name: "tl1873", flag: false });
-    expect(columnImage("leagueName", player)).toEqual({ name: "ll31", flag: false });
-    expect(columnImage("nationalityName", player)).toEqual({ name: "ls37", flag: true });
+    expect(columnImage("clubName", player)).toEqual({ names: ["tl1873"], shape: "square" });
+    expect(columnImage("leagueName", player)).toEqual({ names: ["ll31"], shape: "square" });
+    expect(columnImage("nationalityName", player)).toEqual({ names: ["ls37"], shape: "flag" });
     expect(columnImage("age", player)).toBeNull();
     const freeAgent = testPlayer({ clubId: null, leagueId: null });
     expect(columnImage("clubName", freeAgent)).toBeNull();
