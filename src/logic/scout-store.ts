@@ -1,4 +1,4 @@
-// The one load/save adapter: the extracted fifa.db, the career save, the filter and sort preferences, the
+// The one load/save adapter: the extracted fifa.db, the game's graphics, the career save, the filter and sort preferences, the
 // own watchlist and the notes on players, each stored as { schemaVersion, value } in a key-value backend (IndexedDB in the browser, memory otherwise).
 // Nothing leaves the device. Preferences 2 to 5 migrate to 6, a fifa.db 1 (bare bytes) to 2 (bytes and
 // the game file's name), languages 1 and 2 to 3 (empty for the position names they lack) and a watchlist 1's
@@ -28,6 +28,7 @@ import type { SaveFiles } from "./load-scout.ts";
 import { OVR_WEIGHTS } from "./overall-rating.ts";
 import { POSITION_GROUPS, ratingCodeOf } from "./positions.ts";
 import { isCurrencyCode } from "../data/career-save.ts";
+import type { GraphicsPack } from "../data/game-graphics.ts";
 import { tieOrderOf } from "./best-peak.ts";
 import { compactFilters, inRecordOrder } from "./filter-changes.ts";
 import { DEFAULT_SORT } from "./scout-state.ts";
@@ -55,6 +56,7 @@ export const SCHEMA_VERSION = {
   careerSave: 1,
   watchlist: 2,
   notes: 1,
+  graphics: 1,
 } as const;
 
 export interface StorageBackend {
@@ -74,6 +76,8 @@ export interface StoredScout {
   readonly watchlist: readonly WatchEntry[];
   /** The notes on players; empty when nothing valid is stored. */
   readonly notes: readonly PlayerNote[];
+  /** The game's images from the last disc image that had them, null without one. */
+  readonly graphics: GraphicsPack | null;
 }
 
 export const memoryBackend = (): StorageBackend => {
@@ -295,6 +299,26 @@ const careerSaveOf = (record: unknown): SaveFiles<Uint8Array> | null => {
     : null;
 };
 
+/** The stored graphics when every index entry is a name, offset and length within the bytes. */
+const graphicsOf = (record: unknown): GraphicsPack | null => {
+  const { bytes, entries } = recordOf(versioned(record, SCHEMA_VERSION.graphics));
+  if (!(bytes instanceof Uint8Array) || !Array.isArray(entries)) return null;
+  const isEntry = (entry: unknown): entry is GraphicsPack["entries"][number] => {
+    if (!Array.isArray(entry) || entry.length !== 3) return false;
+    const items: readonly unknown[] = entry;
+    const [name, offset, length] = items;
+    return (
+      typeof name === "string" &&
+      isInteger(offset) &&
+      isInteger(length) &&
+      offset >= 0 &&
+      length >= 0 &&
+      offset + length <= bytes.length
+    );
+  };
+  return entries.every(isEntry) ? { bytes, entries } : null;
+};
+
 /** A stored list's items that pass `parse`, the first one per player id; the rest are dropped. */
 const perPlayer = <T extends { readonly playerId: number }>(
   value: unknown,
@@ -373,6 +397,7 @@ export const createScoutStore = (backend: StorageBackend) => {
         careerSave: careerSaveOf(await backend.get("careerSave")),
         watchlist: watchlistOf(watchlist),
         notes: notesOf(versioned(notesRecord ?? notes, SCHEMA_VERSION.notes)),
+        graphics: graphicsOf(await backend.get("graphics")),
       };
     },
     saveGameDb: async (gameDb: Uint8Array, name: string): Promise<void> =>
@@ -380,6 +405,8 @@ export const createScoutStore = (backend: StorageBackend) => {
         schemaVersion: SCHEMA_VERSION.gameDb,
         value: { bytes: gameDb, name },
       }),
+    saveGraphics: async (graphics: GraphicsPack): Promise<void> =>
+      backend.set("graphics", { schemaVersion: SCHEMA_VERSION.graphics, value: graphics }),
     savePreferences: async (preferences: Preferences): Promise<void> =>
       backend.set("preferences", { schemaVersion: SCHEMA_VERSION.preferences, value: preferences }),
     /** null forgets the stored save. */
