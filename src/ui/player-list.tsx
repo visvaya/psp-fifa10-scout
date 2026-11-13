@@ -12,6 +12,7 @@ import { ratingValueOf } from "../logic/sort-players.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 import { AttributeValue, GainValue } from "./attribute-value.tsx";
 import { CHOICE_VALUE_TEXT } from "./chip-text.ts";
+import { columnImage, GameImage, IMAGE_WIDTHS, useHasGameImages } from "./game-image.tsx";
 import type { ChoiceKey } from "./chip-text.ts";
 import { PositionName } from "./position-name.tsx";
 import { WatchMark } from "./stars.tsx";
@@ -90,9 +91,24 @@ export const widestTextRem = (texts: readonly string[], font?: string): number =
   return widest / rootFontPx();
 };
 
+/** A size token of styles.css in rem; one in em counts as rem, as the cells use the body's font. */
+const tokenRem = (token: string): number =>
+  Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue(token)) || 0;
+
 /** The small gap between a mark and what it stands beside (--space-1), in rem. */
-const gapRem = (): number =>
-  Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--space-1")) || 0;
+const gapRem = (): number => tokenRem("--space-1");
+
+/** The room the game's image takes before a column's values, in rem with its gap; 0 without images. */
+export const useImageRoom = (): ((column: SortKey) => number) => {
+  const shown = useHasGameImages();
+  return useMemo(() => {
+    const size = tokenRem("--game-image-size");
+    return (column: SortKey) => {
+      const widths = IMAGE_WIDTHS[column];
+      return shown && widths !== undefined ? widths * size + gapRem() : 0;
+    };
+  }, [shown]);
+};
 
 /**
  * The best peak cell's two sub-columns (owner, 2026-11-06: in line in every row, not stepped): its badge,
@@ -262,7 +278,15 @@ export const ColumnValue = (props: {
   // The position in the colour of its line.
   if (column === "positionCode")
     return <PositionName code={player.positionCode} name={player.positionName} />;
-  return valueText(player, column) ?? <MissingValue />;
+  const text = valueText(player, column);
+  return text === null ? (
+    <MissingValue />
+  ) : (
+    <>
+      <GameImage image={columnImage(column, player)} />
+      {text}
+    </>
+  );
 };
 
 /** Numbers align right; names, yes / no and the lists' named values read from the left. */
@@ -369,6 +393,7 @@ const useTableWidths = ({
 }: Omit<WidthSource<Player, SortKey>, "text" | "besidePx"> & Pick<ListProps, "watchedIds">) => {
   const { besideRem, style } = useBestPeakRoom(source.rows);
   const { gameRem, ownRem } = useStarsRoom();
+  const imageRoom = useImageRoom();
   const besidePx = useCallback(
     (column: SortKey, player: Player) =>
       rootFontPx() *
@@ -376,8 +401,8 @@ const useTableWidths = ({
         ? besideRem
         : column === "name"
           ? (player.shortlisted ? gameRem : 0) + (watchedIds.has(player.id) ? ownRem : 0)
-          : 0),
-    [besideRem, gameRem, ownRem, watchedIds],
+          : imageRoom(column)),
+    [besideRem, gameRem, ownRem, watchedIds, imageRoom],
   );
   const widths = useColumnWidths({ ...source, text: widthText, besidePx });
   return { widths, style };
