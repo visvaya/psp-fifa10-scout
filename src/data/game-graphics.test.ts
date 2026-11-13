@@ -148,7 +148,13 @@ describe("decodeShpm", () => {
     expect([...rgba.subarray(17 * 4, 18 * 4)]).toEqual(BLUE);
   });
 
-  // The image block starts at 32: type, 3-byte size, width at 36, height at 38; the palette at 32 + 48.
+  it("reads a palette shorter than 256 colours, an index past it as transparent", () => {
+    const { rgba } = decodeShpm(buildShpm(2, 1, [5, 1], [CLEAR, RED]));
+    expect([...rgba]).toEqual([...CLEAR, ...RED]);
+  });
+
+  // The image block starts at 32: type, 3-byte size, width at 36, height at 38; the palette at 32 + 48:
+  // type, 3-byte size 16 + 3 * 4 = 28 at 81, colour count 3 at 84.
   it.each([
     ["no SHPM magic", at(image(), 0, 0x53 + 1), "Not an SHPM image"],
     ["no image", u32(image(), 8, 0), "Not an SHPM image"],
@@ -161,6 +167,14 @@ describe("decodeShpm", () => {
     ["rows of no whole size", at(image(), 33, 47), "SHPM image is out of range"],
     ["no palette after the image", at(image(), 80, 0x3c), "SHPM palette is out of range"],
     ["a palette cut short", image().slice(0, -1), "SHPM palette is out of range"],
+    ["a palette head cut short", image().slice(0, 95), "SHPM palette is out of range"],
+    [
+      "a palette block shorter than its colours",
+      at(image(), 81, 27),
+      "SHPM palette is out of range",
+    ],
+    ["a palette block past the end", at(image(), 81, 29), "SHPM palette is out of range"],
+    ["more than 256 colours", at(image(), 85, 1), "SHPM palette is out of range"],
   ])("rejects %s", (_, bytes, message) => {
     expect(() => decodeShpm(bytes)).toThrow(
       expect.objectContaining({ name: "SaveFormatError", message }),
@@ -184,6 +198,8 @@ describe("readGameGraphics", () => {
     ["j0_01873.msh", "home"],
     ["j1_01873.msh", "away"],
     ["j2_01873.msh", "skip"],
+    ["j0_1873.msh", "skip"],
+    ["j0_111091.msh", "lechia"],
   ]);
 
   /** The boot archive: its own table, then cro_base.bgh as one of its entries. */
@@ -217,12 +233,13 @@ describe("readGameGraphics", () => {
       "ls37",
       "j0_01873",
       "j1_01873",
+      "j0_111091",
     ]);
     const contents = pack?.entries.map(([, offset, length]) =>
       text(pack.bytes.subarray(offset, offset + length)),
     );
-    expect(contents).toEqual(["crest", "logo", "face", "built", "flag", "home", "away"]);
-    expect(pack?.bytes.length).toBe(30);
+    expect(contents).toEqual(["crest", "logo", "face", "built", "flag", "home", "away", "lechia"]);
+    expect(pack?.bytes.length).toBe(36);
   });
 
   it("reads each archive with one read", async () => {
@@ -279,11 +296,11 @@ describe("readGameGraphics", () => {
       expect.objectContaining({ name: "SaveFormatError", message: "Graphics are too large" }),
     );
     expect(lengths).not.toContain(base.data.length);
-    // Exactly 48 MiB with the 12 bytes of fe's kept entries: past the total cap, the range is checked.
+    // Exactly 48 MiB with the 18 bytes of fe's kept entries: past the total cap, the range is checked.
     const exact = [...parseBig4(overlapping(767))].map(
       ([name, { offset, size }]) => [name, offset, size] as const,
     );
-    const atCap = iso(bootArchive(buildBig4([...exact, ["ll1.msh", 0, 64 * 1024 - 12]])));
+    const atCap = iso(bootArchive(buildBig4([...exact, ["ll1.msh", 0, 64 * 1024 - 18]])));
     await expect(readGameGraphics(reader(atCap), atCap.length)).rejects.toThrow(
       "Graphics entry is out of range",
     );

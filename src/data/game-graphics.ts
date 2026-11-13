@@ -3,7 +3,7 @@
 // files: cro_base.bgh is an entry of data/preload/bootpreloaded.big (itself BIG4), cro_feonly.bgh a file
 // beside its archive. BIG4: "BIG4", entry count u32 BE at 8, then from 16 per entry offset u32 BE, size
 // u32 BE and a NUL-terminated latin1 name. Each entry is a RefPack-packed SHPM file: one 8-bit indexed
-// image (type 0x5d, rows padded to 16 bytes, no swizzle) followed by a 256-colour RGBA palette (0x3b).
+// image (type 0x5d, rows padded to 16 bytes, no swizzle) followed by an RGBA palette of up to 256 colours (0x3b).
 import { openDiscImage, readVolumeFile } from "./iso9660.ts";
 import type { ReadRange, Volume } from "./iso9660.ts";
 import { SaveFormatError } from "./save-format-error.ts";
@@ -26,17 +26,18 @@ export const MAX_IMAGE_BYTES = 256 * 1024;
 const IMAGE_HEAD_BYTES = 16;
 const IMAGE_TYPE = 0x5d;
 const PALETTE_TYPE = 0x3b;
-const PALETTE_BYTES = 256 * 4;
+/** Colours of a palette: an 8-bit index reaches 256. */
+const MAX_COLOURS = 256;
 const BOOT_PATH = "PSP_GAME/USRDIR/data/preload/bootpreloaded.big";
 const GUI_PATH = "PSP_GAME/USRDIR/data/gui";
 const BASE_TABLE = "cro_base.bgh";
 /**
  * The entries kept: club crests tl<teamid>, league logos ll<leagueid>, real portraits s_<playerid, 8
  * digits> and composed portraits g_<7 digits> in cro_base; flags ls<countryid> and home and away kits
- * j0_ / j1_<teamid, 5 digits> in cro_feonly.
+ * j0_ / j1_<teamid, zero-padded to at least 5 digits> in cro_feonly.
  */
 const BASE_WANTED = /^(?:tl[0-9]+|ll[0-9]+|s_[0-9]{8}|g_[0-9]{7})[.]msh$/u;
-const FEONLY_WANTED = /^(?:ls[0-9]+|j[01]_[0-9]{5})[.]msh$/u;
+const FEONLY_WANTED = /^(?:ls[0-9]+|j[01]_[0-9]{5,})[.]msh$/u;
 
 interface BigEntry {
   readonly offset: number;
@@ -151,9 +152,32 @@ export const unrefpack = (packed: Uint8Array, maxBytes: number): Uint8Array => {
 };
 
 /**
+ * The 256 colours of the palette block at `palette` as u32, copied byte for byte, so either byte order
+ * gives the same RGBA bytes; the colours past its count are transparent.
+ */
+const readPalette = (bytes: Uint8Array, palette: number): Uint32Array => {
+  const view = viewOf(bytes);
+  if (palette + IMAGE_HEAD_BYTES > bytes.length || view.getUint8(palette) !== PALETTE_TYPE)
+    throw new SaveFormatError("SHPM palette is out of range");
+  const paletteBytes = view.getUint32(palette, true) >>> 8;
+  const count = view.getUint16(palette + 4, true);
+  if (
+    count > MAX_COLOURS ||
+    IMAGE_HEAD_BYTES + count * 4 > paletteBytes ||
+    palette + paletteBytes > bytes.length
+  )
+    throw new SaveFormatError("SHPM palette is out of range");
+  const colours = new Uint32Array(MAX_COLOURS);
+  const start = palette + IMAGE_HEAD_BYTES;
+  colours.set(new Uint32Array(bytes.slice(start, start + count * 4).buffer));
+  return colours;
+};
+
+/**
  * The first image of an SHPM file: magic "SHPM", image count u32 LE at 8, directory from 16 (4-byte
  * name, u32 LE offset). Image block: type, 3-byte LE block size (head and pixels), width and height
- * u16 LE at 4 and 6, pixels from 16; the palette block right after it, its colours from 16.
+ * u16 LE at 4 and 6, pixels from 16; the palette block right after it: type, 3-byte LE block size,
+ * colour count u16 LE at 4, RGBA colours from 16.
  */
 export const decodeShpm = (bytes: Uint8Array): DecodedImage => {
   const view = viewOf(bytes);
@@ -170,15 +194,12 @@ export const decodeShpm = (bytes: Uint8Array): DecodedImage => {
   const stride = (blockBytes - IMAGE_HEAD_BYTES) / height;
   if (width === 0 || height === 0 || !Number.isInteger(stride) || stride < width)
     throw new SaveFormatError("SHPM image is out of range");
-  const palette = image + blockBytes;
-  if (palette + 16 + PALETTE_BYTES > bytes.length || view.getUint8(palette) !== PALETTE_TYPE)
-    throw new SaveFormatError("SHPM palette is out of range");
-  const colours = bytes.subarray(palette + 16, palette + 16 + PALETTE_BYTES);
+  const colours = readPalette(bytes, image + blockBytes);
   const rgba = new Uint8ClampedArray(width * height * 4);
+  const pixels = new Uint32Array(rgba.buffer);
   for (let y = 0; y < height; y += 1) {
-    const start = image + IMAGE_HEAD_BYTES + y * stride;
-    for (const [x, index] of bytes.subarray(start, start + width).entries())
-      rgba.set(colours.subarray(index * 4, index * 4 + 4), (y * width + x) * 4);
+    const row = bytes.subarray(image + IMAGE_HEAD_BYTES + y * stride);
+    for (let x = 0; x < width; x += 1) pixels[y * width + x] = colours[row[x] ?? 0] ?? 0;
   }
   return { width, height, rgba };
 };

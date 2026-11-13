@@ -37,7 +37,8 @@ export const refpackLiterals = (plain: Uint8Array): Uint8Array => {
 
 /**
  * An SHPM file with one 8-bit indexed image (rows padded to 16 bytes) at offset 32 and its palette after
- * it: `pixels` are palette indexes row by row, `palette` up to 256 RGBA colours.
+ * it: `pixels` are palette indexes row by row, `palette` up to 256 RGBA colours, the palette block
+ * as long as its colours, as the game's are.
  */
 export const buildShpm = (
   width: number,
@@ -48,7 +49,8 @@ export const buildShpm = (
   const stride = Math.ceil(width / 16) * 16;
   const image = 32;
   const blockBytes = 16 + stride * height;
-  const bytes = new Uint8Array(image + blockBytes + 16 + 256 * RGBA_BYTES);
+  const paletteBytes = 16 + palette.length * RGBA_BYTES;
+  const bytes = new Uint8Array(image + blockBytes + paletteBytes);
   const view = new DataView(bytes.buffer);
   bytes.set(new TextEncoder().encode("SHPM"), 0);
   view.setUint32(4, bytes.length, true);
@@ -62,7 +64,8 @@ export const buildShpm = (
     bytes[image + 16 + Math.floor(at / width) * stride + (at % width)] = index;
   });
   const colours = image + blockBytes;
-  view.setUint32(colours, 0x3b | ((16 + 256 * RGBA_BYTES) << 8), true);
+  view.setUint32(colours, 0x3b | (paletteBytes << 8), true);
+  view.setUint16(colours + 4, palette.length, true);
   palette.forEach((colour, index) => {
     bytes.set(colour, colours + 16 + index * RGBA_BYTES);
   });
