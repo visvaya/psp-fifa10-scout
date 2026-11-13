@@ -17,6 +17,7 @@ import { bestPeakFields } from "./best-peak.ts";
 import type { BestPeakKey } from "./best-peak.ts";
 import { SCOUT_CONFIG } from "./config.ts";
 import { nameCollator, searchKey } from "./player-names.ts";
+import { composedPortraitOf } from "./portraits.ts";
 import {
   attributeGains,
   baseOverall,
@@ -128,6 +129,8 @@ export interface Player extends Finance, SeasonStats, TeamFields {
   readonly clubStars: number | null;
   readonly nationalityId: number;
   readonly nationalityName: string | null;
+  /** The game's composed portrait of his face (portraits.ts); his real one, if any, follows from id. */
+  readonly composedPortrait: string;
   /**
    * The rolling match rating (KR, from all matches, not a season average) with one decimal, as the
    * game's stats screen shows it: the save keeps it times ten (playerstats.form; 5 of 5 league ratings
@@ -267,6 +270,7 @@ const summary = (row: EaDbRow, context: Context): Summary => {
     contractYearsLeft: yearsAfter(team.contractEndYear, context.seasonYear),
     nationalityId,
     nationalityName: context.countries.get(nationalityId) ?? null,
+    composedPortrait: composedPortraitOf(row),
     form: ratingOf(stats),
     morale: statOf(stats, "morale"),
     ...seasonStats(stats),

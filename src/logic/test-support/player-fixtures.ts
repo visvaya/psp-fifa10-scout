@@ -109,6 +109,10 @@ export const playerRow = (overrides: Row): Row => ({
   learningspeed: 3,
   retirementage: 35,
   playingstyle: 13,
+  facetypeid: 501,
+  hairtypeid: 12,
+  facialhairstyleid: 0,
+  haircolorid: 3,
   // jscpd:ignore-end
   ...Object.fromEntries(TRAIT_NAMES.map((name) => [name, 0])),
   ...attributes(50),
@@ -203,6 +207,7 @@ export const testPlayer = (overrides: Partial<Player> = {}): Player => {
     ...CLUB,
     nationalityId: 1,
     nationalityName: "Country",
+    composedPortrait: "g_5011203",
     ...NO_STATS,
     transferListed: false,
     loanListed: false,
