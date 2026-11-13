@@ -107,8 +107,8 @@ describe("unrefpack", () => {
     expect(text(unrefpack(Uint8Array.of(0x10, 0xfb, 0, 0, 18, ...commands), 64))).toBe(expected);
   });
 
-  it("skips the compressed size (flag bit 0) and reads a 4-byte size (flag bit 7)", () => {
-    const stream = Uint8Array.of(0x81, 0xfb, 9, 9, 9, 0, 0, 0, 18, ...commands);
+  it("skips the compressed size (flag bit 0), 4 bytes long like the size with flag bit 7", () => {
+    const stream = Uint8Array.of(0x81, 0xfb, 9, 9, 9, 9, 0, 0, 0, 18, ...commands);
     expect(text(unrefpack(stream, 64))).toBe(expected);
   });
 

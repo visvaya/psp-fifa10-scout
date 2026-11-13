@@ -118,9 +118,11 @@ export const unrefpack = (packed: Uint8Array, maxBytes: number): Uint8Array => {
     return byte;
   };
   const flags = packed[0] ?? 0;
-  p += flags & 0x01 ? 3 : 0;
+  // Bit 7 makes both the compressed size (skipped) and the output size 4 bytes long.
+  const sizeBytes = flags & 0x80 ? 4 : 3;
+  p += flags & 0x01 ? sizeBytes : 0;
   let size = 0;
-  for (let index = flags & 0x80 ? 4 : 3; index > 0; index -= 1) size = size * 256 + next();
+  for (let index = sizeBytes; index > 0; index -= 1) size = size * 256 + next();
   if (size > maxBytes) throw new SaveFormatError("RefPack output is too large");
   const out = new Uint8Array(size);
   let o = 0;
