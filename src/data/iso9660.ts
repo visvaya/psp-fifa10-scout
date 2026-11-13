@@ -30,7 +30,7 @@ interface Extent {
   readonly directory: boolean;
 }
 
-interface Volume {
+export interface Volume {
   readonly read: ReadRange;
   readonly sectors: number;
   readonly root: Extent;
@@ -129,7 +129,7 @@ const resolvePath = async (volume: Volume, path: string): Promise<Extent | undef
       return findEntry(await readExtentBytes(volume, directory, MAX_DIRECTORY_BYTES), part);
     }, Promise.resolve(volume.root));
 
-const readVolumeFile = async (
+export const readVolumeFile = async (
   volume: Volume,
   path: string,
   maxBytes: number,
@@ -199,6 +199,13 @@ const readLocaleTables = async (volume: Volume, path: string): Promise<LocaleTab
   return { idx: await readExtentBytes(volume, idx, MAX_IDX_BYTES), languages };
 };
 
+/** The volume of a disc image, or null when the file is no disc image (a bare fifa.db). */
+export const openDiscImage = async (read: ReadRange, fileBytes: number): Promise<Volume | null> => {
+  if (fileBytes < PVD_OFFSET + SECTOR_BYTES) return null;
+  if (!isIsoVolume(await readExactly(read, PVD_OFFSET, 6))) return null;
+  return openVolume(read);
+};
+
 /**
  * The main text tables (data/gui/locale) of a disc image with those of its cgexport subdirectory, or
  * null when the file is no disc image or has no such directory (a bare fifa.db). Throws
@@ -208,9 +215,8 @@ export const readIsoLocales = async (
   read: ReadRange,
   fileBytes: number,
 ): Promise<IsoLocales | null> => {
-  if (fileBytes < PVD_OFFSET + SECTOR_BYTES) return null;
-  if (!isIsoVolume(await readExactly(read, PVD_OFFSET, 6))) return null;
-  const volume = await openVolume(read);
+  const volume = await openDiscImage(read, fileBytes);
+  if (volume === null) return null;
   const main = await readLocaleTables(volume, LOCALE_PATH);
   if (main === null) return null;
   return { ...main, cgexport: await readLocaleTables(volume, `${LOCALE_PATH}/cgexport`) };
