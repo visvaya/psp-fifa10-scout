@@ -1,7 +1,8 @@
 // The options of the filters chosen one of a few (radio buttons), as the form and the chips name them,
-// and the rules of a best peak tie; a part of the UI texts beside text.ts.
+// the rules of a best peak tie and the club players' states; a part of the UI texts beside text.ts.
 import type { TieRule } from "../logic/best-peak.ts";
 import type { ClubStatus, ListMembership } from "../logic/filter-players.ts";
+import type { SquadState } from "../logic/roles.ts";
 import type { MyClub } from "../logic/scout-state.ts";
 import { pl } from "./typeset.ts";
 
@@ -9,6 +10,18 @@ export const MY_CLUB_LABELS: Readonly<Record<"all" | MyClub, string>> = {
   all: "wszyscy zawodnicy",
   hide: "ukryj zawodników mojego klubu",
   only: "tylko zawodnicy mojego klubu",
+};
+
+/** A club player's state (roles.ts), in the list, the filter and on the card. */
+export const SQUAD_STATE_LABELS: Readonly<Record<SquadState, string>> = {
+  retiring: pl`kończy karierę`,
+  contractEnding: pl`kończy kontrakt`,
+  toLoan: pl`do wypożyczenia`,
+  toSell: pl`do sprzedaży`,
+  toDevelop: pl`do rozwoju`,
+  declining: "spada",
+  developed: "rozwinięty",
+  growing: "rośnie",
 };
 
 export const CLUB_STATUS_LABELS: Readonly<Record<ClubStatus, string>> = {

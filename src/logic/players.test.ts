@@ -7,6 +7,7 @@ import { NO_BEST_PEAK } from "./best-peak.ts";
 import { teamFields } from "./placements.ts";
 import { NO_FINANCE } from "./player-finance.ts";
 import { buildPlayers } from "./players.ts";
+import { NO_ROLES } from "./roles.ts";
 import { baseOverall, byPositionCode } from "./overall-rating.ts";
 import {
   attributes,
@@ -233,6 +234,7 @@ describe("buildPlayers from fifa.db", () => {
       clubWillSell: null,
       saleRefusal: null,
       ...NO_FINANCE,
+      ...NO_ROLES,
     });
     // jscpd:ignore-end
   });

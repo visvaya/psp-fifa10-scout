@@ -11,7 +11,7 @@ import type { ScoutAction, ScoutSort } from "../logic/scout-state.ts";
 import { ratingValueOf } from "../logic/sort-players.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 import { AttributeValue, GainValue } from "./attribute-value.tsx";
-import { CHOICE_VALUE_TEXT } from "./chip-text.ts";
+import { CHOICE_VALUE_TEXT, isRoleColumn } from "./chip-text.ts";
 import {
   columnImage,
   columnImageWidth,
@@ -209,6 +209,7 @@ const cellText = (player: Player, key: TextColumn): string | number | null => {
   if (key === "positionCode") return player.positionName;
   if (key === "clubName") return clubText(player);
   if (key === "price") return player.price === null ? null : formatNumber(player.price);
+  if (isRoleColumn(key)) return player[`${key}Name`];
   return isChoiceKey(key) ? CHOICE_VALUE_TEXT[key](player[key]) : player[key];
 };
 
@@ -302,7 +303,11 @@ export const ColumnValue = (props: {
 
 /** Numbers align right; names, yes / no and the lists' named values read from the left. */
 const isNumberColumn = (column: SortKey): boolean =>
-  column !== "name" && !column.endsWith("Name") && !isChoiceKey(column) && !isFlagKey(column);
+  column !== "name" &&
+  !column.endsWith("Name") &&
+  !isChoiceKey(column) &&
+  !isFlagKey(column) &&
+  !isRoleColumn(column);
 
 const SortMark = (props: { column: SortKey; sort: ScoutSort }) => (
   <span aria-hidden="true" className="sort-mark">

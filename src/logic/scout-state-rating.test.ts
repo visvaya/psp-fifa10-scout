@@ -25,6 +25,20 @@ const loaded = (state: ScoutState, myTeamId: number | null): ScoutState =>
     attachedLanguage: null,
   });
 
+describe("the target at the peak", () => {
+  it("is dropped with its sort when potential is hidden, keeping the target today", () => {
+    const shown = scoutReducer(initialScoutState, { type: "potential-shown", shown: true });
+    const filtered = scoutReducer(shown, {
+      type: "filters-changed",
+      filters: { lists: { target: [1024], peakTarget: [1024] } },
+    });
+    const sorted = scoutReducer(filtered, { type: "sort-changed", key: "peakTarget" });
+    const hidden = scoutReducer(sorted, { type: "potential-shown", shown: false });
+    expect(hidden.filters).toEqual({ lists: { target: [1024] } });
+    expect(hidden.sort).toEqual(DEFAULT_SORT);
+  });
+});
+
 describe("the peak at the chosen position", () => {
   it("is dropped with its sort when potential is hidden, keeping the position", () => {
     expect(ranged().sort.key).toBe("positionPeak");

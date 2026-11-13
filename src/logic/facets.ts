@@ -57,6 +57,10 @@ export const facetOptions = (
       bodyType: distinct(players.map((player) => player.bodyType)),
       developmentType: distinct(players.map((player) => player.developmentType)),
       developmentStyle: distinct(players.map((player) => player.developmentStyle)),
+      // Role values sort by number, then by the slot's place in the formation (roles.ts).
+      role: distinct(players.flatMap((player) => player.role ?? [])),
+      target: distinct(players.flatMap((player) => player.target ?? [])),
+      peakTarget: distinct(players.flatMap((player) => player.peakTarget ?? [])),
     },
   };
 };

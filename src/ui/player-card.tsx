@@ -7,7 +7,6 @@ import { curveSparklines, ovrSparkline } from "../logic/curve-sparkline.ts";
 import type { OfferContext } from "../logic/offer.ts";
 import { skillCurveId } from "../logic/overall-rating.ts";
 import type { Curves } from "../logic/overall-rating.ts";
-import { SEASON_STAT_KEYS } from "../logic/season-stats.ts";
 import type { PlayerNote } from "../logic/player-notes.ts";
 import type { Player } from "../logic/players.ts";
 import type { AttributeName } from "../logic/attributes.ts";
@@ -38,17 +37,17 @@ import {
   FILTER_SECTION_LABELS,
   FLAG_LABELS,
   formatNumber,
-  formatRating,
   LIST_LABELS,
   RANGE_LABELS,
   TEXT,
 } from "./text.ts";
 import { ATTRIBUTE_GROUP_LABELS, ATTRIBUTE_LABELS } from "./text-attributes.ts";
-import { Facts } from "./facts.tsx";
+import { CareerFacts } from "./card-career.tsx";
+import { Facts, yesNo } from "./facts.tsx";
 import type { Fact } from "./facts.tsx";
 import { OfferFacts } from "./offer-facts.tsx";
 import { SigningFacts } from "./signing-facts.tsx";
-import { HelpHeading, WarnedValue } from "./field-help.tsx";
+import { WarnedValue } from "./field-help.tsx";
 import { FIELD_HELP, HELP_TEXT, WARNING_TEXT } from "./text-help.ts";
 
 const ATTRIBUTE_GROUPS: readonly (readonly [
@@ -68,23 +67,6 @@ const ATTRIBUTE_GROUPS: readonly (readonly [
 
 const optional = (value: number | string | null): ReactNode =>
   value === null ? TEXT.card.none : typeof value === "number" ? formatNumber(value) : value;
-
-const yesNo = (value: boolean): string => (value ? TEXT.card.yes : TEXT.card.no);
-
-const count = (value: number | null): string | null =>
-  value === null ? null : formatNumber(value);
-
-/** A row only when its value is known: a player without a season in the save gets no rows of "brak"
- * (owner, 2026-11-05). */
-const known = (label: string, value: string | null, help?: string): readonly Fact[] =>
-  value === null ? [] : [[label, value, help]];
-
-/** Clean sheets, which the game counts for goalkeepers only. */
-const CLEAN_SHEETS: ReadonlySet<string> = new Set([
-  "totalCleanSheets",
-  "cleanSheets",
-  "cupCleanSheets",
-]);
 
 /**
  * With a career, his OVR projected from this season's age; without one, his own skill curve, the one his
@@ -322,38 +304,6 @@ const basics = (
   [TEXT.card.weight, TEXT.card.weightValue(player.weight)],
 ];
 
-/** The season so far, career only. */
-const CareerFacts = ({ player }: { player: Player }) => (
-  <section aria-labelledby="career-title">
-    <HelpHeading id="career-title" title={TEXT.card.career} help={HELP_TEXT.career} />
-    <Facts
-      facts={[
-        ...known(
-          RANGE_LABELS.form,
-          player.form === null ? null : formatRating(player.form),
-          FIELD_HELP.form,
-        ),
-        ...known(RANGE_LABELS.morale, count(player.morale), FIELD_HELP.morale),
-        ...SEASON_STAT_KEYS.filter(
-          (key) => player.positionGroup === "goalkeeper" || !CLEAN_SHEETS.has(key),
-        ).flatMap((key) => known(RANGE_LABELS[key], count(player[key]))),
-        ...known(RANGE_LABELS.injuryDays, count(player.injuryDays), FIELD_HELP.injuryDays),
-        [FLAG_LABELS.transferListed, yesNo(player.transferListed), FIELD_HELP.transferListed],
-        [FLAG_LABELS.loanListed, yesNo(player.loanListed), FIELD_HELP.loanListed],
-        ...(player.clubWillSell === null
-          ? []
-          : [
-              [
-                FLAG_LABELS.clubWillSell,
-                yesNo(player.clubWillSell),
-                FIELD_HELP.clubWillSell,
-              ] as const,
-            ]),
-      ]}
-    />
-  </section>
-);
-
 /**
  * Where the card returns focus: the player's button in a dialog still open under it (the notes), else
  * that dialog itself (his note was emptied, so his row left it), else his row or the results' title.
@@ -430,7 +380,7 @@ export const PlayerCard = (props: {
           currency={currency}
         />
       )}
-      {career ? <CareerFacts player={player} /> : null}
+      {career ? <CareerFacts player={player} showPotential={showPotential} /> : null}
       <section aria-labelledby="profile-title">
         <h3 id="profile-title">{TEXT.card.profile}</h3>
         <Facts facts={profile(player, showPotential, props.curves)} />

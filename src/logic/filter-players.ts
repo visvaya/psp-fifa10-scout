@@ -54,6 +54,10 @@ export const LIST_FIELDS = [
   "leagueId",
   "clubId",
   "nationalityId",
+  "role",
+  "squadState",
+  "target",
+  "peakTarget",
 ] as const satisfies readonly (keyof Player)[];
 
 export type ListKey = (typeof LIST_FIELDS)[number];
@@ -108,10 +112,19 @@ export const CAREER_FLAG_KEYS = [
   "clubWillSell",
 ] as const satisfies readonly FlagKey[];
 
+/** The lists only a career save fills (roles.ts): without one every player has null. */
+export const CAREER_LIST_KEYS = [
+  "role",
+  "squadState",
+  "target",
+  "peakTarget",
+] as const satisfies readonly ListKey[];
+
 /** The columns and sort keys only a career save fills, the peak at a chosen position among them. */
 export const CAREER_SORT_KEYS = [
   ...CAREER_RANGE_KEYS,
   ...CAREER_FLAG_KEYS,
+  ...CAREER_LIST_KEYS,
   "positionPeak",
 ] as const;
 

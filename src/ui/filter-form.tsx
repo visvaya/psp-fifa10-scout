@@ -33,6 +33,7 @@ import { SettingsActions } from "./settings-actions.tsx";
 import type { Settings } from "./settings-actions.tsx";
 import { FIELD_HELP, HELP_TEXT } from "./text-help.ts";
 import { PositionRatingField } from "./position-rating-field.tsx";
+import { RoleFields } from "./role-fields.tsx";
 import { TieOrderField } from "./tie-order-field.tsx";
 import {
   FILTER_SECTION_LABELS,
@@ -362,8 +363,9 @@ const clubSection = ({ filters, change, facets, range, list, flag, eye }: Kit, c
   </Section>
 );
 
-const careerSection = ({ range, flag }: Kit) => (
+const careerSection = ({ range, flag, ...kit }: Kit, showPotential: boolean) => (
   <Section title={FILTER_SECTION_LABELS.career}>
+    <RoleFields {...kit} showPotential={showPotential} />
     {range("form")}
     {range("morale")}
     {SEASON_STAT_KEYS.map((key) => range(key))}
@@ -437,7 +439,7 @@ export const FilterForm = ({
       </Section>
       {characterSection(kit)}
       {clubSection(kit, myTeamId !== null)}
-      {myTeamId === null ? null : careerSection(kit)}
+      {myTeamId === null ? null : careerSection(kit, showPotential)}
       <SettingsActions settings={settings} className="reset-filters" dispatch={dispatch} />
     </form>
   );

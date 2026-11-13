@@ -27,6 +27,7 @@ import type {
 import type { SaveFiles } from "./load-scout.ts";
 import { OVR_WEIGHTS } from "./overall-rating.ts";
 import { POSITION_GROUPS, ratingCodeOf } from "./positions.ts";
+import { SQUAD_STATES } from "./roles.ts";
 import { isCurrencyCode } from "../data/career-save.ts";
 import type { GraphicsPack } from "../data/game-graphics.ts";
 import { tieOrderOf } from "./best-peak.ts";
@@ -137,6 +138,7 @@ const parsePositionRating = (value: unknown): PositionRating | undefined => {
 const LIST_VALUES: Readonly<Partial<Record<ListKey, readonly unknown[]>>> = {
   positionGroup: POSITION_GROUPS,
   preferredFoot: ["left", "right"],
+  squadState: SQUAD_STATES,
 };
 
 /** The valid entries of `keys` in a stored record, each parsed by `parse` (undefined drops it). */

@@ -4,6 +4,7 @@ import type { GraphicsPack } from "../data/game-graphics.ts";
 import { currencyChosen, withShownCurrency } from "./currency.ts";
 import {
   CAREER_FLAG_KEYS,
+  CAREER_LIST_KEYS,
   CAREER_RANGE_KEYS,
   CAREER_SORT_KEYS,
   isRangeKey,
@@ -212,6 +213,7 @@ const withPotential = (preferences: Preferences): Preferences => {
       ...withoutRatingPeak(preferences.filters),
       peakAtBest: undefined,
       ranges,
+      lists: { ...preferences.filters.lists, peakTarget: undefined },
     }),
     sort: POTENTIAL_KEYS.has(preferences.sort.key) ? DEFAULT_SORT : preferences.sort,
   };
@@ -264,6 +266,10 @@ const withoutCareer = ({ filters, sort }: Pick<Preferences, "filters" | "sort">)
     flags: {
       ...filters.flags,
       ...Object.fromEntries(CAREER_FLAG_KEYS.map((key) => [key, undefined])),
+    },
+    lists: {
+      ...filters.lists,
+      ...Object.fromEntries(CAREER_LIST_KEYS.map((key) => [key, undefined])),
     },
   }),
   sort: CAREER_SORT_KEYS.some((key) => key === sort.key) ? DEFAULT_SORT : sort,

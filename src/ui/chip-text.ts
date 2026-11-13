@@ -3,6 +3,7 @@ import { FLAG_KEYS, LIST_FIELDS, peakField, RANGE_KEYS } from "../logic/filter-p
 import type { ListKey, PositionRating, Range } from "../logic/filter-players.ts";
 import type { Player } from "../logic/players.ts";
 import { POSITION_GROUPS } from "../logic/positions.ts";
+import { roleNameOf, SQUAD_STATES } from "../logic/roles.ts";
 import type { FilterId, ScoutFilters } from "../logic/scout-state.ts";
 import { codeName } from "./text-code-names.ts";
 import { ratingAbbreviation } from "./position-name.tsx";
@@ -14,7 +15,12 @@ import {
   rangeLabel,
   TEXT,
 } from "./text.ts";
-import { CLUB_STATUS_LABELS, LIST_MEMBERSHIP_LABELS, MY_CLUB_LABELS } from "./text-choices.ts";
+import {
+  CLUB_STATUS_LABELS,
+  LIST_MEMBERSHIP_LABELS,
+  MY_CLUB_LABELS,
+  SQUAD_STATE_LABELS,
+} from "./text-choices.ts";
 
 /** A chip names this many chosen values; it counts the rest. */
 const CHIP_VALUES_MAX = 3;
@@ -69,7 +75,8 @@ export type ChoiceKey =
   | "preferredFoot"
   | "bodyType"
   | "developmentType"
-  | "developmentStyle";
+  | "developmentStyle"
+  | "squadState";
 
 /** How a chip and a list column name one value of a list that names itself. */
 export const CHOICE_VALUE_TEXT: Readonly<Record<ChoiceKey, (value: unknown) => string>> = {
@@ -81,7 +88,19 @@ export const CHOICE_VALUE_TEXT: Readonly<Record<ChoiceKey, (value: unknown) => s
   bodyType: codeText("bodyType"),
   developmentType: codeText("developmentType"),
   developmentStyle: codeText("developmentStyle"),
+  squadState: (value) => {
+    const state = SQUAD_STATES.find((item) => item === value);
+    return state === undefined ? String(value) : SQUAD_STATE_LABELS[state];
+  },
 };
+
+/** The lists of a role or target, whose values are named by roleText. */
+export const isRoleColumn = (key: string): key is "role" | "target" | "peakTarget" =>
+  key === "role" || key === "target" || key === "peakTarget";
+
+/** "2. CB": a role or target value with its position in the game language. */
+export const roleText = (value: unknown, names: Pick<ChipNames, "positionName">): string =>
+  roleNameOf(Number(value), names.positionName) ?? String(value);
 
 /** How a chip names one chosen value of each list. */
 const LIST_VALUE_TEXT: Readonly<Record<ListKey, (value: unknown, names: ChipNames) => string>> = {
@@ -90,6 +109,9 @@ const LIST_VALUE_TEXT: Readonly<Record<ListKey, (value: unknown, names: ChipName
   leagueId: nameText("leagueId"),
   clubId: nameText("clubId"),
   nationalityId: nameText("nationalityId"),
+  role: roleText,
+  target: roleText,
+  peakTarget: roleText,
 };
 
 /** The first chosen values by name, then how many more: "Argentina, Brazil, Chile +2"; "oprócz …" for

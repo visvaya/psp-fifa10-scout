@@ -59,6 +59,7 @@ export const withoutSet = (sets: readonly FilterSet[], name: string): readonly F
 /** The set filters or sorts by a value that shows only with the potential. */
 export const usesPotential = ({ filters, sort }: FilterSet): boolean =>
   POTENTIAL_KEYS.has(sort.key) ||
+  filters.lists?.peakTarget !== undefined ||
   Object.entries(filters.ranges ?? {}).some(
     ([key, range]) => range !== undefined && [...POTENTIAL_KEYS].some((each) => each === key),
   );

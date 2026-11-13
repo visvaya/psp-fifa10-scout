@@ -252,6 +252,20 @@ describe("nextDirection", () => {
   });
 });
 
+describe("sortPlayers by the club state", () => {
+  it("orders the states as their rules apply, not by name, without one last", () => {
+    const players = [
+      testPlayer({ id: 1, nameOrder: 0, squadState: "growing" }),
+      testPlayer({ id: 2, nameOrder: 1 }),
+      testPlayer({ id: 3, nameOrder: 2, squadState: "retiring" }),
+      testPlayer({ id: 4, nameOrder: 3, squadState: "toSell" }),
+    ];
+    expect(sortPlayers(players, "squadState", "ascending").map((player) => player.id)).toEqual([
+      3, 4, 1, 2,
+    ]);
+  });
+});
+
 describe("ratingValueOf", () => {
   const player = testPlayer({
     overall: 60,
