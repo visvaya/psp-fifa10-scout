@@ -612,7 +612,9 @@ input[inputmode="numeric"] {
   display: flex;
   flex: 1;
   flex-direction: column;
-  min-height: 0;
+  /* The labels and about two rows (4rem each) even when the toolbar and the filters above take the
+     screen (enlarged text on a narrow phone): the page scrolls to them instead of the list showing none. */
+  min-height: 12rem;
 }
 
 /* Columns beyond the right edge: the list fades into the background there, solid over the start of the
