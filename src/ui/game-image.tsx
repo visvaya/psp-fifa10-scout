@@ -111,7 +111,7 @@ export const PortraitSlot = ({ player }: { player: Player }) =>
 
 /**
  * The pack entries an image may come from, the first one the pack has, and how it is drawn: a flag
- * twice as wide as it is high, a portrait or a kit in its own size (styles.css), the rest square.
+ * at 3:2 as the game shows it, a portrait or a kit in its own size (styles.css), the rest square.
  */
 export interface ImageName {
   readonly names: readonly string[];
@@ -126,9 +126,12 @@ export const flagOf = (countryId: number): ImageName => ({
   names: [`ls${String(countryId)}`],
   shape: "flag",
 });
-/** The player's real portrait where the game has one, else the composed one. */
+/**
+ * The player's real portrait where the game has one, else the composed one, else the game's own
+ * silhouette (owner, 2026-11-13).
+ */
 export const portraitOf = (player: Player): ImageName => ({
-  names: [realPortraitOf(player.id), player.composedPortrait],
+  names: [realPortraitOf(player.id), player.composedPortrait, "place_head"],
   shape: "portrait",
 });
 /** The club's home and away kits, none without a club. */
@@ -153,10 +156,10 @@ const COLUMN_IMAGES: Readonly<
 export const columnImage = (column: SortKey, player: Player): ImageName | null =>
   COLUMN_IMAGES[column]?.of(player) ?? null;
 
-/** How many image sizes wide the image before a column's values is (a flag twice), 0 without one. */
+/** How many image sizes wide the image before a column's values is (a flag 1.5), 0 without one. */
 export const columnImageWidth = (column: SortKey): number => {
   const images = COLUMN_IMAGES[column];
-  return images === undefined ? 0 : images.flag ? 2 : 1;
+  return images === undefined ? 0 : images.flag ? 1.5 : 1;
 };
 
 /** The first of the entries whose image can be made, or null; tried in order. */

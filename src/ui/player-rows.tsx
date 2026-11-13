@@ -226,13 +226,15 @@ const LabelButton = (props: {
 
 /**
  * The name, also as "A. Surname" when it has two parts, which styles.css shows instead once the full name
- * no longer fits its column (fitNames measures each row, so no length decides it in advance).
+ * no longer fits its column (fitNames measures each row, so no length decides it in advance); the
+ * portrait before it only where the row asks for it.
  */
-const PhoneName = (marks: ListMarks) => {
+const PhoneName = ({ portrait, ...marks }: ListMarks & { portrait: boolean }) => {
   const { player } = marks;
+  const slot = portrait ? <PortraitSlot player={player} /> : null;
   return player.initialName !== null ? (
     <span className="player-row-name has-initial">
-      <PortraitSlot player={player} />
+      {slot}
       <ShortlistStar {...marks} />
       <span className="player-row-name-full">{player.name}</span>
       <span className="player-row-name-short" aria-hidden="true">
@@ -242,7 +244,7 @@ const PhoneName = (marks: ListMarks) => {
     </span>
   ) : (
     <span className="player-row-name">
-      <PortraitSlot player={player} />
+      {slot}
       <ShortlistStar {...marks} />
       {player.name}
       <ShortlistWords {...marks} />
@@ -329,7 +331,7 @@ const MetaLine = ({ player, columns }: { player: Player; columns: readonly SortK
 };
 
 /** One phone row: the name with what has no column of its own, then the columns. */
-const PhoneRow = (
+export const PhoneRow = (
   props: ListMarks & {
     columns: readonly SortKey[];
     labels: readonly string[];
@@ -348,7 +350,13 @@ const PhoneRow = (
       }}
     >
       <span className="player-row-text">
-        <PhoneName player={player} watched={watched} />
+        {/* Portraits only on the basic list, the name and the rating column: with any further column
+            the name needs the room (owner, 2026-11-13). */}
+        <PhoneName
+          player={player}
+          watched={watched}
+          portrait={columns.every((column) => column === "overall")}
+        />
         <MetaLine player={player} columns={columns} />
       </span>
       {columns.map((column, index) => (

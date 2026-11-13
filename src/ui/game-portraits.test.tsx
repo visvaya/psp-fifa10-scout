@@ -12,10 +12,13 @@ import type { PositionNames } from "./position-name.tsx";
 
 const image = refpackLiterals(buildShpm(1, 1, [0], [[1, 2, 3, 255]]));
 const NAMES = ["s_00000007", "g_5011203", "tl1873", "j0_01873"];
-const pack: GraphicsPack = {
-  bytes: Uint8Array.from(NAMES.flatMap(() => [...image])),
-  entries: NAMES.map((name, index) => [name, index * image.length, image.length] as const),
-};
+const packOf = (names: readonly string[]): GraphicsPack => ({
+  bytes: Uint8Array.from(names.flatMap(() => [...image])),
+  entries: names.map((name, index) => [name, index * image.length, image.length] as const),
+});
+const pack = packOf(NAMES);
+/** A pack with the game's silhouette for a player without a face. */
+const withHead = packOf([...NAMES, "place_head"]);
 
 const POSITIONS: PositionNames = {
   short: () => "ŚP",
@@ -48,15 +51,15 @@ const card = (graphics: GraphicsPack | null, overrides: Parameters<typeof testPl
 };
 
 /** The list's slot of a player with this composed portrait and no real one. */
-const slot = (id: number, composedPortrait: string) =>
-  withPack(pack, <PortraitSlot player={testPlayer({ id, composedPortrait })} />);
+const slot = (id: number, composedPortrait: string, graphics = pack) =>
+  withPack(graphics, <PortraitSlot player={testPlayer({ id, composedPortrait })} />);
 
 const PORTRAIT = '<span class="game-image portrait" aria-hidden="true"></span>';
 
 describe("the names of portraits and kits", () => {
-  it("try the real portrait first, then the composed one", () => {
+  it("try the real portrait first, then the composed one, then the game's silhouette", () => {
     expect(portraitOf(testPlayer({ id: 7, composedPortrait: "g_0050312" }))).toEqual({
-      names: ["s_00000007", "g_0050312"],
+      names: ["s_00000007", "g_0050312", "place_head"],
       shape: "portrait",
     });
   });
@@ -81,6 +84,11 @@ describe("the card", () => {
     expect(html).not.toContain("game-image kit");
   });
 
+  it("shows the game's silhouette for a player the game has no portrait of", () => {
+    const html = card(withHead, { id: 8, composedPortrait: "g_9999999" });
+    expect(html).toContain(`<div class="card-portrait">${PORTRAIT}</div>`);
+  });
+
   it("shows neither without the game's graphics", () => {
     const html = card(null, { id: 7, clubId: 1873 });
     expect(html).not.toContain("card-portrait");
@@ -92,6 +100,10 @@ describe("the list's portrait slot", () => {
   it("holds the composed portrait when there is no real one, and stays empty without either", () => {
     expect(slot(9, "g_5011203")).toBe(`<span class="portrait-slot">${PORTRAIT}</span>`);
     expect(slot(9, "g_9999999")).toBe('<span class="portrait-slot"></span>');
+  });
+
+  it("holds the game's silhouette when the pack has it and the player no portrait", () => {
+    expect(slot(9, "g_9999999", withHead)).toBe(`<span class="portrait-slot">${PORTRAIT}</span>`);
   });
 
   it("is not there without the game's graphics", () => {

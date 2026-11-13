@@ -193,6 +193,7 @@ describe("readGameGraphics", () => {
     ["s_00012345.msh", "face"],
     ["s_123.msh", "skip"],
     ["g_1230456.msh", "built"],
+    ["place_head.msh", "head"],
   ]);
   const fe = archive([
     ["ls37.msh", "flag"],
@@ -201,6 +202,7 @@ describe("readGameGraphics", () => {
     ["j2_01873.msh", "skip"],
     ["j0_1873.msh", "skip"],
     ["j0_111091.msh", "lechia"],
+    ["place_flag_only.msh", "skip"],
   ]);
 
   /** The boot archive: its own table, then cro_base.bgh as one of its entries. */
@@ -231,6 +233,7 @@ describe("readGameGraphics", () => {
       "ll31",
       "s_00012345",
       "g_1230456",
+      "place_head",
       "ls37",
       "j0_01873",
       "j1_01873",
@@ -239,8 +242,18 @@ describe("readGameGraphics", () => {
     const contents = pack?.entries.map(([, offset, length]) =>
       text(pack.bytes.subarray(offset, offset + length)),
     );
-    expect(contents).toEqual(["crest", "logo", "face", "built", "flag", "home", "away", "lechia"]);
-    expect(pack?.bytes.length).toBe(36);
+    expect(contents).toEqual([
+      "crest",
+      "logo",
+      "face",
+      "built",
+      "head",
+      "flag",
+      "home",
+      "away",
+      "lechia",
+    ]);
+    expect(pack?.bytes.length).toBe(40);
   });
 
   it("reads each archive with one read", async () => {
@@ -260,14 +273,14 @@ describe("readGameGraphics", () => {
 
   it("stops before the next archive once the load is no longer wanted", async () => {
     const image = iso();
-    // Both archives are 29 bytes long here, and no other read is.
+    // Both archives are 33 bytes long here, and no other read is.
     let archives = 0;
     const read: ReadRange = async (offset, length) => {
       if (length === base.data.length) archives += 1;
       return reader(image)(offset, length);
     };
     expect(await readGameGraphics(read, image.length, () => archives === 0)).toBeNull();
-    expect([base.data.length, fe.data.length, archives]).toEqual([29, 29, 1]);
+    expect([base.data.length, fe.data.length, archives]).toEqual([33, 33, 1]);
     expect(await readGameGraphics(reader(image), image.length, () => false)).toBeNull();
   });
 
