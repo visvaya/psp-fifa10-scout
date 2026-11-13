@@ -23,6 +23,8 @@ export type SquadState = (typeof SQUAD_STATES)[number];
 /** What roles and states read of a player. */
 export interface RoleInput {
   readonly id: number;
+  /** The preferred position; a goalkeeper (code 0) is queued only at GK slots. */
+  readonly positionCode: number;
   readonly age: number;
   readonly overallByCode: readonly number[];
   readonly peakByCode: readonly number[];
@@ -82,16 +84,26 @@ type ValueAt = (player: RoleInput, code: number) => number;
 const overallAt: ValueAt = (player, code) => player.overallByCode[code] ?? 0;
 const peakAt: ValueAt = (player, code) => player.peakByCode[code] ?? 0;
 
+const GOALKEEPER_CODE = 0;
+
+/** Goalkeepers are queued only at goalkeeper slots, outfield players only at outfield slots. */
+const fits = ({ positionCode }: RoleInput, code: number): boolean =>
+  (positionCode === GOALKEEPER_CODE) === (code === GOALKEEPER_CODE);
+
 /**
  * The slot with the lowest number in its queue, a tie to the one where `valueAt` is higher, then to the
- * earlier slot; as a role value.
+ * earlier slot, among the slots of his kind (fits); as a role value.
  */
 const bestSlot = (
+  player: RoleInput,
   formationCodes: readonly number[],
   numberAt: (code: number, index: number) => number,
   valueAt: (code: number) => number,
 ): number => {
-  const ranked = formationCodes.map((code, index) => ({
+  const all = formationCodes.map((code, index) => ({ code, index }));
+  const ofKind = all.filter(({ code }) => fits(player, code));
+  // A formation without a slot of his kind leaves him every slot.
+  const ranked = (ofKind.length > 0 ? ofKind : all).map(({ code, index }) => ({
     code,
     index,
     number: numberAt(code, index),
@@ -132,9 +144,12 @@ const targetsBy = (
   formationCodes: readonly number[],
   valueAt: ValueAt,
 ) => {
-  const club = formationCodes.map((code) => squad.map((other) => valueAt(other, code)));
+  const club = formationCodes.map((code) =>
+    squad.filter((other) => fits(other, code)).map((other) => valueAt(other, code)),
+  );
   return (player: RoleInput): number | null => {
     const value = bestSlot(
+      player,
       formationCodes,
       (slot, index) => {
         const own = valueAt(player, slot);
@@ -176,8 +191,12 @@ export const playerRoles = (
       return roleValue(1, index < 0 ? formationCodes.length : index, code);
     }
     return bestSlot(
+      player,
       formationCodes,
-      (slot) => 1 + placedAt(slot) + benched.filter((other) => ahead(other, player, slot)).length,
+      (slot) =>
+        1 +
+        placedAt(slot) +
+        benched.filter((other) => fits(other, slot) && ahead(other, player, slot)).length,
       (slot) => overallAt(player, slot),
     );
   };

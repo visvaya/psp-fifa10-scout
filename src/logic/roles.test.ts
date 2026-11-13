@@ -25,7 +25,7 @@ const member = (
 
 /** Three players placed in the eleven, one at each slot. */
 const [KEEPER, STOPPER, STRIKER] = [
-  member(1, [70, 40, 40]),
+  member(1, [70, 40, 40], { positionCode: 0 }),
   member(2, [40, 70, 40]),
   member(3, [40, 40, 70]),
 ];
@@ -44,14 +44,14 @@ const rolesOf = (squad: readonly Player[], bench: readonly number[], formation =
 
 describe("playerRoles in the club", () => {
   it("makes a placed player 1. at his slot and a benched one his best number", () => {
-    const backup = member(4, [60, 70, 50]);
-    const centreBack = member(5, [40, 75, 40]);
+    const backup = member(4, [40, 70, 50]);
+    const centreBack = member(5, [40, 65, 40]);
     const roles = rolesOf([backup, centreBack], [4, 5]);
     expect(roles(KEEPER).roleName).toBe("1. GK");
     expect(roles(STRIKER).roleName).toBe("1. ST");
-    // 2. at GK and ST alike; GK, where his OVR is higher.
-    expect(roles(backup).roleName).toBe("2. GK");
-    expect(roles(centreBack).roleName).toBe("2. CB");
+    // 2. at CB and ST alike; CB, where his OVR is higher.
+    expect(roles(backup).roleName).toBe("2. CB");
+    expect(roles(centreBack).roleName).toBe("3. CB");
   });
 
   it("puts the lower id first when two benched players tie at a code", () => {
@@ -62,7 +62,10 @@ describe("playerRoles in the club", () => {
   });
 
   it("sorts the role by its number, then by the slot's place in the formation", () => {
-    const [keeper, striker] = [member(4, [60, 30, 30]), member(5, [30, 30, 60])];
+    const [keeper, striker] = [
+      member(4, [60, 30, 30], { positionCode: 0 }),
+      member(5, [30, 30, 60]),
+    ];
     const roles = rolesOf([keeper, striker], [4, 5]);
     const values = [roles(STRIKER), roles(striker), roles(keeper), roles(KEEPER)].map(
       (fields) => fields.role ?? 0,
@@ -73,6 +76,18 @@ describe("playerRoles in the club", () => {
       roles(keeper).role,
       roles(striker).role,
     ]);
+  });
+
+  it("queues a goalkeeper only at GK slots and an outfield player only at outfield ones", () => {
+    // The club has one keeper; each reserve rates best at the other kind of slot.
+    const outfield = member(4, [65, 30, 30]);
+    const keeper = member(5, [50, 75, 75], { positionCode: 0 });
+    const roles = rolesOf([outfield, keeper], [4, 5]);
+    expect(roles(outfield).roleName).toBe("2. CB");
+    expect(roles(keeper).roleName).toBe("2. GK");
+    const outsideKeeper = member(20, [60, 99, 99], { positionCode: 0, clubId: 241 });
+    expect(roles(outsideKeeper).targetName).toBe("2. GK");
+    expect(roles(member(21, [99, 30, 30], { clubId: 241 })).targetName).toBe(null);
   });
 
   it("gives no target to his own players and no role to anyone without a formation", () => {
