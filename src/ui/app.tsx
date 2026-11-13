@@ -26,6 +26,7 @@ import type { UpdatableRegistration } from "./app-update.ts";
 import { UpdatePrompt } from "./update-prompt.tsx";
 import { useMediaQuery } from "./use-media-query.ts";
 import { useScoutFiles } from "./use-scout-files.ts";
+import { GameImages } from "./game-image.tsx";
 
 /** Wide layout (table and side panel) from this width; matches --layout-wide in styles.css. */
 const WIDE_QUERY = "(min-width: 60rem)";
@@ -190,6 +191,35 @@ const useSignedList = (state: ScoutState, requestSigned: () => void) => {
   }, [wanted, requestSigned]);
 };
 
+/** The card of the open player, if he is listed. */
+const OpenCard = (props: {
+  state: ScoutState;
+  players: readonly Player[] | undefined;
+  names: PositionNames;
+  dispatch: Dispatch<ScoutAction>;
+}) => {
+  const { state, names, dispatch } = props;
+  const openPlayer = props.players?.find((player) => player.id === state.openPlayerId);
+  return openPlayer === undefined ? null : (
+    <PlayerCard
+      player={openPlayer}
+      names={names}
+      career={state.myTeamId !== null}
+      currency={shownCurrency(state)}
+      curves={state.curves}
+      offer={offerFor(state, openPlayer)}
+      offerPlayer={beforeSigning(state, openPlayer)}
+      showPotential={state.showPotential}
+      watched={state.watchlist.some((entry) => entry.playerId === openPlayer.id)}
+      note={state.notes.find((note) => note.playerId === openPlayer.id)}
+      dispatch={dispatch}
+      onClose={() => {
+        dispatch({ type: "player-closed" });
+      }}
+    />
+  );
+};
+
 /** registering: the service worker's registration, null where none is made (main.tsx). */
 export const App = (props: { registering: Promise<UpdatableRegistration> | null }): JSX.Element => {
   const [state, dispatch] = useReducer(scoutReducer, initialScoutState);
@@ -198,57 +228,40 @@ export const App = (props: { registering: Promise<UpdatableRegistration> | null 
   const { language, list, positionNames } = useGameNames(state);
   const update = useAppUpdate(props.registering);
   useStoredState(state, files);
-  const { view, showPotential } = state;
   useSignedList(state, files.requestSigned);
 
-  const openPlayer = list?.players.find((player) => player.id === state.openPlayerId);
   return (
-    <div className="app">
-      <TopBar state={state} list={list} wide={wide} update={update} dispatch={dispatch} />
-      <UpdatePrompt status={update.status} install={update.install} dismiss={update.dismiss} />
-      <StorageNotice failed={files.storageFailed} />
-      <main className="main">
-        {view === "list" && list !== null ? (
-          <ListView
-            state={state}
-            players={list.players}
-            collator={list.collator}
-            positionName={positionNames.short}
-            wide={wide}
-            dispatch={dispatch}
-          />
-        ) : (
-          <StartScreen
-            state={state}
-            ready={files.ready}
-            language={language}
-            onGame={files.pickGame}
-            onSave={files.pickSave}
-            onForgetSave={files.forgetSave}
-            onLocale={files.pickLocale}
-            dispatch={dispatch}
-            offline={!update.unregistered}
-          />
-        )}
-      </main>
-      {openPlayer === undefined ? null : (
-        <PlayerCard
-          player={openPlayer}
-          names={positionNames}
-          career={state.myTeamId !== null}
-          currency={shownCurrency(state)}
-          curves={state.curves}
-          offer={offerFor(state, openPlayer)}
-          offerPlayer={beforeSigning(state, openPlayer)}
-          showPotential={showPotential}
-          watched={state.watchlist.some((entry) => entry.playerId === openPlayer.id)}
-          note={state.notes.find((note) => note.playerId === openPlayer.id)}
-          dispatch={dispatch}
-          onClose={() => {
-            dispatch({ type: "player-closed" });
-          }}
-        />
-      )}
-    </div>
+    <GameImages pack={state.graphics}>
+      <div className="app">
+        <TopBar state={state} list={list} wide={wide} update={update} dispatch={dispatch} />
+        <UpdatePrompt status={update.status} install={update.install} dismiss={update.dismiss} />
+        <StorageNotice failed={files.storageFailed} />
+        <main className="main">
+          {state.view === "list" && list !== null ? (
+            <ListView
+              state={state}
+              players={list.players}
+              collator={list.collator}
+              positionName={positionNames.short}
+              wide={wide}
+              dispatch={dispatch}
+            />
+          ) : (
+            <StartScreen
+              state={state}
+              ready={files.ready}
+              language={language}
+              onGame={files.pickGame}
+              onSave={files.pickSave}
+              onForgetSave={files.forgetSave}
+              onLocale={files.pickLocale}
+              dispatch={dispatch}
+              offline={!update.unregistered}
+            />
+          )}
+        </main>
+        <OpenCard state={state} players={list?.players} names={positionNames} dispatch={dispatch} />
+      </div>
+    </GameImages>
   );
 };

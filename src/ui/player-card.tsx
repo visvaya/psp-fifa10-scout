@@ -24,6 +24,8 @@ import { ModalDialog } from "./modal-dialog.tsx";
 import { PositionName, ratingChoiceName } from "./position-name.tsx";
 import type { PositionNames } from "./position-name.tsx";
 import { clubText, MissingValue, RESULTS_TITLE_ID } from "./player-list.tsx";
+import { crestOf, flagOf, GameImage, leagueLogoOf } from "./game-image.tsx";
+import type { ImageName } from "./game-image.tsx";
 import {
   FILTER_SECTION_LABELS,
   FLAG_LABELS,
@@ -179,14 +181,27 @@ const profile = (player: Player, showPotential: boolean, curves: Curves): readon
   ],
 ];
 
+/** A name with the game's image before it, or "brak" without a name. */
+const imaged = (image: ImageName | null, name: string | null): ReactNode =>
+  name === null ? (
+    TEXT.card.none
+  ) : (
+    <>
+      <GameImage image={image} />
+      {name}
+    </>
+  );
+
 /** The club; for a loaned player with the loan noted and his parent club right under it. */
-const clubFacts = (player: Player): readonly Fact[] =>
-  player.loanedFromId === null
-    ? [[TEXT.card.club, clubText(player)]]
+const clubFacts = (player: Player): readonly Fact[] => {
+  const club = crestOf(player.clubId);
+  return player.loanedFromId === null
+    ? [[TEXT.card.club, imaged(club, clubText(player))]]
     : [
-        [TEXT.card.club, TEXT.card.onLoanAt(clubText(player))],
-        [TEXT.card.loanedFrom, player.loanedFromName ?? TEXT.card.none],
+        [TEXT.card.club, imaged(club, TEXT.card.onLoanAt(clubText(player)))],
+        [TEXT.card.loanedFrom, imaged(crestOf(player.loanedFromId), player.loanedFromName)],
       ];
+};
 
 /**
  * The other position groups with the same best peak, as "OVR na pozycjach" names them, or undefined
@@ -239,8 +254,8 @@ const basics = (
   ],
   [TEXT.card.age, TEXT.years(player.age), FIELD_HELP.age],
   ...clubFacts(player),
-  [TEXT.card.league, optional(player.leagueName)],
-  [TEXT.card.nationality, optional(player.nationalityName)],
+  [TEXT.card.league, imaged(leagueLogoOf(player.leagueId), player.leagueName)],
+  [TEXT.card.nationality, imaged(flagOf(player.nationalityId), player.nationalityName)],
   ...contractFacts(player),
   ...money(player, currency),
   [

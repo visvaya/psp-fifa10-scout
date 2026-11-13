@@ -16,6 +16,10 @@ const recordingStore = () => {
       writes.push(name);
       return Promise.resolve();
     },
+    saveGraphics: (graphics) => {
+      writes.push([...graphics.bytes]);
+      return Promise.resolve();
+    },
   };
   const withStore = (run: (opened: MemoryStore) => Promise<void>) => {
     void run(store);
@@ -27,6 +31,12 @@ const done = (requestId: number): WorkerMessage => ({
   type: "done",
   requestId,
   result: EMPTY_LOAD_RESULT,
+});
+/** A load's graphics message: one byte of graphics, or none. */
+const graphics = (requestId: number, byte: number | null): WorkerMessage => ({
+  type: "graphics",
+  requestId,
+  graphics: byte === null ? null : { bytes: Uint8Array.of(byte), entries: [] },
 });
 const save = (byte: number) => ({ dataBin: new Blob([Uint8Array.of(byte)]), paramSfo: new Blob() });
 
@@ -162,10 +172,35 @@ describe("createGameMemory", () => {
     expect(memory.reload()?.source).toBe(b);
     memory.finished(done(2));
     memory.finished(done(1));
+    memory.finished(graphics(2, null));
     await settled();
     expect(writes).toEqual(["b.iso"]);
     const reloaded = memory.reload();
     expect(reloaded?.started).toEqual({});
     expect(await reloaded?.source.arrayBuffer()).toEqual(Uint8Array.of(9).buffer);
+  });
+
+  it("stores the latest load's graphics, not a superseded load's, and keeps them for a load without", async () => {
+    const { writes, withStore, settled } = recordingStore();
+    const memory = createGameMemory(withStore);
+    memory.started(1, { source: new Blob(["a"]), started: { gameName: "a.iso" } });
+    memory.started(2, { source: new Blob(["b"]), started: { gameName: "b.iso" } });
+    memory.finished(graphics(1, 1));
+    memory.finished(graphics(2, 2));
+    memory.started(3, { source: new Blob(["c"]), started: { gameName: "fifa.db" } });
+    memory.finished(graphics(3, null));
+    await settled();
+    expect(writes).toEqual([[2]]);
+  });
+
+  it("reloads the picked file until its graphics arrived, so a save picked meanwhile keeps them", () => {
+    const memory = createGameMemory(recordingStore().withStore);
+    const iso = new Blob(["iso"]);
+    memory.started(1, { source: iso, started: { gameName: "a.iso" } });
+    memory.finished(done(1));
+    expect(memory.reload()).toEqual({ source: iso, started: { gameName: "a.iso" } });
+    memory.finished(graphics(1, null));
+    expect(memory.reload()?.source).not.toBe(iso);
+    expect(memory.reload()?.started).toEqual({});
   });
 });

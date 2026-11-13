@@ -1,5 +1,6 @@
 // The app state as a reducer with pure transitions, and the pure view helpers the screens share.
 import type { CurrencyCode } from "../data/career-save.ts";
+import type { GraphicsPack } from "../data/game-graphics.ts";
 import { currencyChosen, withShownCurrency } from "./currency.ts";
 import {
   CAREER_FLAG_KEYS,
@@ -111,6 +112,8 @@ export interface ScoutState extends Preferences, SigningState {
   readonly notes: readonly PlayerNote[];
   /** The user changed the notes since they were restored; only then are they saved. */
   readonly notesEdited: boolean;
+  /** The game's images, from the store or the latest disc image loaded; null without any. */
+  readonly graphics: GraphicsPack | null;
 }
 
 /** Null goes back to the career's currency. */
@@ -144,6 +147,8 @@ export type ScoutAction =
   | UndoAction
   | { readonly type: "files-incomplete"; readonly stage: "save" | "locale" }
   | { readonly type: "languages-restored"; readonly languages: GameLanguages }
+  /** From the store or a load; null (a load of a bare fifa.db) keeps those shown. */
+  | { readonly type: "graphics-loaded"; readonly graphics: GraphicsPack | null }
   | { readonly type: "language-chosen"; readonly language: string | null }
   | ViewAction
   | { readonly type: "view-changed"; readonly view: ScoutState["view"] }
@@ -184,6 +189,7 @@ export const initialScoutState: ScoutState = {
   watchlistEdited: false,
   notes: [],
   notesEdited: false,
+  graphics: null,
 };
 /** The position rating filter without its peak range, which needs a career and potential shown. */
 const withoutRatingPeak = (filters: ScoutFilters): FilterChange => {
@@ -341,7 +347,13 @@ const changes = (
   state: ScoutState,
   action: Exclude<
     ScoutAction,
-    UndoAction | WatchlistAction | NoteAction | ColumnAction | ViewAction | SigningAction
+    | UndoAction
+    | WatchlistAction
+    | NoteAction
+    | ColumnAction
+    | ViewAction
+    | SigningAction
+    | { readonly type: "graphics-loaded" }
   >,
 ): ScoutState => {
   if (isLoadAction(action)) return loadReducer(state, action);
@@ -394,6 +406,8 @@ const reduced = (state: ScoutState, action: Exclude<ScoutAction, UndoAction>): S
   if (isNoteAction(action)) return notesReducer(state, action);
   if (isSigningAction(action)) return signingReducer(state, action);
   if (action.type === "currency-chosen") return currencyChosen(state, action.currency);
+  if (action.type === "graphics-loaded")
+    return action.graphics === null ? state : { ...state, graphics: action.graphics };
   if (action.type === "tie-order-chosen") return tieOrderChosen(state, action.order);
   const next = isColumnAction(action) ? columnReducer(state, action) : changes(state, action);
   return withShownCurrency(state, next);

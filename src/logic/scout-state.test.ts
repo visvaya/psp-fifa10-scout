@@ -404,6 +404,11 @@ describe("actionOf", () => {
       languages,
       attachedLanguage: "pol_pl",
     };
+    const graphics = { bytes: Uint8Array.of(1), entries: [] };
+    expect(actionOf({ type: "graphics", requestId: 3, graphics })).toEqual({
+      type: "graphics-loaded",
+      graphics,
+    });
     expect(actionOf({ type: "done", requestId: 3, result })).toEqual({
       type: "load-succeeded",
       requestId: 3,

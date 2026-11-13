@@ -45,6 +45,8 @@
   --topbar-height: 3.5rem;
   --filter-panel-width: 18rem;
   --rating-width: 2.25rem;
+  /* The game's crests and logos before a name; its flags are twice as wide (game-image.tsx). */
+  --game-image-size: 1.25em;
   /* A filter section's marker; the unseen copy that places the section's "?" takes the same width. */
   --section-marker-width: 1.25em;
   --skeleton-pulse-duration: 1.2s;
@@ -714,6 +716,21 @@ input[inputmode="numeric"] {
 .shortlist-mark,
 .watch-mark {
   margin-right: var(--space-1);
+}
+
+/* The game's own images, decorative, in line with the name after them. */
+/* An inline block, so the empty box that holds an image's place has its size too. */
+.game-image {
+  display: inline-block;
+  width: var(--game-image-size);
+  height: var(--game-image-size);
+  margin-right: var(--space-1);
+  object-fit: contain;
+  vertical-align: middle;
+}
+
+.game-image.flag {
+  width: calc(2 * var(--game-image-size));
 }
 
 /* A cell without a value: its dash quieter than the values around it. */

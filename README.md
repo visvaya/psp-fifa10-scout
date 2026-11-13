@@ -34,8 +34,10 @@ What it does today:
   period.
 - Hides potential and the peak by default; one switch reveals them.
 - Reads the player database (`fifa.db`) straight from your disc image (ISO), or from a `fifa.db`
-  file you extracted yourself. From the image it reads only the database, the language files and
-  the game's identifier.
+  file you extracted yourself. From the image it reads only the database, the language files, the
+  game's identifier and its graphics.
+- Shows the game's own club crests, nationality flags and league logos beside their names, read
+  from your ISO on your device.
 - Optionally reads a manager-mode career save (`DATA.BIN` and `PARAM.SFO`): decrypts it, verifies
   its checksum and shows the current state of the career: clubs and leagues after promotions and
   relegations, contracts, loans, the transfer list, rolling match rating (KR), morale, injuries, the

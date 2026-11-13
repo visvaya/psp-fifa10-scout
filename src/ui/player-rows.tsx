@@ -1,7 +1,7 @@
 // The filtered players on phones: two-line rows with the filtered and sorted values as columns,
 // scrolled sideways under the kept name.
 import { useLayoutEffect, useMemo, useRef } from "react";
-import type { CSSProperties, Dispatch, JSX, RefObject } from "react";
+import type { CSSProperties, Dispatch, JSX, ReactNode, RefObject } from "react";
 import type { Player } from "../logic/players.ts";
 import type { ScoutAction, ScoutSort } from "../logic/scout-state.ts";
 import type { SortKey } from "../logic/sort-players.ts";
@@ -15,10 +15,13 @@ import {
   ShortlistStar,
   ShortlistWords,
   useBestPeakRoom,
+  useImageRoom,
   useRows,
   widestTextRem,
 } from "./player-list.tsx";
 import type { ListMarks, ListProps } from "./player-list.tsx";
+import { fitRows } from "./fit-rows.ts";
+import { crestOf, GameImage } from "./game-image.tsx";
 import { PositionName } from "./position-name.tsx";
 import { TEXT } from "./text.ts";
 import { NBSP } from "./typeset.ts";
@@ -69,25 +72,28 @@ const measureLabels = (labels: readonly string[]): readonly number[] => {
 
 /**
  * Each column's widest text in rem over every player, so the widths stay put whatever the filters; the
- * best peak's badge with its widest position.
+ * best peak's badge with its widest position, a name with the game's image before it.
  */
 const useValueRems = (
   players: readonly Player[],
   columns: readonly SortKey[],
   ratingCode: number | null,
   besideRem: number,
-): readonly number[] =>
-  useMemo(
+): readonly number[] => {
+  const imageRoom = useImageRoom();
+  return useMemo(
     () =>
       columns.map((column) =>
         column === "bestPeak" && besideRem > 0
           ? PHONE.ratingRem + besideRem
-          : widestTextRem(
+          : imageRoom(column) +
+            widestTextRem(
               players.flatMap((player) => columnText(player, column, ratingCode) ?? []),
             ),
       ),
-    [players, columns, ratingCode, besideRem],
+    [players, columns, ratingCode, besideRem, imageRoom],
   );
+};
 
 /**
  * The phone rows' grid, shared by the header so each label stands over its column: the values for the
@@ -157,15 +163,25 @@ const RowsHeader = (props: {
 };
 
 /**
- * The club after its separator, in parts the ellipsis replaces whole: the separator with the first word,
- * then each further word after a non-breaking space, so the line never ends in a space before the ellipsis.
+ * The club after its separator, in parts the ellipsis replaces whole: the separator with the image and
+ * the first word, then each further word after a non-breaking space, so the line never ends in a space
+ * before the ellipsis.
  */
-const WholeWords = ({ text, separator }: { text: string; separator: string }) => {
+const WholeWords = ({
+  text,
+  separator,
+  image,
+}: {
+  text: string;
+  separator: string;
+  image: ReactNode;
+}) => {
   const [first = ""] = text.split(" ");
   return (
     <>
       <span className="meta-part">
         {separator}
+        {image}
         {first}
       </span>
       {/* Keyed by where each word starts: words may repeat ("Landu Landu"). */}
@@ -259,74 +275,6 @@ const scrollShowing = (label: HTMLElement, header: HTMLElement, from: number): n
   return left - least;
 };
 
-/** The width of an element's text as laid out, also while it is visually hidden (clipped, not removed). */
-const textWidth = (element: Element): number => {
-  const range = document.createRange();
-  range.selectNodeContents(element);
-  return range.getBoundingClientRect().width;
-};
-
-/** An element's width with its side margins, as it takes room in its line. */
-const outerWidth = (element: HTMLElement): number => {
-  const style = getComputedStyle(element);
-  return (
-    element.offsetWidth +
-    (Number.parseFloat(style.marginLeft) || 0) +
-    (Number.parseFloat(style.marginRight) || 0)
-  );
-};
-
-/**
- * Each long name gives its first name as an initial only once the full name no longer fits its column,
- * row by row as the column narrows (owner, 2026-11-05: smoother than all at once on scrolling).
- */
-const fitNames = (frame: HTMLElement): void => {
-  for (const name of frame.querySelectorAll<HTMLElement>(".player-row-name.has-initial")) {
-    const full = name.querySelector(".player-row-name-full");
-    if (full === null) continue;
-    // The room beside the stars before the name: the game's shortlist and the own list.
-    const stars = [
-      ...name.querySelectorAll<HTMLElement>(":scope > :is(.shortlist-mark, .watch-mark)"),
-    ];
-    const room = stars.reduce((left, star) => left - outerWidth(star), name.clientWidth);
-    // Half a pixel of leeway for subpixel rounding.
-    const fit = textWidth(full) > room + 0.5 ? "short" : "full";
-    const was = name.dataset["fit"];
-    if (was === fit) continue;
-    name.dataset["fit"] = fit;
-    // Only a change of a row already shown fades; a row just come into the list does not.
-    if (was !== undefined) name.dataset["swap"] = fit;
-  }
-};
-
-/** How many of the line's parts show whole: the browser's ellipsis hides those past its right edge. */
-const shownParts = (meta: HTMLElement): number => {
-  // Half a pixel of leeway for subpixel rounding.
-  const right = meta.getBoundingClientRect().right + 0.5;
-  return [...meta.children].filter((part) => part.getBoundingClientRect().right <= right).length;
-};
-
-/**
- * The line under each name (position, age, club) loses or regains a whole part as its column narrows or
- * widens; a row already shown fades the new line in, as a name does (owner, 2026-11-05: consistent).
- */
-const fitMetaLines = (frame: HTMLElement): void => {
-  for (const meta of frame.querySelectorAll<HTMLElement>(".player-row-meta")) {
-    const parts = String(shownParts(meta));
-    const was = meta.dataset["parts"];
-    if (was === parts) continue;
-    meta.dataset["parts"] = parts;
-    // Two values in turn, each with its own animation, so every change replays the fade.
-    if (was !== undefined) meta.dataset["swap"] = meta.dataset["swap"] === "a" ? "b" : "a";
-  }
-};
-
-/** Each shown row's name and the line under it, fitted to the name column's room now. */
-const fitRows = (frame: HTMLElement): void => {
-  fitNames(frame);
-  fitMetaLines(frame);
-};
-
 /**
  * Tells styles.css, on the frame of the list and its labels, how far the list has scrolled sideways,
  * whether columns lie beyond its right edge and how wide its scrollbar is.
@@ -371,6 +319,7 @@ const MetaLine = ({ player, columns }: { player: Player; columns: readonly SortK
         <WholeWords
           text={clubText(player)}
           separator={position || age ? TEXT.rowMetaPartSeparator : ""}
+          image={<GameImage image={crestOf(player.clubId)} />}
         />
       ) : null}
     </span>
