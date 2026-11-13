@@ -8,8 +8,9 @@ const textWidth = (element: Element): number => {
   return range.getBoundingClientRect().width;
 };
 
-/** An element's width with its side margins, as it takes room in its line. */
+/** An element's width with its side margins, as it takes room in its line; none when it is not shown. */
 const outerWidth = (element: HTMLElement): number => {
+  if (element.getClientRects().length === 0) return 0;
   const style = getComputedStyle(element);
   return (
     element.offsetWidth +

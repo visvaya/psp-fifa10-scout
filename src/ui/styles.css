@@ -45,7 +45,7 @@
   --topbar-height: 3.5rem;
   --filter-panel-width: 18rem;
   --rating-width: 2.25rem;
-  /* The game's crests and logos before a name; its flags are twice as wide (game-image.tsx). */
+  /* The game's crests and logos before a name; its flags are half as wide again (game-image.tsx). */
   --game-image-size: 1.25em;
   /* A portrait's slot before a name in the list: 85 by 75 like the game's, as high as the row allows. */
   --portrait-slot-width: 2em;
@@ -735,8 +735,10 @@ input[inputmode="numeric"] {
   vertical-align: middle;
 }
 
+/* 3:2 as the game shows its 2:1 flag textures (its flag placeholder is 72 by 48), squeezed. */
 .game-image.flag {
-  width: calc(2 * var(--game-image-size));
+  width: calc(1.5 * var(--game-image-size));
+  object-fit: fill;
 }
 
 .game-image.kit {
@@ -761,7 +763,12 @@ input[inputmode="numeric"] {
   vertical-align: middle;
 }
 
-/* The neutral box stays visible where the game has no portrait of him. */
+/* The phone's name column at its least width leaves its room to the name (owner, 2026-11-13). */
+.phone-list[data-collapsed] .portrait-slot {
+  display: none;
+}
+
+/* The neutral box stays visible where the pack has no portrait of him, not even the silhouette. */
 .card-portrait {
   width: calc(var(--portrait-card-height) * 85 / 75);
   height: var(--portrait-card-height);

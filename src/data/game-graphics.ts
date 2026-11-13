@@ -33,10 +33,11 @@ const GUI_PATH = "PSP_GAME/USRDIR/data/gui";
 const BASE_TABLE = "cro_base.bgh";
 /**
  * The entries kept: club crests tl<teamid>, league logos ll<leagueid>, real portraits s_<playerid, 8
- * digits> and composed portraits g_<7 digits> in cro_base; flags ls<countryid> and home and away kits
+ * digits>, composed portraits g_<7 digits> and the silhouette for a player without either, place_head,
+ * in cro_base; flags ls<countryid> and home and away kits
  * j0_ / j1_<teamid, zero-padded to at least 5 digits> in cro_feonly.
  */
-const BASE_WANTED = /^(?:tl[0-9]+|ll[0-9]+|s_[0-9]{8}|g_[0-9]{7})[.]msh$/u;
+const BASE_WANTED = /^(?:tl[0-9]+|ll[0-9]+|s_[0-9]{8}|g_[0-9]{7}|place_head)[.]msh$/u;
 const FEONLY_WANTED = /^(?:ls[0-9]+|j[01]_[0-9]{5,})[.]msh$/u;
 
 interface BigEntry {

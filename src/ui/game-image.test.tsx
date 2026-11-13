@@ -4,6 +4,7 @@ import type { DecodedImage } from "../data/game-graphics.ts";
 import { buildShpm, refpackLiterals } from "../data/test-support/synthetic-graphics.ts";
 import {
   columnImage,
+  columnImageWidth,
   crestOf,
   firstUrl,
   flagOf,
@@ -148,5 +149,11 @@ describe("columnImage", () => {
     const freeAgent = testPlayer({ clubId: null, leagueId: null });
     expect(columnImage("clubName", freeAgent)).toBeNull();
     expect(columnImage("leagueName", freeAgent)).toBeNull();
+  });
+
+  it("makes room for a flag at 3:2 like the game's, half as wide again as a crest", () => {
+    expect(columnImageWidth("nationalityName")).toBe(1.5);
+    expect(columnImageWidth("clubName")).toBe(1);
+    expect(columnImageWidth("age")).toBe(0);
   });
 });

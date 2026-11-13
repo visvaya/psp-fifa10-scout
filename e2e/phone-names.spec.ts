@@ -58,6 +58,12 @@ test.describe("phone name column", () => {
     await expect.poll(async () => (await name.boundingBox())?.width).toBeLessThan(wide - 30);
     await expect(frame).not.toHaveAttribute("data-more");
     await expect(frame).toHaveAttribute("data-scrolled");
+    // Narrowed, the name column is collapsed: styles.css shows no portrait there (owner, 2026-11-13).
+    await expect(frame).toHaveAttribute("data-collapsed");
+    await page.locator(".scroll").evaluate((element) => {
+      element.scrollTo(0, 0);
+    });
+    await expect(frame).not.toHaveAttribute("data-collapsed");
   });
 });
 
