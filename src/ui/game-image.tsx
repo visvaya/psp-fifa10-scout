@@ -6,7 +6,8 @@ import type { ReactNode } from "react";
 import { decodeShpm, MAX_IMAGE_BYTES, unrefpack } from "../data/game-graphics.ts";
 import type { DecodedImage, GraphicsPack } from "../data/game-graphics.ts";
 import type { Player } from "../logic/players.ts";
-import { realPortraitOf } from "../logic/portraits.ts";
+import { lookDifferences, nearestComposedPortrait, realPortraitOf } from "../logic/portraits.ts";
+import type { LookPart } from "../logic/portraits.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 
 const pngUrl = async ({ width, height, rgba }: DecodedImage): Promise<string> => {
@@ -24,7 +25,8 @@ const pngUrl = async ({ width, height, rgba }: DecodedImage): Promise<string> =>
 
 /**
  * The URL of each entry's image, made on its first ask and kept; null for a missing entry or one that
- * cannot be decoded. revoke frees the URLs made, drops those still being made, and starts afresh, so
+ * cannot be decoded. nearest names the composed portrait nearest to one the pack lacks, from the pack's
+ * composed portraits listed once, each answer kept. revoke frees the URLs made, drops those still being made, and starts afresh, so
  * a provider mounted again (StrictMode, a remount) makes them again on the next ask.
  */
 export const imageUrls = (
@@ -37,6 +39,8 @@ export const imageUrls = (
       pack.bytes.subarray(offset, offset + length),
     ]),
   );
+  const composed = pack.entries.map(([name]) => name).filter((name) => name.startsWith("g_"));
+  const nearest = new Map<string, string | null>();
   const urls = new Map<string, Promise<string | null>>();
   let made: string[] = [];
   let generation = 0;
@@ -56,6 +60,13 @@ export const imageUrls = (
   };
   return {
     has: (name: string): boolean => index.has(name),
+    nearest: (name: string): string | null => {
+      const known = nearest.get(name);
+      if (known !== undefined) return known;
+      const found = nearestComposedPortrait(name, composed);
+      nearest.set(name, found);
+      return found;
+    },
     url: (name: string): Promise<string | null> => {
       const known = urls.get(name);
       if (known !== undefined) return known;
@@ -76,13 +87,19 @@ export const imageUrls = (
 type ImageSource = ReturnType<typeof imageUrls>;
 
 const ImageContext = createContext<ImageSource | null>(null);
+const ApproximateContext = createContext(false);
 
-/** Gives the images of the pack to the GameImage elements under it; without a pack they show none. */
+/**
+ * Gives the images of the pack to the GameImage elements under it; without a pack they show none.
+ * approximate: a player the game has no portrait of gets a lookalike's (roadmap 110).
+ */
 export const GameImages = ({
   pack,
+  approximate = false,
   children,
 }: {
   pack: GraphicsPack | null;
+  approximate?: boolean;
   children: ReactNode;
 }) => {
   const urls = useMemo(() => (pack === null ? null : imageUrls(pack)), [pack]);
@@ -92,22 +109,48 @@ export const GameImages = ({
     },
     [urls],
   );
-  return <ImageContext value={urls}>{children}</ImageContext>;
+  return (
+    <ImageContext value={urls}>
+      <ApproximateContext value={approximate}>{children}</ApproximateContext>
+    </ImageContext>
+  );
 };
 
 /** There are images to show: the list makes room for them. */
 export const useHasGameImages = (): boolean => use(ImageContext) !== null;
 
 /**
+ * The player's portrait and, when it is a lookalike's, what differs from his own; null when it is his
+ * own or the game's silhouette.
+ */
+export const usePortrait = (
+  player: Player,
+): { image: ImageName; differences: readonly LookPart[] | null } => {
+  const source = use(ImageContext);
+  const approximate = use(ApproximateContext);
+  const own = [realPortraitOf(player.id), player.composedPortrait].some(
+    (name) => source?.has(name) === true,
+  );
+  const nearest =
+    approximate && source !== null && !own ? source.nearest(player.composedPortrait) : null;
+  return {
+    image: portraitOf(player, nearest),
+    differences: nearest === null ? null : lookDifferences(player.composedPortrait, nearest),
+  };
+};
+
+/**
  * The slot before a name in the list: its portrait, or nothing in a slot of the same size, so every
  * row looks alike; no slot without images.
  */
-export const PortraitSlot = ({ player }: { player: Player }) =>
-  useHasGameImages() ? (
+export const PortraitSlot = ({ player }: { player: Player }) => {
+  const { image } = usePortrait(player);
+  return useHasGameImages() ? (
     <span className="portrait-slot">
-      <GameImage image={portraitOf(player)} />
+      <GameImage image={image} />
     </span>
   ) : null;
+};
 
 /**
  * The pack entries an image may come from, the first one the pack has, and how it is drawn: a flag
@@ -127,11 +170,16 @@ export const flagOf = (countryId: number): ImageName => ({
   shape: "flag",
 });
 /**
- * The player's real portrait where the game has one, else the composed one, else the game's own
- * silhouette (owner, 2026-11-13).
+ * The player's real portrait where the game has one, else the composed one, else the nearest composed
+ * one when given, else the game's own silhouette (owner, 2026-11-13).
  */
-export const portraitOf = (player: Player): ImageName => ({
-  names: [realPortraitOf(player.id), player.composedPortrait, "place_head"],
+export const portraitOf = (player: Player, nearest: string | null): ImageName => ({
+  names: [
+    realPortraitOf(player.id),
+    player.composedPortrait,
+    ...(nearest === null ? [] : [nearest]),
+    "place_head",
+  ],
   shape: "portrait",
 });
 /** The club's home and away kits, none without a club. */
@@ -144,23 +192,19 @@ export const kitsOf = (clubId: number | null): readonly ImageName[] =>
       }));
 
 /** The list columns with an image before their values: the club's crest, the league's logo, the flag. */
-const COLUMN_IMAGES: Readonly<
-  Partial<Record<SortKey, { readonly of: (player: Player) => ImageName | null; flag: boolean }>>
-> = {
-  clubName: { of: (player) => crestOf(player.clubId), flag: false },
-  leagueName: { of: (player) => leagueLogoOf(player.leagueId), flag: false },
-  nationalityName: { of: (player) => flagOf(player.nationalityId), flag: true },
+const COLUMN_IMAGES: Readonly<Partial<Record<SortKey, (player: Player) => ImageName | null>>> = {
+  clubName: (player) => crestOf(player.clubId),
+  leagueName: (player) => leagueLogoOf(player.leagueId),
+  nationalityName: (player) => flagOf(player.nationalityId),
 };
 
 /** The image before a list column's value, or null. */
 export const columnImage = (column: SortKey, player: Player): ImageName | null =>
-  COLUMN_IMAGES[column]?.of(player) ?? null;
+  COLUMN_IMAGES[column]?.(player) ?? null;
 
-/** How many image sizes wide the image before a column's values is (a flag 1.5), 0 without one. */
-export const columnImageWidth = (column: SortKey): number => {
-  const images = COLUMN_IMAGES[column];
-  return images === undefined ? 0 : images.flag ? 1.5 : 1;
-};
+/** How many image sizes wide the image before a column's values is (a flag as wide as a crest), 0 without one. */
+export const columnImageWidth = (column: SortKey): number =>
+  COLUMN_IMAGES[column] === undefined ? 0 : 1;
 
 /** The first of the entries whose image can be made, or null; tried in order. */
 export const firstUrl = (

@@ -4,10 +4,12 @@ import type { Locator, Page } from "@playwright/test";
 import {
   expect,
   expectNoAxeViolations,
+  expandSections,
   expectNoHorizontalOverflow,
   loadCareer,
   openFilters,
   PHONE,
+  showPotential,
   test,
 } from "./support.ts";
 
@@ -76,6 +78,53 @@ const expectSectionHelpOnSummary = async (page: Page, scope: Locator) => {
   await expect(button).toBeFocused();
   await summary.click();
   await expect(section).toHaveAttribute("open");
+};
+
+/**
+ * Each shown "?" whose middle lies more than 2 px from the middle of the first line of the text it
+ * follows (its field's name), and of its last where the "?" runs on after the text, with the nearer
+ * distance; runs in the page (owner, 2026-11-14: a switch's "?" sat lower than its name).
+ */
+const helpsOffTheirLine = (buttons: Element[]): string[] =>
+  buttons.flatMap((button) => {
+    const box = button.getBoundingClientRect();
+    const walker = document.createTreeWalker(button.parentElement ?? button, NodeFilter.SHOW_TEXT);
+    let name: Node | null = walker.nextNode();
+    while (
+      name !== null &&
+      (name.textContent?.trim() === "" ||
+        !(name.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING))
+    )
+      name = walker.nextNode();
+    if (box.width === 0 || name === null) return [];
+    const range = document.createRange();
+    range.selectNodeContents(name);
+    const lines = [...range.getClientRects()];
+    const offset = Math.min(
+      ...[lines[0], lines.at(-1)].map((line) =>
+        Math.abs((box.top + box.bottom - (line?.top ?? 0) - (line?.bottom ?? 0)) / 2),
+      ),
+    );
+    return offset > 2
+      ? [`${String(button.getAttribute("aria-label"))}: ${offset.toFixed(1)} px`]
+      : [];
+  });
+
+/** Every shown field's "?" in the scope sits on its name's line. */
+const expectHelpsOnTheirLines = async (scope: Locator) => {
+  expect(
+    await scope.locator(".field-help:not(.field-warning)").evaluateAll(helpsOffTheirLine),
+  ).toEqual([]);
+};
+
+/** In the filters with the panel's switches (a career, the potential shown) and on the card. */
+const expectWideHelpsOnTheirLines = async (page: Page) => {
+  await loadCareer(page);
+  await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
+  await expandSections(page);
+  await expectHelpsOnTheirLines(page.locator(".filter-form"));
+  await page.getByRole("button", { name: /^Lionel Messi/u }).click();
+  await expectHelpsOnTheirLines(page.getByRole("dialog", { name: "Lionel Messi" }));
 };
 
 test.describe("field explanations, wide", () => {
@@ -147,6 +196,9 @@ test.describe("field explanations, wide", () => {
 
 test.describe("field explanations on the wide card", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
+
+  test("puts each field's ? on its name's line, in the filters and on the card", ({ page }) =>
+    expectWideHelpsOnTheirLines(page));
 
   // The panel is placed against the screen, so it can reach past the card; a click there is not a click
   // on the backdrop and keeps the card open.
@@ -223,6 +275,14 @@ test.describe("field explanations, phone", () => {
     await expect(panel).toBeHidden();
     await expect(dialog).toBeVisible();
     await expect(button).toBeFocused();
+  });
+
+  test("puts each field's ? on its name's line in the filter dialog", async ({ page }) => {
+    await loadCareer(page);
+    await showPotential(page);
+    const dialog = await openFilters(page);
+    await expandSections(page);
+    await expectHelpsOnTheirLines(dialog);
   });
 
   test("puts a section's explanation on its summary's line in the filter dialog", async ({

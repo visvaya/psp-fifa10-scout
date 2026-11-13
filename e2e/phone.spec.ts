@@ -5,6 +5,7 @@ import {
   filterByAttributes,
   loadCareer,
   loadDatabase,
+  openCardEnlarged,
   openFilters,
   PHONE,
   scrollLeftOf,
@@ -231,10 +232,7 @@ test.describe("enlarged text", () => {
   // On the narrowest phone with enlarged text a dialog wraps its title, buttons and facts instead of
   // scrolling sideways: there the focused "Zamknij" scrolled the chart's title and plot out of view.
   test("keeps the card and its chart without a sideways scroll", async ({ page }) => {
-    await page.addInitScript(enlargeText);
-    await page.setViewportSize({ width: 320, height: 844 });
-    await loadCareer(page);
-    await page.getByRole("button", { name: /^Lionel Messi/u }).click();
+    await openCardEnlarged(page);
     const card = page.getByRole("dialog", { name: "Lionel Messi" });
     const sideways = () =>
       page

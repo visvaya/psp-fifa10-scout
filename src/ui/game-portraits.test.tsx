@@ -26,10 +26,18 @@ const POSITIONS: PositionNames = {
   full: () => undefined,
 };
 
-const withPack = (graphics: GraphicsPack | null, children: ReactNode): string =>
-  renderToStaticMarkup(<GameImages pack={graphics}>{children}</GameImages>);
+const withPack = (graphics: GraphicsPack | null, children: ReactNode, approximate = false) =>
+  renderToStaticMarkup(
+    <GameImages pack={graphics} approximate={approximate}>
+      {children}
+    </GameImages>,
+  );
 
-const card = (graphics: GraphicsPack | null, overrides: Parameters<typeof testPlayer>[0]) => {
+const card = (
+  graphics: GraphicsPack | null,
+  overrides: Parameters<typeof testPlayer>[0],
+  { approximate = false, showPotential = false } = {},
+) => {
   const player = testPlayer(overrides);
   return withPack(
     graphics,
@@ -40,25 +48,26 @@ const card = (graphics: GraphicsPack | null, overrides: Parameters<typeof testPl
       curves={new Map()}
       offer={null}
       offerPlayer={player}
-      showPotential={false}
+      showPotential={showPotential}
       names={POSITIONS}
       watched={false}
       note={undefined}
       dispatch={() => undefined}
       onClose={() => undefined}
     />,
+    approximate,
   );
 };
 
 /** The list's slot of a player with this composed portrait and no real one. */
-const slot = (id: number, composedPortrait: string, graphics = pack) =>
-  withPack(graphics, <PortraitSlot player={testPlayer({ id, composedPortrait })} />);
+const slot = (id: number, composedPortrait: string, graphics = pack, approximate = false) =>
+  withPack(graphics, <PortraitSlot player={testPlayer({ id, composedPortrait })} />, approximate);
 
 const PORTRAIT = '<span class="game-image portrait" aria-hidden="true"></span>';
 
 describe("the names of portraits and kits", () => {
   it("try the real portrait first, then the composed one, then the game's silhouette", () => {
-    expect(portraitOf(testPlayer({ id: 7, composedPortrait: "g_0050312" }))).toEqual({
+    expect(portraitOf(testPlayer({ id: 7, composedPortrait: "g_0050312" }), null)).toEqual({
       names: ["s_00000007", "g_0050312", "place_head"],
       shape: "portrait",
     });
@@ -108,5 +117,46 @@ describe("the list's portrait slot", () => {
 
   it("is not there without the game's graphics", () => {
     expect(withPack(null, <PortraitSlot player={testPlayer({ id: 7 })} />)).toBe("");
+  });
+});
+
+// Face 501 as the pack's g_5011203, with other hair (09) and a beard (1): the pack lacks his own.
+const LOOKALIKE = "g_5010913";
+const LINE = "Portret przybliżony: inna fryzura, inny zarost";
+
+describe("approximate portraits", () => {
+  it("try the nearest composed portrait before the silhouette", () => {
+    expect(portraitOf(testPlayer({ id: 7, composedPortrait: LOOKALIKE }), "g_5011203")).toEqual({
+      names: ["s_00000007", LOOKALIKE, "g_5011203", "place_head"],
+      shape: "portrait",
+    });
+  });
+
+  it("show on the card, with a line naming what differs, only when switched on", () => {
+    const on = card(withHead, { id: 8, composedPortrait: LOOKALIKE }, { approximate: true });
+    expect(on).toContain(`<div class="card-portrait">${PORTRAIT}</div>`);
+    expect(on).toContain(`<p class="portrait-note">${LINE}</p>`);
+    const off = card(pack, { id: 8, composedPortrait: LOOKALIKE });
+    expect(off).toContain('<div class="card-portrait"></div>');
+    expect(off).not.toContain("portrait-note");
+  });
+
+  it("leave a player with his own portrait without the line", () => {
+    const own = card(pack, { id: 8, composedPortrait: "g_5011203" }, { approximate: true });
+    expect(own).not.toContain("portrait-note");
+  });
+
+  it("fill the list's slot only when switched on", () => {
+    expect(slot(9, LOOKALIKE, pack, true)).toBe(`<span class="portrait-slot">${PORTRAIT}</span>`);
+    expect(slot(9, LOOKALIKE)).toBe('<span class="portrait-slot"></span>');
+  });
+});
+
+describe("the development curve on the card", () => {
+  const projected = { id: 7, overallByAge: [60, 65, 70, 68] };
+
+  it("shows only with the potential shown, as it gives away the projected OVR", () => {
+    expect(card(pack, projected)).not.toContain("Krzywa rozwoju");
+    expect(card(pack, projected, { showPotential: true })).toContain("Krzywa rozwoju");
   });
 });

@@ -235,6 +235,21 @@ export const filterByAttributes = async (page: Page, ...labels: readonly string[
   await dialog.getByRole("button", { name: "Zamknij" }).click();
 };
 
+/**
+ * Messi's card on the narrowest phone with the potential shown, then the text enlarged: with the
+ * potential shown, the list at 320 px and a 32 px root font shows no rows (a fault of its own, reported
+ * apart), so the text grows once the card is open.
+ */
+export const openCardEnlarged = async (page: Page) => {
+  await page.setViewportSize({ width: 320, height: 844 });
+  await loadCareer(page);
+  await showPotential(page);
+  await page.getByRole("button", { name: /^Lionel Messi/u }).click();
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = "32px";
+  });
+};
+
 /** Phone: shows the potential through the filter dialog. */
 export const showPotential = async (page: Page) => {
   const dialog = await openFilters(page);
