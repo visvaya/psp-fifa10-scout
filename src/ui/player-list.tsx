@@ -210,7 +210,9 @@ const cellText = (player: Player, key: TextColumn): string | number | null => {
   if (key === "clubName") return clubText(player);
   if (key === "price") return player.price === null ? null : formatNumber(player.price);
   if (isRoleColumn(key)) return player[`${key}Name`];
-  return isChoiceKey(key) ? CHOICE_VALUE_TEXT[key](player[key]) : player[key];
+  const value = player[key];
+  // A list value can be missing (no state outside the club): the dash, not its name.
+  return isChoiceKey(key) && value !== null ? CHOICE_VALUE_TEXT[key](value) : value;
 };
 
 /** A cell without a value: a dash, named for screen readers. */
@@ -305,9 +307,7 @@ export const ColumnValue = (props: {
 const isNumberColumn = (column: SortKey): boolean =>
   column !== "name" &&
   !column.endsWith("Name") &&
-  !isChoiceKey(column) &&
-  !isFlagKey(column) &&
-  !isRoleColumn(column);
+  ![isChoiceKey, isFlagKey, isRoleColumn].some((isNamed) => isNamed(column));
 
 const SortMark = (props: { column: SortKey; sort: ScoutSort }) => (
   <span aria-hidden="true" className="sort-mark">
