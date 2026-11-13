@@ -7,6 +7,8 @@
   --color-ink: #1b2420;
   --color-muted: #4f5a54;
   --color-line: #d6d0c0;
+  /* Behind a portrait only: the game's dark navy, on which its pale silhouette reads (owner, 2026-11-14). */
+  --color-portrait-bg: #1c2a4c;
   --color-accent: #1d6b3c;
   --color-accent-ink: #ffffff;
   --color-error: #a3261b;
@@ -66,6 +68,7 @@
     --color-ink: #e6ebe4;
     --color-muted: #a9b3ac;
     --color-line: #34403a;
+    --color-portrait-bg: #1c2a4c;
     --color-accent: #6ccf93;
     --color-accent-ink: #0c1a11;
     --color-error: #ff8f84;
@@ -763,16 +766,19 @@ input[inputmode="numeric"] {
   width: var(--portrait-slot-width);
   height: var(--portrait-slot-height);
   margin-right: var(--space-1);
+  border-radius: var(--radius-sm);
+  background: var(--color-portrait-bg);
+  overflow: hidden;
   vertical-align: middle;
 }
 
-/* The neutral box stays visible where the pack has no portrait of him, not even the silhouette. */
+/* The dark box stays visible where the pack has no portrait of him, not even the silhouette. */
 .card-portrait {
   width: calc(var(--portrait-card-height) * 85 / 75);
   height: var(--portrait-card-height);
   margin-bottom: var(--space-3);
   border-radius: var(--radius-md);
-  background: var(--color-line);
+  background: var(--color-portrait-bg);
   overflow: hidden;
 }
 
@@ -1189,11 +1195,27 @@ input[inputmode="numeric"] {
   margin-bottom: 0;
 }
 
-/* A checkbox with its "?" after the label. */
+/*
+ * A checkbox with its "?" after the label, both on the label's first line also when it wraps (owner,
+ * 2026-11-14): that line's middle sits half a touch target down, where the "?"'s target centres it.
+ */
 .check-help {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-1);
+}
+
+.check-help > .check {
+  align-items: flex-start;
+  padding-block: calc((var(--touch-target) - 1lh) / 2);
+}
+
+.check-help > .check input {
+  margin-block: calc((1lh - 1.25rem) / 2);
+}
+
+.check-help > .field-help {
+  margin-block-start: 0;
 }
 
 /* The best peak tie rules, numbered (a flex item has no list marker): each rule's number and name,
@@ -1547,6 +1569,12 @@ input[inputmode="numeric"] {
 
 .facts dt {
   color: var(--color-muted);
+}
+
+/* A label's last word with its "?" (facts.tsx), moving to the next line together; one box, so it still
+   wraps where even the word alone is too wide (enlarged text). */
+.label-end {
+  display: inline-block;
 }
 
 .facts dd {

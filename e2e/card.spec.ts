@@ -8,6 +8,7 @@ import {
   expandSections,
   loadCareer,
   loadDatabase,
+  openCardEnlarged,
   PHONE,
   showPotential,
   test,
@@ -334,15 +335,7 @@ test.describe("development chart on a phone", () => {
   // With enlarged text the legend's words wrap over several lines: each mark stays level with their
   // first line, and the plateau's "?" stays inside the legend's width.
   test("keeps the legend within its width with enlarged text", async ({ page }) => {
-    await page.setViewportSize({ width: 320, height: 844 });
-    await loadCareer(page);
-    await showPotential(page);
-    await page.getByRole("button", { name: /^Lionel Messi/u }).click();
-    // Enlarged once the card is open: with the potential shown, the list at 320 px and a 32 px root
-    // font shows no rows (a fault of its own, reported apart).
-    await page.evaluate(() => {
-      document.documentElement.style.fontSize = "32px";
-    });
+    await openCardEnlarged(page);
     await page.getByRole("button", { name: /^Pokaż krzywą rozwoju: /u }).click();
     const chart = page.getByRole("dialog", { name: /^Krzywa rozwoju: /u });
     const legend = chart.locator(".chart-legend");
