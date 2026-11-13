@@ -8,6 +8,7 @@ import type { CurrencyCode } from "../data/career-save.ts";
 import { num, parseEaDb, readTable } from "../data/ea-db.ts";
 import type { EaDb } from "../data/ea-db.ts";
 import { MAX_IDX_BYTES, MAX_LOC_BYTES, readLocale } from "../data/game-locale.ts";
+import type { GraphicsPack } from "../data/game-graphics.ts";
 import { readGameDatabase, readIsoLocales } from "../data/iso9660.ts";
 import type { ReadRange } from "../data/iso9660.ts";
 import { MAX_SFO_BYTES } from "../data/param-sfo.ts";
@@ -98,7 +99,8 @@ export type SignedBuild = () => readonly Player[];
 
 /**
  * Messages between the UI and the worker; requestId lets the UI drop results of a superseded load. A
- * "signed" request asks for the list after signing of the players the UI shows (scout-worker.ts).
+ * "signed" request asks for the list after signing of the players the UI shows (scout-worker.ts). The
+ * game's graphics follow a load's "done" in a message of their own, so they never hold up the list.
  */
 export type WorkerRequest =
   | (LoadRequest & { readonly requestId: number })
@@ -112,6 +114,12 @@ export type WorkerMessage =
       readonly requestId: number;
       /** null: the list could not be built. */
       readonly players: readonly Player[] | null;
+    }
+  | {
+      readonly type: "graphics";
+      readonly requestId: number;
+      /** null: the game file had none, or they could not be read. */
+      readonly graphics: GraphicsPack | null;
     };
 
 /** What went wrong in user terms: only SaveFormatError comes from the file itself. */

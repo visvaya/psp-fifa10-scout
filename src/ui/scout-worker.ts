@@ -1,6 +1,9 @@
 // The worker that parses the user's files off the UI thread: one WorkerRequest in, phase messages
 // and one result or failure out. It reads the picked files; loadScout decides what to read. It keeps
-// the latest career's list after signing unbuilt until a "signed" request asks for it.
+// the latest career's list after signing unbuilt until a "signed" request asks for it. After a load's
+// result it reads the game's graphics: null for a bare fifa.db or when they cannot be read.
+import { readGameGraphics } from "../data/game-graphics.ts";
+import type { GraphicsPack } from "../data/game-graphics.ts";
 import { classifyLoadError, LoadFailure, loadScout } from "../logic/load-scout.ts";
 import type {
   FileSource,
@@ -49,12 +52,25 @@ const handleSigned = (requestId: number): void => {
   post({ type: "signed", requestId, players });
 };
 
+/** The game file's graphics, sent without a copy; a superseded load reads none. */
+const postGraphics = async (requestId: number, { game }: LoadInput): Promise<void> => {
+  if (requestId !== latestLoad) return;
+  let graphics: GraphicsPack | null = null;
+  try {
+    graphics = await readGameGraphics(game.read, game.size);
+  } catch {
+    // The tool works without them.
+  }
+  post({ type: "graphics", requestId, graphics }, graphics === null ? [] : [graphics.bytes.buffer]);
+};
+
 const handle = async ({ requestId, ...request }: LoadRequest & { requestId: number }) => {
   latestLoad = requestId;
   const career: { build?: SignedBuild } = {};
+  const input = inputOf(request);
   try {
     const result = await loadScout(
-      inputOf(request),
+      input,
       (phase) => {
         post({ type: "phase", requestId, phase });
       },
@@ -71,7 +87,9 @@ const handle = async ({ requestId, ...request }: LoadRequest & { requestId: numb
   } catch (error) {
     const failure = error instanceof LoadFailure ? error.error : classifyLoadError("game", error);
     post({ type: "failed", requestId, error: failure });
+    return;
   }
+  await postGraphics(requestId, input);
 };
 
 globalThis.addEventListener("message", ({ data }: MessageEvent<WorkerRequest>) => {

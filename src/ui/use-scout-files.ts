@@ -30,6 +30,7 @@ const restore = (dispatch: Dispatch<ScoutAction>, stored: StoredScout) => {
   dispatch({ type: "languages-restored", languages: stored.languages });
   dispatch({ type: "watchlist-restored", watchlist: stored.watchlist });
   dispatch({ type: "notes-restored", notes: stored.notes });
+  dispatch({ type: "graphics-loaded", graphics: stored.graphics });
   if (stored.preferences !== null) {
     dispatch({ type: "preferences-restored", preferences: stored.preferences });
   }

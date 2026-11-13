@@ -1,10 +1,11 @@
-// What the file loads leave in the local store: the fifa.db of a picked game file and the career save.
+// What the file loads leave in the local store: the fifa.db and the graphics of a picked game file, and
+// the career save.
 // Loads can overlap (a newer pick supersedes an older load), so only the latest load counts.
 import type { SaveFiles, WorkerMessage } from "../logic/load-scout.ts";
 import type { ScoutAction } from "../logic/scout-state.ts";
 import type { ScoutStore } from "../logic/scout-store.ts";
 
-export type MemoryStore = Pick<ScoutStore, "saveCareerSave" | "saveGameDb">;
+export type MemoryStore = Pick<ScoutStore, "saveCareerSave" | "saveGameDb" | "saveGraphics">;
 export type WithStore = (run: (opened: MemoryStore) => Promise<void>) => void;
 
 /** How a load started: a picked file's name, or the stored game with its name. */
@@ -80,7 +81,8 @@ export const createSaveMemory = (withStore: WithStore) => {
 /**
  * The game to load again when a save or language file is picked (the load in progress or the one that
  * failed on the save, else the last good fifa.db), and the fifa.db of the latest load from a picked
- * file, stored under that file's name.
+ * file, stored under that file's name, with the graphics that load read after it (a load without them
+ * leaves the stored ones).
  */
 export const createGameMemory = (withStore: WithStore) => {
   const fromFile = new Map<number, string>();
@@ -92,6 +94,12 @@ export const createGameMemory = (withStore: WithStore) => {
       if (restored === undefined && typeof gameName === "string") fromFile.set(requestId, gameName);
     },
     finished: (message: WorkerMessage) => {
+      if (message.type === "graphics") {
+        const { graphics } = message;
+        if (message.requestId === latest && graphics !== null)
+          withStore(async (opened) => opened.saveGraphics(graphics));
+        return;
+      }
       if (!endsLoad(message)) return;
       const name = fromFile.get(message.requestId);
       fromFile.delete(message.requestId);
