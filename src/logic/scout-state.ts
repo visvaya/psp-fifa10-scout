@@ -7,6 +7,7 @@ import {
   CAREER_LIST_KEYS,
   CAREER_RANGE_KEYS,
   CAREER_SORT_KEYS,
+  FORMATION_LIST_KEYS,
   isRangeKey,
   needsShortlist,
   peakField,
@@ -248,6 +249,23 @@ const withPreferences = (state: ScoutState, preferences: Preferences): ScoutStat
   };
 };
 
+/** Whether a career load brings another formation than the career loaded before it. */
+const formationChanged = (before: CareerSummary | null, after: CareerSummary | null): boolean =>
+  before !== null &&
+  after !== null &&
+  (before.formationCodes.length !== after.formationCodes.length ||
+    before.formationCodes.some((code, index) => code !== after.formationCodes[index]));
+
+/** The filters without the role and target lists, whose values name the slots of a formation. */
+const withoutFormationLists = (filters: ScoutFilters): ScoutFilters =>
+  compactFilters({
+    ...filters,
+    lists: {
+      ...filters.lists,
+      ...Object.fromEntries(FORMATION_LIST_KEYS.map((key) => [key, undefined])),
+    },
+  });
+
 /**
  * The filters and sort without what needs a career: without one they do nothing, so they would leave a
  * chip that does not apply or a sort the list cannot show.
@@ -311,7 +329,11 @@ const loadReducer = (state: ScoutState, action: LoadAction): ScoutState => {
         myTeamId: action.myTeamId,
         career: action.career,
         curves: action.curves,
-        ...(action.myTeamId === null ? withoutCareer(state) : {}),
+        ...(action.myTeamId === null
+          ? withoutCareer(state)
+          : formationChanged(state.career, action.career)
+            ? { filters: withoutFormationLists(state.filters) }
+            : {}),
         gameName: loading.gameName === undefined ? state.gameName : loading.gameName,
         languages: { ...state.languages, ...action.languages },
         ...(action.attachedLanguage === null ? {} : { gameLanguage: action.attachedLanguage }),
