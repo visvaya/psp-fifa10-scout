@@ -763,11 +763,6 @@ input[inputmode="numeric"] {
   vertical-align: middle;
 }
 
-/* The phone's name column at its least width leaves its room to the name (owner, 2026-11-13). */
-.phone-list[data-collapsed] .portrait-slot {
-  display: none;
-}
-
 /* The neutral box stays visible where the pack has no portrait of him, not even the silhouette. */
 .card-portrait {
   width: calc(var(--portrait-card-height) * 85 / 75);

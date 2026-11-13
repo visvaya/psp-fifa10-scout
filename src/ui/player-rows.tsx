@@ -55,10 +55,6 @@ const PHONE = {
 const phoneColumnRem = (labelRem: number, valueRem: number): number =>
   Math.max(PHONE.ratingRem, labelRem + PHONE.paddingRem, valueRem + PHONE.paddingRem);
 
-/** The name column's least width in px in a list this wide (--phone-name-least of phoneLayout). */
-const leastNamePx = (listWidth: number): number =>
-  Math.min(PHONE.nameMinRem * rootFontPx(), (PHONE.nameMaxCqw / 100) * listWidth);
-
 /** A label with each sort mark after it, as styles.css draws TEXT.sortMark once it is sorted. */
 const withSortMarks = (label: string): string[] =>
   Object.values(TEXT.sortMark).map((mark) => `${label} ${mark}`);
@@ -230,13 +226,15 @@ const LabelButton = (props: {
 
 /**
  * The name, also as "A. Surname" when it has two parts, which styles.css shows instead once the full name
- * no longer fits its column (fitNames measures each row, so no length decides it in advance).
+ * no longer fits its column (fitNames measures each row, so no length decides it in advance); the
+ * portrait before it only where the row asks for it.
  */
-const PhoneName = (marks: ListMarks) => {
+const PhoneName = ({ portrait, ...marks }: ListMarks & { portrait: boolean }) => {
   const { player } = marks;
+  const slot = portrait ? <PortraitSlot player={player} /> : null;
   return player.initialName !== null ? (
     <span className="player-row-name has-initial">
-      <PortraitSlot player={player} />
+      {slot}
       <ShortlistStar {...marks} />
       <span className="player-row-name-full">{player.name}</span>
       <span className="player-row-name-short" aria-hidden="true">
@@ -246,7 +244,7 @@ const PhoneName = (marks: ListMarks) => {
     </span>
   ) : (
     <span className="player-row-name">
-      <PortraitSlot player={player} />
+      {slot}
       <ShortlistStar {...marks} />
       {player.name}
       <ShortlistWords {...marks} />
@@ -271,7 +269,7 @@ const scrollShowing = (label: HTMLElement, header: HTMLElement, from: number): n
   // The kept name narrows as the list scrolls, down to its least width (phoneLayout): its right edge
   // in the header's content at a scroll position.
   const name = header.querySelector(".player-rows-grid > :first-child")?.getBoundingClientRect();
-  const least = leastNamePx(header.clientWidth);
+  const least = Math.min(PHONE.nameMinRem * rem, (PHONE.nameMaxCqw / 100) * header.clientWidth);
   const nameEnd = (scroll: number) => Math.max(scroll + least, from + (name?.width ?? 0));
   const fits = (scroll: number) => left >= nameEnd(scroll) && right <= scroll + header.clientWidth;
   if (fits(from)) return from;
@@ -283,8 +281,7 @@ const scrollShowing = (label: HTMLElement, header: HTMLElement, from: number): n
 
 /**
  * Tells styles.css, on the frame of the list and its labels, how far the list has scrolled sideways,
- * whether columns lie beyond its right edge, whether the name column is collapsed (no portraits then,
- * owner 2026-11-13) and how wide its scrollbar is.
+ * whether columns lie beyond its right edge and how wide its scrollbar is.
  */
 const followScroll = (list: HTMLElement, frame: HTMLElement): void => {
   const { scrollLeft, clientWidth, offsetWidth } = list;
@@ -298,13 +295,6 @@ const followScroll = (list: HTMLElement, frame: HTMLElement): void => {
   frame.style.setProperty("--phone-scrollbar", `${String(offsetWidth - clientWidth)}px`);
   frame.toggleAttribute("data-scrolled", scrollLeft > 0);
   frame.toggleAttribute("data-more", cut !== undefined);
-  // Collapsed: narrowed by the scroll, or at its least width already at rest (wide columns). Half a
-  // pixel of leeway for subpixel rounding.
-  const name = frame.querySelector(".player-rows-grid > :first-child")?.getBoundingClientRect();
-  frame.toggleAttribute(
-    "data-collapsed",
-    scrollLeft > 0 || (name !== undefined && name.width <= leastNamePx(clientWidth) + 0.5),
-  );
   fitRows(frame);
 };
 
@@ -341,7 +331,7 @@ const MetaLine = ({ player, columns }: { player: Player; columns: readonly SortK
 };
 
 /** One phone row: the name with what has no column of its own, then the columns. */
-const PhoneRow = (
+export const PhoneRow = (
   props: ListMarks & {
     columns: readonly SortKey[];
     labels: readonly string[];
@@ -360,7 +350,13 @@ const PhoneRow = (
       }}
     >
       <span className="player-row-text">
-        <PhoneName player={player} watched={watched} />
+        {/* Portraits only on the basic list, the name and the rating column: with any further column
+            the name needs the room (owner, 2026-11-13). */}
+        <PhoneName
+          player={player}
+          watched={watched}
+          portrait={columns.every((column) => column === "overall")}
+        />
         <MetaLine player={player} columns={columns} />
       </span>
       {columns.map((column, index) => (
