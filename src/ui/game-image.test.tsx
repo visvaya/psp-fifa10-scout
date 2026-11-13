@@ -1,7 +1,8 @@
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DecodedImage } from "../data/game-graphics.ts";
 import { buildShpm, refpackLiterals } from "../data/test-support/synthetic-graphics.ts";
-import { columnImage, imageUrls } from "./game-image.tsx";
+import { columnImage, crestOf, flagOf, GameImage, GameImages, imageUrls } from "./game-image.tsx";
 import { testPlayer } from "../logic/test-support/player-fixtures.ts";
 
 const crest = refpackLiterals(
@@ -58,6 +59,40 @@ describe("imageUrls", () => {
     urls.revoke();
     expect(await pending).toBeNull();
     expect(revoked.mock.calls).toEqual([["blob:9,8,7,255"], ["blob:9,8,7,255"]]);
+  });
+});
+
+describe("after a revoke", () => {
+  it("makes the images again, as a remount of the provider needs", async () => {
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+    const { made, toUrl } = namer();
+    const urls = imageUrls(pack, toUrl);
+    expect(await urls.url("tl1873")).toBe("blob:9,8,7,255");
+    urls.revoke();
+    expect(await urls.url("tl1873")).toBe("blob:9,8,7,255");
+    expect(made).toHaveLength(2);
+    expect([urls.has("tl1873"), urls.has("tl1")]).toEqual([true, false]);
+  });
+});
+
+describe("GameImage", () => {
+  it("holds an entry's place while its image is made, and none for a missing entry", () => {
+    const html = [crestOf(1873), crestOf(1), flagOf(37)].map((image) =>
+      renderToStaticMarkup(
+        <GameImages pack={pack}>
+          <GameImage image={image} />
+        </GameImages>,
+      ),
+    );
+    expect(html).toEqual([
+      '<span class="game-image" aria-hidden="true"></span>',
+      "",
+      '<span class="game-image flag" aria-hidden="true"></span>',
+    ]);
+  });
+
+  it("shows nothing without a pack", () => {
+    expect(renderToStaticMarkup(<GameImage image={crestOf(1873)} />)).toBe("");
   });
 });
 

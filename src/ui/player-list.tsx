@@ -12,7 +12,7 @@ import { ratingValueOf } from "../logic/sort-players.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 import { AttributeValue, GainValue } from "./attribute-value.tsx";
 import { CHOICE_VALUE_TEXT } from "./chip-text.ts";
-import { columnImage, GameImage, IMAGE_WIDTHS, useHasGameImages } from "./game-image.tsx";
+import { columnImage, columnImageWidth, GameImage, useHasGameImages } from "./game-image.tsx";
 import type { ChoiceKey } from "./chip-text.ts";
 import { PositionName } from "./position-name.tsx";
 import { WatchMark } from "./stars.tsx";
@@ -104,8 +104,8 @@ export const useImageRoom = (): ((column: SortKey) => number) => {
   return useMemo(() => {
     const size = tokenRem("--game-image-size");
     return (column: SortKey) => {
-      const widths = IMAGE_WIDTHS[column];
-      return shown && widths !== undefined ? widths * size + gapRem() : 0;
+      const widths = columnImageWidth(column);
+      return shown && widths > 0 ? widths * size + gapRem() : 0;
     };
   }, [shown]);
 };
@@ -279,11 +279,13 @@ export const ColumnValue = (props: {
   if (column === "positionCode")
     return <PositionName code={player.positionCode} name={player.positionName} />;
   const text = valueText(player, column);
-  return text === null ? (
-    <MissingValue />
+  if (text === null) return <MissingValue />;
+  const image = columnImage(column, player);
+  return image === null ? (
+    text
   ) : (
     <>
-      <GameImage image={columnImage(column, player)} />
+      <GameImage image={image} />
       {text}
     </>
   );

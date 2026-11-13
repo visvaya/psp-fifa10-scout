@@ -719,7 +719,9 @@ input[inputmode="numeric"] {
 }
 
 /* The game's own images, decorative, in line with the name after them. */
+/* An inline block, so the empty box that holds an image's place has its size too. */
 .game-image {
+  display: inline-block;
   width: var(--game-image-size);
   height: var(--game-image-size);
   margin-right: var(--space-1);
