@@ -5,7 +5,7 @@
 // u32 BE and a NUL-terminated latin1 name. Each entry is a RefPack-packed SHPM file: one 8-bit indexed
 // image (type 0x5d, rows padded to 16 bytes, no swizzle) followed by a 256-colour RGBA palette (0x3b).
 import { openDiscImage, readVolumeFile } from "./iso9660.ts";
-import type { ReadRange } from "./iso9660.ts";
+import type { ReadRange, Volume } from "./iso9660.ts";
 import { SaveFormatError } from "./save-format-error.ts";
 
 /** bootpreloaded.big is 388 KB and cro_feonly.bgh 64 KB in the game. */
@@ -199,16 +199,10 @@ const wantedOf = (table: ReadonlyMap<string, BigEntry>, wanted: RegExp) =>
     });
 
 /**
- * The packed images of the disc image's graphics archives, or null when the file is no disc image (a
- * bare fifa.db). Each archive is read with one read and only the wanted entries are copied out, so the
- * archive's buffer can be freed. Throws SaveFormatError on a malformed image, table or entry.
+ * The packed images of a disc image's graphics archives. Each archive is read with one read and only
+ * the wanted entries are copied out, so the archive's buffer can be freed.
  */
-export const readGameGraphics = async (
-  read: ReadRange,
-  fileBytes: number,
-): Promise<GraphicsPack | null> => {
-  const volume = await openDiscImage(read, fileBytes);
-  if (volume === null) return null;
+const readPack = async (volume: Volume): Promise<GraphicsPack> => {
   const boot = await readVolumeFile(volume, BOOT_PATH, MAX_TABLE_BYTES);
   const baseTable = parseBig4(boot).get(BASE_TABLE);
   if (baseTable === undefined) throw new SaveFormatError("Disc image has no graphics table");
@@ -253,4 +247,16 @@ export const readGameGraphics = async (
     return [name, offset - packed.length, packed.length] as const;
   });
   return { bytes, entries };
+};
+
+/**
+ * The game's graphics, or null when the file is no disc image (a bare fifa.db). Throws SaveFormatError
+ * on a malformed image, table or entry.
+ */
+export const readGameGraphics = async (
+  read: ReadRange,
+  fileBytes: number,
+): Promise<GraphicsPack | null> => {
+  const volume = await openDiscImage(read, fileBytes);
+  return volume === null ? null : readPack(volume);
 };
