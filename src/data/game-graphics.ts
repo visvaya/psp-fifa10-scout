@@ -12,6 +12,15 @@ import { SaveFormatError } from "./save-format-error.ts";
 const MAX_TABLE_BYTES = 1024 * 1024;
 /** cro_base.bgb is 20.4 MB and cro_feonly.bgb 17.5 MB in the game. */
 const MAX_ARCHIVE_BYTES = 32 * 1024 * 1024;
+/** Entries of one BIG4 table: the game's hold a few thousand. */
+const MAX_TABLE_ENTRIES = 65_536;
+/** A packed image: the game's are a few KB. */
+const MAX_PACKED_IMAGE_BYTES = 64 * 1024;
+/**
+ * All packed images kept: about 27 MB in the game. Entries may overlap in a crafted table, so the
+ * archive caps alone do not bound it.
+ */
+const MAX_PACK_BYTES = 48 * 1024 * 1024;
 /** An unpacked image: an 85x85 kit is about 9 KB. */
 export const MAX_IMAGE_BYTES = 256 * 1024;
 const IMAGE_HEAD_BYTES = 16;
@@ -56,9 +65,11 @@ export const parseBig4 = (bytes: Uint8Array): ReadonlyMap<string, BigEntry> => {
   if (bytes.length < 16 || latin1(bytes.subarray(0, 4)) !== "BIG4")
     throw new SaveFormatError("Not a BIG4 table");
   const view = viewOf(bytes);
+  const count = view.getUint32(8, false);
+  if (count > MAX_TABLE_ENTRIES) throw new SaveFormatError("BIG4 table lists too many entries");
   const entries = new Map<string, BigEntry>();
   let at = 16;
-  for (let index = view.getUint32(8, false); index > 0; index -= 1) {
+  for (let index = count; index > 0; index -= 1) {
     // A head past the end finds no terminator either.
     const end = bytes.indexOf(0, at + 8);
     if (end === -1) throw new SaveFormatError("BIG4 entry is out of range");
@@ -177,6 +188,16 @@ const entryBytes = (archive: Uint8Array, { offset, size }: BigEntry): Uint8Array
   return archive.subarray(offset, offset + size);
 };
 
+/** A table's entries whose names match, each checked against the cap of a packed image. */
+const wantedOf = (table: ReadonlyMap<string, BigEntry>, wanted: RegExp) =>
+  [...table]
+    .filter(([name]) => wanted.test(name))
+    .map(([name, entry]) => {
+      if (entry.size > MAX_PACKED_IMAGE_BYTES)
+        throw new SaveFormatError("Graphics entry is too large");
+      return [name, entry] as const;
+    });
+
 /**
  * The packed images of the disc image's graphics archives, or null when the file is no disc image (a
  * bare fifa.db). Each archive is read with one read and only the wanted entries are copied out, so the
@@ -194,33 +215,37 @@ export const readGameGraphics = async (
   const sources = [
     {
       path: `${GUI_PATH}/cro_base.bgb`,
-      wanted: BASE_WANTED,
-      table: parseBig4(entryBytes(boot, baseTable)),
+      entries: wantedOf(parseBig4(entryBytes(boot, baseTable)), BASE_WANTED),
     },
     {
       path: `${GUI_PATH}/cro_feonly.bgb`,
-      wanted: FEONLY_WANTED,
-      table: parseBig4(await readVolumeFile(volume, `${GUI_PATH}/cro_feonly.bgh`, MAX_TABLE_BYTES)),
+      entries: wantedOf(
+        parseBig4(await readVolumeFile(volume, `${GUI_PATH}/cro_feonly.bgh`, MAX_TABLE_BYTES)),
+        FEONLY_WANTED,
+      ),
     },
   ];
+  // Checked before any archive is read.
+  const packBytes = sources
+    .flatMap(({ entries }) => entries)
+    .reduce((sum, [, { size }]) => sum + size, 0);
+  if (packBytes > MAX_PACK_BYTES) throw new SaveFormatError("Graphics are too large");
   // One archive after the other, so only one is in memory at a time.
   const kept = await sources.reduce<Promise<readonly (readonly [string, Uint8Array])[]>>(
-    async (done, { path, wanted, table }) => {
+    async (done, { path, entries }) => {
       const before = await done;
       const archive = await readVolumeFile(volume, path, MAX_ARCHIVE_BYTES);
       return [
         ...before,
-        ...[...table]
-          .filter(([name]) => wanted.test(name))
-          .map(
-            ([name, entry]) =>
-              [name.slice(0, -".msh".length), entryBytes(archive, entry).slice()] as const,
-          ),
+        ...entries.map(
+          ([name, entry]) =>
+            [name.slice(0, -".msh".length), entryBytes(archive, entry).slice()] as const,
+        ),
       ];
     },
     Promise.resolve([]),
   );
-  const bytes = new Uint8Array(kept.reduce((sum, [, packed]) => sum + packed.length, 0));
+  const bytes = new Uint8Array(packBytes);
   let offset = 0;
   const entries = kept.map(([name, packed]) => {
     bytes.set(packed, offset);

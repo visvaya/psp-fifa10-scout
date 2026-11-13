@@ -36,6 +36,13 @@ const archive = (entries: readonly (readonly [string, string])[], gap = 3) => {
   return { data: Uint8Array.from(bytes), table: buildBig4(table) };
 };
 
+/** A BIG4 table of `count` entries all named a.msh. */
+const names = (count: number) => Array.from({ length: count }, () => ["a.msh", 0, 1] as const);
+
+/** A BIG4 table of `count` crests of 64 KiB, all at offset 0. */
+const overlapping = (count: number) =>
+  buildBig4(Array.from({ length: count }, (_, id) => [`tl${String(id)}.msh`, 0, 64 * 1024]));
+
 describe("parseBig4", () => {
   it("reads each entry's offset, size and name", () => {
     const table = buildBig4([
@@ -54,6 +61,16 @@ describe("parseBig4", () => {
   ])("rejects %s", (_, table) => {
     expect(() => parseBig4(table)).toThrow(
       expect.objectContaining({ name: "SaveFormatError", message: "Not a BIG4 table" }),
+    );
+  });
+
+  it("rejects a table listing more than 65536 entries before reading them", () => {
+    expect(parseBig4(buildBig4(names(65_536))).size).toBe(1);
+    expect(() => parseBig4(buildBig4(names(65_537)))).toThrow(
+      expect.objectContaining({
+        name: "SaveFormatError",
+        message: "BIG4 table lists too many entries",
+      }),
     );
   });
 
@@ -241,6 +258,34 @@ describe("readGameGraphics", () => {
     const image = iso(boot());
     await expect(readGameGraphics(reader(image), image.length)).rejects.toThrow(
       expect.objectContaining({ message: "Graphics entry is out of range" }),
+    );
+  });
+
+  it("rejects a packed image over 64 KiB", async () => {
+    const image = iso(bootArchive(buildBig4([["tl1.msh", 0, 64 * 1024 + 1]])));
+    await expect(readGameGraphics(reader(image), image.length)).rejects.toThrow(
+      expect.objectContaining({ message: "Graphics entry is too large" }),
+    );
+  });
+
+  it("rejects overlapping entries adding up to over 48 MiB before reading an archive", async () => {
+    const image = iso(bootArchive(overlapping(769)));
+    const lengths: number[] = [];
+    const read: ReadRange = async (offset, length) => {
+      lengths.push(length);
+      return reader(image)(offset, length);
+    };
+    await expect(readGameGraphics(read, image.length)).rejects.toThrow(
+      expect.objectContaining({ name: "SaveFormatError", message: "Graphics are too large" }),
+    );
+    expect(lengths).not.toContain(base.data.length);
+    // Exactly 48 MiB with the 12 bytes of fe's kept entries: past the total cap, the range is checked.
+    const exact = [...parseBig4(overlapping(767))].map(
+      ([name, { offset, size }]) => [name, offset, size] as const,
+    );
+    const atCap = iso(bootArchive(buildBig4([...exact, ["ll1.msh", 0, 64 * 1024 - 12]])));
+    await expect(readGameGraphics(reader(atCap), atCap.length)).rejects.toThrow(
+      "Graphics entry is out of range",
     );
   });
 });
