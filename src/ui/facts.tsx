@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { OptionalHelp } from "./field-help.tsx";
+import { TEXT } from "./text.ts";
 
 /** A label, its value, the label's explanation, if any, and a note on its own line under the value. */
 export type Fact = readonly [string, ReactNode, (string | undefined)?, ReactNode?];
@@ -19,3 +20,5 @@ export const Facts = ({ facts }: { facts: readonly Fact[] }) => (
     ))}
   </dl>
 );
+
+export const yesNo = (value: boolean): string => (value ? TEXT.card.yes : TEXT.card.no);

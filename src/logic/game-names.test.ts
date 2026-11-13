@@ -151,6 +151,19 @@ describe("localizePlayers", () => {
     expect(none?.bestPeakName).toBeNull();
   });
 
+  it("names the positions of a role and the targets in the game language", () => {
+    // 2. at CM (code 17), slot 6 of the formation; 1. at GK, slot 0.
+    const [club, other] = localizePlayers(
+      [
+        testPlayer({ role: 2 * 1024 + 6 * 32 + 17, roleName: "2. CM" }),
+        testPlayer({ id: 2, target: 1024, peakTarget: 2 * 1024 + 6 * 32 + 17 }),
+      ],
+      names,
+    );
+    expect(club?.roleName).toBe("2. ŚP");
+    expect(other).toMatchObject({ roleName: null, targetName: "1. GK", peakTargetName: "2. ŚP" });
+  });
+
   it("names a misleading position by its bare abbreviation, as the list's narrow column shows it", () => {
     const polish = { ...names, positions: { 1: "ST", 30: "N" } };
     const [sweeper] = localizePlayers(

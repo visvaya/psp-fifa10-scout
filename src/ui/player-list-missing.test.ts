@@ -18,6 +18,14 @@ describe("a missing value in the list", () => {
     expect(columnText(player, "leagueName", null)).toBe("–");
     expect(columnText(player, "peak", null)).toBe("–");
     expect(columnText(player, "positionPeak", null)).toBe("–");
+
+    // A player outside the club has no state, role or target.
+    for (const key of ["squadState", "role", "target", "peakTarget"] as const) {
+      expect(columnText(player, key, null)).toBe("–");
+    }
+    expect(columnText(testPlayer({ squadState: "toSell", roleName: "3. ST" }), "role", null)).toBe(
+      "3. ST",
+    );
   });
 });
 

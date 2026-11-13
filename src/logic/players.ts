@@ -40,13 +40,15 @@ import type { Finance, FinanceInput } from "./player-finance.ts";
 import { positionOf } from "./positions.ts";
 import type { PositionGroup } from "./positions.ts";
 import { retiresAfterSeason } from "./retirement.ts";
+import { NO_ROLES, playerRoles } from "./roles.ts";
+import type { RoleFields, RoleInput, RoleKey } from "./roles.ts";
 import { seasonStats, statOf } from "./season-stats.ts";
 import type { SeasonStats } from "./season-stats.ts";
 import { clubStarsOf } from "./team-stars.ts";
 import { marketFields, transferMarketOf } from "./transfer-market.ts";
 import type { TransferMarket } from "./transfer-market.ts";
 
-export interface Player extends Finance, SeasonStats, TeamFields {
+export interface Player extends Finance, SeasonStats, TeamFields, RoleFields {
   readonly id: number;
   readonly name: string;
   /** The first name as an initial ("L. Messi"), for narrow places; null for a player with one name. */
@@ -220,7 +222,7 @@ const profileFields = (row: EaDbRow, seasonYear: number) => ({
   traits: TRAIT_NAMES.filter((trait) => num(row, trait) === 1),
 });
 
-type Summary = Omit<Player, "nameOrder" | "clubStars">;
+type Summary = Omit<Player, "nameOrder" | "clubStars" | RoleKey>;
 
 const summary = (row: EaDbRow, context: Context): Summary => {
   const id = num(row, "playerid");
@@ -388,6 +390,27 @@ const datesOf = (db: EaDb, save: CareerSave | undefined) => {
 };
 
 /**
+ * Each player's role, state and targets (roles.ts) from the user club's team sheet; none without a career
+ * or a formation, so the links need no positions then.
+ */
+const rolesIn = (
+  db: EaDb,
+  save: CareerSave | undefined,
+  links: readonly EaDbRow[],
+  players: readonly RoleInput[],
+): ((player: RoleInput) => RoleFields) => {
+  const formationCodes = save === undefined ? [] : userFormationCodes(db, save);
+  if (save === undefined || formationCodes.length === 0) return () => NO_ROLES;
+  const { teamId } = careerManager(db, save);
+  const sheet = new Map(
+    links
+      .filter((link) => num(link, "teamid") === teamId)
+      .map((link) => [num(link, "playerid"), num(link, "position")]),
+  );
+  return playerRoles(players, sheet, formationCodes);
+};
+
+/**
  * Every player with his club and nationality; youth-pool players only when a team link, or the
  * save's youth academy, transfer list or shortlist, places them. With a save, links and stats come from it and ages are taken on its last game date.
  * `curves`: the database's curves when the caller has read them already. `afterSigning`: players
@@ -449,9 +472,11 @@ export const buildPlayers = (
     )
     .map((row) => summary(row, context));
   // A club's stars need its whole squad's OVRs; the summaries are this build's own, so they take the
-  // stars in place before withNameOrder freezes its copies.
-  const starsOf = clubStarsOf(summaries, links);
+  // stars and roles in place before withNameOrder freezes its copies.
+  const [starsOf, rolesOf] = [clubStarsOf(summaries, links), rolesIn(db, save, links, summaries)];
   return withNameOrder(
-    summaries.map((player) => Object.assign(player, { clubStars: starsOf(player.clubId) })),
+    summaries.map((player) =>
+      Object.assign(player, { clubStars: starsOf(player.clubId), ...rolesOf(player) }),
+    ),
   );
 };

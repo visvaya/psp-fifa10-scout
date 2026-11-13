@@ -37,6 +37,10 @@ export const LIST_COLUMNS: Readonly<Record<ListKey, SortKey>> = {
   leagueId: "leagueName",
   clubId: "clubName",
   nationalityId: "nationalityName",
+  role: "role",
+  squadState: "squadState",
+  target: "target",
+  peakTarget: "peakTarget",
 };
 
 /** The values only a career has, which an override cannot show without one. */

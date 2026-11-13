@@ -7,6 +7,7 @@ import type { FlagKey } from "./filter-players.ts";
 import { ATTRIBUTE_NAMES, isAttributeName } from "./attributes.ts";
 import { nameCollator } from "./player-names.ts";
 import { POSITION_GROUPS } from "./positions.ts";
+import { SQUAD_STATES } from "./roles.ts";
 import { SEASON_STAT_KEYS } from "./season-stats.ts";
 import type { Player } from "./players.ts";
 import type { AttributeName } from "./attributes.ts";
@@ -44,6 +45,10 @@ const ASCENDING_FIRST_KEYS = [
   "nationalityName",
   "contractEndYear",
   "contractYearsLeft",
+  "role",
+  "squadState",
+  "target",
+  "peakTarget",
 ] as const satisfies readonly SortKey[];
 
 /** The sort keys the screens offer; anything else in storage falls back to the default sort. */
@@ -85,6 +90,7 @@ export const POTENTIAL_KEYS: ReadonlySet<SortKey> = new Set([
   "peak",
   "peakGain",
   "positionPeak",
+  "peakTarget",
 ]);
 
 /** The sort keys that need a chosen position (the position rating filter). */
@@ -124,6 +130,9 @@ const valueOf = (player: Player, key: SortKey, ratingCode: number | undefined): 
   if (key === "name") return player.nameOrder;
   // The groups go from the goal forward, as the game lists them, not by their names.
   if (key === "positionGroup") return POSITION_GROUPS.indexOf(player.positionGroup);
+  // The states in the order their rules apply.
+  if (key === "squadState")
+    return player.squadState === null ? null : SQUAD_STATES.indexOf(player.squadState);
   if (key === "positionRating" || key === "ratingGain" || key === "positionPeak")
     return ratingValueOf(player, key, ratingCode ?? null);
   if (isFlagKey(key)) return flagValue(player, key);

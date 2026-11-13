@@ -113,6 +113,9 @@ describe("facetOptions", () => {
       bodyType: [2],
       developmentType: [1],
       developmentStyle: [2],
+      role: [],
+      target: [],
+      peakTarget: [],
     });
     expect(facetOptions(players, { lists: { leagueId: [2] } }).clubs).toEqual([
       { id: 5, name: "Śląsk" },

@@ -134,6 +134,10 @@ export const LIST_LABELS: Readonly<Record<ListKey, string>> = {
   leagueId: "Liga",
   clubId: "Klub",
   nationalityId: "Narodowość",
+  role: "Rola",
+  squadState: "Stan",
+  target: "Cel",
+  peakTarget: pl`Cel w szczycie`,
 };
 
 export const FLAG_LABELS: Readonly<Record<FlagKey, string>> = {
@@ -363,6 +367,10 @@ export const TEXT = {
     bodyType: "Budowa",
     developmentType: "Typ rozwoju",
     developmentStyle: "Styl rozwoju",
+    role: "Rola",
+    squadState: "Stan",
+    target: "Cel",
+    peakTarget: pl`Cel w szczycie`,
   },
   // jscpd:ignore-end
   potentialShort: "POT",

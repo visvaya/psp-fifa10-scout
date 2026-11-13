@@ -20,6 +20,13 @@ export const SCOUT_CONFIG = {
   noteMaxChars: 20_000,
   /** Weak foot stars from which a best peak tied across sides goes to the central code (owner, 2026-11-07). */
   centralWeakFootStarsMin: 4,
+  /** A club player up to this age with at least developGainMinOvr to his peak is one to develop (roles.ts). */
+  developAgeMaxYears: 21,
+  developGainMinOvr: 5,
+  /** A club player whose best role number is this or higher sits on the bench: to loan out or sell. */
+  benchRoleNumberFrom: 3,
+  /** A player outside the club gets a target only where he would be at most this number. */
+  targetRoleNumberMax: 2,
   /** Changes of the filters, sort and sets the user can take back, newest first. */
   undoSteps: 50,
 } as const;

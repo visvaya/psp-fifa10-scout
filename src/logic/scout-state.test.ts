@@ -51,6 +51,7 @@ describe("scoutReducer loading", () => {
         cleanSheets: { min: 1 },
       },
       flags: { clubWillSell: true, transferListed: true, loanListed: true, loaned: false },
+      lists: { role: [1056], squadState: ["toSell"], target: [1056], peakTarget: [2080] },
     } as const;
     expect(loaded(null, { ...loadingState(), filters }).filters).toEqual({
       text: "a",

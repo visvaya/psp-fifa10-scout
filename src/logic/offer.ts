@@ -202,7 +202,7 @@ export const offerTerms = (
 };
 
 /** Team-sheet positions from 32 up are the bench and the reserves, rated at the preferred position. */
-const BENCH_POSITION_FROM = 32;
+export const BENCH_POSITION_FROM = 32;
 
 /** The user's side of every offer, from the career save and the players built from it. */
 export const offerContextOf = (
