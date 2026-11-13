@@ -160,10 +160,15 @@ export const columnImageWidth = (column: SortKey): number => {
 };
 
 /** The first of the entries whose image can be made, or null; tried in order. */
-export const firstUrl = (source: ImageSource, names: readonly string[]): Promise<string | null> =>
-  // One after another: a later entry is made only when the ones before it could not be.
+export const firstUrl = (
+  source: ImageSource,
+  names: readonly string[],
+  live: () => boolean,
+): Promise<string | null> =>
+  // One after another: a later entry is made only when the ones before it could not be, and none
+  // once the request is dropped, as its URL would outlive the source's revoke.
   names.reduce<Promise<string | null>>(
-    async (found, name) => (await found) ?? source.url(name),
+    async (found, name) => (await found) ?? (live() ? source.url(name) : null),
     Promise.resolve(null),
   );
 
@@ -184,7 +189,7 @@ export const GameImage = ({ image }: { image: ImageName | null }) => {
     if (source === null || name === null) return undefined;
     // An answer that comes after the entry or the pack changed is dropped.
     const request = { live: true };
-    void firstUrl(source, name.split(" ")).then((src) => {
+    void firstUrl(source, name.split(" "), () => request.live).then((src) => {
       if (request.live && src !== null) setShown({ source, name, src });
     });
     return () => {

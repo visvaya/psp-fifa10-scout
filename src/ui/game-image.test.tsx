@@ -70,11 +70,37 @@ describe("imageUrls", () => {
   });
 });
 
+const alwaysLive = () => true;
+
 describe("firstUrl", () => {
   it("falls back to the next entry when one cannot be made", async () => {
     const urls = imageUrls(pack, namer().toUrl);
-    expect(await firstUrl(urls, ["ls37", "tl1873"])).toBe("blob:9,8,7,255");
-    expect(await firstUrl(urls, ["ls37"])).toBeNull();
+    expect(await firstUrl(urls, ["ls37", "tl1873"], alwaysLive)).toBe("blob:9,8,7,255");
+    expect(await firstUrl(urls, ["ls37"], alwaysLive)).toBeNull();
+  });
+
+  it("asks for no further entry once the request is dropped", async () => {
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+    const made: DecodedImage[] = [];
+    let finish: ((url: string) => void) | undefined;
+    const madeUrl = new Promise<string>((resolve) => {
+      finish = resolve;
+    });
+    const urls = imageUrls(pack, async (image) => {
+      made.push(image);
+      return madeUrl;
+    });
+    const request = { live: true };
+    const pending = firstUrl(urls, ["tl1873", "tl1873"], () => request.live);
+    await vi.waitFor(() => {
+      expect(made).toHaveLength(1);
+    });
+    // The pack changes while the first image is made: its URL is dropped, and no second is asked for.
+    request.live = false;
+    urls.revoke();
+    finish?.("blob:first");
+    expect(await pending).toBeNull();
+    expect(made).toHaveLength(1);
   });
 });
 
