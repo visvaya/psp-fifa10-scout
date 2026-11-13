@@ -222,6 +222,7 @@ describe("buildPlayers from fifa.db", () => {
       nationalTeamName: "Argentina",
       nationalityId: 52,
       nationalityName: "Argentina",
+      composedPortrait: "g_5011203",
       ...NO_STATS,
       transferListed: false,
       loanListed: false,

@@ -2,7 +2,15 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DecodedImage } from "../data/game-graphics.ts";
 import { buildShpm, refpackLiterals } from "../data/test-support/synthetic-graphics.ts";
-import { columnImage, crestOf, flagOf, GameImage, GameImages, imageUrls } from "./game-image.tsx";
+import {
+  columnImage,
+  crestOf,
+  firstUrl,
+  flagOf,
+  GameImage,
+  GameImages,
+  imageUrls,
+} from "./game-image.tsx";
 import { testPlayer } from "../logic/test-support/player-fixtures.ts";
 
 const crest = refpackLiterals(
@@ -62,6 +70,40 @@ describe("imageUrls", () => {
   });
 });
 
+const alwaysLive = () => true;
+
+describe("firstUrl", () => {
+  it("falls back to the next entry when one cannot be made", async () => {
+    const urls = imageUrls(pack, namer().toUrl);
+    expect(await firstUrl(urls, ["ls37", "tl1873"], alwaysLive)).toBe("blob:9,8,7,255");
+    expect(await firstUrl(urls, ["ls37"], alwaysLive)).toBeNull();
+  });
+
+  it("asks for no further entry once the request is dropped", async () => {
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+    const made: DecodedImage[] = [];
+    let finish: ((url: string) => void) | undefined;
+    const madeUrl = new Promise<string>((resolve) => {
+      finish = resolve;
+    });
+    const urls = imageUrls(pack, async (image) => {
+      made.push(image);
+      return madeUrl;
+    });
+    const request = { live: true };
+    const pending = firstUrl(urls, ["tl1873", "tl1873"], () => request.live);
+    await vi.waitFor(() => {
+      expect(made).toHaveLength(1);
+    });
+    // The pack changes while the first image is made: its URL is dropped, and no second is asked for.
+    request.live = false;
+    urls.revoke();
+    finish?.("blob:first");
+    expect(await pending).toBeNull();
+    expect(made).toHaveLength(1);
+  });
+});
+
 describe("after a revoke", () => {
   it("makes the images again, as a remount of the provider needs", async () => {
     vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
@@ -99,9 +141,9 @@ describe("GameImage", () => {
 describe("columnImage", () => {
   it("puts the crest before the club, the logo before the league and the flag before the country", () => {
     const player = testPlayer({ clubId: 1873, leagueId: 31, nationalityId: 37 });
-    expect(columnImage("clubName", player)).toEqual({ name: "tl1873", flag: false });
-    expect(columnImage("leagueName", player)).toEqual({ name: "ll31", flag: false });
-    expect(columnImage("nationalityName", player)).toEqual({ name: "ls37", flag: true });
+    expect(columnImage("clubName", player)).toEqual({ names: ["tl1873"], shape: "square" });
+    expect(columnImage("leagueName", player)).toEqual({ names: ["ll31"], shape: "square" });
+    expect(columnImage("nationalityName", player)).toEqual({ names: ["ls37"], shape: "flag" });
     expect(columnImage("age", player)).toBeNull();
     const freeAgent = testPlayer({ clubId: null, leagueId: null });
     expect(columnImage("clubName", freeAgent)).toBeNull();

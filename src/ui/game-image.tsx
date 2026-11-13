@@ -1,10 +1,12 @@
-// The game's own images (club crests, league logos, flags) before the names they belong to, decorative:
-// each decoded once a session, on first show, into a PNG blob URL that is freed when the pack changes.
+// The game's own images (club crests, league logos, flags, portraits, kits) beside the names they belong
+// to, decorative: each decoded once a session, on first show, into a PNG blob URL that is freed when
+// the pack changes.
 import { createContext, use, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { decodeShpm, MAX_IMAGE_BYTES, unrefpack } from "../data/game-graphics.ts";
 import type { DecodedImage, GraphicsPack } from "../data/game-graphics.ts";
 import type { Player } from "../logic/players.ts";
+import { realPortraitOf } from "../logic/portraits.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 
 const pngUrl = async ({ width, height, rgba }: DecodedImage): Promise<string> => {
@@ -96,20 +98,47 @@ export const GameImages = ({
 /** There are images to show: the list makes room for them. */
 export const useHasGameImages = (): boolean => use(ImageContext) !== null;
 
-/** A pack entry's name with how it is drawn: a flag is twice as wide as it is high, the rest square. */
+/**
+ * The slot before a name in the list: its portrait, or nothing in a slot of the same size, so every
+ * row looks alike; no slot without images.
+ */
+export const PortraitSlot = ({ player }: { player: Player }) =>
+  useHasGameImages() ? (
+    <span className="portrait-slot">
+      <GameImage image={portraitOf(player)} />
+    </span>
+  ) : null;
+
+/**
+ * The pack entries an image may come from, the first one the pack has, and how it is drawn: a flag
+ * twice as wide as it is high, a portrait or a kit in its own size (styles.css), the rest square.
+ */
 export interface ImageName {
-  readonly name: string;
-  readonly flag: boolean;
+  readonly names: readonly string[];
+  readonly shape: "square" | "flag" | "portrait" | "kit";
 }
 
 export const crestOf = (clubId: number | null): ImageName | null =>
-  clubId === null ? null : { name: `tl${String(clubId)}`, flag: false };
+  clubId === null ? null : { names: [`tl${String(clubId)}`], shape: "square" };
 export const leagueLogoOf = (leagueId: number | null): ImageName | null =>
-  leagueId === null ? null : { name: `ll${String(leagueId)}`, flag: false };
+  leagueId === null ? null : { names: [`ll${String(leagueId)}`], shape: "square" };
 export const flagOf = (countryId: number): ImageName => ({
-  name: `ls${String(countryId)}`,
-  flag: true,
+  names: [`ls${String(countryId)}`],
+  shape: "flag",
 });
+/** The player's real portrait where the game has one, else the composed one. */
+export const portraitOf = (player: Player): ImageName => ({
+  names: [realPortraitOf(player.id), player.composedPortrait],
+  shape: "portrait",
+});
+/** The club's home and away kits, none without a club. */
+export const kitsOf = (clubId: number | null): readonly ImageName[] =>
+  clubId === null
+    ? []
+    : ["j0_", "j1_"].map((kit) => ({
+        names: [`${kit}${String(clubId).padStart(5, "0")}`],
+        shape: "kit",
+      }));
 
 /** The list columns with an image before their values: the club's crest, the league's logo, the flag. */
 const COLUMN_IMAGES: Readonly<
@@ -130,29 +159,46 @@ export const columnImageWidth = (column: SortKey): number => {
   return images === undefined ? 0 : images.flag ? 2 : 1;
 };
 
+/** The first of the entries whose image can be made, or null; tried in order. */
+export const firstUrl = (
+  source: ImageSource,
+  names: readonly string[],
+  live: () => boolean,
+): Promise<string | null> =>
+  // One after another: a later entry is made only when the ones before it could not be, and none
+  // once the request is dropped, as its URL would outlive the source's revoke.
+  names.reduce<Promise<string | null>>(
+    async (found, name) => (await found) ?? (live() ? source.url(name) : null),
+    Promise.resolve(null),
+  );
+
 /**
- * The image of a pack entry; while it is made, an empty box of its size, so its arrival never moves
- * the text. Nothing without a pack or without such an entry.
+ * The image of the first pack entry that can be made (a damaged one falls back to the next); while it
+ * is made, an empty box of its size, so its arrival never moves the text. Nothing without a pack or
+ * without such an entry.
  */
 export const GameImage = ({ image }: { image: ImageName | null }) => {
   const source = use(ImageContext);
-  const name = image?.name ?? null;
+  // The entries the pack has, as one string so the effect runs only when they change.
+  const had = image?.names.filter((entry) => source?.has(entry) === true) ?? [];
+  const name = had.length === 0 ? null : had.join(" ");
   const [shown, setShown] = useState<{ source: ImageSource; name: string; src: string } | null>(
     null,
   );
   useEffect(() => {
     if (source === null || name === null) return undefined;
-    let live = true;
-    void source.url(name).then((src) => {
-      if (live && src !== null) setShown({ source, name, src });
+    // An answer that comes after the entry or the pack changed is dropped.
+    const request = { live: true };
+    void firstUrl(source, name.split(" "), () => request.live).then((src) => {
+      if (request.live && src !== null) setShown({ source, name, src });
     });
     return () => {
-      live = false;
+      request.live = false;
     };
   }, [source, name]);
-  if (image === null || source === null || !source.has(image.name)) return null;
-  const className = image.flag ? "game-image flag" : "game-image";
-  return shown?.source === source && shown.name === image.name ? (
+  if (image === null || name === null) return null;
+  const className = image.shape === "square" ? "game-image" : `game-image ${image.shape}`;
+  return shown?.source === source && shown.name === name ? (
     <img className={className} src={shown.src} alt="" />
   ) : (
     <span className={className} aria-hidden="true" />

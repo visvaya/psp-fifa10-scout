@@ -12,7 +12,13 @@ import { ratingValueOf } from "../logic/sort-players.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 import { AttributeValue, GainValue } from "./attribute-value.tsx";
 import { CHOICE_VALUE_TEXT } from "./chip-text.ts";
-import { columnImage, columnImageWidth, GameImage, useHasGameImages } from "./game-image.tsx";
+import {
+  columnImage,
+  columnImageWidth,
+  GameImage,
+  PortraitSlot,
+  useHasGameImages,
+} from "./game-image.tsx";
 import type { ChoiceKey } from "./chip-text.ts";
 import { PositionName } from "./position-name.tsx";
 import { WatchMark } from "./stars.tsx";
@@ -98,14 +104,17 @@ const tokenRem = (token: string): number =>
 /** The small gap between a mark and what it stands beside (--space-1), in rem. */
 const gapRem = (): number => tokenRem("--space-1");
 
-/** The room the game's image takes before a column's values, in rem with its gap; 0 without images. */
+/**
+ * The room the game's image takes before a column's values, or the portrait's slot before the name, in
+ * rem with its gap; 0 without images.
+ */
 export const useImageRoom = (): ((column: SortKey) => number) => {
   const shown = useHasGameImages();
   return useMemo(() => {
-    const size = tokenRem("--game-image-size");
+    const [size, portrait] = [tokenRem("--game-image-size"), tokenRem("--portrait-slot-width")];
     return (column: SortKey) => {
-      const widths = columnImageWidth(column);
-      return shown && widths > 0 ? widths * size + gapRem() : 0;
+      const width = column === "name" ? portrait : columnImageWidth(column) * size;
+      return shown && width > 0 ? width + gapRem() : 0;
     };
   }, [shown]);
 };
@@ -350,6 +359,7 @@ const TableRow = ({
           dispatch({ type: "player-opened", id: player.id });
         }}
       >
+        <PortraitSlot player={player} />
         <ShortlistStar player={player} watched={watched} />
         {player.name}
         <ShortlistWords player={player} watched={watched} />
@@ -402,7 +412,9 @@ const useTableWidths = ({
       (column === "bestPeak"
         ? besideRem
         : column === "name"
-          ? (player.shortlisted ? gameRem : 0) + (watchedIds.has(player.id) ? ownRem : 0)
+          ? (player.shortlisted ? gameRem : 0) +
+            (watchedIds.has(player.id) ? ownRem : 0) +
+            imageRoom(column)
           : imageRoom(column)),
     [besideRem, gameRem, ownRem, watchedIds, imageRoom],
   );
