@@ -111,10 +111,12 @@ const gapRem = (): number => tokenRem("--space-1");
 export const useImageRoom = (): ((column: SortKey) => number) => {
   const shown = useHasGameImages();
   return useMemo(() => {
+    // Read once: the widths ask for every row and column, and each read restyles the page.
     const [size, portrait] = [tokenRem("--game-image-size"), tokenRem("--portrait-slot-width")];
+    const gap = gapRem();
     return (column: SortKey) => {
       const width = column === "name" ? portrait : columnImageWidth(column) * size;
-      return shown && width > 0 ? width + gapRem() : 0;
+      return shown && width > 0 ? width + gap : 0;
     };
   }, [shown]);
 };
@@ -411,18 +413,19 @@ const useTableWidths = ({
   const { besideRem, style } = useBestPeakRoom(source.rows);
   const { gameRem, ownRem } = useStarsRoom();
   const imageRoom = useImageRoom();
-  const besidePx = useCallback(
-    (column: SortKey, player: Player) =>
-      rootFontPx() *
+  // The root font size read once, not for every row and column the widths ask about.
+  const besidePx = useMemo(() => {
+    const rem = rootFontPx();
+    return (column: SortKey, player: Player) =>
+      rem *
       (column === "bestPeak"
         ? besideRem
         : column === "name"
           ? (player.shortlisted ? gameRem : 0) +
             (watchedIds.has(player.id) ? ownRem : 0) +
             imageRoom(column)
-          : imageRoom(column)),
-    [besideRem, gameRem, ownRem, watchedIds, imageRoom],
-  );
+          : imageRoom(column));
+  }, [besideRem, gameRem, ownRem, watchedIds, imageRoom]);
   const widths = useColumnWidths({ ...source, text: widthText, besidePx });
   return { widths, style };
 };
