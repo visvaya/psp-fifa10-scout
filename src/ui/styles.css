@@ -47,8 +47,9 @@
   --rating-width: 2.25rem;
   /* The game's crests and logos before a name; its flags are twice as wide (game-image.tsx). */
   --game-image-size: 1.25em;
-  /* A portrait's slot before a name in the list: 85 by 75 like the game's, as high as a crest. */
-  --portrait-slot-width: 1.4em;
+  /* A portrait's slot before a name in the list: 85 by 75 like the game's, as high as the row allows. */
+  --portrait-slot-width: 2em;
+  --portrait-slot-height: 1.75em;
   /* The portrait at the top of the card (85 by 75 in the game) and the kits beside the club. */
   --portrait-card-height: 5.5rem;
   --kit-size: 2.25rem;
@@ -755,7 +756,7 @@ input[inputmode="numeric"] {
 .portrait-slot {
   display: inline-block;
   width: var(--portrait-slot-width);
-  height: var(--game-image-size);
+  height: var(--portrait-slot-height);
   margin-right: var(--space-1);
   vertical-align: middle;
 }
