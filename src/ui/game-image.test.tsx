@@ -2,7 +2,15 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DecodedImage } from "../data/game-graphics.ts";
 import { buildShpm, refpackLiterals } from "../data/test-support/synthetic-graphics.ts";
-import { columnImage, crestOf, flagOf, GameImage, GameImages, imageUrls } from "./game-image.tsx";
+import {
+  columnImage,
+  crestOf,
+  firstUrl,
+  flagOf,
+  GameImage,
+  GameImages,
+  imageUrls,
+} from "./game-image.tsx";
 import { testPlayer } from "../logic/test-support/player-fixtures.ts";
 
 const crest = refpackLiterals(
@@ -59,6 +67,14 @@ describe("imageUrls", () => {
     urls.revoke();
     expect(await pending).toBeNull();
     expect(revoked.mock.calls).toEqual([["blob:9,8,7,255"], ["blob:9,8,7,255"]]);
+  });
+});
+
+describe("firstUrl", () => {
+  it("falls back to the next entry when one cannot be made", async () => {
+    const urls = imageUrls(pack, namer().toUrl);
+    expect(await firstUrl(urls, ["ls37", "tl1873"])).toBe("blob:9,8,7,255");
+    expect(await firstUrl(urls, ["ls37"])).toBeNull();
   });
 });
 

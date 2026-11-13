@@ -159,13 +159,24 @@ export const columnImageWidth = (column: SortKey): number => {
   return images === undefined ? 0 : images.flag ? 2 : 1;
 };
 
+/** The first of the entries whose image can be made, or null; tried in order. */
+export const firstUrl = (source: ImageSource, names: readonly string[]): Promise<string | null> =>
+  // One after another: a later entry is made only when the ones before it could not be.
+  names.reduce<Promise<string | null>>(
+    async (found, name) => (await found) ?? source.url(name),
+    Promise.resolve(null),
+  );
+
 /**
- * The image of a pack entry; while it is made, an empty box of its size, so its arrival never moves
- * the text. Nothing without a pack or without such an entry.
+ * The image of the first pack entry that can be made (a damaged one falls back to the next); while it
+ * is made, an empty box of its size, so its arrival never moves the text. Nothing without a pack or
+ * without such an entry.
  */
 export const GameImage = ({ image }: { image: ImageName | null }) => {
   const source = use(ImageContext);
-  const name = image?.names.find((entry) => source?.has(entry) === true) ?? null;
+  // The entries the pack has, as one string so the effect runs only when they change.
+  const had = image?.names.filter((entry) => source?.has(entry) === true) ?? [];
+  const name = had.length === 0 ? null : had.join(" ");
   const [shown, setShown] = useState<{ source: ImageSource; name: string; src: string } | null>(
     null,
   );
@@ -173,7 +184,7 @@ export const GameImage = ({ image }: { image: ImageName | null }) => {
     if (source === null || name === null) return undefined;
     // An answer that comes after the entry or the pack changed is dropped.
     const request = { live: true };
-    void source.url(name).then((src) => {
+    void firstUrl(source, name.split(" ")).then((src) => {
       if (request.live && src !== null) setShown({ source, name, src });
     });
     return () => {
