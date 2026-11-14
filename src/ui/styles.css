@@ -732,7 +732,7 @@ input[inputmode="numeric"] {
 /* The game's own images, decorative, in line with the name after them. */
 /* An inline block, so the empty box that holds an image's place has its size too. Its middle sits at
    the middle of a capital letter: "middle" puts it at half the x-height, 2 px under the text's middle
-   (owner, 2026-11-14, roadmap 121), and stays for browsers without the cap unit. */
+   (owner, 2026-11-14, roadmap 121), and stays for browsers without the cap unit (@supports below). */
 .game-image {
   --game-image-height: var(--game-image-size);
   display: inline-block;
@@ -741,7 +741,13 @@ input[inputmode="numeric"] {
   margin-right: var(--space-1);
   object-fit: contain;
   vertical-align: middle;
-  vertical-align: calc(0.5cap - var(--game-image-height) / 2);
+}
+
+/* In a block of its own: a var() the browser cannot compute would not fall back to "middle". */
+@supports (vertical-align: 1cap) {
+  .game-image {
+    vertical-align: calc(0.5cap - var(--game-image-height) / 2);
+  }
 }
 
 /*
@@ -778,7 +784,12 @@ input[inputmode="numeric"] {
   background: var(--color-portrait-bg);
   overflow: hidden;
   vertical-align: middle;
-  vertical-align: calc(0.5cap - var(--portrait-slot-height) / 2);
+}
+
+@supports (vertical-align: 1cap) {
+  .portrait-slot {
+    vertical-align: calc(0.5cap - var(--portrait-slot-height) / 2);
+  }
 }
 
 /* The dark box stays visible where the pack has no portrait of him, not even the silhouette. */
