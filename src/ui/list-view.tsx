@@ -17,8 +17,7 @@ import { TIE_RULES } from "../logic/best-peak.ts";
 import { FilterForm } from "./filter-form.tsx";
 import { FilterSets } from "./filter-sets.tsx";
 import { DialogButton } from "./modal-dialog.tsx";
-import { NotesButton } from "./notes-dialog.tsx";
-import { WatchlistButton } from "./watchlist-dialog.tsx";
+import { BarDialogs } from "./bar-dialogs.tsx";
 import { columnLabel, PlayerTable, RESULTS_TITLE_ID } from "./player-list.tsx";
 import { PlayerCards } from "./player-rows.tsx";
 import { ratingAbbreviation } from "./position-name.tsx";
@@ -176,10 +175,14 @@ const useColumns = (state: ScoutState, players: readonly Player[], wide: boolean
   }, [wide, showPotential, columns, myTeamId, sort.key, positionRating, ranges, priced, projected]);
 };
 
-/** On a phone: the filter form in a dialog, and the notes beside it (the top bar holds them when wide). */
+/**
+ * On a phone: the filter form in a dialog, and the notes, lists and club beside it (the top bar holds
+ * them when wide).
+ */
 const PhoneButtons = (props: {
   state: ScoutState;
   players: readonly Player[];
+  positionName: (code: number) => string;
   form: JSX.Element;
   dispatch: Dispatch<ScoutAction>;
 }) => (
@@ -192,11 +195,10 @@ const PhoneButtons = (props: {
     >
       {props.form}
     </DialogButton>
-    <NotesButton notes={props.state.notes} players={props.players} dispatch={props.dispatch} />
-    <WatchlistButton
-      watchlist={props.state.watchlist}
+    <BarDialogs
+      state={props.state}
       players={props.players}
-      career={props.state.myTeamId !== null}
+      positionName={props.positionName}
       dispatch={props.dispatch}
     />
   </>
@@ -239,9 +241,7 @@ const ListResults = ({
         {TEXT.showList}
       </h2>
       <div className="toolbar">
-        {wide ? null : (
-          <PhoneButtons state={state} players={players} form={form} dispatch={dispatch} />
-        )}
+        {wide ? null : <PhoneButtons {...{ state, players, positionName, form, dispatch }} />}
         <SortControls state={state} ratingName={ratingName} dispatch={dispatch} />
         <ResultCount count={visible.length} />
       </div>

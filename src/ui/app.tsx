@@ -14,9 +14,8 @@ import type { Player } from "../logic/players.ts";
 import { initialScoutState, scoutReducer } from "../logic/scout-state.ts";
 import { needsSignedList, shownPlayers } from "../logic/signed-list.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
+import { BarDialogs } from "./bar-dialogs.tsx";
 import { ListView } from "./list-view.tsx";
-import { NotesButton } from "./notes-dialog.tsx";
-import { WatchlistButton } from "./watchlist-dialog.tsx";
 import { PlayerCard } from "./player-card.tsx";
 import type { PositionNames } from "./position-name.tsx";
 import { StartScreen } from "./start-screen.tsx";
@@ -130,6 +129,8 @@ const TopBar = (props: {
   list: { readonly players: readonly Player[] } | null;
   wide: boolean;
   update: ReturnType<typeof useAppUpdate>;
+  /** Position abbreviations in the chosen language. */
+  positionName: (code: number) => string;
   dispatch: Dispatch<ScoutAction>;
 }) => {
   const { state, list, wide, update, dispatch } = props;
@@ -150,15 +151,12 @@ const TopBar = (props: {
         </button>
       ) : null}
       {list === null || !wide ? null : (
-        <>
-          <NotesButton notes={state.notes} players={list.players} dispatch={dispatch} />
-          <WatchlistButton
-            watchlist={state.watchlist}
-            players={list.players}
-            career={state.myTeamId !== null}
-            dispatch={dispatch}
-          />
-        </>
+        <BarDialogs
+          state={state}
+          players={list.players}
+          positionName={props.positionName}
+          dispatch={dispatch}
+        />
       )}
       {list === null ? null : (
         <button
@@ -238,7 +236,14 @@ export const App = (props: { registering: Promise<UpdatableRegistration> | null 
   return (
     <GameImages pack={state.graphics} approximate={state.approximatePortraits === true}>
       <div className="app">
-        <TopBar state={state} list={list} wide={wide} update={update} dispatch={dispatch} />
+        <TopBar
+          state={state}
+          list={list}
+          wide={wide}
+          update={update}
+          positionName={positionNames.short}
+          dispatch={dispatch}
+        />
         <UpdatePrompt status={update.status} install={update.install} dismiss={update.dismiss} />
         <StorageNotice failed={files.storageFailed} />
         <main className="main">

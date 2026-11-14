@@ -3,7 +3,12 @@
 // loadScout decides what to read, within the size caps, and the UI never parses files on its own thread.
 import { offerContextOf } from "./offer.ts";
 import type { OfferContext } from "./offer.ts";
-import { careerManager, parseCareerSave, userFormationCodes } from "../data/career-save.ts";
+import {
+  careerManager,
+  formationShapes,
+  parseCareerSave,
+  userFormationCodes,
+} from "../data/career-save.ts";
 import type { CurrencyCode } from "../data/career-save.ts";
 import { num, parseEaDb, readTable } from "../data/ea-db.ts";
 import type { EaDb } from "../data/ea-db.ts";
@@ -76,6 +81,8 @@ export interface CareerSummary {
   readonly offer: OfferContext;
   /** The starting eleven's position codes, which a best peak tie goes by; empty without them. */
   readonly formationCodes: readonly number[];
+  /** Every distinct starting eleven of the database's formations (formationShapes), for roadmap 98. */
+  readonly formations: readonly (readonly number[])[];
 }
 
 export interface LoadResult {
@@ -247,6 +254,7 @@ export const loadScout = async (
       currency,
       offer,
       formationCodes: userFormationCodes(db, career),
+      formations: formationShapes(db, career),
     },
     gameDb,
     ...names,
