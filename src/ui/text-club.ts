@@ -19,6 +19,9 @@ export const CLUB_TEXT = {
   name: (name: string, current: boolean): string => (current ? `${name} (obecna)` : name),
   eleven: (name: string): string => pl`Jedenastka: ${name}`,
   noPlayer: pl`brak zawodnika`,
+  /** The squad players the eleven leaves out (roadmap 129). */
+  substitutes: pl`Zmiennicy`,
+  noSubstitutes: pl`Cały skład mieści się w jedenastce.`,
   average1: (value: number): string => formatRating(value),
   /** A difference to the current formation with one decimal and its sign: +0,4 or −1,2. */
   difference1: (value: number): string =>

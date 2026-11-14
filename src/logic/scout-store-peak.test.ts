@@ -84,7 +84,7 @@ describe("stored view switches", () => {
     ]);
   });
 
-  it.each(["approximatePortraits", "alwaysPortraits"] as const)(
+  it.each(["approximatePortraits", "alwaysPortraits", "atPeak"] as const)(
     "restores %s only when on",
     async (setting) => {
       expect((await loadSwitches({ [setting]: true }))?.[setting]).toBe(true);

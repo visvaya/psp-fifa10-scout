@@ -340,7 +340,7 @@ describe("buildPlayers with a career save", () => {
   });
 
   it("after signing, adds the signing delta to players outside the squad, and keeps the squad's", () => {
-    const signed = buildPlayers(DB, SAVE, undefined, true);
+    const signed = buildPlayers(DB, SAVE, undefined, { afterSigning: true, atPeak: false });
     // Messi: learning speed 4 plus potential 95 mod 5.
     expect(byId(signed, 158_023)).toMatchObject({ potential: 99, growth: 39 });
     expect(byId(signed, 7)).toEqual(byId(players, 7));

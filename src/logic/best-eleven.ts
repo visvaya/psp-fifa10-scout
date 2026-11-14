@@ -212,3 +212,35 @@ export const rankFormations = (
       ...bestEleven(squad, codes),
     }))
     .toSorted((one, other) => other.average - one.average);
+
+/** A squad player the eleven leaves out, with the slot he would fill best and his value there. */
+export interface Substitute {
+  readonly playerId: number;
+  readonly code: number;
+  readonly value: number;
+}
+
+/**
+ * The squad players outside the eleven (roadmap 129), each at the formation's slot where his value is
+ * highest (a tie to the one that suits him), the strongest first; ties keep the squad's order.
+ */
+export const substitutesOf = (
+  squad: readonly SquadMember[],
+  eleven: Eleven,
+): readonly Substitute[] => {
+  const placed = new Set(eleven.slots.map((slot) => slot.playerId));
+  const codes = [...new Set(eleven.slots.map((slot) => slot.code))];
+  return squad
+    .filter((player) => !placed.has(player.id))
+    .flatMap((player): Substitute[] => {
+      const score = (code: number) => player.valueAt(code) * TIE_SCALE + player.fitAt(code);
+      const best = codes.reduce<number | undefined>(
+        (kept, code) => (kept === undefined || score(code) > score(kept) ? code : kept),
+        undefined,
+      );
+      return best === undefined
+        ? []
+        : [{ playerId: player.id, code: best, value: player.valueAt(best) }];
+    })
+    .toSorted((one, other) => other.value - one.value);
+};

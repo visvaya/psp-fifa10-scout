@@ -2,8 +2,8 @@
 // of the game's database ranked by the best eleven the user's squad can field in each, and that eleven.
 import { useMemo, useState } from "react";
 import type { Dispatch, JSX } from "react";
-import { chosenFormation, fitOf, rankFormations } from "../logic/best-eleven.ts";
-import type { RankedFormation, SquadMember } from "../logic/best-eleven.ts";
+import { chosenFormation, fitOf, rankFormations, substitutesOf } from "../logic/best-eleven.ts";
+import type { RankedFormation, SquadMember, Substitute } from "../logic/best-eleven.ts";
 import type { CareerSummary } from "../logic/load-scout.ts";
 import type { Player } from "../logic/players.ts";
 import type { ScoutAction } from "../logic/scout-state.ts";
@@ -12,6 +12,7 @@ import { HelpHeading } from "./field-help.tsx";
 import { RadioField } from "./filter-form.tsx";
 import { BarDialogButton } from "./modal-dialog.tsx";
 import { CLUB_TEXT } from "./text-club.ts";
+import { REDUCED_MOTION_QUERY } from "./use-media-query.ts";
 
 const VALUES = ["now", "peak"] as const;
 const GOALKEEPER_CODE = 0;
@@ -76,6 +77,7 @@ const FormationTable = (props: {
               <span className="formation-codes">
                 {formation.codes
                   .filter((code) => code !== GOALKEEPER_CODE)
+                  .toSorted(byGameOrder)
                   .map(props.positionName)
                   .join(" ")}
               </span>
@@ -93,6 +95,28 @@ const FormationTable = (props: {
   );
 };
 
+/**
+ * The game lists a team's positions by code, from the goalkeeper and the right side (its team sheet:
+ * BR, CPS, PŚO, ŚO, LŚO; owner, 2026-11-14), not in the order of the formation's row.
+ */
+const byGameOrder = (one: number, other: number): number => one - other;
+
+const ELEVEN_TITLE_ID = "eleven-title";
+
+/**
+ * Brings the eleven, above the table, into view after a formation is chosen in it, so a press never
+ * shows no change.
+ */
+const showEleven = (): void => {
+  const heading = document.getElementById(ELEVEN_TITLE_ID);
+  if (heading === null) return;
+  // The dialog's sticky header covers the top of its scroll: measured now, as it wraps on narrow screens.
+  const header = heading.closest("dialog")?.querySelector(".dialog-header");
+  heading.style.scrollMarginTop = `${String(header?.getBoundingClientRect().height ?? 0)}px`;
+  const reduced = globalThis.matchMedia(REDUCED_MOTION_QUERY).matches;
+  heading.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" });
+};
+
 /** The chosen formation's eleven: each slot's position, player (his card on a press) and value. */
 const ElevenList = (props: {
   formation: RankedFormation;
@@ -100,35 +124,89 @@ const ElevenList = (props: {
   positionName: (code: number) => string;
   dispatch: Dispatch<ScoutAction>;
 }) => (
-  <section aria-labelledby="eleven-title">
-    <h3 id="eleven-title">{CLUB_TEXT.eleven(props.formation.name)}</h3>
+  <section aria-labelledby={ELEVEN_TITLE_ID}>
+    <h3 id={ELEVEN_TITLE_ID}>{CLUB_TEXT.eleven(props.formation.name)}</h3>
     <ol className="eleven-list">
-      {props.formation.slots.map(({ code, playerId, value }, index) => (
-        // A formation can hold a code twice (two centre-backs as one code): the place keys the slot.
-        // oxlint-disable-next-line react/no-array-index-key -- slots have no id but their place
-        <li key={index}>
-          <span className="eleven-position">{props.positionName(code)}</span>
-          {playerId === null ? (
-            <span>{CLUB_TEXT.noPlayer}</span>
-          ) : (
-            <>
-              <button
-                type="button"
-                className="link-button"
-                data-player-id={playerId}
-                onClick={() => {
-                  props.dispatch({ type: "player-opened", id: playerId });
-                }}
-              >
-                {props.names.get(playerId) ?? String(playerId)}
-              </button>
-              <AttributeValue value={value} />
-            </>
-          )}
-        </li>
-      ))}
+      {props.formation.slots
+        .toSorted((one, other) => byGameOrder(one.code, other.code))
+        .map(({ code, playerId, value }, index) => (
+          // A formation can hold a code twice (two centre-backs as one code): the place keys the slot.
+          // oxlint-disable-next-line react/no-array-index-key -- slots have no id but their place
+          <li key={index}>
+            <SlotPlayer {...props} slot={{ code, playerId, value }} />
+          </li>
+        ))}
     </ol>
   </section>
+);
+
+/** A slot's position, its player (his card on a press) and his value there; "brak zawodnika" empty. */
+const SlotPlayer = (props: {
+  slot: { readonly code: number; readonly playerId: number | null; readonly value: number };
+  names: ReadonlyMap<number, string>;
+  positionName: (code: number) => string;
+  dispatch: Dispatch<ScoutAction>;
+}) => {
+  const { code, playerId, value } = props.slot;
+  return (
+    <>
+      <span className="eleven-position">{props.positionName(code)}</span>
+      {playerId === null ? (
+        <span>{CLUB_TEXT.noPlayer}</span>
+      ) : (
+        <>
+          <button
+            type="button"
+            className="link-button"
+            data-player-id={playerId}
+            onClick={() => {
+              props.dispatch({ type: "player-opened", id: playerId });
+            }}
+          >
+            {props.names.get(playerId) ?? String(playerId)}
+          </button>
+          <AttributeValue value={value} />
+        </>
+      )}
+    </>
+  );
+};
+
+/** The squad players the eleven leaves out, each where he would fill in best (roadmap 129). */
+const SubstituteList = (props: {
+  substitutes: readonly Substitute[];
+  names: ReadonlyMap<number, string>;
+  positionName: (code: number) => string;
+  dispatch: Dispatch<ScoutAction>;
+}) => (
+  <section aria-labelledby="substitutes-title">
+    <h3 id="substitutes-title">{CLUB_TEXT.substitutes}</h3>
+    {props.substitutes.length === 0 ? (
+      <p>{CLUB_TEXT.noSubstitutes}</p>
+    ) : (
+      <ol className="eleven-list">
+        {props.substitutes.map((substitute) => (
+          <li key={substitute.playerId}>
+            <SlotPlayer {...props} slot={substitute} />
+          </li>
+        ))}
+      </ol>
+    )}
+  </section>
+);
+
+/** The chosen formation's eleven and the squad players it leaves out. */
+const ChosenEleven = (props: {
+  formation: RankedFormation;
+  squad: readonly SquadMember[];
+  names: ReadonlyMap<number, string>;
+  positionName: (code: number) => string;
+  dispatch: Dispatch<ScoutAction>;
+}) => (
+  <>
+    <ElevenList {...props} />
+    <SubstituteList {...props} substitutes={substitutesOf(props.squad, props.formation)} />
+  </>
 );
 
 export const ClubView = (props: ClubProps): JSX.Element => {
@@ -137,20 +215,23 @@ export const ClubView = (props: ClubProps): JSX.Element => {
   // The codes, not the place in the ranking: another value kind can reorder the formations.
   const [chosen, setChosen] = useState<readonly number[] | null>(null);
   const shownKind = showPotential ? kind : "now";
+  const squad = useMemo(
+    () => squadOf(players, myTeamId, shownKind),
+    [players, myTeamId, shownKind],
+  );
   const ranked = useMemo(
-    () =>
-      rankFormations(
-        squadOf(players, myTeamId, shownKind),
-        career.formations,
-        career.formationCodes,
-      ),
-    [players, myTeamId, shownKind, career],
+    () => rankFormations(squad, career.formations, career.formationCodes),
+    [squad, career],
   );
   const names = useMemo(
     () => new Map(players.map((player) => [player.id, player.name])),
     [players],
   );
-  const formation = chosenFormation(ranked, chosen);
+  // The club's formation until another is chosen (owner, 2026-11-14), else the best one.
+  const formation = chosenFormation(
+    ranked,
+    chosen ?? ranked.find((each) => each.current)?.codes ?? null,
+  );
   return (
     <section aria-labelledby="formations-title">
       <HelpHeading
@@ -168,22 +249,22 @@ export const ClubView = (props: ClubProps): JSX.Element => {
           onChange={setKind}
         />
       ) : null}
+      {formation === undefined ? null : (
+        <ChosenEleven
+          {...{ formation, squad, names }}
+          positionName={props.positionName}
+          dispatch={props.dispatch}
+        />
+      )}
       <FormationTable
         ranked={ranked}
         chosen={formation}
         onChoose={(picked) => {
           setChosen(picked.codes);
+          showEleven();
         }}
         positionName={props.positionName}
       />
-      {formation === undefined ? null : (
-        <ElevenList
-          formation={formation}
-          names={names}
-          positionName={props.positionName}
-          dispatch={props.dispatch}
-        />
-      )}
     </section>
   );
 };

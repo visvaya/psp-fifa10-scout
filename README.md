@@ -65,6 +65,8 @@ What it does today:
   too. The list, filters, sorting and card then use those values, his price is his value at your club
   for the contract he wants or one you choose, his market wage the one there, and a field of its own
   gives the wage his offer needs at that length; the offer stays as before the transfer.
+- With the potential shown, can show every player in the season of his peak OVR: his age, attributes,
+  OVR and price then, alone or together with the profile after a transfer.
 - Shows each club's stars as the game computes them from its current squad, and the league and club
   prestige that feed the game's price and wage formulas.
 - Filters by position, league, club, nationality, preferred foot, body type, development type and

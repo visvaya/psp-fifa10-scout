@@ -13,6 +13,7 @@ export type ResetSettings = Pick<
   | "tieOrder"
   | "afterSigning"
   | "transferYears"
+  | "atPeak"
   | "approximatePortraits"
   | "alwaysPortraits"
 >;
@@ -28,6 +29,7 @@ const shownSettings = (settings: ResetSettings): string => {
     tieOrder ?? [],
     settings.afterSigning === true,
     settings.transferYears ?? null,
+    settings.atPeak === true,
     settings.approximatePortraits === true,
     settings.alwaysPortraits === true,
   ]);

@@ -103,16 +103,19 @@ describe("createSession", () => {
   });
 });
 
+/** The profile after a transfer alone. */
+const SIGNING = { afterSigning: true, atPeak: false } as const;
+
 describe("the list after signing", () => {
   it("asks the worker for the latest load's list, whose reply ends no load", async () => {
     const { session, posted, signedAsked, actions, reply } = await openSession();
     session.pickGame(new File(["g"], "game.iso"));
     reply({ type: "done", requestId: 1, result: EMPTY_LOAD_RESULT });
-    session.requestSigned();
+    session.requestSigned(SIGNING);
     expect(signedAsked).toEqual([1]);
-    expect(actions.at(-1)).toEqual({ type: "signed-requested" });
-    reply({ type: "signed", requestId: 1, players: [] });
-    expect(actions.at(-1)).toEqual({ type: "signed-built", players: [] });
+    expect(actions.at(-1)).toEqual({ type: "signed-requested", mode: SIGNING });
+    reply({ type: "signed", requestId: 1, players: [], mode: SIGNING });
+    expect(actions.at(-1)).toEqual({ type: "signed-built", players: [], mode: SIGNING });
     // The game stays the loaded one: a picked save loads it again.
     session.pickSave(saveFiles(1));
     expect(posted).toHaveLength(2);
@@ -123,7 +126,7 @@ describe("the list after signing", () => {
     session.pickGame(new File(["g"], "game.iso"));
     session.pickGame(new File(["h"], "other.iso"));
     reply({ type: "done", requestId: 2, result: EMPTY_LOAD_RESULT });
-    session.requestSigned();
+    session.requestSigned(SIGNING);
     const count = actions.length;
     reply({ type: "failed", requestId: 1, error: { stage: "game", kind: "unexpected" } });
     expect(actions).toHaveLength(count);
@@ -133,19 +136,19 @@ describe("the list after signing", () => {
     const { session, actions, reply } = await openSession();
     session.pickGame(new File(["g"], "game.iso"));
     reply({ type: "done", requestId: 1, result: EMPTY_LOAD_RESULT });
-    session.requestSigned();
+    session.requestSigned(SIGNING);
     session.pickGame(new File(["h"], "other.iso"));
-    reply({ type: "signed", requestId: 1, players: [] });
-    expect(actions.at(-1)).toEqual({ type: "signed-built", players: [] });
+    reply({ type: "signed", requestId: 1, players: [], mode: SIGNING });
+    expect(actions.at(-1)).toEqual({ type: "signed-built", players: [], mode: SIGNING });
   });
 
   it("builds none when the worker is gone", async () => {
     const { session, worker, actions } = await openSession();
     worker.dispatchEvent(new Event("error"));
-    session.requestSigned();
+    session.requestSigned(SIGNING);
     expect(actions.slice(-2)).toEqual([
-      { type: "signed-requested" },
-      { type: "signed-built", players: null },
+      { type: "signed-requested", mode: SIGNING },
+      { type: "signed-built", players: null, mode: SIGNING },
     ]);
   });
 });

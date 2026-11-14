@@ -3,6 +3,7 @@ import {
   assignRows,
   bestEleven,
   chosenFormation,
+  substitutesOf,
   fitOf,
   formationName,
   rankFormations,
@@ -179,5 +180,35 @@ describe("rankFormations", () => {
     ]);
     // The current one has the same codes in another order.
     expect(ranked.map((formation) => formation.current)).toEqual([true, false]);
+  });
+});
+
+// Owner, 2026-11-14 (roadmap 129): the club dialog lists the squad players the eleven leaves out.
+describe("substitutesOf", () => {
+  it("gives each player outside the eleven the slot he would fill best, the strongest first", () => {
+    const squad = [
+      member(1, 10, { 0: 80 }),
+      member(2, 60, { 5: 75 }),
+      member(3, 50, { 30: 72 }),
+      member(4, 40, { 5: 70, 30: 71 }),
+      member(5, 30, { 0: 65 }),
+    ];
+    const eleven = bestEleven(squad, [0, 5, 30]);
+    expect(substitutesOf(squad, eleven)).toEqual([
+      { playerId: 4, code: 30, value: 71 },
+      { playerId: 5, code: 0, value: 65 },
+    ]);
+  });
+
+  it("breaks a tie for his slot by how well it suits him", () => {
+    const squad = [
+      member(1, 90),
+      member(2, 90),
+      { ...member(3, 70), fitAt: (code: number) => (code === 5 ? 2 : 0) },
+    ];
+    expect(substitutesOf(squad, bestEleven(squad, [30, 5]))[0]).toMatchObject({
+      playerId: 3,
+      code: 5,
+    });
   });
 });
