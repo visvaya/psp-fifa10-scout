@@ -434,6 +434,7 @@ export const buildPlayers = (
   // Without a career there is no shortlist.
   const shortlist = save === undefined ? [] : careerShortlist(db, save);
   const market = transferMarketOf(transferList, save === undefined ? [] : careerLoans(db, save));
+  const prestigeOf = (teamId: number) => teams.get(teamId)?.prestige ?? null;
   const context: Context = {
     ...datesOf(db, save),
     placements,
@@ -455,10 +456,7 @@ export const buildPlayers = (
     finance:
       save === undefined
         ? null
-        : financeOf(db, save, {
-            loanedFrom: market.loanedFrom,
-            prestigeOf: (teamId) => teams.get(teamId)?.prestige ?? null,
-          }),
+        : financeOf(db, save, { loanedFrom: market.loanedFrom, prestigeOf, afterSigning }),
     saleVerdict: save === undefined ? null : saleVerdictOf(db, save, placements),
   };
   // The game keeps generated players out of the leagues until it places them (overall-rating.md, F2).
