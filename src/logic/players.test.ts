@@ -180,6 +180,8 @@ describe("buildPlayers from fifa.db", () => {
       freeAgent: false,
       age: 22,
       seasonAge: 22,
+      // Born 1987-06-24, retirement age 36: 36 on 31 December 2023, the end of season 2022/23.
+      lastSeasonAge: 35,
       birthYear: 1987,
       positionCode: 14,
       positionName: "RWM",

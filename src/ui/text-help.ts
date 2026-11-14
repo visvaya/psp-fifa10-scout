@@ -91,6 +91,7 @@ export const HELP_TEXT = {
   curve: (peakAge: number): string =>
     pl`Krzywa z danych gry według typu i stylu rozwoju zawodnika: względny poziom jego umiejętności technicznych w wieku od 15 do 45 lat, na jednej skali dla wszystkich krzywych, więc ich kształty można porównać. Obok krzywej faza zawodnika w tym sezonie: przed szczytem, w szczycie albo po nim. Przycisk z krzywą otwiera duży wykres z opisem. Szczyt w wieku ${peakAge} lat.`,
   /** The large chart's phase: the rule for the peak's ages. */
+  retirementLine: pl`Pionowa linia stoi za ostatnim sezonem zawodnika: po nim gra kończy jego karierę, bo jego wiek na 31 grudnia roku, w którym ten sezon się kończy, osiąga wiek zakończenia kariery z bazy. Przebieg za linią jest wyszarzony, bo zawodnik już wtedy nie gra.`,
   curvePhase: pl`Okres szczytu to wiek, w którym krzywa ma co najmniej 98% swojego maksimum; wykres zaznacza go tłem, bo niektóre krzywe są płaskie przez kilka lat. Faza mówi, czy wiek zawodnika w tym sezonie przypada przed tym okresem, w nim czy po nim.`,
   /** The player's projected OVR on the card, with a career, peaking at `peakAge`. */
   ovrCurve: (peakAge: number): string =>
