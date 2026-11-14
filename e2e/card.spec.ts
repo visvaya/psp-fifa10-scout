@@ -240,7 +240,7 @@ test.describe("development chart", () => {
       /^okres szczytu: 15–45\slat/u,
       /^szczyt: 15\slat, poziom \d+$/u,
       // Every sample player retires at 35, inside the chart's ages (roadmap 118).
-      /^ostatni sezon przed końcem kariery: wiek \d+\slat/u,
+      RETIREMENT_LEGEND,
     ]);
     await expect(chart.getByRole("table").getByRole("row")).toHaveCount(32);
     const [chartBox, cardBox] = await Promise.all([chart.boundingBox(), card.boundingBox()]);
@@ -274,7 +274,7 @@ test.describe("development chart", () => {
     const legend = chart.locator(".chart-legend li");
     await expect(legend.first()).toHaveText(/, OVR \d+$/u);
     await expect(legend.nth(2)).toHaveText(/^szczyt: \d+\s\S+, OVR \d+$/u);
-    await expect(legend.last()).toHaveText(/^ostatni sezon przed końcem kariery: wiek \d+\slat/u);
+    await expect(legend.last()).toHaveText(RETIREMENT_LEGEND);
     // His career ends inside the chart: a line after his last season, the ages past it faded.
     await expect(chart.locator(".chart-plot .retirement")).toHaveCount(1);
     await expect(chart.locator(".chart-plot .past-career")).toHaveCount(1);
@@ -465,3 +465,7 @@ test.describe("offer explanations", () => {
     await expectNoAxeViolations(page);
   });
 });
+
+/** The last season's age and the retirement age the game counts on 31 December (roadmap 124). */
+const RETIREMENT_LEGEND =
+  /^ostatni sezon przed końcem kariery: wiek \d+\s\S+ na jego początku; wiek zakończenia kariery, \d+\s\S+, gra liczy na 31\sgrudnia/u;

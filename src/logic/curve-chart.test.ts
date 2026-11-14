@@ -165,28 +165,28 @@ describe("withRetirement", () => {
   );
 
   it("marks his last season half a year past its point, the ages after it past his career", () => {
-    const marked = withRetirement(chart, 33);
+    const marked = withRetirement(chart, 33, 35);
     const [last, next] = [33, 34].map(
       (age) => marked?.points.find((point) => point.age === age) ?? { x: 0, y: 0 },
     );
     // Where the curve meets the line, half a year on: both of its parts end and start there.
-    expect(marked?.retirement).toMatchObject({ age: 33 });
+    expect(marked?.retirement).toMatchObject({ age: 33, retirementAge: 35 });
     expect(marked?.retirement?.x).toBeCloseTo(((last?.x ?? 0) + (next?.x ?? 0)) / 2);
     expect(marked?.retirement?.y).toBeCloseTo(((last?.y ?? 0) + (next?.y ?? 0)) / 2);
   });
 
   it("marks this season when it is his last", () => {
-    expect(withRetirement(chart, 30)?.retirement?.age).toBe(30);
+    expect(withRetirement(chart, 30, 35)?.retirement?.age).toBe(30);
   });
 
   it("marks nothing when he plays past the chart's last age", () => {
-    expect(withRetirement(chart, 45)?.retirement).toBeUndefined();
-    expect(withRetirement(chart, 50)?.retirement).toBeUndefined();
+    expect(withRetirement(chart, 45, 35)?.retirement).toBeUndefined();
+    expect(withRetirement(chart, 50, 35)?.retirement).toBeUndefined();
     expect(chart?.retirement).toBeUndefined();
   });
 
   it("keeps a missing chart missing", () => {
-    expect(withRetirement(null, 33)).toBeNull();
+    expect(withRetirement(null, 33, 35)).toBeNull();
   });
 });
 
@@ -194,7 +194,7 @@ describe("pastRetirement", () => {
   const chart = ovrChart([80, 79, 78, 77, 76], 30);
 
   it("holds for the ages after his last season only", () => {
-    const marked = withRetirement(chart, 32);
+    const marked = withRetirement(chart, 32, 35);
     expect(marked === null ? [] : [32, 33].map((age) => pastRetirement(marked, age))).toEqual([
       false,
       true,
