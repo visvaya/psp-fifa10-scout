@@ -5,9 +5,10 @@
 // currency shown as theirs.
 import { TIE_RULES } from "./best-peak.ts";
 import { pricedIn, shownCurrency } from "./currency.ts";
-import { wantedContractYears } from "./offer.ts";
+import { DEFAULT_CHOICE, offerTerms, wantedContractYears } from "./offer.ts";
 import { moneyOf } from "./player-finance.ts";
 import type { Player } from "./players.ts";
+import { compactFilters } from "./filter-changes.ts";
 import type { ScoutState } from "./scout-state.ts";
 import { tiesBroken } from "./tie-order.ts";
 
@@ -59,16 +60,45 @@ export const isSigningAction = (action: { readonly type: string }): action is Si
  * (the user's squad, loaned players) keep their money before signing.
  */
 const withMoneyAfter = (state: ScoutState, built: readonly Player[]): readonly Player[] => {
-  const before = new Map(state.players?.map((player) => [player.id, player]));
-  const seasonEndYear = state.career?.offer.seasonEndYear;
+  const before = beforeSigning(state);
   return built.map((player) => {
     const known = before.get(player.id);
     if (known === undefined) return player;
     const { signedValuesEuro: values, signedWageEuro: wageEuro } = player;
-    if (values === null || wageEuro === null || seasonEndYear === undefined)
+    const years = transferYearsOf(state, known);
+    if (values === null || wageEuro === null || years === null)
       return { ...player, ...moneyOf(known) };
-    const years = state.transferYears ?? wantedContractYears(known, seasonEndYear);
     return { ...player, priceEuro: values[years - 1] ?? null, wageEuro, storedWage: false };
+  });
+};
+
+/** The players before signing by id, priced as the state shows them. */
+const beforeSigning = (state: ScoutState): ReadonlyMap<number, Player> =>
+  new Map(state.players?.map((player) => [player.id, player]));
+
+/** The contract length his money after a transfer is for: the chosen one, else the one he wants. */
+const transferYearsOf = (state: ScoutState, known: Player): number | null =>
+  state.career === null
+    ? null
+    : (state.transferYears ?? wantedContractYears(known, state.career.offer.seasonEndYear));
+
+/**
+ * The wage his offer needs at the user's club (owner, 2026-11-14, decision 1b): the least he signs for at
+ * that contract length, as the offer form counts it from the player before signing, in the shown currency;
+ * none for a player without values there.
+ */
+const withTransferWage = (state: ScoutState, players: readonly Player[]): readonly Player[] => {
+  const before = beforeSigning(state);
+  const offer = state.career?.offer;
+  return players.map((player) => {
+    const known = before.get(player.id);
+    const years = known === undefined ? null : transferYearsOf(state, known);
+    const priced = player.signedValuesEuro !== null && player.signedWageEuro !== null;
+    const terms =
+      known === undefined || years === null || offer === undefined || !priced
+        ? null
+        : offerTerms(known, offer, { ...DEFAULT_CHOICE, years });
+    return { ...player, transferWage: terms?.wage ?? null };
   });
 };
 
@@ -82,7 +112,7 @@ const shownAsPlayers = (state: ScoutState, players: readonly Player[]): readonly
     tiesBroken({ players, career: state.career }, state.tieOrder ?? TIE_RULES) ?? players;
   const currency = shownCurrency(state);
   const priced = withMoneyAfter(state, ties);
-  return currency === null ? priced : pricedIn(priced, currency);
+  return withTransferWage(state, currency === null ? priced : pricedIn(priced, currency));
 };
 
 export const signingReducer = (state: ScoutState, action: SigningAction): ScoutState => {
@@ -104,7 +134,19 @@ export const signingReducer = (state: ScoutState, action: SigningAction): ScoutS
       : next;
   }
   const { afterSigning: _shown, ...rest } = state;
-  return action.shown ? { ...rest, afterSigning: true } : rest;
+  return action.shown ? { ...rest, afterSigning: true } : withTransferWageShown(rest);
+};
+
+/**
+ * Without the profile after a transfer, no range of the wage after a transfer, which only that profile
+ * fills: hidden, it would leave every player out (CodeRabbit on #204), as the potential's ranges do.
+ */
+export const withTransferWageShown = <S extends Pick<ScoutState, "filters"> & SigningPreference>(
+  state: S,
+): S => {
+  if (state.afterSigning === true || state.filters.ranges?.transferWage === undefined) return state;
+  const { transferWage: _range, ...ranges } = state.filters.ranges;
+  return { ...state, filters: compactFilters({ ...state.filters, ranges }) };
 };
 
 /** The list after signing is wanted and not asked for yet: the setting is on and a career is loaded. */

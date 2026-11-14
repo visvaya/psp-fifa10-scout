@@ -10,7 +10,7 @@ import { Facts } from "./facts.tsx";
 import type { Fact } from "./facts.tsx";
 import { MissingValue } from "./player-list.tsx";
 import { RANGE_LABELS, TEXT } from "./text.ts";
-import { SIGNING_TEXT } from "./text-signing.ts";
+import { SIGNING_HELP, SIGNING_LABELS, SIGNING_TEXT } from "./text-signing.ts";
 
 /** Before and after, the arrow read out in words. */
 const pair = (before: ReactNode, after: ReactNode): ReactNode => (
@@ -42,7 +42,8 @@ const ratingFacts = (before: Player, after: Player, showPotential: boolean): rea
   });
 
 /**
- * His price before and at the user's club for a contract of 1 to 5 years, and his wage before and there;
+ * His price before and at the user's club for a contract of 1 to 5 years, his market wage before and
+ * there, and the wage his offer needs there (decision 1b, 2026-11-14);
  * nothing for a player without values there (the user's squad, loaned players) or without a career.
  */
 const moneyFacts = (
@@ -66,6 +67,7 @@ const moneyFacts = (
       ),
     ],
     [TEXT.card.wage, pair(money(before.wage), money(after.wage))],
+    [SIGNING_LABELS.transferWage, money(after.transferWage), SIGNING_HELP.transferWage],
   ];
 };
 

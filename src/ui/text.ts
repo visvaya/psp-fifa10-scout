@@ -7,6 +7,7 @@ import type { PositionGroup } from "../logic/positions.ts";
 import { lazy } from "../logic/lazy.ts";
 import { ATTRIBUTE_LABELS } from "./text-attributes.ts";
 import { LEVEL_UP_LABELS } from "./text-level-up.ts";
+import { SIGNING_LABELS } from "./text-signing.ts";
 import { NBSP, pl } from "./typeset.ts";
 
 /** By the save's currency code, as the game shows them. */
@@ -121,6 +122,7 @@ export const RANGE_LABELS: Readonly<Record<RangeFields | PeakTwin, string>> = {
   ...LEVEL_UP_LABELS,
   price: "Cena",
   wage: "Zarobki rynkowe (szacunkowe)",
+  ...SIGNING_LABELS,
 };
 
 export const rangeLabel = (key: RangeKey | PeakTwin): string =>
@@ -258,7 +260,7 @@ export const TEXT = {
   ratingGain: "Różnica do OVR",
   /** A price or wage label with the shown currency (once for a column or a filter); others as they are. */
   withCurrency: (key: string, label: string, currency: CurrencyCode | null): string =>
-    (key === "price" || key === "wage") && currency !== null
+    (key === "price" || key === "wage" || key === "transferWage") && currency !== null
       ? `${label} (${CURRENCY_SYMBOLS[currency]})`
       : label,
   gainAt: (position: string): string => `Różnica ${position}`,

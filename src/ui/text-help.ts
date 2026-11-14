@@ -4,6 +4,7 @@
 import type { FlagKey, ListKey, RangeKey } from "../logic/filter-players.ts";
 import { formatNumber } from "./text.ts";
 import { LEVEL_UP_HELP } from "./text-level-up.ts";
+import { SIGNING_HELP } from "./text-signing.ts";
 import { pl } from "./typeset.ts";
 
 const LEAGUE_STATS = pl`Liczby z zapisu kariery za bieżący sezon, z meczów ligi twojego klubu; gra zeruje je na początku sezonu. U zawodnika, który odszedł z twojej ligi, to liczby z czasu gry w niej.`;
@@ -52,6 +53,7 @@ export const FIELD_HELP: Partial<Readonly<Record<RangeKey | ListKey | FlagKey, s
   ...LEVEL_UP_HELP,
   price: pl`Wartość według wzoru gry, jak CENA na liście rynku transferowego. Zależy m.in. od OVR, wieku, lat do końca kontraktu, reputacji i pozycji. Przy wygasłym kontrakcie i u wolnego zawodnika 0. U wypożyczonego zawodnika zapis nie trzyma kontraktu, więc ceny nie ma.`,
   wage: pl`Zarobki na mecz według wzoru gry, jak „Zarobki rynkowe” w formularzu oferty. Przy wygasłym kontrakcie (też w tym roku) z doliczonymi 30% (wolny transfer). Wzór nie odtwarza każdej pensji zapisanej w kontraktach, stąd szacunek. U zawodników twojego klubu zarobki z kontraktu zapisanego w karierze. U zawodników wypożyczonych z twojego klubu albo do niego zarobki z kontraktu, u innych wypożyczonych brak danych.`,
+  ...SIGNING_HELP,
   role: pl`Z zapisem kariery, u zawodników twojego klubu. Miejsca to pozycje jedenastki z formacji twojego klubu w zapisie. Zawodnik ustawiony w taktyce na miejscu jest na nim 1. Każdy inny dostaje jedno miejsce: na każdym miejscu jego numer to 1 plus liczba ustawionych tam i pozostałych zawodników z wyższym OVR na tej pozycji (przy równym OVR wyżej ten z niższym identyfikatorem w bazie gry). Rola to miejsce z najniższym numerem, przy równych numerach to, na którym ma wyższy OVR. Kolumna sortuje według numeru, potem według kolejności miejsc w formacji.`,
   squadState: pl`Z zapisem kariery, u zawodników twojego klubu: pierwszy stan z tej listy, który pasuje. „kończy karierę”: odchodzi po sezonie. „kończy kontrakt”: kontrakt wygasa w tym sezonie. „do wypożyczenia”: do 21 lat, zapas do szczytu co najmniej 5 i rola 3. lub dalsza. „do sprzedaży”: rola 3. lub dalsza i OVR za rok niższy niż dziś według krzywych rozwoju gry. „do rozwoju”: do 21 lat i zapas do szczytu co najmniej 5. „spada”: OVR za rok niższy niż dziś. „rozwinięty”: zapas do szczytu 0. „rośnie”: pozostali. Zawodnik wypożyczony do twojego klubu nie dostaje stanów „do wypożyczenia” ani „do sprzedaży”.`,
   target: pl`Z zapisem kariery, u zawodników spoza twojego klubu: miejsce w jedenastce twojego klubu, na którym byłby 1. albo 2., gdyby jego OVR na tej pozycji porównać z OVR zawodników twojego klubu (przy równym OVR za nimi). Z kilku takich miejsc to z niższym numerem, potem to, na którym ma wyższy OVR. Bez celu, gdy na każdym miejscu byłby 3. lub dalej.`,

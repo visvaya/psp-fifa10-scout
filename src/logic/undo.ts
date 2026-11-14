@@ -4,6 +4,7 @@
 // the steps afresh.
 import { SCOUT_CONFIG } from "./config.ts";
 import type { FilterSet } from "./saved-filters.ts";
+import { withTransferWageShown } from "./signed-list.ts";
 import type { Preferences, ScoutAction, ScoutState } from "./scout-state.ts";
 
 export interface UndoStep extends Pick<Preferences, "filters" | "sort" | "showPotential"> {
@@ -47,7 +48,8 @@ export const withUndo =
   (state: ScoutState, action: ScoutAction): ScoutState => {
     if (action.type === "undo") {
       const [last, ...older] = state.undo;
-      return last === undefined ? state : { ...state, ...last, undo: older };
+      // A step from while the profile after a transfer showed can hold its wage range (CodeRabbit on #204).
+      return last === undefined ? state : withTransferWageShown({ ...state, ...last, undo: older });
     }
     const next = reducer(state, action);
     // A loaded game or restored preferences replace the context the steps were taken in: a step from
