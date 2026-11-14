@@ -32,12 +32,18 @@ What it does today:
 - Draws each player's development curve from the game's data: a small chart on the card and a
   large one with his age this season, whether he is before, at or after his peak, and his peak
   period.
-- Hides potential and the peak by default; one switch reveals them.
+- Hides potential, the peak and the development curve by default; one switch reveals them.
 - Reads the player database (`fifa.db`) straight from your disc image (ISO), or from a `fifa.db`
   file you extracted yourself. From the image it reads only the database, the language files, the
   game's identifier and its graphics.
 - Shows the game's own club crests, nationality flags, league logos, player portraits and club kits
-  beside their names, read from your ISO on your device.
+  beside their names, read from your ISO on your device. Where the game has no portrait of a player
+  it shows the game's silhouette; an option shows the nearest portrait with the same face instead,
+  and the card says what differs.
+- With a career save, gives each player of your club a role in the squad (for example "2. CB": second
+  in line for that place of your formation) and a state (to develop, to loan, to sell, declining and
+  so on), and shows for players elsewhere the place they would take in your team, by today's OVR and
+  by their peak.
 - Optionally reads a manager-mode career save (`DATA.BIN` and `PARAM.SFO`): decrypts it, verifies
   its checksum and shows the current state of the career: clubs and leagues after promotions and
   relegations, contracts, loans, the transfer list, rolling match rating (KR), morale, injuries, the
