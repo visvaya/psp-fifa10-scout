@@ -2,8 +2,8 @@
 // of the game's database ranked by the best eleven the user's squad can field in each, and that eleven.
 import { useMemo, useState } from "react";
 import type { Dispatch, JSX } from "react";
-import { chosenFormation, fitOf, rankFormations } from "../logic/best-eleven.ts";
-import type { RankedFormation, SquadMember } from "../logic/best-eleven.ts";
+import { chosenFormation, fitOf, rankFormations, substitutesOf } from "../logic/best-eleven.ts";
+import type { RankedFormation, SquadMember, Substitute } from "../logic/best-eleven.ts";
 import type { CareerSummary } from "../logic/load-scout.ts";
 import type { Player } from "../logic/players.ts";
 import type { ScoutAction } from "../logic/scout-state.ts";
@@ -133,28 +133,80 @@ const ElevenList = (props: {
           // A formation can hold a code twice (two centre-backs as one code): the place keys the slot.
           // oxlint-disable-next-line react/no-array-index-key -- slots have no id but their place
           <li key={index}>
-            <span className="eleven-position">{props.positionName(code)}</span>
-            {playerId === null ? (
-              <span>{CLUB_TEXT.noPlayer}</span>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  className="link-button"
-                  data-player-id={playerId}
-                  onClick={() => {
-                    props.dispatch({ type: "player-opened", id: playerId });
-                  }}
-                >
-                  {props.names.get(playerId) ?? String(playerId)}
-                </button>
-                <AttributeValue value={value} />
-              </>
-            )}
+            <SlotPlayer {...props} slot={{ code, playerId, value }} />
           </li>
         ))}
     </ol>
   </section>
+);
+
+/** A slot's position, its player (his card on a press) and his value there; "brak zawodnika" empty. */
+const SlotPlayer = (props: {
+  slot: { readonly code: number; readonly playerId: number | null; readonly value: number };
+  names: ReadonlyMap<number, string>;
+  positionName: (code: number) => string;
+  dispatch: Dispatch<ScoutAction>;
+}) => {
+  const { code, playerId, value } = props.slot;
+  return (
+    <>
+      <span className="eleven-position">{props.positionName(code)}</span>
+      {playerId === null ? (
+        <span>{CLUB_TEXT.noPlayer}</span>
+      ) : (
+        <>
+          <button
+            type="button"
+            className="link-button"
+            data-player-id={playerId}
+            onClick={() => {
+              props.dispatch({ type: "player-opened", id: playerId });
+            }}
+          >
+            {props.names.get(playerId) ?? String(playerId)}
+          </button>
+          <AttributeValue value={value} />
+        </>
+      )}
+    </>
+  );
+};
+
+/** The squad players the eleven leaves out, each where he would fill in best (roadmap 129). */
+const SubstituteList = (props: {
+  substitutes: readonly Substitute[];
+  names: ReadonlyMap<number, string>;
+  positionName: (code: number) => string;
+  dispatch: Dispatch<ScoutAction>;
+}) => (
+  <section aria-labelledby="substitutes-title">
+    <h3 id="substitutes-title">{CLUB_TEXT.substitutes}</h3>
+    {props.substitutes.length === 0 ? (
+      <p>{CLUB_TEXT.noSubstitutes}</p>
+    ) : (
+      <ol className="eleven-list">
+        {props.substitutes.map((substitute) => (
+          <li key={substitute.playerId}>
+            <SlotPlayer {...props} slot={substitute} />
+          </li>
+        ))}
+      </ol>
+    )}
+  </section>
+);
+
+/** The chosen formation's eleven and the squad players it leaves out. */
+const ChosenEleven = (props: {
+  formation: RankedFormation;
+  squad: readonly SquadMember[];
+  names: ReadonlyMap<number, string>;
+  positionName: (code: number) => string;
+  dispatch: Dispatch<ScoutAction>;
+}) => (
+  <>
+    <ElevenList {...props} />
+    <SubstituteList {...props} substitutes={substitutesOf(props.squad, props.formation)} />
+  </>
 );
 
 export const ClubView = (props: ClubProps): JSX.Element => {
@@ -163,14 +215,13 @@ export const ClubView = (props: ClubProps): JSX.Element => {
   // The codes, not the place in the ranking: another value kind can reorder the formations.
   const [chosen, setChosen] = useState<readonly number[] | null>(null);
   const shownKind = showPotential ? kind : "now";
+  const squad = useMemo(
+    () => squadOf(players, myTeamId, shownKind),
+    [players, myTeamId, shownKind],
+  );
   const ranked = useMemo(
-    () =>
-      rankFormations(
-        squadOf(players, myTeamId, shownKind),
-        career.formations,
-        career.formationCodes,
-      ),
-    [players, myTeamId, shownKind, career],
+    () => rankFormations(squad, career.formations, career.formationCodes),
+    [squad, career],
   );
   const names = useMemo(
     () => new Map(players.map((player) => [player.id, player.name])),
@@ -199,9 +250,8 @@ export const ClubView = (props: ClubProps): JSX.Element => {
         />
       ) : null}
       {formation === undefined ? null : (
-        <ElevenList
-          formation={formation}
-          names={names}
+        <ChosenEleven
+          {...{ formation, squad, names }}
           positionName={props.positionName}
           dispatch={props.dispatch}
         />
