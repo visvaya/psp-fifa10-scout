@@ -239,6 +239,8 @@ test.describe("development chart", () => {
       new RegExp(`^wiek w\\stym sezonie: ${age}, w\\sszczycie$`, "u"),
       /^okres szczytu: 15–45\slat/u,
       /^szczyt: 15\slat, poziom \d+$/u,
+      // Every sample player retires at 35, inside the chart's ages (roadmap 118).
+      /^ostatni sezon przed końcem kariery: wiek \d+\slat/u,
     ]);
     await expect(chart.getByRole("table").getByRole("row")).toHaveCount(32);
     const [chartBox, cardBox] = await Promise.all([chart.boundingBox(), card.boundingBox()]);
@@ -271,7 +273,11 @@ test.describe("development chart", () => {
     await expectHelpPastTitle(chart);
     const legend = chart.locator(".chart-legend li");
     await expect(legend.first()).toHaveText(/, OVR \d+$/u);
-    await expect(legend.last()).toHaveText(/^szczyt: \d+\s\S+, OVR \d+$/u);
+    await expect(legend.nth(2)).toHaveText(/^szczyt: \d+\s\S+, OVR \d+$/u);
+    await expect(legend.last()).toHaveText(/^ostatni sezon przed końcem kariery: wiek \d+\slat/u);
+    // His career ends inside the chart: a line after his last season, the ages past it faded.
+    await expect(chart.locator(".chart-plot .retirement")).toHaveCount(1);
+    await expect(chart.locator(".chart-plot .past-career")).toHaveCount(1);
     await expect(chart.getByRole("columnheader", { name: "OVR" })).toBeAttached();
     await expectNoAxeViolations(page);
   });
@@ -292,6 +298,14 @@ const wordsBesideMarks = (items: Element[]): boolean[] =>
     const box = mark.getBoundingClientRect();
     return first !== undefined && first.top < box.bottom && first.bottom > box.top;
   });
+
+/** How many of the legend's "?" end past its right edge. */
+const helpsPastRightEdge = (legend: Element): number => {
+  const edge = legend.getBoundingClientRect().right;
+  return [...legend.querySelectorAll("button")].filter(
+    (help) => help.getBoundingClientRect().right > edge,
+  ).length;
+};
 
 test.describe("development chart on a phone", () => {
   test.use(PHONE);
@@ -329,29 +343,26 @@ test.describe("development chart on a phone", () => {
     const hidden = await chart.locator(".curve-chart .visually-hidden").boundingBox();
     const lines = await chart.locator(".chart-legend li").evaluateAll(wordsBesideMarks);
     expect(hidden?.height).toBeLessThanOrEqual(1);
-    expect(lines).toEqual([true, true, true]);
+    expect(lines).toEqual([true, true, true, true]);
   });
 
   // With enlarged text the legend's words wrap over several lines: each mark stays level with their
-  // first line, and the plateau's "?" stays inside the legend's width.
+  // first line, and the "?" of the plateau and of his career's end stay inside the legend's width.
   test("keeps the legend within its width with enlarged text", async ({ page }) => {
     await openCardEnlarged(page);
     await page.getByRole("button", { name: /^Pokaż krzywą rozwoju: /u }).click();
     const chart = page.getByRole("dialog", { name: /^Krzywa rozwoju: /u });
     const legend = chart.locator(".chart-legend");
-    const help = legend.getByRole("button");
-    await expect(help).toBeVisible();
-    const [overflow, legendBox, helpBox] = await Promise.all([
+    const helps = legend.getByRole("button");
+    await expect(helps).toHaveCount(2);
+    const [overflow, helpsPast] = await Promise.all([
       legend.evaluate((element) => element.scrollWidth - element.clientWidth),
-      legend.boundingBox(),
-      help.boundingBox(),
+      legend.evaluate(helpsPastRightEdge),
     ]);
     const lines = await legend.locator("li").evaluateAll(wordsBesideMarks);
     expect(overflow).toBe(0);
-    expect((helpBox?.x ?? 0) + (helpBox?.width ?? Infinity)).toBeLessThanOrEqual(
-      (legendBox?.x ?? 0) + (legendBox?.width ?? 0),
-    );
-    expect(lines).toEqual([true, true, true]);
+    expect(helpsPast).toBe(0);
+    expect(lines).toEqual([true, true, true, true]);
   });
 });
 

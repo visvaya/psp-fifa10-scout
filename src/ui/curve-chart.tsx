@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import type { CSSProperties, JSX, PointerEvent, RefCallback } from "react";
-import { readIndexAt, steppedReadIndex } from "../logic/curve-chart.ts";
+import { pastRetirement, readIndexAt, steppedReadIndex } from "../logic/curve-chart.ts";
 import type { CurveChart } from "../logic/curve-chart.ts";
 import type { Sparkline } from "../logic/curve-sparkline.ts";
 import { CurveSparkline } from "./curve-sparkline.tsx";
@@ -73,15 +73,23 @@ const ChartAxes = ({
   </>
 );
 
+type ChartPoint = CurveChart["points"][number];
+
+/** A polyline's points through `part`. */
+const polylinePoints = (part: readonly ChartPoint[]): string =>
+  part.map(({ x, y }) => `${String(x)},${String(y)}`).join(" ");
+
 /** Half the size of the season's mark on the curve: a diamond, unlike the peak's round dot. */
 const NOW_MARK = 5;
 
 /**
  * The peak's ages shaded, the season's age as a dashed line with a diamond where it meets the curve,
- * the curve, and the peak's dot. Nothing is labelled on the chart: the legend under it names each mark.
+ * the curve, and the peak's dot; with his career's end, a line after his last season and the ages past it
+ * faded. Nothing is labelled on the chart: the legend under it names each mark.
  */
 const ChartMarks = ({ chart }: { chart: CurveChart }) => {
-  const { plot, points, peak, now, plateau } = chart;
+  const { plot, points, peak, now, plateau, retirement } = chart;
+  const age = retirement?.age ?? Infinity;
   return (
     <>
       <rect
@@ -94,9 +102,24 @@ const ChartMarks = ({ chart }: { chart: CurveChart }) => {
       {now === undefined ? null : (
         <line className="now" x1={now.x} x2={now.x} y1={plot.top} y2={plot.bottom} />
       )}
+      {retirement === undefined ? null : (
+        <>
+          <line
+            className="retirement"
+            x1={retirement.x}
+            x2={retirement.x}
+            y1={plot.top}
+            y2={plot.bottom}
+          />
+          <polyline
+            className="curve past-career"
+            points={polylinePoints(points.filter((point) => point.age >= age))}
+          />
+        </>
+      )}
       <polyline
         className="curve"
-        points={points.map(({ x, y }) => `${String(x)},${String(y)}`).join(" ")}
+        points={polylinePoints(points.filter((point) => point.age <= age))}
       />
       <circle className="peak" cx={peak.x} cy={peak.y} r={GAP / 2 + 1} />
       {now === undefined ? null : (
@@ -108,8 +131,6 @@ const ChartMarks = ({ chart }: { chart: CurveChart }) => {
     </>
   );
 };
-
-type ChartPoint = CurveChart["points"][number];
 
 /** The age read on the chart: a line across the plot and a dot on the curve, over the other marks. */
 const ReadingMark = ({ chart, point }: { chart: CurveChart; point: ChartPoint }) => (
@@ -141,7 +162,8 @@ const plotBox = (chart: CurveChart): CSSProperties => {
 
 /** The words for the chart's value at a point: the age and his OVR, or the curve's level. */
 const readingWords = (chart: CurveChart, point: ChartPoint): string =>
-  CHART_READING_TEXT.at(point.age, point.value, chart.kind === "ovr");
+  CHART_READING_TEXT.at(point.age, point.value, chart.kind === "ovr") +
+  (pastRetirement(chart, point.age) ? CHART_READING_TEXT.pastRetirement : "");
 
 /**
  * A slider laid over the plot (owner, 2026-11-13): a finger or the pressed mouse along it, or the mouse
@@ -219,9 +241,14 @@ const ChartTable = ({ chart }: { chart: CurveChart }) => (
 );
 
 /** A legend item's sample of its mark, drawn as on the chart. */
-const LegendMark = ({ kind }: { kind: "now" | "plateau" | "peak" }) => (
+const LegendMark = ({ kind }: { kind: "now" | "plateau" | "peak" | "retirement" }) => (
   <svg className="legend-mark" viewBox="0 0 24 16" aria-hidden="true">
-    {kind === "now" ? (
+    {kind === "retirement" ? (
+      <>
+        <polyline className="curve past-career" points="13,8 24,8" />
+        <line className="retirement" x1={12} x2={12} y1={0} y2={16} />
+      </>
+    ) : kind === "now" ? (
       <>
         <line className="now" x1={12} x2={12} y1={0} y2={16} />
         <path className="now-mark" d="M12,3l5,5l-5,5l-5,-5z" />
@@ -234,9 +261,12 @@ const LegendMark = ({ kind }: { kind: "now" | "plateau" | "peak" }) => (
   </svg>
 );
 
-/** Each mark of the chart named once: the season's age and phase, the peak's ages, the peak. */
+/**
+ * Each mark of the chart named once: the season's age and phase, the peak's ages, the peak, his career's
+ * end.
+ */
 const ChartLegend = ({ chart }: { chart: CurveChart }) => {
-  const { peak, now, plateau, kind } = chart;
+  const { peak, now, plateau, kind, retirement } = chart;
   return (
     <ul className="chart-legend">
       {now === undefined ? null : (
@@ -267,6 +297,18 @@ const ChartLegend = ({ chart }: { chart: CurveChart }) => {
           {TEXT.card.legendPeak(peak.age, peak.value, kind === "ovr")}
         </span>
       </li>
+      {retirement === undefined ? null : (
+        <li>
+          <LegendMark kind="retirement" />
+          <span className="legend-words">
+            {CHART_READING_TEXT.legendRetirement(retirement.age)}
+            <FieldHelp
+              label={CHART_READING_TEXT.legendRetirement(retirement.age)}
+              text={HELP_TEXT.retirementLine}
+            />
+          </span>
+        </li>
+      )}
     </ul>
   );
 };

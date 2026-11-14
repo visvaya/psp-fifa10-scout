@@ -1905,3 +1905,15 @@ input[inputmode="numeric"] {
     grid-template-columns: subgrid;
   }
 }
+
+/* After his last season: a line where his career ends and the curve past it faded. */
+.curve-chart .retirement {
+  stroke: var(--color-error);
+  stroke-width: 1.5;
+}
+
+.curve-chart .past-career {
+  stroke: var(--color-muted);
+  stroke-dasharray: 3 4;
+  opacity: 0.6;
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { retiresAfterSeason } from "./retirement.ts";
+import { lastSeasonAge, retiresAfterSeason } from "./retirement.ts";
 
 const born = (iso: string): Date => new Date(`${iso}T00:00:00Z`);
 
@@ -16,5 +16,16 @@ describe("retiresAfterSeason", () => {
     expect(retiresAfterSeason(born("1976-12-30"), 35, 2010)).toBe(true);
     // Born in 1977: 34 on 2011-12-31.
     expect(retiresAfterSeason(born("1977-01-02"), 35, 2010)).toBe(false);
+  });
+});
+
+describe("lastSeasonAge", () => {
+  it("is his age this season when this season is his last", () => {
+    expect(lastSeasonAge(born("1976-06-01"), 35, 2010, 34)).toBe(34);
+  });
+
+  it("adds the seasons he plays before the one after which he retires", () => {
+    // 35 on 2011-12-31, so 37 is reached after season 2012/13, two seasons on.
+    expect(lastSeasonAge(born("1976-06-01"), 37, 2010, 34)).toBe(36);
   });
 });

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { curveChart, ovrChart, readIndexAt, steppedReadIndex } from "./curve-chart.ts";
+import {
+  curveChart,
+  ovrChart,
+  pastRetirement,
+  readIndexAt,
+  steppedReadIndex,
+  withRetirement,
+} from "./curve-chart.ts";
 import { CURVE_COLUMNS } from "./overall-rating.ts";
 
 /** Each age of the table, 15..45, at `value(age)`. */
@@ -147,5 +154,51 @@ describe("reading the chart at an age", () => {
     const outside = curveChart(CURVES, 13, 50);
     if (outside === null) throw new Error("The test curve has no chart");
     expect(steppedReadIndex(outside, null, "ArrowRight")).toBe(1);
+  });
+});
+
+describe("withRetirement", () => {
+  // His OVR from 30, this season, to 45.
+  const chart = ovrChart(
+    Array.from({ length: 16 }, (_, years) => 80 - years),
+    30,
+  );
+
+  it("marks his last season half a year past its point, the ages after it past his career", () => {
+    const marked = withRetirement(chart, 33);
+    const last = marked?.points.find((point) => point.age === 33);
+    const next = marked?.points.find((point) => point.age === 34);
+    expect(marked?.retirement?.age).toBe(33);
+    expect(marked?.retirement?.x).toBeCloseTo(((last?.x ?? 0) + (next?.x ?? 0)) / 2);
+  });
+
+  it("marks this season when it is his last", () => {
+    expect(withRetirement(chart, 30)?.retirement?.age).toBe(30);
+  });
+
+  it("marks nothing when he plays past the chart's last age", () => {
+    expect(withRetirement(chart, 45)?.retirement).toBeUndefined();
+    expect(withRetirement(chart, 50)?.retirement).toBeUndefined();
+    expect(chart?.retirement).toBeUndefined();
+  });
+
+  it("keeps a missing chart missing", () => {
+    expect(withRetirement(null, 33)).toBeNull();
+  });
+});
+
+describe("pastRetirement", () => {
+  const chart = ovrChart([80, 79, 78, 77, 76], 30);
+
+  it("holds for the ages after his last season only", () => {
+    const marked = withRetirement(chart, 32);
+    expect(marked === null ? [] : [32, 33].map((age) => pastRetirement(marked, age))).toEqual([
+      false,
+      true,
+    ]);
+  });
+
+  it("never holds without a career's end on the chart", () => {
+    expect(chart === null ? true : pastRetirement(chart, 34)).toBe(false);
   });
 });

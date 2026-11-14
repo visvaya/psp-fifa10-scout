@@ -11,4 +11,9 @@ export const CHART_READING_TEXT = {
   /** Under the chart and as the slider's value: the age read and the chart's value at it. */
   at: (age: number, value: number, ovr: boolean): string =>
     pl`w wieku ${count(age, YEARS)}: ${ovr ? "OVR" : "poziom"} ${formatNumber(value)}`,
+  /** The legend's item for the line after his last season. */
+  legendRetirement: (age: number): string =>
+    pl`ostatni sezon przed końcem kariery: wiek ${count(age, YEARS)}`,
+  /** After the words of an age past his last season. */
+  pastRetirement: pl`, po końcu kariery`,
 };
