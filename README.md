@@ -31,7 +31,7 @@ What it does today:
   preferred position).
 - Draws each player's development curve from the game's data: a small chart on the card and a
   large one with his age this season, whether he is before, at or after his peak, and his peak
-  period.
+  period. A finger, the mouse or the arrow keys along the large chart read its value at any age.
 - Hides potential, the peak and the development curve by default; one switch reveals them.
 - Reads the player database (`fifa.db`) straight from your disc image (ISO), or from a `fifa.db`
   file you extracted yourself. From the image it reads only the database, the language files, the
