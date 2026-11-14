@@ -153,6 +153,13 @@ const PHYSICAL = new Set<AttributeName>([
 const DAY_MS = 86_400_000;
 const DAYS_PER_YEAR = 365.25;
 const RATING_MAX = 99;
+
+/**
+ * The career potential: fifa.db's plus the delta the save or a signing adds, on the game's 1..99 scale
+ * (owner, 2026-11-14: Messi's 95 plus 5 cannot be 100).
+ */
+export const careerPotential = (base: number, delta: number): number =>
+  Math.min(base + delta, RATING_MAX);
 const AGED_ATTRIBUTE_MIN = 10;
 /** CAREER/POTENTIAL_MAX_ADDITION_TO_LEARNING_SPEED, the game's default. */
 const SIGNING_DELTA_MODULUS = 5;
