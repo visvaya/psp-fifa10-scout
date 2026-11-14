@@ -1830,6 +1830,32 @@ input[inputmode="numeric"] {
   fill: var(--color-accent);
 }
 
+/* The slider over the plot: a finger sideways reads the chart, up or down still scrolls the dialog. */
+.reading-area {
+  position: absolute;
+  cursor: crosshair;
+  touch-action: pan-y;
+}
+
+/* The age read: a solid line across the plot and a ringed dot on the curve. */
+.curve-chart .reading-mark line {
+  stroke: var(--color-ink);
+}
+
+.curve-chart .reading-mark circle {
+  fill: var(--color-surface);
+  stroke: var(--color-ink);
+  stroke-width: 2;
+}
+
+/* The age read and its value, or how to read one; one line kept so the legend does not move. */
+.chart-reading {
+  min-height: 1lh;
+  margin: var(--space-2) 0 0;
+  color: var(--color-muted);
+  text-align: center;
+}
+
 /* The legend under the chart: each mark's sample and what it stands for, once. */
 .chart-legend {
   display: grid;

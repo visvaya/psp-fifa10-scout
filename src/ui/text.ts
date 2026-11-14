@@ -59,11 +59,11 @@ const longDate = lazy(() => new Intl.DateTimeFormat("pl", { dateStyle: "long", t
 const lastGame = (date: Date | null): string =>
   date === null ? "przed pierwszym meczem" : `ostatni mecz ${longDate().format(date)}`;
 
-const count = (value: number, forms: PluralForms): string =>
+export const count = (value: number, forms: PluralForms): string =>
   `${formatNumber(value)}${NBSP}${plural(value, forms)}`;
 
 const PLAYERS = { one: "zawodnik", few: "zawodników", many: "zawodników" } as const;
-const YEARS = { one: "rok", few: "lata", many: "lat" } as const;
+export const YEARS = { one: "rok", few: "lata", many: "lat" } as const;
 
 // Label tables: plain data that only the literal-blind duplicate check sees as alike.
 // jscpd:ignore-start

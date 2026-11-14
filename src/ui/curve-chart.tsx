@@ -1,11 +1,13 @@
 import { useCallback, useRef, useState } from "react";
-import type { CSSProperties, JSX, RefCallback } from "react";
+import type { CSSProperties, JSX, PointerEvent, RefCallback } from "react";
+import { readIndexAt, steppedReadIndex } from "../logic/curve-chart.ts";
 import type { CurveChart } from "../logic/curve-chart.ts";
 import type { Sparkline } from "../logic/curve-sparkline.ts";
 import { CurveSparkline } from "./curve-sparkline.tsx";
 import { FieldHelp } from "./field-help.tsx";
 import { ModalDialog } from "./modal-dialog.tsx";
 import { formatNumber, TEXT } from "./text.ts";
+import { CHART_READING_TEXT } from "./text-chart-reading.ts";
 import { HELP_TEXT } from "./text-help.ts";
 
 /** Room in viewBox units between a label and its axis, a mark or the chart's edge. */
@@ -104,6 +106,85 @@ const ChartMarks = ({ chart }: { chart: CurveChart }) => {
         />
       )}
     </>
+  );
+};
+
+type ChartPoint = CurveChart["points"][number];
+
+/** The age read on the chart: a line across the plot and a dot on the curve, over the other marks. */
+const ReadingMark = ({ chart, point }: { chart: CurveChart; point: ChartPoint }) => (
+  <g className="reading-mark">
+    <line x1={point.x} x2={point.x} y1={chart.plot.top} y2={chart.plot.bottom} />
+    <circle cx={point.x} cy={point.y} r={GAP / 2 + 1} />
+  </g>
+);
+
+/** The chart's width and height in viewBox units. */
+const chartSize = (chart: CurveChart) => {
+  const [, , width, height] = chart.viewBox.split(" ").map(Number);
+  return { width: width ?? 1, height: height ?? 1 };
+};
+
+const percent = (share: number): string => `${String(share * 100)}%`;
+
+/** The plot's box in shares of the chart's: where the reading area lies over it. */
+const plotBox = (chart: CurveChart): CSSProperties => {
+  const { width, height } = chartSize(chart);
+  const { left, right, top, bottom } = chart.plot;
+  return {
+    left: percent(left / width),
+    top: percent(top / height),
+    width: percent((right - left) / width),
+    height: percent((bottom - top) / height),
+  };
+};
+
+/** The words for the chart's value at a point: the age and his OVR, or the curve's level. */
+const readingWords = (chart: CurveChart, point: ChartPoint): string =>
+  CHART_READING_TEXT.at(point.age, point.value, chart.kind === "ovr");
+
+/**
+ * A slider laid over the plot (owner, 2026-11-13): a finger or the pressed mouse along it, or the mouse
+ * over it, reads the nearest age; the arrows step a year, Home and End go to either end. Sideways only,
+ * so a finger up or down still scrolls the dialog.
+ */
+const ReadingArea = (props: {
+  chart: CurveChart;
+  index: number | null;
+  onRead: (index: number) => void;
+}) => {
+  const { chart, index, onRead } = props;
+  const current = index === null ? (chart.now ?? chart.points[0]) : chart.points[index];
+  const readAt = (event: PointerEvent<HTMLDivElement>) => {
+    const box = event.currentTarget.getBoundingClientRect();
+    onRead(readIndexAt(chart, (event.clientX - box.left) / box.width));
+  };
+  return (
+    <div
+      className="reading-area"
+      // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a range input maps the pointer with its thumb's inset, and iOS Safari moves it only by dragging the thumb, not by a touch along the track
+      role="slider"
+      tabIndex={0}
+      aria-label={CHART_READING_TEXT.label}
+      aria-valuemin={chart.points[0]?.age}
+      aria-valuemax={chart.points.at(-1)?.age}
+      aria-valuenow={current?.age}
+      aria-valuetext={current === undefined ? undefined : readingWords(chart, current)}
+      style={plotBox(chart)}
+      onPointerDown={(event) => {
+        event.currentTarget.setPointerCapture(event.pointerId);
+        readAt(event);
+      }}
+      onPointerMove={(event) => {
+        if (event.pointerType === "mouse" || event.buttons !== 0) readAt(event);
+      }}
+      onKeyDown={(event) => {
+        const next = steppedReadIndex(chart, index, event.key);
+        if (next === null) return;
+        event.preventDefault();
+        onRead(next);
+      }}
+    />
   );
 };
 
@@ -211,11 +292,11 @@ const useLevelHelpPlace = (chart: CurveChart) => {
       observer.disconnect();
     };
   }, []);
-  const [, , width, height] = chart.viewBox.split(" ").map(Number);
+  const { width, height } = chartSize(chart);
   const at = levelTitleAt(chart.plot);
   const place: CSSProperties = {
-    left: `${String((at.x / (width ?? 1)) * 100)}%`,
-    top: `${String(((at.y - length / 2 - GAP - HELP_HALF) / (height ?? 1)) * 100)}%`,
+    left: percent(at.x / width),
+    top: percent((at.y - length / 2 - GAP - HELP_HALF) / height),
   };
   return { levelRef, place };
 };
@@ -227,12 +308,15 @@ const useLevelHelpPlace = (chart: CurveChart) => {
 const CurveFigure = ({ chart }: { chart: CurveChart }): JSX.Element => {
   const level = levelName(chart);
   const { levelRef, place } = useLevelHelpPlace(chart);
+  const [read, setRead] = useState<number | null>(null);
+  const point = read === null ? undefined : chart.points[read];
   return (
     <figure className="curve-chart">
       <div className="chart-plot">
         <svg viewBox={chart.viewBox} aria-hidden="true">
           <ChartAxes chart={chart} level={level} levelRef={levelRef} />
           <ChartMarks chart={chart} />
+          {point === undefined ? null : <ReadingMark chart={chart} point={point} />}
         </svg>
         {/* A button cannot sit in the hidden svg: it goes over it, where the title ends. */}
         <span className="level-help" style={place}>
@@ -241,7 +325,12 @@ const CurveFigure = ({ chart }: { chart: CurveChart }): JSX.Element => {
             text={chart.kind === "ovr" ? HELP_TEXT.ovrLevel : HELP_TEXT.curveLevel}
           />
         </span>
+        <ReadingArea chart={chart} index={read} onRead={setRead} />
       </div>
+      {/* The slider tells a screen reader the same. */}
+      <p className="chart-reading" aria-hidden="true">
+        {point === undefined ? CHART_READING_TEXT.hint : readingWords(chart, point)}
+      </p>
       <figcaption>
         <ChartLegend chart={chart} />
       </figcaption>

@@ -128,6 +128,41 @@ const chartOf = ({
   };
 };
 
+/**
+ * The point read under a share of the plot's width, 0 at its left edge and 1 at its right: the nearest
+ * age, the ends past either edge.
+ */
+export const readIndexAt = (chart: CurveChart, share: number): number => {
+  const last = chart.points.length - 1;
+  return Math.min(Math.max(Math.round(share * last), 0), last);
+};
+
+/** The keys that move the reading: a year back or on, or to either end. */
+const READ_STEPS: Readonly<Record<string, (index: number, last: number) => number>> = {
+  ArrowLeft: (index) => index - 1,
+  ArrowDown: (index) => index - 1,
+  ArrowRight: (index) => index + 1,
+  ArrowUp: (index) => index + 1,
+  Home: () => 0,
+  End: (_, last) => last,
+};
+
+/**
+ * The point a key moves the reading to from `index`; before any reading from this season's age, or the
+ * first age when it is off the chart. Null for a key that does not move it.
+ */
+export const steppedReadIndex = (
+  chart: CurveChart,
+  index: number | null,
+  key: string,
+): number | null => {
+  const step = READ_STEPS[key];
+  if (step === undefined) return null;
+  const last = chart.points.length - 1;
+  const from = index ?? (chart.now === undefined ? 0 : chart.points.indexOf(chart.now));
+  return Math.min(Math.max(step(from, last), 0), last);
+};
+
 /** Curve `id` on the table's shared scale, with the player at `age`; null without curves. */
 export const curveChart = (curves: Curves, id: number, age: number): CurveChart | null => {
   const values = curveValues(curves, id);
