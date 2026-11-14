@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { assignRows, bestEleven, fitOf, formationName, rankFormations } from "./best-eleven.ts";
+import {
+  assignRows,
+  bestEleven,
+  chosenFormation,
+  fitOf,
+  formationName,
+  rankFormations,
+} from "./best-eleven.ts";
 import type { SquadMember } from "./best-eleven.ts";
 
 /** A player with `value` at every code but those in `at`, no slot suiting him better. */
@@ -137,6 +144,26 @@ describe("formationName", () => {
     // A diamond: one defensive midfielder, two wide, one attacking.
     expect(formationName([0, 3, 4, 6, 7, 11, 15, 19, 23, 29, 31])).toBe("4-1-2-1-2");
     expect(formationName([0, 4, 5, 6, 9, 13, 15, 19, 23, 29, 31])).toBe("3-2-2-1-2");
+  });
+});
+
+describe("chosenFormation", () => {
+  // CodeRabbit on #200: a choice kept as a place in the ranking moved to another formation when the
+  // peak values reordered them.
+  it("finds the chosen formation by its codes wherever it ranks, else the best one", () => {
+    const squad = [member(1, 10, { 0: 80 }), member(2, 60, { 5: 75 }), member(3, 50, { 30: 72 })];
+    const ranked = rankFormations(
+      squad,
+      [
+        [0, 5, 5],
+        [0, 5, 30],
+      ],
+      [],
+    );
+    expect(chosenFormation(ranked, [0, 5, 5])?.codes).toEqual([0, 5, 5]);
+    expect(chosenFormation(ranked, null)?.codes).toEqual([0, 5, 30]);
+    expect(chosenFormation(ranked, [0, 3, 3])?.codes).toEqual([0, 5, 30]);
+    expect(chosenFormation([], null)).toBeUndefined();
   });
 });
 

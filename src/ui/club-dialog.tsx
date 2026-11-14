@@ -2,7 +2,7 @@
 // of the game's database ranked by the best eleven the user's squad can field in each, and that eleven.
 import { useMemo, useState } from "react";
 import type { Dispatch, JSX } from "react";
-import { fitOf, rankFormations } from "../logic/best-eleven.ts";
+import { chosenFormation, fitOf, rankFormations } from "../logic/best-eleven.ts";
 import type { RankedFormation, SquadMember } from "../logic/best-eleven.ts";
 import type { CareerSummary } from "../logic/load-scout.ts";
 import type { Player } from "../logic/players.ts";
@@ -44,8 +44,8 @@ const squadOf = (players: readonly Player[], myTeamId: number, kind: ValueKind) 
  */
 const FormationTable = (props: {
   ranked: readonly RankedFormation[];
-  chosen: number;
-  onChoose: (index: number) => void;
+  chosen: RankedFormation | undefined;
+  onChoose: (formation: RankedFormation) => void;
   positionName: (code: number) => string;
 }) => {
   const current = props.ranked.find((formation) => formation.current);
@@ -60,15 +60,15 @@ const FormationTable = (props: {
         </tr>
       </thead>
       <tbody>
-        {props.ranked.map((formation, index) => (
+        {props.ranked.map((formation) => (
           <tr key={formation.codes.join()}>
             <th scope="row">
               <button
                 type="button"
                 className="link-button"
-                aria-pressed={index === props.chosen}
+                aria-pressed={formation === props.chosen}
                 onClick={() => {
-                  props.onChoose(index);
+                  props.onChoose(formation);
                 }}
               >
                 {CLUB_TEXT.name(formation.name, formation.current)}
@@ -134,7 +134,8 @@ const ElevenList = (props: {
 export const ClubView = (props: ClubProps): JSX.Element => {
   const { players, myTeamId, career, showPotential } = props;
   const [kind, setKind] = useState<ValueKind>("now");
-  const [chosen, setChosen] = useState(0);
+  // The codes, not the place in the ranking: another value kind can reorder the formations.
+  const [chosen, setChosen] = useState<readonly number[] | null>(null);
   const shownKind = showPotential ? kind : "now";
   const ranked = useMemo(
     () =>
@@ -149,7 +150,7 @@ export const ClubView = (props: ClubProps): JSX.Element => {
     () => new Map(players.map((player) => [player.id, player.name])),
     [players],
   );
-  const formation = ranked[chosen] ?? ranked[0];
+  const formation = chosenFormation(ranked, chosen);
   return (
     <section aria-labelledby="formations-title">
       <HelpHeading
@@ -169,8 +170,10 @@ export const ClubView = (props: ClubProps): JSX.Element => {
       ) : null}
       <FormationTable
         ranked={ranked}
-        chosen={chosen}
-        onChoose={setChosen}
+        chosen={formation}
+        onChoose={(picked) => {
+          setChosen(picked.codes);
+        }}
         positionName={props.positionName}
       />
       {formation === undefined ? null : (

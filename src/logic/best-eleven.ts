@@ -189,6 +189,15 @@ export const formationName = (codes: readonly number[]): string =>
 const sameCodes = (one: readonly number[], other: readonly number[]): boolean =>
   one.toSorted((a, b) => a - b).join() === other.toSorted((a, b) => a - b).join();
 
+/** The ranked formation with these codes, the best one while none is chosen or it is gone. */
+export const chosenFormation = (
+  ranked: readonly RankedFormation[],
+  codes: readonly number[] | null,
+): RankedFormation | undefined =>
+  (codes === null
+    ? undefined
+    : ranked.find((formation) => formation.codes.join() === codes.join())) ?? ranked[0];
+
 /** Each formation's best eleven, the highest average first; ties keep the formations' order. */
 export const rankFormations = (
   squad: readonly SquadMember[],
