@@ -108,10 +108,13 @@ const ELEVEN_TITLE_ID = "eleven-title";
  * shows no change.
  */
 const showEleven = (): void => {
+  const heading = document.getElementById(ELEVEN_TITLE_ID);
+  if (heading === null) return;
+  // The dialog's sticky header covers the top of its scroll: measured now, as it wraps on narrow screens.
+  const header = heading.closest("dialog")?.querySelector(".dialog-header");
+  heading.style.scrollMarginTop = `${String(header?.getBoundingClientRect().height ?? 0)}px`;
   const reduced = globalThis.matchMedia(REDUCED_MOTION_QUERY).matches;
-  document
-    .getElementById(ELEVEN_TITLE_ID)
-    ?.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" });
+  heading.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" });
 };
 
 /** The chosen formation's eleven: each slot's position, player (his card on a press) and value. */
