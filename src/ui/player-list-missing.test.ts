@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { OUTSIDE_ELEVEN } from "../logic/roles.ts";
+import { SORTABLE_KEYS } from "../logic/sort-players.ts";
 import { testPlayer } from "../logic/test-support/player-fixtures.ts";
 import { columnLabel, columnText } from "./player-list.tsx";
-import { FLAG_LABELS } from "./text.ts";
+import { FLAG_LABELS, TEXT } from "./text.ts";
 
 describe("a missing value in the list", () => {
   it("shows a dash in every kind of column, a zero as a zero", () => {
@@ -26,6 +28,15 @@ describe("a missing value in the list", () => {
     expect(columnText(testPlayer({ squadState: "toSell", roleName: "3. ST" }), "role", null)).toBe(
       "3. ST",
     );
+    // The slot in the best eleven by the name the localized player carries (owner, 2026-11-14).
+    expect(
+      columnText(testPlayer({ bestEleven: 2, bestElevenName: "CPS" }), "bestEleven", null),
+    ).toBe("CPS");
+    expect(columnText(testPlayer({ bestEleven: OUTSIDE_ELEVEN }), "bestEleven", null)).toBe(
+      "poza jedenastką",
+    );
+    expect(columnText(player, "bestEleven", null)).toBe("–");
+    expect(columnLabel("bestEleven")).toBe(TEXT.columns.bestEleven);
   });
 });
 
@@ -52,5 +63,13 @@ describe("a list's value in the list", () => {
     expect(columnText(player, "preferredFoot", null)).toBe("lewa");
     expect(columnText(player, "developmentType", null)).toBe("późny");
     expect(columnText(player, "developmentStyle", null)).toBe("dobry");
+  });
+});
+
+// The slot in the best eleven went out as a column headed by its raw key (owner, 2026-11-14).
+describe("a column's heading", () => {
+  it("names every column the list offers, never by its key", () => {
+    const unnamed = SORTABLE_KEYS.filter((key) => columnLabel(key) === key);
+    expect(unnamed).toEqual([]);
   });
 });

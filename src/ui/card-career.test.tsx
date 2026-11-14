@@ -37,3 +37,17 @@ describe("the card's experience bar", () => {
     expect(render({ levelUpXp: null, levelUpPoints: null })).not.toContain("Doświadczenie");
   });
 });
+
+// Owner, 2026-11-14: „1. CPS” as the role and „RWB” as the slot in the best eleven on one card.
+describe("the card's place in the best eleven", () => {
+  it("names the slot as the localized player names it, as the role beside it", () => {
+    const html = render({
+      role: 1024 + 2,
+      roleName: "1. CPS",
+      bestEleven: 2,
+      bestElevenName: "CPS",
+    });
+    expect(html).toMatch(/jedenastce.*<dd>CPS<\/dd>/u);
+    expect(html).not.toContain("RWB");
+  });
+});

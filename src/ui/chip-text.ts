@@ -2,8 +2,8 @@
 import { FLAG_KEYS, LIST_FIELDS, peakField, RANGE_KEYS } from "../logic/filter-players.ts";
 import type { ListKey, PositionRating, Range } from "../logic/filter-players.ts";
 import type { Player } from "../logic/players.ts";
-import { POSITION_GROUPS, positionOf } from "../logic/positions.ts";
-import { elevenCodeOf, roleNameOf, SQUAD_STATES } from "../logic/roles.ts";
+import { POSITION_GROUPS } from "../logic/positions.ts";
+import { elevenNameOf, roleNameOf, SQUAD_STATES } from "../logic/roles.ts";
 import type { FilterId, ScoutFilters } from "../logic/scout-state.ts";
 import { codeName } from "./text-code-names.ts";
 import { ratingAbbreviation } from "./position-name.tsx";
@@ -77,8 +77,7 @@ export type ChoiceKey =
   | "bodyType"
   | "developmentType"
   | "developmentStyle"
-  | "squadState"
-  | "bestEleven";
+  | "squadState";
 
 /** How a chip and a list column name one value of a list that names itself. */
 export const CHOICE_VALUE_TEXT: Readonly<Record<ChoiceKey, (value: unknown) => string>> = {
@@ -94,15 +93,20 @@ export const CHOICE_VALUE_TEXT: Readonly<Record<ChoiceKey, (value: unknown) => s
     const state = SQUAD_STATES.find((item) => item === value);
     return state === undefined ? String(value) : SQUAD_STATE_LABELS[state];
   },
-  // In the list and on the card named as the role beside it is (Player.roleName).
-  bestEleven: (value) => elevenText(value, { positionName: (code) => positionOf(code).name }),
 };
 
 /** A slot of the best eleven by its position, named by `names`, or "poza jedenastką". */
-export const elevenText = (value: unknown, names: Pick<ChipNames, "positionName">): string => {
-  const code = elevenCodeOf(Number(value));
-  return code === null ? OUTSIDE_ELEVEN_LABEL : names.positionName(code);
-};
+export const elevenText = (value: unknown, names: Pick<ChipNames, "positionName">): string =>
+  elevenNameOf(Number(value), names.positionName) ?? OUTSIDE_ELEVEN_LABEL;
+
+/**
+ * A player's slot in the best eleven in the list and on the card, named as the role beside it is (both
+ * localized with the player, game-names.ts), or "poza jedenastką"; null outside the club.
+ */
+export const bestElevenText = (
+  player: Pick<Player, "bestEleven" | "bestElevenName">,
+): string | null =>
+  player.bestEleven === null ? null : (player.bestElevenName ?? OUTSIDE_ELEVEN_LABEL);
 
 /** The lists of a role or target, whose values are named by roleText. */
 export const isRoleColumn = (key: string): key is "role" | "target" | "peakTarget" =>
