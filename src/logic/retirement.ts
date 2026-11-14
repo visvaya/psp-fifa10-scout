@@ -14,3 +14,23 @@ export const retiresAfterSeason = (
   seasonYear: number,
 ): boolean =>
   gameAge(birthdate, new Date(Date.UTC(seasonYear + 1, DECEMBER, LAST_DAY))) >= retirementAge;
+
+/** Past this many seasons the search stops: no player of the game's tables plays that long. */
+const SEASONS_SEARCHED_MAX = 60;
+
+/**
+ * His age in the season after which he retires, counted as `seasonAge` counts this season's: the age the
+ * development charts place that season at.
+ */
+export const lastSeasonAge = (
+  birthdate: Date,
+  retirementAge: number,
+  seasonYear: number,
+  seasonAge: number,
+): number => {
+  const seasons = Array.from({ length: SEASONS_SEARCHED_MAX }, (_, years) => years);
+  const ahead = seasons.find((years) =>
+    retiresAfterSeason(birthdate, retirementAge, seasonYear + years),
+  );
+  return seasonAge + (ahead ?? SEASONS_SEARCHED_MAX);
+};
