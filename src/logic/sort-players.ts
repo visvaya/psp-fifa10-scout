@@ -49,6 +49,7 @@ const ASCENDING_FIRST_KEYS = [
   "squadState",
   "target",
   "peakTarget",
+  "bestEleven",
 ] as const satisfies readonly SortKey[];
 
 /** The sort keys the screens offer; anything else in storage falls back to the default sort. */

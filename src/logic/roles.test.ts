@@ -3,7 +3,14 @@ import { parseCareerSave } from "../data/career-save.ts";
 import { parseEaDb } from "../data/ea-db.ts";
 import { buildPlayers } from "./players.ts";
 import type { Player } from "./players.ts";
-import { NO_ROLES, playerRoles, roleNameOf, squadStateOf } from "./roles.ts";
+import {
+  elevenCodeOf,
+  NO_ROLES,
+  OUTSIDE_ELEVEN,
+  playerRoles,
+  roleNameOf,
+  squadStateOf,
+} from "./roles.ts";
 import { testPlayer } from "./test-support/player-fixtures.ts";
 import { buildPlainSave, buildScoutDb, SCOUT_USER_TEAM_ID } from "./test-support/scout-db.ts";
 
@@ -95,6 +102,38 @@ describe("playerRoles in the club", () => {
     expect(rolesOf([backup], [4])(backup)).toMatchObject({ target: null, peakTarget: null });
     expect(rolesOf([backup], [4], [])(backup)).toEqual(NO_ROLES);
     expect(rolesOf([], [], [])(member(9, [99, 99, 99]))).toEqual(NO_ROLES);
+  });
+});
+
+// Owner, 2026-11-14 (roadmap 119 (a), (b)).
+describe("playerRoles: numbers from 6 on and the best eleven", () => {
+  it("gathers the numbers from 6 on into one, named 6.+", () => {
+    const bench = [4, 5, 6, 7, 8, 9].map((id) => member(id, [30, 70 - id, 30]));
+    const roles = rolesOf(bench, [4, 5, 6, 7, 8, 9]);
+    expect(bench.map((player) => roles(player).roleName)).toEqual([
+      "2. CB",
+      "3. CB",
+      "4. CB",
+      "5. CB",
+      "6.+ CB",
+      "6.+ CB",
+    ]);
+    expect(roles(bench[4] ?? KEEPER).role).toBe(roles(bench[5] ?? KEEPER).role);
+  });
+
+  it("places each club player in the best eleven of the formation, or outside it", () => {
+    // The placed centre-back is worse at CB than the benched one, who takes his slot in the best eleven.
+    const better = member(4, [40, 75, 40]);
+    const roles = rolesOf([better], [4]);
+    expect(elevenCodeOf(roles(better).bestEleven)).toBe(5);
+    expect(roles(STOPPER).bestEleven).toBe(OUTSIDE_ELEVEN);
+    expect(elevenCodeOf(roles(KEEPER).bestEleven)).toBe(0);
+    expect(elevenCodeOf(OUTSIDE_ELEVEN)).toBeNull();
+    // Slots sort in the formation's order, the players outside the eleven after them.
+    const values = [KEEPER, better, STRIKER, STOPPER].map(
+      (player) => roles(player).bestEleven ?? 0,
+    );
+    expect(values).toEqual(values.toSorted((one, other) => one - other));
   });
 });
 
