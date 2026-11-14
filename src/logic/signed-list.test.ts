@@ -136,6 +136,18 @@ describe("the list after signing", () => {
     expect(off.filters.ranges?.transferWage).toBeUndefined();
   });
 
+  // CodeRabbit on #204: undo could bring the range back while the profile is off.
+  it("undoes to no range of the wage after a transfer while the profile is off", () => {
+    const on = switched(loaded(initialScoutState));
+    const ranged = scoutReducer(on, {
+      type: "filters-changed",
+      filters: { ranges: { transferWage: { min: 1 } } },
+    });
+    const sorted = scoutReducer(ranged, { type: "sort-changed", key: "age" });
+    const undone = scoutReducer(switched(sorted, false), { type: "undo" });
+    expect(undone.filters.ranges?.transferWage).toBeUndefined();
+  });
+
   it("gives no wage after a transfer to a player without values at the user's club", () => {
     const ready = built(switched(loaded(initialScoutState)), [AFTER]);
     expect(shownPlayers(ready)?.[0]?.transferWage).toBeNull();
