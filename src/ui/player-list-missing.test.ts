@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { OUTSIDE_ELEVEN } from "../logic/roles.ts";
 import { testPlayer } from "../logic/test-support/player-fixtures.ts";
 import { columnLabel, columnText } from "./player-list.tsx";
-import { FLAG_LABELS } from "./text.ts";
+import { FLAG_LABELS, TEXT } from "./text.ts";
 
 describe("a missing value in the list", () => {
   it("shows a dash in every kind of column, a zero as a zero", () => {
@@ -26,6 +27,15 @@ describe("a missing value in the list", () => {
     expect(columnText(testPlayer({ squadState: "toSell", roleName: "3. ST" }), "role", null)).toBe(
       "3. ST",
     );
+    // The slot in the best eleven by the name the localized player carries (owner, 2026-11-14).
+    expect(
+      columnText(testPlayer({ bestEleven: 2, bestElevenName: "CPS" }), "bestEleven", null),
+    ).toBe("CPS");
+    expect(columnText(testPlayer({ bestEleven: OUTSIDE_ELEVEN }), "bestEleven", null)).toBe(
+      "poza jedenastką",
+    );
+    expect(columnText(player, "bestEleven", null)).toBe("–");
+    expect(columnLabel("bestEleven")).toBe(TEXT.columns.bestEleven);
   });
 });
 

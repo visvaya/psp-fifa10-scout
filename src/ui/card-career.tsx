@@ -14,7 +14,7 @@ import {
   TEXT,
   count as countWords,
 } from "./text.ts";
-import { CHOICE_VALUE_TEXT } from "./chip-text.ts";
+import { bestElevenText } from "./chip-text.ts";
 import { SQUAD_STATE_LABELS } from "./text-choices.ts";
 import { LEVEL_UP_TEXT, MATCHES } from "./text-level-up.ts";
 import { FIELD_HELP, HELP_TEXT } from "./text-help.ts";
@@ -72,11 +72,7 @@ const roleFacts = (player: Player, showPotential: boolean): readonly Fact[] => [
     player.squadState === null ? null : SQUAD_STATE_LABELS[player.squadState],
     FIELD_HELP.squadState,
   ),
-  ...known(
-    LIST_LABELS.bestEleven,
-    player.bestEleven === null ? null : CHOICE_VALUE_TEXT.bestEleven(player.bestEleven),
-    FIELD_HELP.bestEleven,
-  ),
+  ...known(LIST_LABELS.bestEleven, bestElevenText(player), FIELD_HELP.bestEleven),
   ...known(LIST_LABELS.target, player.targetName, FIELD_HELP.target),
   ...(showPotential
     ? known(LIST_LABELS.peakTarget, player.peakTargetName, FIELD_HELP.peakTarget)

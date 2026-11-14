@@ -11,7 +11,7 @@ import type { ScoutAction, ScoutSort } from "../logic/scout-state.ts";
 import { ratingValueOf } from "../logic/sort-players.ts";
 import type { SortKey } from "../logic/sort-players.ts";
 import { AttributeValue, GainValue } from "./attribute-value.tsx";
-import { CHOICE_VALUE_TEXT, isRoleColumn } from "./chip-text.ts";
+import { bestElevenText, CHOICE_VALUE_TEXT, type ChoiceKey, isRoleColumn } from "./chip-text.ts";
 import {
   columnImage,
   columnImageWidth,
@@ -19,7 +19,6 @@ import {
   PortraitSlot,
   useHasGameImages,
 } from "./game-image.tsx";
-import type { ChoiceKey } from "./chip-text.ts";
 import { PositionName } from "./position-name.tsx";
 import { WatchMark } from "./stars.tsx";
 import { FLAG_LABELS, formatNumber, formatRating, RANGE_LABELS, TEXT } from "./text.ts";
@@ -212,6 +211,7 @@ const cellText = (player: Player, key: TextColumn): string | number | null => {
   if (key === "clubName") return clubText(player);
   if (key === "price") return player.price === null ? null : formatNumber(player.price);
   if (isRoleColumn(key)) return player[`${key}Name`];
+  if (key === "bestEleven") return bestElevenText(player);
   const value = player[key];
   // A list value can be missing (no state outside the club): the dash, not its name.
   return isChoiceKey(key) && value !== null ? CHOICE_VALUE_TEXT[key](value) : value;
@@ -307,7 +307,7 @@ export const ColumnValue = (props: {
 
 /** Numbers align right; names, yes / no and the lists' named values read from the left. */
 const isNumberColumn = (column: SortKey): boolean =>
-  column !== "name" &&
+  !["name", "bestEleven"].includes(column) &&
   !column.endsWith("Name") &&
   ![isChoiceKey, isFlagKey, isRoleColumn].some((isNamed) => isNamed(column));
 

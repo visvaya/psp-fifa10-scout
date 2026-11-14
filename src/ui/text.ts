@@ -362,6 +362,7 @@ export const TEXT = {
     squadState: "Stan",
     target: "Cel",
     peakTarget: pl`Cel w szczycie`,
+    bestEleven: pl`Miejsce w jedenastce`,
   },
   // jscpd:ignore-end
   potentialShort: "POT",

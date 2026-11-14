@@ -5,7 +5,7 @@ import { withNameOrder } from "./players.ts";
 import { NAME_LOCALE, nameCollator } from "./player-names.ts";
 import type { Player } from "./players.ts";
 import { nameTextIdOf, POSITION_CODES, positionOf } from "./positions.ts";
-import { roleNameOf } from "./roles.ts";
+import { elevenNameOf, roleNameOf } from "./roles.ts";
 
 /** Names by id; plain records so they store and post as they are. */
 export interface GameNames {
@@ -110,6 +110,7 @@ const renamed = (players: readonly Player[], names: GameNames | null): readonly 
         roleName: roleNameOf(player.role, (code) => abbreviationIn(names, code)),
         targetName: roleNameOf(player.target, (code) => abbreviationIn(names, code)),
         peakTargetName: roleNameOf(player.peakTarget, (code) => abbreviationIn(names, code)),
+        bestElevenName: elevenNameOf(player.bestEleven, (code) => abbreviationIn(names, code)),
       }));
 
 /**

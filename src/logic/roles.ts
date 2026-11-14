@@ -47,6 +47,7 @@ export const NO_ROLES = {
   peakTarget: null,
   peakTargetName: null,
   bestEleven: null,
+  bestElevenName: null,
 } as const;
 
 export type RoleKey = keyof typeof NO_ROLES;
@@ -68,6 +69,8 @@ export interface RoleFields {
    * (b)), slot index * 32 + code, or OUTSIDE_ELEVEN; null outside the club.
    */
   readonly bestEleven: number | null;
+  /** The position of that slot, named as the role is; null outside the club or the eleven. */
+  readonly bestElevenName: string | null;
 }
 
 /**
@@ -90,6 +93,15 @@ export const OUTSIDE_ELEVEN = NUMBER_SPAN - 1;
 export const elevenCodeOf = (value: number | null): number | null =>
   value === null || value === OUTSIDE_ELEVEN ? null : value % CODE_SPAN;
 
+/** The position of a slot in the best eleven, named by `nameOf`; null outside it. */
+export const elevenNameOf = (
+  value: number | null,
+  nameOf: (code: number) => string,
+): string | null => {
+  const code = elevenCodeOf(value);
+  return code === null ? null : nameOf(code);
+};
+
 const numberOf = (value: number): number => Math.floor(value / NUMBER_SPAN);
 
 /** "2. CB": the number and the slot's position, named by `nameOf`; null for none. */
@@ -104,6 +116,11 @@ export const roleNameOf = (
 };
 
 const englishName = (code: number): string => positionOf(code).name;
+
+const elevenFields = (slot: number): Pick<RoleFields, "bestEleven" | "bestElevenName"> => ({
+  bestEleven: slot,
+  bestElevenName: elevenNameOf(slot, englishName),
+});
 
 type ValueAt = (player: RoleInput, code: number) => number;
 
@@ -256,7 +273,7 @@ export const playerRoles = (
         role,
         roleName: roleNameOf(role, englishName),
         squadState: squadStateOf(player, numberOf(role)),
-        bestEleven: eleven.get(player.id) ?? OUTSIDE_ELEVEN,
+        ...elevenFields(eleven.get(player.id) ?? OUTSIDE_ELEVEN),
       };
     }
     const [target, peakTarget] = [targetOf(player), peakTargetOf(player)];

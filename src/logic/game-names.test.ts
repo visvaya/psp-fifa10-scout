@@ -9,6 +9,7 @@ import {
   positionNameIn,
 } from "./game-names.ts";
 import { nameCollator } from "./player-names.ts";
+import { OUTSIDE_ELEVEN } from "./roles.ts";
 import { testPlayer } from "./test-support/player-fixtures.ts";
 
 const TABLE = new Map([
@@ -162,6 +163,19 @@ describe("localizePlayers", () => {
     );
     expect(club?.roleName).toBe("2. ŚP");
     expect(other).toMatchObject({ roleName: null, targetName: "1. GK", peakTargetName: "2. ŚP" });
+  });
+
+  // Owner, 2026-11-14: the card read „1. CPS” as the role and „RWB” as the slot in the best eleven.
+  it("names the slot in the best eleven in the game language, as the role beside it", () => {
+    const [placed, outside] = localizePlayers(
+      [
+        testPlayer({ bestEleven: 6 * 32 + 17, bestElevenName: "CM" }),
+        testPlayer({ id: 2, bestEleven: OUTSIDE_ELEVEN }),
+      ],
+      names,
+    );
+    expect(placed?.bestElevenName).toBe("ŚP");
+    expect(outside?.bestElevenName).toBeNull();
   });
 
   it("names a misleading position by its bare abbreviation, as the list's narrow column shows it", () => {
