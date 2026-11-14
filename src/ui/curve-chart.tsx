@@ -303,10 +303,10 @@ const ChartLegend = ({ chart }: { chart: CurveChart }) => {
         <li>
           <LegendMark kind="retirement" />
           <span className="legend-words">
-            {CHART_READING_TEXT.legendRetirement(retirement.age, retirement.retirementAge)}
+            {CHART_READING_TEXT.legendRetirement(retirement.age)}
             <FieldHelp
-              label={CHART_READING_TEXT.legendRetirement(retirement.age, retirement.retirementAge)}
-              text={HELP_TEXT.retirementLine}
+              label={CHART_READING_TEXT.legendRetirement(retirement.age)}
+              text={CHART_READING_TEXT.retirementHelp(retirement.retirementAge)}
             />
           </span>
         </li>
