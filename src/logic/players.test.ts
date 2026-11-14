@@ -346,6 +346,16 @@ describe("buildPlayers with a career save", () => {
     expect(byId(signed, 7)).toEqual(byId(players, 7));
   });
 
+  // Owner, 2026-11-14 (roadmap 122): Messi showed potential 100 after signing (95 plus 5), which the
+  // game's 1..99 scale cannot hold.
+  it("keeps the career potential at 99 at most, whatever the delta adds", () => {
+    const grown: CareerSave = new Map([
+      ...SAVE,
+      ["career_players_grown_attributes", [row(grownRow(158_023, { potential_delta: 9 }))]],
+    ]);
+    expect(byId(buildPlayers(DB, grown), 158_023)?.potential).toBe(99);
+  });
+
   it("projects the peak OVR, and the OVR from this season's age to 45, with a save only", () => {
     // Flat curves: the projection stays at today's OVR, at every position and age.
     const messi = byId(players, 158_023);
