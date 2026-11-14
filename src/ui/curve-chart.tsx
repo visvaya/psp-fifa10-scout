@@ -76,7 +76,7 @@ const ChartAxes = ({
 type ChartPoint = CurveChart["points"][number];
 
 /** A polyline's points through `part`. */
-const polylinePoints = (part: readonly ChartPoint[]): string =>
+const polylinePoints = (part: readonly Pick<ChartPoint, "x" | "y">[]): string =>
   part.map(({ x, y }) => `${String(x)},${String(y)}`).join(" ");
 
 /** Half the size of the season's mark on the curve: a diamond, unlike the peak's round dot. */
@@ -90,6 +90,8 @@ const NOW_MARK = 5;
 const ChartMarks = ({ chart }: { chart: CurveChart }) => {
   const { plot, points, peak, now, plateau, retirement } = chart;
   const age = retirement?.age ?? Infinity;
+  // Both parts of the curve meet on the line: his career runs to the end of his last season.
+  const meeting = retirement === undefined ? [] : [retirement];
   return (
     <>
       <rect
@@ -113,13 +115,13 @@ const ChartMarks = ({ chart }: { chart: CurveChart }) => {
           />
           <polyline
             className="curve past-career"
-            points={polylinePoints(points.filter((point) => point.age >= age))}
+            points={polylinePoints([...meeting, ...points.filter((point) => point.age > age)])}
           />
         </>
       )}
       <polyline
         className="curve"
-        points={polylinePoints(points.filter((point) => point.age <= age))}
+        points={polylinePoints([...points.filter((point) => point.age <= age), ...meeting])}
       />
       <circle className="peak" cx={peak.x} cy={peak.y} r={GAP / 2 + 1} />
       {now === undefined ? null : (

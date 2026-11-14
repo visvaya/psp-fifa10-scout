@@ -166,10 +166,13 @@ describe("withRetirement", () => {
 
   it("marks his last season half a year past its point, the ages after it past his career", () => {
     const marked = withRetirement(chart, 33);
-    const last = marked?.points.find((point) => point.age === 33);
-    const next = marked?.points.find((point) => point.age === 34);
-    expect(marked?.retirement?.age).toBe(33);
+    const [last, next] = [33, 34].map(
+      (age) => marked?.points.find((point) => point.age === age) ?? { x: 0, y: 0 },
+    );
+    // Where the curve meets the line, half a year on: both of its parts end and start there.
+    expect(marked?.retirement).toMatchObject({ age: 33 });
     expect(marked?.retirement?.x).toBeCloseTo(((last?.x ?? 0) + (next?.x ?? 0)) / 2);
+    expect(marked?.retirement?.y).toBeCloseTo(((last?.y ?? 0) + (next?.y ?? 0)) / 2);
   });
 
   it("marks this season when it is his last", () => {

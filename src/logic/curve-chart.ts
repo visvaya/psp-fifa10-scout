@@ -55,10 +55,10 @@ export interface CurveChart {
   /** Where the player's age falls: before the peak's first age, within its ages, or after them. */
   readonly phase: CurvePhase;
   /**
-   * The age of his last season and the line after it, half a year on, in viewBox units; undefined when he
-   * plays past the chart's last age (withRetirement).
+   * The age of his last season, and the line after it, half a year on, with the point where the curve
+   * meets it, in viewBox units; undefined when he plays past the chart's last age (withRetirement).
    */
-  readonly retirement: { readonly age: number; readonly x: number } | undefined;
+  readonly retirement: { readonly age: number; readonly x: number; readonly y: number } | undefined;
 }
 
 type CurvePhase = "before" | "peak" | "after";
@@ -144,7 +144,10 @@ export const withRetirement = (chart: CurveChart | null, lastAge: number): Curve
   const next = chart.points.find((point) => point.age === lastAge + 1);
   return last === undefined || next === undefined
     ? chart
-    : { ...chart, retirement: { age: lastAge, x: (last.x + next.x) / 2 } };
+    : {
+        ...chart,
+        retirement: { age: lastAge, x: (last.x + next.x) / 2, y: (last.y + next.y) / 2 },
+      };
 };
 
 /** Whether `age` falls after the season he retires after. */
