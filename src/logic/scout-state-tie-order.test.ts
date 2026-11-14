@@ -6,6 +6,9 @@ import type { Preferences, ScoutState } from "./scout-state.ts";
 import { canResetSettings } from "./settings-reset.ts";
 import { FOUR_FOUR_TWO, TEST_CAREER, testPlayer } from "./test-support/player-fixtures.ts";
 
+/** The profile after a transfer alone. */
+const SIGNING = { afterSigning: true, atPeak: false } as const;
+
 const PREFERRED_FIRST: readonly TieRule[] = [
   "preferredPosition",
   "formation",
@@ -83,9 +86,13 @@ describe("the tie order on the list after signing", () => {
   it("breaks its ties in the chosen order, and again in the default one", () => {
     const requested = scoutReducer(
       scoutReducer(loaded(initialScoutState), { type: "after-signing-shown", shown: true }),
-      { type: "signed-requested" },
+      { type: "signed-requested", mode: SIGNING },
     );
-    const built = scoutReducer(requested, { type: "signed-built", players: [striker()] });
+    const built = scoutReducer(requested, {
+      type: "signed-built",
+      players: [striker()],
+      mode: SIGNING,
+    });
     expect(signedCode(built)).toBe(29);
     const reordered = chosen(built, PREFERRED_FIRST);
     expect(signedCode(reordered)).toBe(30);

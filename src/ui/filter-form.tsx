@@ -413,7 +413,9 @@ export const FilterForm = ({
     <form className="filter-form" onSubmit={(event) => event.preventDefault()}>
       <PotentialSwitch shown={showPotential} dispatch={dispatch} />
       <PortraitSwitches settings={settings} dispatch={dispatch} />
-      {myTeamId === null ? null : <SigningSwitch signing={signing} dispatch={dispatch} />}
+      {myTeamId === null ? null : (
+        <SigningSwitch signing={signing} showPotential={showPotential} dispatch={dispatch} />
+      )}
       {basicSection(kit, myTeamId !== null)}
       {developmentSection(kit, showPotential, myTeamId !== null)}
       {physiqueSection(kit)}

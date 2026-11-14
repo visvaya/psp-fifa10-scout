@@ -5,14 +5,16 @@ import { birthdateToDate, parseEaDb, readTable } from "../data/ea-db.ts";
 import type { EaDbRow } from "../data/ea-db.ts";
 import { SaveFormatError } from "../data/save-format-error.ts";
 import {
+  agedBy,
   attributeGains,
   baseOverall,
   byPositionCode,
   cappedOverall,
   careerAgeing,
-  OVR_WEIGHTS,
   overallsByAge,
+  OVR_WEIGHTS,
   peaksByPositionCode,
+  peakSeasonsAhead,
   potentialDeltas,
   readCurves,
   signingDelta,
@@ -249,6 +251,29 @@ describe("peaksByPositionCode", () => {
   it("stops at the potential", () => {
     const strong = player({ attributes: attributes(80), potential: 70 });
     expect(peaks(skillCurve({ 24: 70 }), strong)[CAM]).toBe(70);
+  });
+});
+
+// Owner, 2026-11-14 (roadmap 123): the profile at the peak shows each player in the season of his peak.
+describe("peakSeasonsAhead and agedBy", () => {
+  it("finds the first season of his peak at a position, and sees from it as this one", () => {
+    const today = careerAgeing(player(), LATER, RISING);
+    // The striker peaks at 24 (peaksByPositionCode above), three seasons after 21.
+    expect(peakSeasonsAhead(today, ST, player().potential)).toBe(3);
+    const atPeak = agedBy(today, 3);
+    expect(atPeak.age).toBe(24);
+    expect(cappedOverall(atPeak.attributesIn(0), ST, player().potential)).toBe(at(24, ST));
+    expect(atPeak.growthSeasons).toBe(Math.max(0, today.growthSeasons - 3));
+  });
+
+  it("stays in this season for a player past his peak", () => {
+    const falling: Curves = new Map([
+      [3, curve(50, { 22: 45, 23: 40 })],
+      [15, curve(50, { 22: 45, 23: 40 })],
+    ]);
+    expect(peakSeasonsAhead(careerAgeing(player(), LATER, falling), CM, player().potential)).toBe(
+      0,
+    );
   });
 });
 

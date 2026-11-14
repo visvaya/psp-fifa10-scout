@@ -37,6 +37,7 @@ import {
   isSigningAction,
   signingPreferenceOf,
   signingReducer,
+  withoutProfiles,
   withTransferWageShown,
   withSignedList,
 } from "./signed-list.ts";
@@ -378,7 +379,7 @@ const isResetAction = (action: ScoutAction): action is ResetAction => action.typ
 
 /**
  * The state after a reset; "Resetuj" also brings the columns back to the automatic choice, the best
- * peak tie rules to their default order, the values to before signing and the portraits to the game's.
+ * peak tie rules to their default order, the profiles off and the portraits to the game's.
  * The settings alone are enough for it, so canResetSettings (settings-reset.ts) asks the reset itself.
  */
 export const resetState = <
@@ -391,12 +392,10 @@ export const resetState = <
   const {
     columns: _columns,
     tieOrder: _tieOrder,
-    afterSigning: _signing,
-    transferYears: _years,
     approximatePortraits: _portraits,
     alwaysPortraits: _always,
     ...kept
-  } = state;
+  } = withoutProfiles(state);
   return { ...(type === "settings-reset" ? kept : state), ...RESETS[type] };
 };
 

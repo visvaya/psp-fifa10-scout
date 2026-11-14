@@ -112,7 +112,7 @@ describe("loadScout", () => {
       },
       (phase) => phases.push(phase),
       (build) => {
-        signed = build();
+        signed = build({ afterSigning: true, atPeak: false });
       },
     );
     expect(phases).toEqual(["game", "save", "players"]);

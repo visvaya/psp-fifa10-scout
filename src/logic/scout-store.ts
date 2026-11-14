@@ -240,6 +240,7 @@ const parsePreferences = (value: unknown): Preferences | null => {
     ...(Array.isArray(value["tieOrder"]) ? { tieOrder: tieOrderOf(value["tieOrder"]) } : {}),
     ...(value["afterSigning"] === true ? { afterSigning: true } : {}),
     ...(isContractLength(value["transferYears"]) ? { transferYears: value["transferYears"] } : {}),
+    ...(value["atPeak"] === true ? { atPeak: true } : {}),
     ...(value["approximatePortraits"] === true ? { approximatePortraits: true } : {}),
     ...(value["alwaysPortraits"] === true ? { alwaysPortraits: true } : {}),
   };

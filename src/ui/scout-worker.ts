@@ -14,6 +14,7 @@ import type {
   WorkerRequest,
 } from "../logic/load-scout.ts";
 import type { Player } from "../logic/players.ts";
+import type { ProfileMode } from "../logic/player-rating.ts";
 
 const bytesOf = async (blob: Blob): Promise<Uint8Array> => new Uint8Array(await blob.arrayBuffer());
 
@@ -42,14 +43,14 @@ let latestLoad = 0;
  */
 let signed: SignedBuild | null = null;
 
-const handleSigned = (requestId: number): void => {
+const handleSigned = (requestId: number, mode: ProfileMode): void => {
   let players: readonly Player[] | null = null;
   try {
-    players = signed?.() ?? null;
+    players = signed?.(mode) ?? null;
   } catch {
     // A list that cannot be built leaves the players before signing; the UI says so.
   }
-  post({ type: "signed", requestId, players });
+  post({ type: "signed", requestId, players, mode });
 };
 
 /** The game file's graphics, sent without a copy; a superseded load reads none. */
@@ -93,6 +94,6 @@ const handle = async ({ requestId, ...request }: LoadRequest & { requestId: numb
 };
 
 globalThis.addEventListener("message", ({ data }: MessageEvent<WorkerRequest>) => {
-  if ("type" in data) handleSigned(data.requestId);
+  if ("type" in data) handleSigned(data.requestId, data.mode);
   else void handle(data);
 });

@@ -42,3 +42,19 @@ test.describe("values after signing", () => {
     await expect.poll(highest).toBe(before);
   });
 });
+
+// Owner, 2026-11-14 (roadmap 123): the profile at the peak, under the potential like every peak value.
+test.describe("profile at the peak", () => {
+  test("shows with the potential, builds its list and turns back off", async ({ page }) => {
+    await loadCareer(page);
+    const peak = page.getByRole("checkbox", { name: "Profil w szczycie" });
+    await expect(peak).toHaveCount(0);
+    await page.getByLabel("Pokaż potencjał").check();
+    await peak.check();
+    await expect(page.getByText("Liczę profil zawodników…")).toBeHidden();
+    await expect(page.locator("tbody tr[aria-rowindex]").first()).toBeVisible();
+    await expectNoAxeViolations(page);
+    await peak.uncheck();
+    await expect(peak).not.toBeChecked();
+  });
+});

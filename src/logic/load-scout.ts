@@ -26,6 +26,7 @@ import { readCurves } from "./overall-rating.ts";
 import type { Curves } from "./overall-rating.ts";
 import { buildPlayers } from "./players.ts";
 import type { Player } from "./players.ts";
+import type { ProfileMode } from "./player-rating.ts";
 
 export type LoadPhase = "game" | "save" | "players";
 export type LoadStage = "game" | "save" | "locale";
@@ -101,8 +102,8 @@ export interface LoadResult {
   readonly attachedLanguage: string | null;
 }
 
-/** Builds the loaded career's players as the game rates them once signed (signed-list.ts). */
-export type SignedBuild = () => readonly Player[];
+/** Builds the loaded career's players in a profile: once signed, at the peak or both (signed-list.ts). */
+export type SignedBuild = (mode: ProfileMode) => readonly Player[];
 
 /**
  * Messages between the UI and the worker; requestId lets the UI drop results of a superseded load. A
@@ -111,7 +112,7 @@ export type SignedBuild = () => readonly Player[];
  */
 export type WorkerRequest =
   | (LoadRequest & { readonly requestId: number })
-  | { readonly type: "signed"; readonly requestId: number };
+  | { readonly type: "signed"; readonly requestId: number; readonly mode: ProfileMode };
 export type WorkerMessage =
   | { readonly type: "phase"; readonly requestId: number; readonly phase: LoadPhase }
   | { readonly type: "done"; readonly requestId: number; readonly result: LoadResult }
@@ -121,6 +122,7 @@ export type WorkerMessage =
       readonly requestId: number;
       /** null: the list could not be built. */
       readonly players: readonly Player[] | null;
+      readonly mode: ProfileMode;
     }
   | {
       readonly type: "graphics";
@@ -242,7 +244,7 @@ export const loadScout = async (
     const built = buildPlayers(db, career, names.curves);
     return { players: built, offer: offerContextOf(db, career, built) };
   });
-  onCareer?.(() => buildPlayers(db, career, names.curves, true));
+  onCareer?.((mode) => buildPlayers(db, career, names.curves, mode));
   const clubName = players.find((player) => player.clubId === teamId)?.clubName ?? null;
   return {
     players,

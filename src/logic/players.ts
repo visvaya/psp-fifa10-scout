@@ -10,28 +10,18 @@ import {
 import type { CareerSave } from "../data/career-save.ts";
 import { ageOn, birthdateToDate, num, readTable } from "../data/ea-db.ts";
 import type { EaDb, EaDbRow } from "../data/ea-db.ts";
-import { ATTRIBUTE_NAMES, attributesOf, TRAIT_NAMES } from "./attributes.ts";
+import { TRAIT_NAMES } from "./attributes.ts";
 import type { Attributes, TraitName } from "./attributes.ts";
 import { bestPeakFields } from "./best-peak.ts";
 import type { BestPeakKey } from "./best-peak.ts";
 import { SCOUT_CONFIG } from "./config.ts";
+import { rater, TODAY } from "./player-rating.ts";
+import type { ProfileMode, Rating } from "./player-rating.ts";
 import { dueLevelUp, NO_LEVEL_UP, squadLevelUp } from "./level-up.ts";
 import type { LevelUpFields } from "./level-up.ts";
 import { initialNameOf, nameCollator, searchKey } from "./player-names.ts";
 import { composedPortraitOf } from "./portraits.ts";
-import {
-  attributeGains,
-  baseOverall,
-  byPositionCode,
-  cappedOverall,
-  careerAgeing,
-  careerPotential,
-  overallsByAge,
-  peaksByPositionCode,
-  potentialDeltas,
-  signingDelta,
-  readCurves,
-} from "./overall-rating.ts";
+import { byPositionCode } from "./overall-rating.ts";
 import type { Curves } from "./overall-rating.ts";
 import { careerLinks, placementsOf, teamFields, teamsById } from "./placements.ts";
 import type { Placement, TeamFields } from "./placements.ts";
@@ -189,19 +179,6 @@ interface Context {
   readonly finance: ((input: FinanceInput) => Finance) | null;
 }
 
-/** A player's attributes as the list shows them and his OVR at any position code. */
-interface Rating {
-  readonly attributes: Attributes;
-  readonly potential: number;
-  readonly overallAt: (positionCode: number, yearsAhead?: number) => number;
-  /** The peak OVR at each position code; empty without a save, as nothing ages. */
-  readonly peakByCode: readonly number[];
-  /** OVR at the preferred position from his age this season to 45; empty without a save. */
-  readonly overallByAge: readonly number[];
-  /** His age on the career date the ratings are aged to; absent without a save. */
-  readonly seasonAge?: number;
-}
-
 /** The years from `start` to `end`, as the game counts contract years; null without an end. */
 const yearsAfter = (end: number | null, start: number): number | null =>
   end === null ? null : end - start;
@@ -244,9 +221,9 @@ const summary = (row: EaDbRow, context: Context): Summary => {
   const nationalityId = num(row, "nationality");
   const [firstName, surname] = [String(row["firstname"]).trim(), String(row["surname"]).trim()];
   const name = `${firstName} ${surname}`.trim();
-  const { attributes, potential, overallAt, peakByCode, overallByAge, seasonAge } =
+  const { attributes, potential, overallAt, peakByCode, overallByAge, seasonAge, yearsAhead } =
     context.rate(row);
-  const age = ageOn(birthdateToDate(num(row, "birthdate")), context.referenceDate);
+  const age = ageOn(birthdateToDate(num(row, "birthdate")), context.referenceDate) + yearsAhead;
   const { club } = context.placements.get(id) ?? {};
   const money = club && { link: club.link, prestige: club.team.prestige };
   const overallByCode = byPositionCode(overallAt);
@@ -275,7 +252,7 @@ const summary = (row: EaDbRow, context: Context): Summary => {
     overall,
     growth: potential - overall,
     peakGain: peak === null ? null : peak - overall,
-    ...profileFields(row, context.seasonYear, seasonAge ?? age),
+    ...profileFields(row, context.seasonYear + yearsAhead, seasonAge ?? age),
     overallByCode,
     peakByCode,
     overallByAge,
@@ -293,7 +270,7 @@ const summary = (row: EaDbRow, context: Context): Summary => {
     ...marketFields(context.market, context.teams, id),
     ...saleFields(context.saleVerdict?.(id) ?? null),
     shortlisted: context.shortlist.has(id),
-    ...(context.finance?.({ row, age, club: money, overallAt }) ?? NO_FINANCE),
+    ...(context.finance?.({ row, age, club: money, overallAt, yearsAhead }) ?? NO_FINANCE),
   };
   return { ...player, ...bestPeakFields(player, context.formationCodes) };
 };
@@ -312,80 +289,6 @@ export const withNameOrder = (
     players.map((player) => Object.freeze({ ...player, nameOrder: order.get(player) ?? 0 })),
   );
 };
-/**
- * A player's potential_delta: the save's for the user's squad; outside it none, or after signing the one
- * the game gives then.
- */
-const deltaOf =
-  (deltas: ReadonlyMap<number, number>, afterSigning: boolean) =>
-  (row: EaDbRow): number =>
-    deltas.get(num(row, "playerid")) ?? (afterSigning ? signingDelta(row) : 0);
-
-/**
- * Attributes and OVR from fifa.db without a save; with one, aged to the season's first match day, as
- * the game shows them in the career (overall-rating.md).
- */
-const rater = (
-  db: EaDb,
-  save: CareerSave | undefined,
-  read: Curves | undefined,
-  afterSigning: boolean,
-): Context["rate"] => {
-  if (save === undefined)
-    return (row) => {
-      const attributes = attributesOf(row);
-      return {
-        attributes,
-        potential: num(row, "potential"),
-        overallAt: (code) => baseOverall(attributes, code),
-        peakByCode: [],
-        overallByAge: [],
-      };
-    };
-  const curves = read ?? readCurves(db);
-  const delta = deltaOf(potentialDeltas(db, save), afterSigning);
-  const gains = attributeGains(db, save);
-  const date = seasonStartDate(db, save);
-  return (row) => {
-    const potential = careerPotential(num(row, "potential"), delta(row));
-    const gain = gains.get(num(row, "playerid"));
-    const input = {
-      // The gains count before ageing, as the database attributes they add to.
-      attributes:
-        gain === undefined
-          ? attributesOf(row)
-          : attributesOf(
-              Object.fromEntries(
-                ATTRIBUTE_NAMES.map((name) => [name, num(row, name) + gain(name)]),
-              ),
-            ),
-      potential,
-      birthdate: birthdateToDate(num(row, "birthdate")),
-      developmentTypeCode: num(row, "developmenttypecode"),
-      developmentStyleCode: num(row, "developmentstylecode"),
-    };
-    const ageing = careerAgeing(input, date, curves);
-    const aged = ageing.attributesIn(0);
-    const attributes = attributesOf(
-      Object.fromEntries(ATTRIBUTE_NAMES.map((name) => [name, aged(name)])),
-    );
-    const overallAt = (code: number, yearsAhead = 0): number =>
-      cappedOverall(
-        yearsAhead === 0 ? (name) => attributes[name] : ageing.attributesIn(yearsAhead),
-        code,
-        potential,
-      );
-    return {
-      attributes,
-      potential,
-      overallAt,
-      peakByCode: peaksByPositionCode(ageing, potential),
-      overallByAge: overallsByAge(ageing, num(row, "preferredposition1"), potential),
-      seasonAge: ageing.age,
-    };
-  };
-};
-
 /**
  * The date ages are taken on (the last game, else the season's start) and the year the season started;
  * without a save, the database's own start.
@@ -436,15 +339,17 @@ const careerParts = (
 /**
  * Every player with his club and nationality; youth-pool players only when a team link, or the
  * save's youth academy, transfer list or shortlist, places them. With a save, links and stats come from it and ages are taken on its last game date.
- * `curves`: the database's curves when the caller has read them already. `afterSigning`: players
- * outside the user's squad as the game rates them once signed, their potential up by signingDelta.
+ * `curves`: the database's curves when the caller has read them already. `profile`: with afterSigning,
+ * players outside the user's squad as the game rates them once signed, their potential up by
+ * signingDelta; with atPeak, every player in the season of his peak OVR at his preferred position.
  */
 export const buildPlayers = (
   db: EaDb,
   save?: CareerSave,
   curves?: Curves,
-  afterSigning = false,
+  profile: ProfileMode = TODAY,
 ): readonly Player[] => {
+  const { afterSigning, atPeak } = profile;
   const links =
     save === undefined
       ? readTable(db, "teamplayerlinks")
@@ -473,12 +378,12 @@ export const buildPlayers = (
         .filter((row) => num(row, "teamid") === SCOUT_CONFIG.freeAgentTeamId)
         .map((row) => num(row, "playerid")),
     ),
-    rate: rater(db, save, curves, afterSigning),
+    rate: rater(db, save, curves, profile),
     formationCodes: save === undefined ? [] : userFormationCodes(db, save),
     finance:
       save === undefined
         ? null
-        : financeOf(db, save, { loanedFrom: market.loanedFrom, prestigeOf, afterSigning }),
+        : financeOf(db, save, { loanedFrom: market.loanedFrom, prestigeOf, afterSigning, atPeak }),
     ...careerParts(db, save, placements),
   };
   // The game keeps generated players out of the leagues until it places them (overall-rating.md, F2).

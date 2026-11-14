@@ -8,6 +8,7 @@ import type { OfferContext } from "../logic/offer.ts";
 import { skillCurveId } from "../logic/overall-rating.ts";
 import type { Curves } from "../logic/overall-rating.ts";
 import type { PlayerNote } from "../logic/player-notes.ts";
+import type { ProfileMode } from "../logic/player-rating.ts";
 import type { Player } from "../logic/players.ts";
 import type { AttributeName } from "../logic/attributes.ts";
 import type { ScoutAction } from "../logic/scout-state.ts";
@@ -365,6 +366,8 @@ export const PlayerCard = (props: {
   offer: OfferContext | null;
   /** The player as an offer counts him: before signing, whatever values the card shows. */
   offerPlayer: Player;
+  /** The profile the card shows (signed-list.ts). */
+  profile: ProfileMode;
   showPotential: boolean;
   /** Position names in the chosen language. */
   names: PositionNames;
@@ -395,6 +398,7 @@ export const PlayerCard = (props: {
         after={player}
         showPotential={showPotential}
         currency={currency}
+        profile={props.profile}
       />
       {offer === null || currency === null ? null : (
         <OfferFacts

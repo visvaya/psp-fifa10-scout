@@ -334,6 +334,27 @@ export const overallsByAge = (
     cappedOverall(ageing.attributesIn(years), positionCode, potential),
   );
 
+/**
+ * The seasons from this one to his peak OVR at a position, the first of its seasons within the peak's
+ * projection (peaksByPositionCode): the season the profile at the peak shows (roadmap 123).
+ */
+export const peakSeasonsAhead = (
+  ageing: CareerAgeing,
+  positionCode: number,
+  potential: number,
+): number => {
+  const seasons = Math.min(SCOUT_CONFIG.peakProjectionYears, ageing.growthSeasons);
+  const projected = overallsByAge(ageing, positionCode, potential).slice(0, seasons + 1);
+  return Math.max(0, projected.indexOf(Math.max(...projected)));
+};
+
+/** His ageing `years` seasons on: that season counts as this one. */
+export const agedBy = (ageing: CareerAgeing, years: number): CareerAgeing => ({
+  attributesIn: (yearsAhead) => ageing.attributesIn(yearsAhead + years),
+  growthSeasons: Math.max(0, ageing.growthSeasons - years),
+  age: ageing.age + years,
+});
+
 /** The weight rows that differ, and the attributes they weigh. */
 const DISTINCT_ROWS = [...new Set(OVR_WEIGHTS)];
 const WEIGHTED = [...new Set(OVR_WEIGHTS.flat().map(([name]) => name))];

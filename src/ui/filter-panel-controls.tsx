@@ -80,48 +80,71 @@ export const PortraitSwitches = (props: {
  */
 export const SigningSwitch = (props: {
   signing: SigningState;
+  /** The profile at the peak shows with the potential only, as every peak value. */
+  showPotential: boolean;
   dispatch: Dispatch<ScoutAction>;
 }): JSX.Element => {
-  const { afterSigning, signed } = props.signing;
-  const on = afterSigning === true;
-  const yearsId = useId();
+  const { afterSigning, atPeak, signed } = props.signing;
+  const peak = atPeak === true && props.showPotential;
+  const on = afterSigning === true || peak;
   return (
     <div className="signing-switch">
       <CheckField
         label={SIGNING_TEXT.label}
         help={SIGNING_TEXT.help}
-        checked={on}
+        checked={afterSigning === true}
         onChange={(shown) => {
           props.dispatch({ type: "after-signing-shown", shown });
         }}
       />
-      {on ? (
-        <div className="field">
-          <label htmlFor={yearsId}>{SIGNING_TEXT.years}</label>
-          <select
-            id={yearsId}
-            value={props.signing.transferYears ?? ""}
-            onChange={(event) => {
-              const { value } = event.currentTarget;
-              props.dispatch({
-                type: "transfer-years-chosen",
-                years: value === "" ? null : Number(value),
-              });
-            }}
-          >
-            <option value="">{SIGNING_TEXT.wantedYears}</option>
-            {CONTRACT_YEARS.map((years) => (
-              <option key={years} value={years}>
-                {TEXT.years(years)}
-              </option>
-            ))}
-          </select>
-        </div>
+      {afterSigning === true ? (
+        <TransferYearsField years={props.signing.transferYears} dispatch={props.dispatch} />
+      ) : null}
+      {props.showPotential ? (
+        <CheckField
+          label={SIGNING_TEXT.peakLabel}
+          help={SIGNING_TEXT.peakHelp}
+          checked={peak}
+          onChange={(shown) => {
+            props.dispatch({ type: "peak-shown", shown });
+          }}
+        />
       ) : null}
       <output className="signing-status">
         {on && signed === "pending" ? SIGNING_TEXT.pending : null}
         {on && signed === "failed" ? SIGNING_TEXT.failed : null}
       </output>
+    </div>
+  );
+};
+
+/** The contract length the price after a transfer is for; the empty option is the one he wants. */
+const TransferYearsField = (props: {
+  years: number | undefined;
+  dispatch: Dispatch<ScoutAction>;
+}): JSX.Element => {
+  const id = useId();
+  return (
+    <div className="field">
+      <label htmlFor={id}>{SIGNING_TEXT.years}</label>
+      <select
+        id={id}
+        value={props.years ?? ""}
+        onChange={(event) => {
+          const { value } = event.currentTarget;
+          props.dispatch({
+            type: "transfer-years-chosen",
+            years: value === "" ? null : Number(value),
+          });
+        }}
+      >
+        <option value="">{SIGNING_TEXT.wantedYears}</option>
+        {CONTRACT_YEARS.map((years) => (
+          <option key={years} value={years}>
+            {TEXT.years(years)}
+          </option>
+        ))}
+      </select>
     </div>
   );
 };
