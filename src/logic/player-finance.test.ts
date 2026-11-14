@@ -279,6 +279,32 @@ describe("career prices and wages", () => {
     expect(endsBy2011.map((each) => each.id)).toEqual([3, 4]);
   });
 
+  // Owner, 2026-11-14 (roadmap 56(c)): the profile after a transfer to the user's club prices every
+  // player outside the squad there: that club's prestige, a new contract of 1 to 5 years, the OVR after
+  // signing; the market wage there too, which no contract length changes.
+  it("values everyone outside the squad as signed for the user's club, after signing", () => {
+    const signed = buildPlayers(DB, SAVE, undefined, true);
+    const after = (id: number) => signed.find((each) => each.id === id);
+    for (const id of [1, 5]) {
+      const player = after(id);
+      const there = input({
+        overall: player?.overall ?? 0,
+        overallIn5Years: player?.overallByAge[5] ?? 0,
+        prestige: 16,
+      });
+      expect(player?.signedValuesEuro).toEqual(
+        [1, 2, 3, 4, 5].map((years) => priceInEuro({ ...there, contractYearsLeft: years })),
+      );
+      expect(player?.signedWageEuro).toBe(wageInEuro(there, false));
+    }
+    // His own squad stays as it is; a loaned player's contract is unknown.
+    expect([4, 7, 9].map((id) => after(id)?.signedWageEuro)).toEqual([null, null, null]);
+    expect(after(4)?.signedValuesEuro).toBeNull();
+    // Without the profile after a transfer, no wage there.
+    expect(byId(1)?.signedWageEuro).toBeNull();
+    expect(byId(5)?.signedWageEuro).toBeNull();
+  });
+
   it("leaves players without a club or without a save unpriced", () => {
     expect(byId(6)).toMatchObject({ price: null, wage: null });
     const base = buildPlayers(DB).find((player) => player.id === 1);

@@ -62,6 +62,7 @@ const useStoredPreferences = (state: ScoutState, files: ReturnType<typeof useSco
     columns,
     tieOrder,
     afterSigning,
+    transferYears,
     approximatePortraits,
     alwaysPortraits,
   } = state;
@@ -78,6 +79,7 @@ const useStoredPreferences = (state: ScoutState, files: ReturnType<typeof useSco
         ...(columns === undefined ? {} : { columns }),
         ...(tieOrder === undefined ? {} : { tieOrder }),
         ...(afterSigning === undefined ? {} : { afterSigning }),
+        ...(transferYears === undefined ? {} : { transferYears }),
         ...(approximatePortraits === undefined ? {} : { approximatePortraits }),
         ...(alwaysPortraits === undefined ? {} : { alwaysPortraits }),
       });
@@ -94,6 +96,7 @@ const useStoredPreferences = (state: ScoutState, files: ReturnType<typeof useSco
     columns,
     tieOrder,
     afterSigning,
+    transferYears,
     approximatePortraits,
     alwaysPortraits,
   ]);

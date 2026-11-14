@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import type { Dispatch, JSX, ReactNode } from "react";
 import type { CurrencyCode } from "../data/career-save.ts";
 import { otherPeakChoices } from "../logic/best-peak.ts";
-import { curveChart, ovrChart } from "../logic/curve-chart.ts";
+import { curveChart, ovrChart, withRetirement } from "../logic/curve-chart.ts";
 import { curveSparklines, ovrSparkline } from "../logic/curve-sparkline.ts";
 import type { OfferContext } from "../logic/offer.ts";
 import { skillCurveId } from "../logic/overall-rating.ts";
@@ -72,14 +72,21 @@ const optional = (value: number | string | null): ReactNode =>
 /**
  * With a career, his OVR projected from this season's age; without one, his own skill curve, the one his
  * projection follows, when the game has curves. Either opens a large chart marking the age this season's
- * development uses (the season's first match day, not the card's age).
+ * development uses (the season's first match day, not the card's age) and his last season.
  */
 const curveOf = (player: Player, curves: Curves) => {
-  const { seasonAge, overallByAge, developmentStyle: style, developmentType: type } = player;
+  const { seasonAge, lastSeasonAge, overallByAge } = player;
+  const { developmentStyle: style, developmentType: type } = player;
   if (overallByAge.length > 0)
-    return { line: ovrSparkline(overallByAge), chart: ovrChart(overallByAge, seasonAge) };
+    return {
+      line: ovrSparkline(overallByAge),
+      chart: withRetirement(ovrChart(overallByAge, seasonAge), lastSeasonAge),
+    };
   const id = skillCurveId(style, type);
-  return { line: curveSparklines(curves)(id), chart: curveChart(curves, id, seasonAge) };
+  return {
+    line: curveSparklines(curves)(id),
+    chart: withRetirement(curveChart(curves, id, seasonAge), lastSeasonAge),
+  };
 };
 
 const curveFacts = (player: Player, curves: Curves): readonly Fact[] => {
@@ -383,7 +390,12 @@ export const PlayerCard = (props: {
         dispatch={dispatch}
       />
       <Facts facts={basics(player, showPotential, currency, names)} />
-      <SigningFacts before={props.offerPlayer} after={player} showPotential={showPotential} />
+      <SigningFacts
+        before={props.offerPlayer}
+        after={player}
+        showPotential={showPotential}
+        currency={currency}
+      />
       {offer === null || currency === null ? null : (
         <OfferFacts
           key={player.id}

@@ -24,9 +24,13 @@ test.describe("chart reading", () => {
     await expect(chart.locator(".reading-mark")).toHaveCount(1);
     await expect(reading).toBeFocused();
     await reading.press("End");
-    await expect(words).toHaveText(/^w\swieku 45\slat: poziom \d+$/u);
+    // Every sample player retires at 35: the last ages fall after his career (roadmap 118).
+    await expect(words).toHaveText(/^w\swieku 45\slat: poziom \d+, po końcu kariery$/u);
     await reading.press("ArrowLeft");
-    await expect(reading).toHaveAttribute("aria-valuetext", /^w\swieku 44\slata: poziom \d+$/u);
+    await expect(reading).toHaveAttribute(
+      "aria-valuetext",
+      /^w\swieku 44\slata: poziom \d+, po końcu kariery$/u,
+    );
     await expect(reading).toHaveAttribute("aria-valuenow", "44");
     await expectNoAxeViolations(page);
   });

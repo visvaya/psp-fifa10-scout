@@ -21,6 +21,9 @@ const loaded = (from: ScoutState, requestId = 1): ScoutState =>
     attachedLanguage: null,
   });
 
+const moneyShown = (state: ScoutState) =>
+  shownPlayers(state)?.map(({ price, wage }) => ({ price, wage }));
+
 const switched = (state: ScoutState, shown = true): ScoutState =>
   scoutReducer(state, { type: "after-signing-shown", shown });
 
@@ -68,12 +71,60 @@ describe("the list after signing", () => {
     expect(scoutReducer(ready, failure).signed).toBe(ready.signed);
   });
 
-  it("keeps each player's money before signing: his value after a transfer is not counted", () => {
+  it("keeps the money before signing for a player without values at the user's club", () => {
     const richer = testPlayer({ id: 1, potential: 84, price: 20_000_000, priceEuro: 20_000_000 });
     const ready = built(switched(loaded(initialScoutState)), [richer]);
     expect(
       shownPlayers(ready)?.map(({ potential, price, wage }) => ({ potential, price, wage })),
     ).toEqual([{ potential: 84, price: 15_000_000, wage: 8700 }]);
+  });
+
+  // Owner, 2026-11-14 (roadmap 56(c)): after a transfer his price is his value at the user's club for
+  // the contract he wants, or for the length chosen beside the switch, and his wage the market wage there.
+  const SIGNED = testPlayer({
+    id: 1,
+    potential: 84,
+    ...money,
+    signedValuesEuro: [1_000_000, 2_000_000, 3_000_000, 4_000_000, 5_000_000],
+    signedWageEuro: 10_000,
+  });
+
+  it("prices a player at the user's club for the contract he wants", () => {
+    // Born 1984, retiring at 35, the season ending in 2010; id 1 wants (1 mod 5) + 1 = 2 years.
+    const ready = built(switched(loaded(initialScoutState)), [SIGNED]);
+    expect(moneyShown(ready)).toEqual([{ price: 2_000_000, wage: 10_000 }]);
+  });
+
+  it("prices him for the contract length chosen, and for the one he wants again", () => {
+    const ready = built(switched(loaded(initialScoutState)), [SIGNED]);
+    const four = scoutReducer(ready, { type: "transfer-years-chosen", years: 4 });
+    expect(four.transferYears).toBe(4);
+    expect(moneyShown(four)).toEqual([{ price: 4_000_000, wage: 10_000 }]);
+    const wanted = scoutReducer(four, { type: "transfer-years-chosen", years: null });
+    expect(wanted.transferYears).toBeUndefined();
+    expect(moneyShown(wanted)).toEqual([{ price: 2_000_000, wage: 10_000 }]);
+  });
+
+  it("keeps the length chosen before the list is built, and prices the list with it", () => {
+    const chosen = scoutReducer(switched(loaded(initialScoutState)), {
+      type: "transfer-years-chosen",
+      years: 5,
+    });
+    expect(chosen.signed).toBeUndefined();
+    expect(moneyShown(built(chosen, [SIGNED]))).toEqual([{ price: 5_000_000, wage: 10_000 }]);
+  });
+
+  it("keeps a built player the list before signing does not know as built", () => {
+    const stranger = { ...SIGNED, id: 2 };
+    const ready = built(switched(loaded(initialScoutState)), [stranger]);
+    expect(moneyShown(ready)).toEqual([{ price: 15_000_000, wage: 8700 }]);
+  });
+
+  it("has no price for a player any contract would outlast", () => {
+    const old = { ...SIGNED, birthYear: 1975 };
+    const state = loaded(initialScoutState);
+    const ready = built(switched({ ...state, players: [{ ...BEFORE, birthYear: 1975 }] }), [old]);
+    expect(moneyShown(ready)).toEqual([{ price: null, wage: 10_000 }]);
   });
 
   it("prices the built list in the shown currency, and again when it changes", () => {
@@ -99,6 +150,11 @@ describe("the list after signing", () => {
     const on = switched(loaded(initialScoutState));
     expect(canResetSettings(on)).toBe(true);
     expect(scoutReducer(on, { type: "settings-reset" }).afterSigning).toBeUndefined();
+    const chosen = scoutReducer(on, { type: "transfer-years-chosen", years: 3 });
+    expect(
+      canResetSettings(scoutReducer(chosen, { type: "after-signing-shown", shown: false })),
+    ).toBe(true);
+    expect(scoutReducer(chosen, { type: "settings-reset" }).transferYears).toBeUndefined();
   });
 
   it("is restored from the stored preferences", () => {
@@ -109,8 +165,10 @@ describe("the list after signing", () => {
         sort: initialScoutState.sort,
         showPotential: false,
         afterSigning: true,
+        transferYears: 3,
       },
     });
     expect(restored.afterSigning).toBe(true);
+    expect(restored.transferYears).toBe(3);
   });
 });

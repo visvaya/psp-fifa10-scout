@@ -31,7 +31,8 @@ What it does today:
   preferred position).
 - Draws each player's development curve from the game's data: a small chart on the card and a
   large one with his age this season, whether he is before, at or after his peak, and his peak
-  period. A finger, the mouse or the arrow keys along the large chart read its value at any age.
+  period, and the season after which the game retires him. A finger, the mouse or the arrow keys
+  along the large chart read its value at any age.
 - Hides potential, the peak and the development curve by default; one switch reveals them.
 - Reads the player database (`fifa.db`) straight from your disc image (ISO), or from a `fifa.db`
   file you extracted yourself. From the image it reads only the database, the language files, the
@@ -61,7 +62,8 @@ What it does today:
   dollar), with the game's rates and rounding.
 - With a career save, can show every player outside your squad as he would be once signed: the game
   raises his potential by a fixed amount when he joins your squad, which can lift his OVR and peak
-  too. The list, filters, sorting and card then use those values; the price and the offer stay as
+  too. The list, filters, sorting and card then use those values, his price is his value at your club
+  for the contract he wants or one you choose, and his wage the market wage there; the offer stays as
   before the transfer.
 - Shows each club's stars as the game computes them from its current squad, and the league and club
   prestige that feed the game's price and wage formulas.

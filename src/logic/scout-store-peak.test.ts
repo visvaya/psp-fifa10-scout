@@ -71,6 +71,19 @@ describe("stored view switches", () => {
     expect((await loadSwitches({ afterSigning: "yes" }))?.afterSigning).toBeUndefined();
   });
 
+  it("restores a contract length after a transfer of 1 to 5 years only", async () => {
+    expect((await loadSwitches({ transferYears: 3 }))?.transferYears).toBe(3);
+    const others = await Promise.all(
+      [0, 6, 2.5, "3"].map(async (stored) => loadSwitches({ transferYears: stored })),
+    );
+    expect(others.map((preferences) => preferences?.transferYears)).toEqual([
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    ]);
+  });
+
   it.each(["approximatePortraits", "alwaysPortraits"] as const)(
     "restores %s only when on",
     async (setting) => {

@@ -39,7 +39,7 @@ import type { SaleRefusal } from "./sale-rule.ts";
 import type { Finance, FinanceInput } from "./player-finance.ts";
 import { positionOf } from "./positions.ts";
 import type { PositionGroup } from "./positions.ts";
-import { retiresAfterSeason } from "./retirement.ts";
+import { lastSeasonAge, retiresAfterSeason } from "./retirement.ts";
 import { NO_ROLES, playerRoles } from "./roles.ts";
 import type { RoleFields, RoleInput, RoleKey } from "./roles.ts";
 import { seasonStats, statOf } from "./season-stats.ts";
@@ -74,6 +74,8 @@ export interface Player extends Finance, SeasonStats, TeamFields, RoleFields {
   readonly age: number;
   /** His age on the season's first match day, his place on his curves all season; else `age`. */
   readonly seasonAge: number;
+  /** His season age in the season after which he retires (retirement.ts), on the charts' ages. */
+  readonly lastSeasonAge: number;
   /** The calendar year of birth; contract ages count from it to the season's end. */
   readonly birthYear: number;
   readonly positionCode: number;
@@ -206,7 +208,7 @@ const ratingOf = (stats: EaDbRow | undefined): number | null => {
   return tenths === null ? null : tenths / 10;
 };
 
-const profileFields = (row: EaDbRow, seasonYear: number) => ({
+const profileFields = (row: EaDbRow, seasonYear: number, seasonAge: number) => ({
   bodyType: num(row, "bodysizecode"),
   weakFoot: num(row, "weakfootability") + 1,
   internationalReputation: num(row, "internationalreputation"),
@@ -216,6 +218,13 @@ const profileFields = (row: EaDbRow, seasonYear: number) => ({
     birthdateToDate(num(row, "birthdate")),
     num(row, "retirementage"),
     seasonYear,
+  ),
+  seasonAge,
+  lastSeasonAge: lastSeasonAge(
+    birthdateToDate(num(row, "birthdate")),
+    num(row, "retirementage"),
+    seasonYear,
+    seasonAge,
   ),
   developmentType: num(row, "developmenttypecode"),
   developmentStyle: num(row, "developmentstylecode"),
@@ -250,7 +259,6 @@ const summary = (row: EaDbRow, context: Context): Summary => {
     academy: context.academy.has(id),
     freeAgent: context.freeAgents.has(id),
     age,
-    seasonAge: seasonAge ?? age,
     birthYear: birthdateToDate(num(row, "birthdate")).getUTCFullYear(),
     positionCode: num(row, "preferredposition1"),
     positionName: position.name,
@@ -263,7 +271,7 @@ const summary = (row: EaDbRow, context: Context): Summary => {
     overall,
     growth: potential - overall,
     peakGain: peak === null ? null : peak - overall,
-    ...profileFields(row, context.seasonYear),
+    ...profileFields(row, context.seasonYear, seasonAge ?? age),
     overallByCode,
     peakByCode,
     overallByAge,
@@ -434,6 +442,7 @@ export const buildPlayers = (
   // Without a career there is no shortlist.
   const shortlist = save === undefined ? [] : careerShortlist(db, save);
   const market = transferMarketOf(transferList, save === undefined ? [] : careerLoans(db, save));
+  const prestigeOf = (teamId: number) => teams.get(teamId)?.prestige ?? null;
   const context: Context = {
     ...datesOf(db, save),
     placements,
@@ -455,10 +464,7 @@ export const buildPlayers = (
     finance:
       save === undefined
         ? null
-        : financeOf(db, save, {
-            loanedFrom: market.loanedFrom,
-            prestigeOf: (teamId) => teams.get(teamId)?.prestige ?? null,
-          }),
+        : financeOf(db, save, { loanedFrom: market.loanedFrom, prestigeOf, afterSigning }),
     saleVerdict: save === undefined ? null : saleVerdictOf(db, save, placements),
   };
   // The game keeps generated players out of the leagues until it places them (overall-rating.md, F2).
