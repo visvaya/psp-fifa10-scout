@@ -1,13 +1,13 @@
 // A value the game does not keep shows as a dash named "brak danych", told apart from a zero: the save
 // keeps season stats only for some players (the synthetic one for Messi and Gracz Numer 1).
 import type { Locator, Page } from "@playwright/test";
-import { expect, expectNoAxeViolations, loadCareer, PHONE, test } from "./support.ts";
+import { openSection, expect, expectNoAxeViolations, loadCareer, PHONE, test } from "./support.ts";
 
 const GOALS = "Gole w lidze";
 
 /** Shows the league goals' column with its eye and keeps the players with this name, in the panel or the dialog. */
 const showGoals = async (page: Page, panel: Page | Locator, name: string) => {
-  await panel.getByText("Kariera", { exact: true }).click();
+  await openSection(panel, "Sezon");
   await page.getByRole("button", { name: `Pokaż kolumnę: ${GOALS}`, exact: true }).click();
   await panel.getByRole("searchbox", { name: "Nazwisko" }).fill(name);
 };

@@ -11,6 +11,7 @@ import {
   PHONE,
   showPotential,
   test,
+  openSection,
 } from "./support.ts";
 
 /** The panel a "?" button opens. */
@@ -184,7 +185,7 @@ test.describe("field explanations, wide", () => {
 
   test("names KR the game's way and explains it as a rolling rating", async ({ page }) => {
     await loadCareer(page);
-    await page.getByText("Kariera", { exact: true }).click();
+    await openSection(page, "Sezon");
     await expect(page.getByRole("group", { name: "KR (forma)", exact: true })).toBeVisible();
     const button = page.getByRole("button", { name: "Wyjaśnienie: KR (forma)" });
     await button.click();
@@ -326,7 +327,7 @@ test.describe("field explanations, short phone screen", () => {
   test("keeps a long explanation on screen and scrolls it", async ({ page }) => {
     await loadCareer(page);
     const dialog = await openFilters(page);
-    await dialog.getByText("Kariera", { exact: true }).click();
+    await openSection(dialog, "Transfer");
     const button = dialog.getByRole("button", { name: "Wyjaśnienie: Klub może go sprzedać" });
     await button.evaluate((element) => {
       element.scrollIntoView({ block: "center" });

@@ -12,6 +12,7 @@ import {
   scrollToEnd,
   showPotential,
   test,
+  openSection,
 } from "./support.ts";
 
 /**
@@ -292,7 +293,7 @@ test.describe("career prices on a phone", () => {
     await loadCareer(page);
     await page.getByRole("button", { name: "Filtry" }).click();
     const dialog = page.getByRole("dialog", { name: "Filtry" });
-    await dialog.getByText("Kariera", { exact: true }).click();
+    await openSection(dialog, "Transfer");
     const from = dialog.getByRole("group", { name: "Cena (€)", exact: true }).getByLabel("od");
     await from.pressSequentially("100000000");
     await expect(from).toHaveValue("100\u00a0000\u00a0000");

@@ -164,6 +164,11 @@ export const expectCount = async (page: Page, text: string) => {
   await expect(page.locator("p.count")).toHaveText(text);
 };
 
+/** Opens the filter section of this exact title (a column or a field may share its words). */
+export const openSection = async (scope: Page | Locator, title: string) => {
+  await scope.locator("details.filter-section > summary").getByText(title, { exact: true }).click();
+};
+
 /** Opens every collapsed filter section. */
 export const expandSections = async (page: Page) => {
   await page.locator("details.filter-section").evaluateAll((sections) => {
@@ -229,8 +234,9 @@ export const filterByAttributes = async (page: Page, ...labels: readonly string[
     // One after another: each choice adds the field the next line fills.
     // oxlint-disable-next-line no-await-in-loop -- the steps depend on each other
     await dialog.getByLabel("Dodaj atrybut").selectOption({ label });
+    // Exact: "Szybkość" would also name "Szybkość nauki" in the open development section.
     // oxlint-disable-next-line no-await-in-loop -- the steps depend on each other
-    await dialog.getByRole("group", { name: label }).getByLabel("od").fill("10");
+    await dialog.getByRole("group", { name: label, exact: true }).getByLabel("od").fill("10");
   }
   await dialog.getByRole("button", { name: "Zamknij" }).click();
 };

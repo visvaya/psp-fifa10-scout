@@ -260,9 +260,9 @@ const peakFields = ({ filters, change, range, tieOrder, dispatch }: Kit) => [
   range("peakGain"),
 ];
 
-/** career: the peak OVR exists only with a career save. */
-const basicSection = (kit: Kit, showPotential: boolean, career: boolean) => {
-  const { filters, change, facets, range, list, positionName, eye } = kit;
+/** career: without a career there is no game shortlist. */
+const basicSection = (kit: Kit, career: boolean) => {
+  const { filters, change, facets, range, list, positionName } = kit;
   return (
     <Section title={FILTER_SECTION_LABELS.basic} initiallyOpen>
       <label className="field">
@@ -290,6 +290,19 @@ const basicSection = (kit: Kit, showPotential: boolean, career: boolean) => {
       {range("weakFoot")}
       {range("age")}
       {range("overall")}
+      <OnListField filters={filters} change={change} career={career} />
+    </Section>
+  );
+};
+
+/**
+ * What the forecast is about, in one place (owner, 2026-11-14): the rating at a position, the potential
+ * and the peak, and what drives the development. career: the peak OVR exists only with a career save.
+ */
+const developmentSection = (kit: Kit, showPotential: boolean, career: boolean) => {
+  const { filters, change, facets, range, list, positionName, eye, sparkline } = kit;
+  return (
+    <Section title={FILTER_SECTION_LABELS.development} initiallyOpen>
       <PositionRatingField
         rating={filters.positionRating}
         positionName={positionName}
@@ -300,7 +313,9 @@ const basicSection = (kit: Kit, showPotential: boolean, career: boolean) => {
       {showPotential
         ? [range("potential"), range("growth"), ...(career ? peakFields(kit) : [])]
         : null}
-      <OnListField filters={filters} change={change} career={career} />
+      {list("developmentType", codeChoices(facets.codes.developmentType, "developmentType"))}
+      {list("developmentStyle", styleChoices(facets.codes.developmentStyle, sparkline))}
+      {range("learningSpeed")}
     </Section>
   );
 };
@@ -313,24 +328,33 @@ const physiqueSection = ({ facets, range, list }: Kit) => (
   </Section>
 );
 
-const characterSection = ({ facets, range, list, flag, sparkline }: Kit) => (
+const characterSection = ({ range, flag }: Kit) => (
   <Section title={FILTER_SECTION_LABELS.character}>
     {CHARACTER_TRAITS.map(flag)}
     {range("internationalReputation")}
-    {range("learningSpeed")}
     {range("retirementAge")}
     {flag("retiring")}
-    {list("developmentType", codeChoices(facets.codes.developmentType, "developmentType"))}
-    {list("developmentStyle", styleChoices(facets.codes.developmentStyle, sparkline))}
   </Section>
 );
 
-const clubSection = ({ filters, change, facets, range, list, flag, eye }: Kit, career: boolean) => (
+const clubSection = ({ filters, change, facets, range, list, flag }: Kit, career: boolean) => (
   <Section title={FILTER_SECTION_LABELS.club}>
     {list("leagueId", facetChoices(facets.leagues))}
     {list("clubId", facetChoices(facets.clubs))}
     {list("nationalityId", facetChoices(facets.nationalities))}
     {(["clubRating", "clubStars", "leaguePrestige", "clubPrestige"] as const).map(range)}
+    {flag("nationalTeam")}
+    {career ? <CareerClubFields filters={filters} change={change} /> : null}
+  </Section>
+);
+
+/**
+ * What a transfer turns on (owner, 2026-11-10): the price, the wage and the market lists come with a
+ * career; the contract is in fifa.db too.
+ */
+const transferSection = ({ filters, change, facets, range, flag, eye }: Kit, career: boolean) => (
+  <Section title={FILTER_SECTION_LABELS.transfer}>
+    {career ? [range("price"), range("wage")] : null}
     <ContractField
       years={facets.contractYears}
       range={filters.ranges?.contractEndYear}
@@ -340,24 +364,19 @@ const clubSection = ({ filters, change, facets, range, list, flag, eye }: Kit, c
       }}
     />
     {range("contractYearsLeft")}
-    {flag("nationalTeam")}
-    {career ? <CareerClubFields filters={filters} change={change} /> : null}
+    {career
+      ? (["transferListed", "loanListed", "loaned", "clubWillSell"] as const).map(flag)
+      : null}
   </Section>
 );
 
-const careerSection = ({ range, flag, ...kit }: Kit, showPotential: boolean) => (
-  <Section title={FILTER_SECTION_LABELS.career}>
+const seasonSection = ({ range, ...kit }: Kit, showPotential: boolean) => (
+  <Section title={FILTER_SECTION_LABELS.season}>
     <RoleFields {...kit} showPotential={showPotential} />
     {range("form")}
     {range("morale")}
     {SEASON_STAT_KEYS.map((key) => range(key))}
     {range("injuryDays")}
-    {range("price")}
-    {range("wage")}
-    {flag("transferListed")}
-    {flag("loanListed")}
-    {flag("loaned")}
-    {flag("clubWillSell")}
   </Section>
 );
 
@@ -414,7 +433,8 @@ export const FilterForm = ({
       <PotentialSwitch shown={showPotential} dispatch={dispatch} />
       <PortraitSwitches settings={settings} dispatch={dispatch} />
       {myTeamId === null ? null : <SigningSwitch signing={signing} dispatch={dispatch} />}
-      {basicSection(kit, showPotential, myTeamId !== null)}
+      {basicSection(kit, myTeamId !== null)}
+      {developmentSection(kit, showPotential, myTeamId !== null)}
       {physiqueSection(kit)}
       {attributeSection(kit)}
       <Section title={FILTER_SECTION_LABELS.traits} help={TEXT.traitsNote}>
@@ -422,7 +442,8 @@ export const FilterForm = ({
       </Section>
       {characterSection(kit)}
       {clubSection(kit, myTeamId !== null)}
-      {myTeamId === null ? null : careerSection(kit, showPotential)}
+      {transferSection(kit, myTeamId !== null)}
+      {myTeamId === null ? null : seasonSection(kit, showPotential)}
       <SettingsActions settings={settings} className="reset-filters" dispatch={dispatch} />
     </form>
   );

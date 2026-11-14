@@ -15,6 +15,7 @@ import {
   storedColumns,
   test,
   writeStored,
+  openSection,
 } from "./support.ts";
 
 type Box = { x: number; y: number; width: number; height: number };
@@ -206,7 +207,7 @@ test.describe("phone", () => {
 
     await page.getByRole("button", { name: "Filtry" }).click();
     const dialog = page.getByRole("dialog", { name: "Filtry" });
-    await dialog.getByText("Klub i kontrakt", { exact: true }).click();
+    await openSection(dialog, "Klub");
     const eye = eyeOf(page, "Klub");
     await expect(eye).toHaveAttribute("aria-pressed", "false");
     await eye.click();
@@ -237,7 +238,7 @@ test.describe("phone", () => {
     await expect(meta.first()).toHaveText(/^\d+\slat\w*\s·\s\S/u);
     await page.getByRole("button", { name: "Filtry" }).click();
     await eyeOf(page, "Wiek").click();
-    await dialog.getByText("Klub i kontrakt", { exact: true }).click();
+    await openSection(dialog, "Klub");
     await eyeOf(page, "Klub").click();
     await dialog.getByRole("button", { name: "Zamknij" }).click();
     await expect(page.locator(".player-rows-header .column-label")).toHaveText([
