@@ -147,19 +147,22 @@ describe("formationName", () => {
   });
 });
 
+/** A goalkeeper, a centre-back and a striker, ranked in two formations of three with `current` the club's. */
+const rankTwo = (current: readonly number[]) =>
+  rankFormations(
+    [member(1, 10, { 0: 80 }), member(2, 60, { 5: 75 }), member(3, 50, { 30: 72 })],
+    [
+      [0, 5, 5],
+      [0, 5, 30],
+    ],
+    current,
+  );
+
 describe("chosenFormation", () => {
   // CodeRabbit on #200: a choice kept as a place in the ranking moved to another formation when the
   // peak values reordered them.
   it("finds the chosen formation by its codes wherever it ranks, else the best one", () => {
-    const squad = [member(1, 10, { 0: 80 }), member(2, 60, { 5: 75 }), member(3, 50, { 30: 72 })];
-    const ranked = rankFormations(
-      squad,
-      [
-        [0, 5, 5],
-        [0, 5, 30],
-      ],
-      [],
-    );
+    const ranked = rankTwo([]);
     expect(chosenFormation(ranked, [0, 5, 5])?.codes).toEqual([0, 5, 5]);
     expect(chosenFormation(ranked, null)?.codes).toEqual([0, 5, 30]);
     expect(chosenFormation(ranked, [0, 3, 3])?.codes).toEqual([0, 5, 30]);
@@ -169,15 +172,7 @@ describe("chosenFormation", () => {
 
 describe("rankFormations", () => {
   it("ranks the formations by their best eleven's average, marking the current one", () => {
-    const squad = [member(1, 10, { 0: 80 }), member(2, 60, { 5: 75 }), member(3, 50, { 30: 72 })];
-    const ranked = rankFormations(
-      squad,
-      [
-        [0, 5, 5],
-        [0, 5, 30],
-      ],
-      [0, 30, 5],
-    );
+    const ranked = rankTwo([0, 30, 5]);
     expect(ranked.map((formation) => formation.codes)).toEqual([
       [0, 5, 30],
       [0, 5, 5],
