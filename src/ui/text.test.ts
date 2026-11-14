@@ -75,11 +75,12 @@ describe("the development chart's texts", () => {
     expect(TEXT.card.legendPeak(27, 80, false)).toBe(`szczyt: 27${NBSP}lat, poziom 80`);
   });
 
-  // Owner, 2026-11-14 (roadmap 124): the chart's age is the season's, the retirement age the game's on
-  // 31 December of the year the season ends, so the legend names both.
-  it("names the season's age and the retirement age the game counts on 31 December", () => {
-    expect(CHART_READING_TEXT.legendRetirement(31, 33)).toBe(
-      `ostatni sezon przed końcem kariery: wiek 31${NBSP}lat na jego początku; wiek zakończenia kariery, 33${NBSP}lata, gra liczy na 31${NBSP}grudnia roku końca sezonu`,
+  // Owner, 2026-11-14 (roadmaps 124, 127): a short legend; why the chart's age differs from the
+  // retirement age on the card goes behind its "?".
+  it("names the last season shortly and explains the two ages behind its help", () => {
+    expect(CHART_READING_TEXT.legendRetirement(32)).toBe(`ostatni sezon: 32${NBSP}lata`);
+    expect(CHART_READING_TEXT.retirementHelp(34)).toContain(
+      `kariery z${NBSP}bazy, 34${NBSP}lata, gra`,
     );
   });
 });

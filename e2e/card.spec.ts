@@ -466,6 +466,5 @@ test.describe("offer explanations", () => {
   });
 });
 
-/** The last season's age and the retirement age the game counts on 31 December (roadmap 124). */
-const RETIREMENT_LEGEND =
-  /^ostatni sezon przed końcem kariery: wiek \d+\s\S+ na jego początku; wiek zakończenia kariery, \d+\s\S+, gra liczy na 31\sgrudnia/u;
+/** The last season's age, shortly (roadmap 127); the two ages are explained behind its "?". */
+const RETIREMENT_LEGEND = /^ostatni sezon: \d+\s\S+/u;
