@@ -25,6 +25,7 @@ import {
   byPositionCode,
   cappedOverall,
   careerAgeing,
+  careerPotential,
   overallsByAge,
   peaksByPositionCode,
   potentialDeltas,
@@ -346,7 +347,7 @@ const rater = (
   const gains = attributeGains(db, save);
   const date = seasonStartDate(db, save);
   return (row) => {
-    const potential = num(row, "potential") + delta(row);
+    const potential = careerPotential(num(row, "potential"), delta(row));
     const gain = gains.get(num(row, "playerid"));
     const input = {
       // The gains count before ageing, as the database attributes they add to.
