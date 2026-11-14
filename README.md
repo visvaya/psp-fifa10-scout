@@ -42,8 +42,8 @@ What it does today:
   and the card says what differs.
 - With a career save, gives each player of your club a role in the squad (for example "2. CB": second
   in line for that place of your formation) and a state (to develop, to loan, to sell, declining and
-  so on), and shows for players elsewhere the place they would take in your team, by today's OVR and
-  by their peak.
+  so on), and shows for players elsewhere the place they would take in your team when it would be
+  first or second in line, by today's OVR and by their peak.
 - Optionally reads a manager-mode career save (`DATA.BIN` and `PARAM.SFO`): decrypts it, verifies
   its checksum and shows the current state of the career: clubs and leagues after promotions and
   relegations, contracts, loans, the transfer list, rolling match rating (KR), morale, injuries, the
