@@ -12,6 +12,7 @@ import { HelpHeading } from "./field-help.tsx";
 import { RadioField } from "./filter-form.tsx";
 import { BarDialogButton } from "./modal-dialog.tsx";
 import { CLUB_TEXT } from "./text-club.ts";
+import { REDUCED_MOTION_QUERY } from "./use-media-query.ts";
 
 const VALUES = ["now", "peak"] as const;
 const GOALKEEPER_CODE = 0;
@@ -76,6 +77,7 @@ const FormationTable = (props: {
               <span className="formation-codes">
                 {formation.codes
                   .filter((code) => code !== GOALKEEPER_CODE)
+                  .toSorted(byGameOrder)
                   .map(props.positionName)
                   .join(" ")}
               </span>
@@ -93,6 +95,25 @@ const FormationTable = (props: {
   );
 };
 
+/**
+ * The game lists a team's positions by code, from the goalkeeper and the right side (its team sheet:
+ * BR, CPS, PŚO, ŚO, LŚO; owner, 2026-11-14), not in the order of the formation's row.
+ */
+const byGameOrder = (one: number, other: number): number => one - other;
+
+const ELEVEN_TITLE_ID = "eleven-title";
+
+/**
+ * Brings the eleven, above the table, into view after a formation is chosen in it, so a press never
+ * shows no change.
+ */
+const showEleven = (): void => {
+  const reduced = globalThis.matchMedia(REDUCED_MOTION_QUERY).matches;
+  document
+    .getElementById(ELEVEN_TITLE_ID)
+    ?.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" });
+};
+
 /** The chosen formation's eleven: each slot's position, player (his card on a press) and value. */
 const ElevenList = (props: {
   formation: RankedFormation;
@@ -100,33 +121,35 @@ const ElevenList = (props: {
   positionName: (code: number) => string;
   dispatch: Dispatch<ScoutAction>;
 }) => (
-  <section aria-labelledby="eleven-title">
-    <h3 id="eleven-title">{CLUB_TEXT.eleven(props.formation.name)}</h3>
+  <section aria-labelledby={ELEVEN_TITLE_ID}>
+    <h3 id={ELEVEN_TITLE_ID}>{CLUB_TEXT.eleven(props.formation.name)}</h3>
     <ol className="eleven-list">
-      {props.formation.slots.map(({ code, playerId, value }, index) => (
-        // A formation can hold a code twice (two centre-backs as one code): the place keys the slot.
-        // oxlint-disable-next-line react/no-array-index-key -- slots have no id but their place
-        <li key={index}>
-          <span className="eleven-position">{props.positionName(code)}</span>
-          {playerId === null ? (
-            <span>{CLUB_TEXT.noPlayer}</span>
-          ) : (
-            <>
-              <button
-                type="button"
-                className="link-button"
-                data-player-id={playerId}
-                onClick={() => {
-                  props.dispatch({ type: "player-opened", id: playerId });
-                }}
-              >
-                {props.names.get(playerId) ?? String(playerId)}
-              </button>
-              <AttributeValue value={value} />
-            </>
-          )}
-        </li>
-      ))}
+      {props.formation.slots
+        .toSorted((one, other) => byGameOrder(one.code, other.code))
+        .map(({ code, playerId, value }, index) => (
+          // A formation can hold a code twice (two centre-backs as one code): the place keys the slot.
+          // oxlint-disable-next-line react/no-array-index-key -- slots have no id but their place
+          <li key={index}>
+            <span className="eleven-position">{props.positionName(code)}</span>
+            {playerId === null ? (
+              <span>{CLUB_TEXT.noPlayer}</span>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="link-button"
+                  data-player-id={playerId}
+                  onClick={() => {
+                    props.dispatch({ type: "player-opened", id: playerId });
+                  }}
+                >
+                  {props.names.get(playerId) ?? String(playerId)}
+                </button>
+                <AttributeValue value={value} />
+              </>
+            )}
+          </li>
+        ))}
     </ol>
   </section>
 );
@@ -150,7 +173,11 @@ export const ClubView = (props: ClubProps): JSX.Element => {
     () => new Map(players.map((player) => [player.id, player.name])),
     [players],
   );
-  const formation = chosenFormation(ranked, chosen);
+  // The club's formation until another is chosen (owner, 2026-11-14), else the best one.
+  const formation = chosenFormation(
+    ranked,
+    chosen ?? ranked.find((each) => each.current)?.codes ?? null,
+  );
   return (
     <section aria-labelledby="formations-title">
       <HelpHeading
@@ -168,14 +195,6 @@ export const ClubView = (props: ClubProps): JSX.Element => {
           onChange={setKind}
         />
       ) : null}
-      <FormationTable
-        ranked={ranked}
-        chosen={formation}
-        onChoose={(picked) => {
-          setChosen(picked.codes);
-        }}
-        positionName={props.positionName}
-      />
       {formation === undefined ? null : (
         <ElevenList
           formation={formation}
@@ -184,6 +203,15 @@ export const ClubView = (props: ClubProps): JSX.Element => {
           dispatch={props.dispatch}
         />
       )}
+      <FormationTable
+        ranked={ranked}
+        chosen={formation}
+        onChoose={(picked) => {
+          setChosen(picked.codes);
+          showEleven();
+        }}
+        positionName={props.positionName}
+      />
     </section>
   );
 };
