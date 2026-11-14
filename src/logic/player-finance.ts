@@ -13,7 +13,11 @@ import type { EuroMoney, PriceInput } from "./transfer-price.ts";
 
 /** Priced in the save's currency; the euro amounts let the reducer show another without a new load. */
 export interface Finance extends EuroMoney {
-  /** The asking price; 0 when the contract has run out, null for a loaned player. */
+  /**
+   * The asking price; 0 when the contract has run out, null for a loaned player. In the profile at the peak
+   * (roadmap 123) his value in that season on the contract he wants then, a free agent included: by then
+   * he holds one (owner, 2026-11-14).
+   */
   readonly price: number | null;
   /** The market wage per match from the game's formula, with the free-transfer factor once the
    * contract has run out, or the stored wage of the user's squad. */
