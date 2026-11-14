@@ -94,11 +94,14 @@ export const CHOICE_VALUE_TEXT: Readonly<Record<ChoiceKey, (value: unknown) => s
     const state = SQUAD_STATES.find((item) => item === value);
     return state === undefined ? String(value) : SQUAD_STATE_LABELS[state];
   },
-  // Named as the roles are, by the game's abbreviation of the slot's position.
-  bestEleven: (value) => {
-    const code = elevenCodeOf(Number(value));
-    return code === null ? OUTSIDE_ELEVEN_LABEL : positionOf(code).name;
-  },
+  // In the list and on the card named as the role beside it is (Player.roleName).
+  bestEleven: (value) => elevenText(value, { positionName: (code) => positionOf(code).name }),
+};
+
+/** A slot of the best eleven by its position, named by `names`, or "poza jedenastką". */
+export const elevenText = (value: unknown, names: Pick<ChipNames, "positionName">): string => {
+  const code = elevenCodeOf(Number(value));
+  return code === null ? OUTSIDE_ELEVEN_LABEL : names.positionName(code);
 };
 
 /** The lists of a role or target, whose values are named by roleText. */
@@ -119,6 +122,7 @@ const LIST_VALUE_TEXT: Readonly<Record<ListKey, (value: unknown, names: ChipName
   role: roleText,
   target: roleText,
   peakTarget: roleText,
+  bestEleven: elevenText,
 };
 
 /** The first chosen values by name, then how many more: "Argentina, Brazil, Chile +2"; "oprócz …" for

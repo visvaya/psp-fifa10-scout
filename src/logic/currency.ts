@@ -23,7 +23,7 @@ export const pricedIn = (players: readonly Player[], currency: CurrencyCode): re
   return players.map((player) => ({ ...player, ...moneyIn(player, rate) }));
 };
 
-const MONEY_KEYS = ["price", "wage"] as const;
+const MONEY_KEYS = ["price", "wage", "transferWage"] as const;
 
 /** The state with its players priced in the shown currency: a load brings them in the save's one. */
 export const withShownCurrency = (before: ScoutState, after: ScoutState): ScoutState => {

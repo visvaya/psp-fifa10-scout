@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { testPlayer } from "../logic/test-support/player-fixtures.ts";
-import { chipText, namesById } from "./chip-text.ts";
+import { OUTSIDE_ELEVEN } from "../logic/roles.ts";
+import { chipText, elevenText, namesById } from "./chip-text.ts";
 import { NBSP } from "./typeset.ts";
 
 const names = {
@@ -93,5 +94,11 @@ describe("chipText", () => {
     expect(chipText("onList", { onList: "tool" }, names)).toBe(`Na liście: w${NBSP}narzędziu`);
     expect(chipText("onList", { onList: "both" }, names)).toBe(`Na liście: w${NBSP}obu`);
     expect(chipText("onList", { onList: "none" }, names)).toBe("Na liście: na żadnej");
+  });
+
+  // CodeRabbit on #207: the best eleven's slots in the game language, as the roles beside them.
+  it("names the best eleven's slot in the game language, or outside it", () => {
+    expect(elevenText(5 * 32, names)).toBe("BR");
+    expect(elevenText(OUTSIDE_ELEVEN, names)).toBe("poza jedenastką");
   });
 });

@@ -19,7 +19,8 @@ import type { Curves } from "../logic/overall-rating.ts";
 import type { FilterChange, MyClub, ScoutAction, ScoutFilters } from "../logic/scout-state.ts";
 import { styleChoices } from "./curve-sparkline.tsx";
 import { CheckField, ChoiceField, FlagField, RangeField, Section } from "./filter-fields.tsx";
-import { AttributeRanges, ContractField } from "./filter-field-groups.tsx";
+import { AttributeRanges } from "./filter-field-groups.tsx";
+import { transferSection } from "./filter-transfer.tsx";
 import { columnEye } from "./column-eye.tsx";
 import type { Eye } from "./column-eye.tsx";
 import { OptionalHelp } from "./field-help.tsx";
@@ -176,7 +177,7 @@ const codeChoices = (codes: readonly number[], key: CodedKey): readonly Choice<n
   codes.map((code) => ({ value: code, label: codeName(key, code) }));
 
 /** Ranges of large amounts, typed with grouped digits. */
-const GROUPED_RANGES: ReadonlySet<RangeKey> = new Set(["price", "wage"]);
+const GROUPED_RANGES: ReadonlySet<RangeKey> = new Set(["price", "wage", "transferWage"]);
 
 /** Builders for one control of each kind, bound to the current filters. */
 const controls = (
@@ -230,7 +231,7 @@ const controls = (
   ),
 });
 
-type Kit = ReturnType<typeof controls> & {
+export type Kit = ReturnType<typeof controls> & {
   readonly filters: ScoutFilters;
   readonly change: Change;
   readonly facets: ReturnType<typeof facetOptions>;
@@ -348,28 +349,6 @@ const clubSection = ({ filters, change, facets, range, list, flag }: Kit, career
   </Section>
 );
 
-/**
- * What a transfer turns on (owner, 2026-11-10): the price, the wage and the market lists come with a
- * career; the contract is in fifa.db too.
- */
-const transferSection = ({ filters, change, facets, range, flag, eye }: Kit, career: boolean) => (
-  <Section title={FILTER_SECTION_LABELS.transfer}>
-    {career ? [range("price"), range("wage")] : null}
-    <ContractField
-      years={facets.contractYears}
-      range={filters.ranges?.contractEndYear}
-      column={eye("contractEndYear")}
-      onChange={(next) => {
-        change({ ranges: { ...filters.ranges, contractEndYear: next } });
-      }}
-    />
-    {range("contractYearsLeft")}
-    {career
-      ? (["transferListed", "loanListed", "loaned", "clubWillSell"] as const).map(flag)
-      : null}
-  </Section>
-);
-
 const seasonSection = ({ range, ...kit }: Kit, showPotential: boolean) => (
   <Section title={FILTER_SECTION_LABELS.season}>
     <RoleFields {...kit} showPotential={showPotential} />
@@ -444,7 +423,7 @@ export const FilterForm = ({
       </Section>
       {characterSection(kit)}
       {clubSection(kit, myTeamId !== null)}
-      {transferSection(kit, myTeamId !== null)}
+      {transferSection(kit, myTeamId !== null, signing.afterSigning === true)}
       {myTeamId === null ? null : seasonSection(kit, showPotential)}
       <SettingsActions settings={settings} className="reset-filters" dispatch={dispatch} />
     </form>

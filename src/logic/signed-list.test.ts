@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { initialScoutState, scoutReducer } from "./scout-state.ts";
-import type { ScoutState } from "./scout-state.ts";
+import type { Preferences, ScoutState } from "./scout-state.ts";
+import { offerTerms } from "./offer.ts";
 import { canResetSettings } from "./settings-reset.ts";
 import { needsSignedList, shownPlayers } from "./signed-list.ts";
 import { TEST_CAREER, testPlayer } from "./test-support/player-fixtures.ts";
@@ -23,6 +24,22 @@ const loaded = (from: ScoutState, requestId = 1): ScoutState =>
 
 const moneyShown = (state: ScoutState) =>
   shownPlayers(state)?.map(({ price, wage }) => ({ price, wage }));
+
+/** The least wage the offer form asks for BEFORE at a contract of `years`. */
+const needed = (years: number) =>
+  offerTerms(BEFORE, TEST_CAREER.offer, { double: false, bonusPercent: 0, years })?.wage;
+
+/** The state with these preferences restored over the defaults. */
+const restore = (preferences: Partial<Preferences>): ScoutState =>
+  scoutReducer(initialScoutState, {
+    type: "preferences-restored",
+    preferences: {
+      filters: {},
+      sort: initialScoutState.sort,
+      showPotential: false,
+      ...preferences,
+    },
+  });
 
 const switched = (state: ScoutState, shown = true): ScoutState =>
   scoutReducer(state, { type: "after-signing-shown", shown });
@@ -95,6 +112,48 @@ describe("the list after signing", () => {
     expect(moneyShown(ready)).toEqual([{ price: 2_000_000, wage: 10_000 }]);
   });
 
+  // Owner, 2026-11-14 (decision 1b): the wage he will be paid, the least his offer needs, beside the market wage.
+  it("gives the wage his offer needs at the user's club for the length he wants or the one chosen", () => {
+    const ready = built(switched(loaded(initialScoutState)), [SIGNED]);
+    expect(shownPlayers(ready)?.[0]?.transferWage).toBe(needed(2));
+    const four = scoutReducer(ready, { type: "transfer-years-chosen", years: 4 });
+    expect(shownPlayers(four)?.[0]?.transferWage).toBe(needed(4));
+    expect(needed(4)).not.toBe(needed(2));
+  });
+
+  // CodeRabbit on #204: a hidden range would leave every player out, with no control to clear it.
+  it("drops the range of the wage after a transfer when the profile turns off", () => {
+    const on = switched(loaded(initialScoutState));
+    const filtered = scoutReducer(
+      scoutReducer(on, {
+        type: "filters-changed",
+        filters: { ranges: { transferWage: { min: 1 } } },
+      }),
+      { type: "sort-changed", key: "transferWage" },
+    );
+    expect(filtered.filters.ranges?.transferWage).toEqual({ min: 1 });
+    const off = switched(filtered, false);
+    expect(off.filters.ranges?.transferWage).toBeUndefined();
+  });
+
+  // CodeRabbit on #204: undo could bring the range back while the profile is off.
+  it("undoes to no range of the wage after a transfer while the profile is off", () => {
+    const on = switched(loaded(initialScoutState));
+    const ranged = scoutReducer(on, {
+      type: "filters-changed",
+      filters: { ranges: { transferWage: { min: 1 } } },
+    });
+    const sorted = scoutReducer(ranged, { type: "sort-changed", key: "age" });
+    const undone = scoutReducer(switched(sorted, false), { type: "undo" });
+    expect(undone.filters.ranges?.transferWage).toBeUndefined();
+  });
+
+  it("gives no wage after a transfer to a player without values at the user's club", () => {
+    const ready = built(switched(loaded(initialScoutState)), [AFTER]);
+    expect(shownPlayers(ready)?.[0]?.transferWage).toBeNull();
+    expect(shownPlayers(loaded(initialScoutState))?.[0]?.transferWage).toBeNull();
+  });
+
   it("prices him for the contract length chosen, and for the one he wants again", () => {
     const ready = built(switched(loaded(initialScoutState)), [SIGNED]);
     const four = scoutReducer(ready, { type: "transfer-years-chosen", years: 4 });
@@ -158,17 +217,13 @@ describe("the list after signing", () => {
   });
 
   it("is restored from the stored preferences", () => {
-    const restored = scoutReducer(initialScoutState, {
-      type: "preferences-restored",
-      preferences: {
-        filters: {},
-        sort: initialScoutState.sort,
-        showPotential: false,
-        afterSigning: true,
-        transferYears: 3,
-      },
-    });
+    const restored = restore({ afterSigning: true, transferYears: 3 });
     expect(restored.afterSigning).toBe(true);
     expect(restored.transferYears).toBe(3);
+  });
+
+  it("restores no range of the wage after a transfer without its profile", () => {
+    const restored = restore({ filters: { ranges: { transferWage: { min: 1 } } } });
+    expect(restored.filters.ranges?.transferWage).toBeUndefined();
   });
 });

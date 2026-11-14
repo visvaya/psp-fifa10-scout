@@ -4,7 +4,7 @@ import type { JSX } from "react";
 import type { facetOptions } from "../logic/facets.ts";
 import type { Player } from "../logic/players.ts";
 import { SQUAD_STATES } from "../logic/roles.ts";
-import { CHOICE_VALUE_TEXT, roleText } from "./chip-text.ts";
+import { elevenText, roleText } from "./chip-text.ts";
 import type { Choice } from "./filter-fields.tsx";
 import { SQUAD_STATE_LABELS } from "./text-choices.ts";
 
@@ -40,7 +40,7 @@ export const RoleFields = ({
     )}
     {list(
       "bestEleven",
-      codes.bestEleven.map((value) => ({ value, label: CHOICE_VALUE_TEXT.bestEleven(value) })),
+      codes.bestEleven.map((value) => ({ value, label: elevenText(value, { positionName }) })),
     )}
     {list("target", roleChoices(codes.target, positionName))}
     {showPotential ? list("peakTarget", roleChoices(codes.peakTarget, positionName)) : null}

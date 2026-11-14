@@ -78,6 +78,7 @@ export const SORTABLE_KEYS: readonly SortKey[] = [
   "levelUpPoints",
   "price",
   "wage",
+  "transferWage",
   "positionRating",
   "ratingGain",
   "positionPeak",

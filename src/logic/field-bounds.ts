@@ -66,6 +66,7 @@ const FIELD_BOUNDS: Readonly<Record<RangeFields, FieldBounds>> = {
   levelUpPoints: whole(0),
   price: whole(0),
   wage: whole(0),
+  transferWage: whole(0),
 };
 
 /** The bounds of a range field; every attribute is a rating. */
