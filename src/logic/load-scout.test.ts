@@ -132,6 +132,7 @@ describe("loadScout", () => {
       offer: { prestige: 0, negotiator: 0, seasonEndYear: 2010 },
       // The starting eleven of the scout database's diamond.
       formationCodes: [0, 3, 4, 6, 7, 11, 16, 18, 23, 29, 31],
+      formations: [[0, 3, 4, 6, 7, 11, 16, 18, 23, 29, 31]],
     });
   });
 
