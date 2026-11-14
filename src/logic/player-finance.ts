@@ -18,11 +18,17 @@ export interface Finance extends EuroMoney {
    * contract has run out, or the stored wage of the user's squad. */
   readonly wage: number | null;
   /**
-   * A free agent's estimated value, in euro, once he signs for the user's club: the price formula with
-   * that club's prestige and a contract of 1 to 5 years (index 0 to 4). The game gives him 0 until he
-   * signs. Null for anyone else.
+   * His estimated value, in euro, once he signs for the user's club: the price formula with that club's
+   * prestige and a contract of 1 to 5 years (index 0 to 4). A free agent's (the game gives him 0 until
+   * he signs), and, in the profile after a transfer, everyone's outside the squad but loaned players.
+   * Null for anyone else.
    */
   readonly signedValuesEuro: readonly number[] | null;
+  /**
+   * His market wage per match, in euro, at the user's club in the profile after a transfer: the wage
+   * formula with that club's prestige, which no contract length changes. Null for anyone else.
+   */
+  readonly signedWageEuro: number | null;
   /**
    * A loaned player's value, in euro, once back at his parent club next season: the season's turn renews
    * his contract by one draw of 1 to 5 years for every player (index 0 to 4). Null for anyone else, or
@@ -38,6 +44,7 @@ export const NO_FINANCE: Finance = {
   wageEuro: null,
   storedWage: false,
   signedValuesEuro: null,
+  signedWageEuro: null,
   returnValuesEuro: null,
 };
 
@@ -49,6 +56,7 @@ export const moneyOf = ({
   wageEuro,
   storedWage,
   signedValuesEuro,
+  signedWageEuro,
   returnValuesEuro,
 }: Finance): Finance => ({
   price,
@@ -57,6 +65,7 @@ export const moneyOf = ({
   wageEuro,
   storedWage,
   signedValuesEuro,
+  signedWageEuro,
   returnValuesEuro,
 });
 
@@ -126,10 +135,12 @@ const priceInputOf =
   };
 
 /** No value once signed or once back. */
-const NO_VALUES = { signedValuesEuro: null, returnValuesEuro: null } as const;
+const NO_VALUES = { signedValuesEuro: null, signedWageEuro: null, returnValuesEuro: null } as const;
+
+type Prospects = Pick<Finance, "signedValuesEuro" | "signedWageEuro" | "returnValuesEuro">;
 
 /** The contract lengths the offer form offers, in years. */
-const CONTRACT_YEARS = [1, 2, 3, 4, 5] as const;
+export const CONTRACT_YEARS = [1, 2, 3, 4, 5] as const;
 
 /** A free agent's price for each contract length, at the user's club's prestige. */
 const signedValuesOf = (input: PriceInput, userPrestige: number | null): readonly number[] | null =>
@@ -159,8 +170,40 @@ const float32 = (bits: number): number => {
 };
 
 /**
+ * His asking price, and the wage stored for him in the user's squad, else his market wage, with the
+ * free-transfer factor once his contract has run out.
+ */
+const clubMoney = (input: PriceInput, stored: number | undefined): EuroMoney => {
+  const priceEuro = priceInEuro(input);
+  return stored === undefined
+    ? { priceEuro, wageEuro: wageInEuro(input, input.contractYearsLeft <= 0), storedWage: false }
+    : { priceEuro, wageEuro: stored, storedWage: true };
+};
+
+/**
+ * What he is worth once he signs for the user's club (prestige `userPrestige`): a free agent's values
+ * always, and with `afterSigning` (the profile after a transfer, his OVR already after signing) every
+ * player's of another club, with the market wage there.
+ */
+const signedProspects = (
+  input: PriceInput,
+  userPrestige: number | null,
+  { free, afterSigning }: { readonly free: boolean; readonly afterSigning: boolean },
+): Prospects => {
+  if (!afterSigning)
+    return { ...NO_VALUES, signedValuesEuro: free ? signedValuesOf(input, userPrestige) : null };
+  return {
+    ...NO_VALUES,
+    signedValuesEuro: signedValuesOf(input, userPrestige),
+    signedWageEuro:
+      userPrestige === null ? null : wageInEuro({ ...input, prestige: userPrestige }, false),
+  };
+};
+
+/**
  * Prices and wages on the save's date; players without a club or free-agent link get none. `loanedFrom`
- * maps each loaned player to his parent club.
+ * maps each loaned player to his parent club. With `afterSigning` the players come as once signed, so
+ * the ones of other clubs get their values at the user's club too (signedProspects).
  */
 export const financeOf = (
   db: EaDb,
@@ -170,16 +213,19 @@ export const financeOf = (
     readonly loanedFrom: ReadonlyMap<number, number>;
     /** A club's league prestige plus team prestige; null for a club in no league. */
     readonly prestigeOf: (teamId: number) => number | null;
+    /** The players come as once signed: the profile after a transfer. */
+    readonly afterSigning: boolean;
   },
 ): ((input: FinanceInput) => Finance) => {
-  const { loanedFrom, prestigeOf } = clubs;
+  const { loanedFrom, prestigeOf, afterSigning } = clubs;
   const { teamId: userTeamId, currency } = careerManager(db, save);
   const userPrestige = prestigeOf(userTeamId);
   const rate = exchangeRate(currency);
-  const shown = (
-    euro: EuroMoney,
-    values: Pick<Finance, "signedValuesEuro" | "returnValuesEuro"> = NO_VALUES,
-  ): Finance => ({ ...euro, ...moneyIn(euro, rate), ...values });
+  const shown = (euro: EuroMoney, values: Prospects): Finance => ({
+    ...euro,
+    ...moneyIn(euro, rate),
+    ...values,
+  });
   // The game counts contract years from the year the season started: in April 2011 a contract to 2013
   // shows three years.
   const seasonYear = seasonStartDate(db, save).getUTCFullYear();
@@ -210,18 +256,10 @@ export const financeOf = (
       // A free agent counts OVR / 5 as both league and team prestige.
       prestige: club?.prestige ?? 2 * Math.floor(now.overall / 5),
     };
-    const stored = num(link, "teamid") === userTeamId ? storedWages.get(id) : undefined;
-    const priceEuro = priceInEuro(input);
-    const signedValuesEuro = club === undefined ? signedValuesOf(input, userPrestige) : null;
-    return shown(
-      stored === undefined
-        ? {
-            priceEuro,
-            wageEuro: wageInEuro(input, input.contractYearsLeft <= 0),
-            storedWage: false,
-          }
-        : { priceEuro, wageEuro: stored, storedWage: true },
-      { ...NO_VALUES, signedValuesEuro },
-    );
+    const own = num(link, "teamid") === userTeamId;
+    const prospects = own
+      ? NO_VALUES
+      : signedProspects(input, userPrestige, { free: club === undefined, afterSigning });
+    return shown(clubMoney(input, own ? storedWages.get(id) : undefined), prospects);
   };
 };

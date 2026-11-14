@@ -1,7 +1,8 @@
 // The filter panel's own controls above the filters: the potential switch, with the game's graphics the
-// portrait switches and, with a career, the switch to values after signing.
+// portrait switches and, with a career, the switch to the profile after a transfer.
 import { useId } from "react";
 import type { Dispatch, JSX } from "react";
+import { CONTRACT_YEARS } from "../logic/player-finance.ts";
 import { CheckField } from "./filter-fields.tsx";
 import { useHasGameImages } from "./game-image.tsx";
 import type { PortraitSetting, ScoutAction, ScoutState } from "../logic/scout-state.ts";
@@ -73,8 +74,9 @@ export const PortraitSwitches = (props: {
 };
 
 /**
- * Values after signing for players outside the squad (roadmap 56), under the potential switch and only
- * with a career; while the worker builds that list, and when it fails, a line under it says so.
+ * The profile after a transfer for players outside the squad (roadmap 56), under the potential switch
+ * and only with a career, with the contract length their price is for while it is on; while the worker
+ * builds that list, and when it fails, a line under it says so.
  */
 export const SigningSwitch = (props: {
   signing: SigningState;
@@ -82,6 +84,7 @@ export const SigningSwitch = (props: {
 }): JSX.Element => {
   const { afterSigning, signed } = props.signing;
   const on = afterSigning === true;
+  const yearsId = useId();
   return (
     <div className="signing-switch">
       <CheckField
@@ -92,6 +95,29 @@ export const SigningSwitch = (props: {
           props.dispatch({ type: "after-signing-shown", shown });
         }}
       />
+      {on ? (
+        <div className="field">
+          <label htmlFor={yearsId}>{SIGNING_TEXT.years}</label>
+          <select
+            id={yearsId}
+            value={props.signing.transferYears ?? ""}
+            onChange={(event) => {
+              const { value } = event.currentTarget;
+              props.dispatch({
+                type: "transfer-years-chosen",
+                years: value === "" ? null : Number(value),
+              });
+            }}
+          >
+            <option value="">{SIGNING_TEXT.wantedYears}</option>
+            {CONTRACT_YEARS.map((years) => (
+              <option key={years} value={years}>
+                {TEXT.years(years)}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
       <output className="signing-status">
         {on && signed === "pending" ? SIGNING_TEXT.pending : null}
         {on && signed === "failed" ? SIGNING_TEXT.failed : null}

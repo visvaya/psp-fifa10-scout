@@ -26,6 +26,7 @@ import type {
 } from "./filter-players.ts";
 import type { SaveFiles } from "./load-scout.ts";
 import { OVR_WEIGHTS } from "./overall-rating.ts";
+import { CONTRACT_YEARS } from "./player-finance.ts";
 import { POSITION_GROUPS, ratingCodeOf } from "./positions.ts";
 import { SQUAD_STATES } from "./roles.ts";
 import { isCurrencyCode } from "../data/career-save.ts";
@@ -218,6 +219,10 @@ const parseColumns = (value: unknown): ColumnPreference =>
     item === "shown" || item === "hidden" ? item : undefined,
   );
 
+/** A contract length the offer form offers. */
+const isContractLength = (value: unknown): value is number =>
+  CONTRACT_YEARS.some((years) => years === value);
+
 const parsePreferences = (value: unknown): Preferences | null => {
   if (!isRecord(value) || !isRecord(value["filters"])) return null;
   const filterSets = parseFilterSets(value["filterSets"]);
@@ -234,6 +239,7 @@ const parsePreferences = (value: unknown): Preferences | null => {
     ...(isCurrencyCode(value["currency"]) ? { currency: value["currency"] } : {}),
     ...(Array.isArray(value["tieOrder"]) ? { tieOrder: tieOrderOf(value["tieOrder"]) } : {}),
     ...(value["afterSigning"] === true ? { afterSigning: true } : {}),
+    ...(isContractLength(value["transferYears"]) ? { transferYears: value["transferYears"] } : {}),
     ...(value["approximatePortraits"] === true ? { approximatePortraits: true } : {}),
     ...(value["alwaysPortraits"] === true ? { alwaysPortraits: true } : {}),
   };

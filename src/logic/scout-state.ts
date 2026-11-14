@@ -33,7 +33,12 @@ import type { FilterSet, FilterSetAction } from "./saved-filters.ts";
 import type { TieRule } from "./best-peak.ts";
 import { tieOrderAfter, tieOrderChosen, tiesBroken } from "./tie-order.ts";
 import type { TieOrderAction } from "./tie-order.ts";
-import { isSigningAction, signingReducer, withSignedList } from "./signed-list.ts";
+import {
+  isSigningAction,
+  signingPreferenceOf,
+  signingReducer,
+  withSignedList,
+} from "./signed-list.ts";
 import type { SigningAction, SigningPreference, SigningState } from "./signed-list.ts";
 
 /** The user's club in the list: unset shows it with everyone, "hide" leaves it out, "only" keeps it alone. */
@@ -256,7 +261,7 @@ const withPreferences = (state: ScoutState, preferences: Preferences): ScoutStat
     ...(filterSets === undefined ? {} : { filterSets }),
     ...(columns === undefined ? {} : { columns }),
     ...(currency === undefined ? {} : { currency }),
-    ...(preferences.afterSigning === true ? { afterSigning: true } : {}),
+    ...signingPreferenceOf(preferences),
     ...(preferences.approximatePortraits === true ? { approximatePortraits: true } : {}),
     ...(preferences.alwaysPortraits === true ? { alwaysPortraits: true } : {}),
   };
@@ -377,10 +382,8 @@ const isResetAction = (action: ScoutAction): action is ResetAction => action.typ
  * The settings alone are enough for it, so canResetSettings (settings-reset.ts) asks the reset itself.
  */
 export const resetState = <
-  S extends Pick<
-    ScoutState,
-    "columns" | "tieOrder" | "afterSigning" | "approximatePortraits" | "alwaysPortraits"
-  >,
+  S extends Pick<ScoutState, "columns" | "tieOrder" | "approximatePortraits" | "alwaysPortraits"> &
+    SigningPreference,
 >(
   state: S,
   type: ResetAction["type"],
@@ -389,6 +392,7 @@ export const resetState = <
     columns: _columns,
     tieOrder: _tieOrder,
     afterSigning: _signing,
+    transferYears: _years,
     approximatePortraits: _portraits,
     alwaysPortraits: _always,
     ...kept

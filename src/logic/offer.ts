@@ -161,6 +161,22 @@ const wageNeeded = (market: number, needed: number, bonusPercent: number): numbe
   return low;
 };
 
+/**
+ * The contract length he wants, as the game draws it from his id, at most the seasons left before he
+ * retires (counted to the end of the season ending in `seasonEndYear`); 0 when any contract would outlast
+ * his career.
+ */
+export const wantedContractYears = (
+  { id, birthYear, retirementAge }: Pick<Player, "id" | "birthYear" | "retirementAge">,
+  seasonEndYear: number,
+): number => Math.min(careerYears({ birthYear, retirementAge }, seasonEndYear), (id % 5) + 1);
+
+/** The seasons he plays on after this one, before he retires; 0 when this is his last. */
+const careerYears = (
+  { birthYear, retirementAge }: Pick<Player, "birthYear" | "retirementAge">,
+  seasonEndYear: number,
+): number => Math.max(0, retirementAge - (seasonEndYear - birthYear));
+
 /** The terms of a successful offer, or null without a market wage (no club, no career). */
 export const offerTerms = (
   player: Player,
@@ -173,9 +189,8 @@ export const offerTerms = (
   const floor = (base: number): number => Math.ceil(base * t.floorShareOfBase);
   const fee =
     value === 0 ? null : Math.max(feeNeeded(value, player.transferListed, context), floor(value));
-  const endAge = context.seasonEndYear - player.birthYear;
-  const career = Math.max(0, player.retirementAge - endAge);
-  const wantedYears = Math.min(career, (player.id % 5) + 1);
+  const career = careerYears(player, context.seasonEndYear);
+  const wantedYears = wantedContractYears(player, context.seasonEndYear);
   const longestYears = Math.min(career, t.maxContractYears);
   const years = choice.years ?? wantedYears;
   const base =
