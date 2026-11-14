@@ -17,7 +17,7 @@ import type { BestPeakKey } from "./best-peak.ts";
 import { SCOUT_CONFIG } from "./config.ts";
 import { dueLevelUp, NO_LEVEL_UP, squadLevelUp } from "./level-up.ts";
 import type { LevelUpFields } from "./level-up.ts";
-import { nameCollator, searchKey } from "./player-names.ts";
+import { initialNameOf, nameCollator, searchKey } from "./player-names.ts";
 import { composedPortraitOf } from "./portraits.ts";
 import {
   attributeGains,
@@ -257,7 +257,7 @@ const summary = (row: EaDbRow, context: Context): Summary => {
   const player: Omit<Summary, BestPeakKey> = {
     id,
     name,
-    initialName: firstName === "" || surname === "" ? null : `${firstName.charAt(0)}. ${surname}`,
+    initialName: initialNameOf(firstName, surname),
     searchName: searchKey(name),
     youth: id >= SCOUT_CONFIG.youthPlayerIdStart,
     academy: context.academy.has(id),
