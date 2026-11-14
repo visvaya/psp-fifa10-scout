@@ -93,6 +93,9 @@ describe("curveChart", () => {
 });
 
 // Owner, 2026-11-07: with a career the large chart's axis is his OVR, projected from this season's age.
+/** Where an OVR sits on the plot: 99 on its top edge (16), 40 on its bottom one (176). */
+const yAt = (overall: number): number => 16 + ((99 - overall) * 160) / 59;
+
 describe("ovrChart", () => {
   // 22 this season: 60, then 62, 64 at 24, 64, 63 at 26.
   const chart = ovrChart([60, 62, 64, 64, 63], 22);
@@ -100,14 +103,18 @@ describe("ovrChart", () => {
   it("spans his ages from this season's to the last projected, on the plot's width", () => {
     expect(chart?.kind).toBe("ovr");
     expect(chart?.points).toHaveLength(5);
-    expect(chart?.points[0]).toMatchObject({ age: 22, value: 60, x: 54, y: 176 });
+    expect(chart?.points[0]).toMatchObject({ age: 22, value: 60, x: 54 });
     expect(chart?.points.at(-1)).toMatchObject({ age: 26, x: 294 });
     // Ticks at the ages that end in 0 or 5.
     expect(chart?.ageTicks.map((tick) => tick.label)).toEqual([25]);
   });
 
-  it("puts his lowest to highest OVR on y and marks the peak, its ages and this season", () => {
-    expect(chart?.points[2]?.y).toBe(16);
+  // Owner, 2026-11-14 (roadmap 128): one OVR scale for every player, 40 to 99, so his peak's level shows
+  // at a glance and compares with another's; before, his own lowest to highest filled the plot.
+  it("puts every player on one OVR scale, 40 to 99, and marks the peak, its ages and this season", () => {
+    expect(chart?.points[0]?.y).toBeCloseTo(yAt(60));
+    expect(chart?.points[2]?.y).toBeCloseTo(yAt(64));
+    expect(chart?.valueTicks.map((tick) => tick.label)).toEqual([40, 60, 80]);
     expect(chart?.peak).toMatchObject({ age: 24, value: 64 });
     expect(chart?.now).toMatchObject({ age: 22, value: 60 });
     // 98 % of 64 is 62,72: 64, 64 and 63.
@@ -115,8 +122,13 @@ describe("ovrChart", () => {
     expect(chart?.phase).toBe("before");
   });
 
+  it("keeps an OVR under 40 on the plot's bottom edge", () => {
+    expect(ovrChart([45, 35], 40)?.points.map((point) => point.y)).toEqual([yAt(45), 176]);
+  });
+
   it("draws one season too, and nothing without a projection", () => {
-    expect(ovrChart([70], 45)?.points).toEqual([{ age: 45, value: 70, x: 54, y: 16 }]);
+    expect(ovrChart([70], 45)?.points[0]).toMatchObject({ age: 45, value: 70, x: 54 });
+    expect(ovrChart([99], 45)?.points[0]?.y).toBe(16);
     expect(ovrChart([], 22)).toBeNull();
   });
 });

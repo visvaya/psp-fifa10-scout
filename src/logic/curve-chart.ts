@@ -1,4 +1,5 @@
 // A development curve drawn large: ages on x, values on y on the scale every curve of the table shares.
+import { SCOUT_CONFIG } from "./config.ts";
 import { curveScale } from "./curve-sparkline.ts";
 import { CURVE_AGE_MIN, curveValues } from "./overall-rating.ts";
 import type { Curves } from "./overall-rating.ts";
@@ -103,7 +104,9 @@ const chartOf = ({
   // One season alone still has a width to divide.
   const span = Math.max(values.length - 1, 1);
   const xOf = (at: number) => left + ((at - firstAge) / span) * (plot.right - left);
-  const yOf = (value: number) => plotTop + ((top - value) / height) * (plot.bottom - plotTop);
+  // A value under the scale stays on the plot's bottom edge.
+  const yOf = (value: number) =>
+    plotTop + (Math.min(top - value, height) / height) * (plot.bottom - plotTop);
   const point = (value: number, index: number): ChartPoint => {
     const at = firstAge + index;
     return { age: at, value, x: xOf(at), y: yOf(value) };
@@ -219,13 +222,12 @@ export const curveChart = (curves: Curves, id: number, age: number): CurveChart 
  */
 export const ovrChart = (overallByAge: readonly number[], seasonAge: number): CurveChart | null => {
   if (overallByAge.length === 0) return null;
-  const top = Math.max(...overallByAge);
-  // A flat projection spans no height: one OVR keeps the chart drawable.
-  const height = Math.max(top - Math.min(...overallByAge), 1);
+  // One scale for every player (owner, 2026-11-14, roadmap 128): his peak's level shows at a glance.
+  const { ovrChartTop: top, ovrChartFloor: floor } = SCOUT_CONFIG;
   return chartOf({
     values: overallByAge,
     firstAge: seasonAge,
-    scale: { top, height },
+    scale: { top, height: top - floor },
     age: seasonAge,
     kind: "ovr",
   });

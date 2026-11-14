@@ -27,6 +27,12 @@ export const SCOUT_CONFIG = {
   benchRoleNumberFrom: 3,
   /** A player outside the club gets a target only where he would be at most this number. */
   targetRoleNumberMax: 2,
+  /**
+   * The OVR chart's scale, the same for every player (owner, 2026-11-14): the game's highest rating, and a
+   * floor under the lowest potential in fifa.db (42), so a peak's height reads as its level.
+   */
+  ovrChartTop: 99,
+  ovrChartFloor: 40,
   /** The experience bar levels up at this many XP (match-growth.md, section 4). */
   levelUpBarXp: 1000,
   /** The least and the most XP a match measured for a player who plays (match-growth.md, section 4). */
