@@ -4,9 +4,10 @@
 // the stored wage when he was lent by the user's club or to it.
 import { careerManager, effectiveRows, seasonStartDate } from "../data/career-save.ts";
 import type { CareerSave, CurrencyCode } from "../data/career-save.ts";
-import { num } from "../data/ea-db.ts";
+import { birthdateToDate, num } from "../data/ea-db.ts";
 import type { EaDb, EaDbRow } from "../data/ea-db.ts";
 import { SCOUT_CONFIG } from "./config.ts";
+import { wantedContractYears } from "./offer.ts";
 import { exchangeRate, moneyIn, priceInEuro, wageInEuro } from "./transfer-price.ts";
 import type { EuroMoney, PriceInput } from "./transfer-price.ts";
 
@@ -127,7 +128,7 @@ const storedWagesOf = (db: EaDb, save: CareerSave): ReadonlyMap<number, number> 
  * off the game's screen agree); the caller sets the contract and the prestige.
  */
 const priceInputOf =
-  ({ row, age, overallAt }: Omit<FinanceInput, "club">) =>
+  ({ row, age, overallAt }: Pick<FinanceInput, "row" | "age" | "overallAt">) =>
   (years: number): PriceInput => {
     const preferred = num(row, "preferredposition1");
     return {
@@ -173,7 +174,20 @@ export interface FinanceInput {
   readonly club: { readonly link: EaDbRow; readonly prestige: number } | undefined;
   /** OVR at a position code, `yearsAhead` years older. */
   readonly overallAt: (positionCode: number, yearsAhead: number) => number;
+  /** The seasons his ratings look ahead (the profile at the peak); 0 today. */
+  readonly yearsAhead: number;
 }
+
+/** The contract length he wants in the season ending in `seasonEndYear` (offer.ts, wantedContractYears). */
+const wantedYearsOf = (row: EaDbRow, seasonEndYear: number): number =>
+  wantedContractYears(
+    {
+      id: num(row, "playerid"),
+      birthYear: birthdateToDate(num(row, "birthdate")).getUTCFullYear(),
+      retirementAge: num(row, "retirementage"),
+    },
+    seasonEndYear,
+  );
 
 /** The game's "_overall+5": the OVR the price formula projects. */
 const PROJECTION_YEARS = 5;
@@ -231,9 +245,14 @@ export const financeOf = (
     readonly prestigeOf: (teamId: number) => number | null;
     /** The players come as once signed: the profile after a transfer. */
     readonly afterSigning: boolean;
+    /**
+     * The players come at their peak (roadmap 123): their price on the contract they want then, not on
+     * the one they hold today (owner, 2026-11-14).
+     */
+    readonly atPeak: boolean;
   },
 ): ((input: FinanceInput) => Finance) => {
-  const { loanedFrom, prestigeOf, afterSigning } = clubs;
+  const { loanedFrom, prestigeOf, afterSigning, atPeak } = clubs;
   const { teamId: userTeamId, currency } = careerManager(db, save);
   const userPrestige = prestigeOf(userTeamId);
   const rate = exchangeRate(currency);
@@ -247,7 +266,7 @@ export const financeOf = (
   const seasonYear = seasonStartDate(db, save).getUTCFullYear();
   const freeAgentLinks = freeAgentLinksOf(db, save);
   const storedWages = storedWagesOf(db, save);
-  return ({ row, age, club, overallAt }) => {
+  return ({ row, age, club, overallAt, yearsAhead }) => {
     const id = num(row, "playerid");
     const inputIn = priceInputOf({ row, age, overallAt });
     const parent = loanedFrom.get(id);
@@ -268,7 +287,9 @@ export const financeOf = (
     const now = inputIn(0);
     const input: PriceInput = {
       ...now,
-      contractYearsLeft: num(link, "yearcontractvalidtil") - seasonYear,
+      contractYearsLeft: atPeak
+        ? wantedYearsOf(row, seasonYear + yearsAhead + 1)
+        : num(link, "yearcontractvalidtil") - seasonYear,
       // A free agent counts OVR / 5 as both league and team prestige.
       prestige: club?.prestige ?? 2 * Math.floor(now.overall / 5),
     };

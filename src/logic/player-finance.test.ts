@@ -283,7 +283,7 @@ describe("career prices and wages", () => {
   // player outside the squad there: that club's prestige, a new contract of 1 to 5 years, the OVR after
   // signing; the market wage there too, which no contract length changes.
   it("values everyone outside the squad as signed for the user's club, after signing", () => {
-    const signed = buildPlayers(DB, SAVE, undefined, true);
+    const signed = buildPlayers(DB, SAVE, undefined, { afterSigning: true, atPeak: false });
     const after = (id: number) => signed.find((each) => each.id === id);
     for (const id of [1, 5]) {
       const player = after(id);
@@ -303,6 +303,24 @@ describe("career prices and wages", () => {
     // Without the profile after a transfer, no wage there.
     expect(byId(1)?.signedWageEuro).toBeNull();
     expect(byId(5)?.signedWageEuro).toBeNull();
+  });
+
+  // Owner, 2026-11-14 (roadmap 123): at his peak, in that season, priced on the contract he wants then.
+  it("prices a player at his peak in that season, on the contract he wants then", () => {
+    const peak = buildPlayers(DB, SAVE, undefined, { afterSigning: false, atPeak: true });
+    const player = peak.find((each) => each.id === 1);
+    // Curve 3 rises at 29: from 24 his peak is five seasons on.
+    expect(player?.age).toBe(29);
+    // Born 1985, retiring at 35, the season ending in 2015: id 1 wants (1 mod 5) + 1 = 2 years.
+    const there = input({
+      age: 29,
+      overall: player?.overall ?? 0,
+      overallIn5Years: player?.overallByAge[5] ?? 0,
+      contractYearsLeft: 2,
+    });
+    expect(player?.priceEuro).toBe(priceInEuro(there));
+    // The contract shown stays today's.
+    expect(player?.contractYearsLeft).toBe(byId(1)?.contractYearsLeft);
   });
 
   it("leaves players without a club or without a save unpriced", () => {

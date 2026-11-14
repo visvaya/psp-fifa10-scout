@@ -3,6 +3,7 @@
 // below, the panels' texts are taken out, and no text left may read as a sentence.
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { TODAY } from "../logic/player-rating.ts";
 import { testPlayer } from "../logic/test-support/player-fixtures.ts";
 import type { PositionNames } from "./position-name.tsx";
 import { PlayerCard } from "./player-card.tsx";
@@ -69,6 +70,7 @@ const html = renderToStaticMarkup(
     curves={new Map([[1, Array.from({ length: 31 }, () => 50)]])}
     offer={{ prestige: 0, negotiator: 0, squadAverage: 65, countryId: 37, seasonEndYear: 2010 }}
     offerPlayer={player}
+    profile={TODAY}
     showPotential
     names={NAMES}
     watched

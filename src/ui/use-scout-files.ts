@@ -6,6 +6,7 @@ import type { GameLanguages } from "../logic/game-names.ts";
 import { pickLocaleFiles, pickSaveFiles } from "../logic/load-scout.ts";
 import type { LoadRequest, SaveFiles, WorkerMessage, WorkerRequest } from "../logic/load-scout.ts";
 import { actionOf } from "../logic/worker-action.ts";
+import type { ProfileMode } from "../logic/player-rating.ts";
 import type { Preferences, ScoutAction } from "../logic/scout-state.ts";
 import type { PlayerNote } from "../logic/player-notes.ts";
 import type { WatchEntry } from "../logic/watchlist.ts";
@@ -89,10 +90,11 @@ const requestSigned = (
   dispatch: Dispatch<ScoutAction>,
   worker: Pick<ReturnType<typeof startWorker>, "post"> | null,
   requestId: number,
+  mode: ProfileMode,
 ) => {
-  dispatch({ type: "signed-requested" });
-  if (worker?.post({ type: "signed", requestId }) !== true)
-    dispatch({ type: "signed-built", players: null });
+  dispatch({ type: "signed-requested", mode });
+  if (worker?.post({ type: "signed", requestId, mode }) !== true)
+    dispatch({ type: "signed-built", players: null, mode });
 };
 
 export const createSession = (dispatch: Dispatch<ScoutAction>, onStorageFailed: () => void) => {
@@ -160,7 +162,7 @@ export const createSession = (dispatch: Dispatch<ScoutAction>, onStorageFailed: 
       return stored.gameDb !== null;
     },
     close: () => worker?.terminate(),
-    requestSigned: () => requestSigned(dispatch, worker, lastRequestId),
+    requestSigned: (mode: ProfileMode) => requestSigned(dispatch, worker, lastRequestId, mode),
     pickGame: (file: File) => start(file, { gameName: file.name }),
     pickSave: (files: readonly File[]) => pickFiles("save", pickSaveFiles(files)),
     pickLocale: (files: readonly File[]) => pickFiles("locale", pickLocaleFiles(files)),

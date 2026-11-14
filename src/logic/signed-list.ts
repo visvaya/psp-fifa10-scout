@@ -1,13 +1,15 @@
-// "Profil po transferze": the list with every player outside the user's squad as the game rates him
-// once signed (buildPlayers, afterSigning), priced at the user's club. A view setting like the columns:
-// kept in the preferences, out of the filters, the sets and undo. The worker builds that list only when
-// the setting is on, once per load, and the state keeps it beside the players, its best peak ties and
-// currency shown as theirs.
+// "Profil po transferze" and "Profil w szczycie" (roadmap 56(c), 123): the list with every player outside
+// the user's squad as the game rates him once signed (buildPlayers, afterSigning), priced at the user's
+// club, and every player in the season of his peak (atPeak), alone or together. View settings like the
+// columns: kept in the preferences, out of the filters, the sets and undo. The worker builds that list
+// only while a profile is on, once per load and profile, and the state keeps it beside the players, its
+// best peak ties and currency shown as theirs.
 import { TIE_RULES } from "./best-peak.ts";
 import { pricedIn, shownCurrency } from "./currency.ts";
 import { DEFAULT_CHOICE, offerTerms, wantedContractYears } from "./offer.ts";
 import { moneyOf } from "./player-finance.ts";
 import type { Player } from "./players.ts";
+import type { ProfileMode } from "./player-rating.ts";
 import { compactFilters } from "./filter-changes.ts";
 import type { ScoutState } from "./scout-state.ts";
 import { tiesBroken } from "./tie-order.ts";
@@ -20,32 +22,44 @@ export interface SigningPreference {
   readonly afterSigning?: true;
   /** The contract length, 1 to 5 years, his price at the user's club is for; unset: the one he wants. */
   readonly transferYears?: number;
+  /** Every player in the season of his peak OVR (roadmap 123), with the potential shown; unset as off. */
+  readonly atPeak?: true;
 }
 
 /** The stored preference as the state keeps it: unset fields left out. */
 export const signingPreferenceOf = ({
   afterSigning,
   transferYears,
+  atPeak,
 }: SigningPreference): SigningPreference => ({
   ...(afterSigning === true ? { afterSigning } : {}),
   ...(transferYears === undefined ? {} : { transferYears }),
+  ...(atPeak === true ? { atPeak } : {}),
 });
 
 export interface SigningState extends SigningPreference {
-  /** The list after signing for the loaded career; unset until asked for. */
+  /** The list of the profile shown, for the loaded career; unset until asked for. */
   readonly signed?: SignedList;
+  /** The profile that list was asked for. */
+  readonly signedMode?: ProfileMode;
 }
 
 export type SigningAction =
   | { readonly type: "after-signing-shown"; readonly shown: boolean }
-  | { readonly type: "signed-requested" }
+  | { readonly type: "peak-shown"; readonly shown: boolean }
+  | { readonly type: "signed-requested"; readonly mode: ProfileMode }
   /** null: the length each player wants. */
   | { readonly type: "transfer-years-chosen"; readonly years: number | null }
   /** null: the worker could not build the list. */
-  | { readonly type: "signed-built"; readonly players: readonly Player[] | null };
+  | {
+      readonly type: "signed-built";
+      readonly players: readonly Player[] | null;
+      readonly mode: ProfileMode;
+    };
 
 const SIGNING_ACTIONS: ReadonlySet<string> = new Set([
   "after-signing-shown",
+  "peak-shown",
   "signed-requested",
   "transfer-years-chosen",
   "signed-built",
@@ -60,6 +74,8 @@ export const isSigningAction = (action: { readonly type: string }): action is Si
  * (the user's squad, loaned players) keep their money before signing.
  */
 const withMoneyAfter = (state: ScoutState, built: readonly Player[]): readonly Player[] => {
+  // At the peak alone the worker priced every player himself, in that season.
+  if (state.afterSigning !== true) return built;
   const before = beforeSigning(state);
   return built.map((player) => {
     const known = before.get(player.id);
@@ -116,10 +132,11 @@ const shownAsPlayers = (state: ScoutState, players: readonly Player[]): readonly
 };
 
 export const signingReducer = (state: ScoutState, action: SigningAction): ScoutState => {
-  if (action.type === "signed-requested") return { ...state, signed: "pending" };
+  if (action.type === "signed-requested")
+    return { ...state, signed: "pending", signedMode: action.mode };
   if (action.type === "signed-built") {
-    // A reply nothing waits for: the list was dropped by a newer load meanwhile.
-    if (state.signed !== "pending") return state;
+    // A reply nothing waits for: the list was dropped by a newer load or another profile meanwhile.
+    if (state.signed !== "pending" || !sameMode(action.mode, state.signedMode)) return state;
     const { players } = action;
     return {
       ...state,
@@ -133,9 +150,32 @@ export const signingReducer = (state: ScoutState, action: SigningAction): ScoutS
       ? { ...next, signed: shownAsPlayers(next, state.signed) }
       : next;
   }
+  if (action.type === "peak-shown") {
+    const { atPeak: _peak, ...rest } = state;
+    return action.shown ? { ...rest, atPeak: true } : rest;
+  }
   const { afterSigning: _shown, ...rest } = state;
   return action.shown ? { ...rest, afterSigning: true } : withTransferWageShown(rest);
 };
+
+/** The state without the profiles' settings: "Resetuj" turns them off. */
+export const withoutProfiles = <S extends SigningPreference>({
+  afterSigning: _shown,
+  transferYears: _years,
+  atPeak: _peak,
+  ...rest
+}: S): Omit<S, keyof SigningPreference> => rest;
+
+/** The profile the list shows: the peak only while the potential shows, as every peak value. */
+export const profileModeOf = (state: ScoutState): ProfileMode => ({
+  afterSigning: state.afterSigning === true,
+  atPeak: state.atPeak === true && state.showPotential,
+});
+
+const sameMode = (one: ProfileMode, other: ProfileMode | undefined): boolean =>
+  one.afterSigning === other?.afterSigning && one.atPeak === other.atPeak;
+
+const anyProfile = ({ afterSigning, atPeak }: ProfileMode): boolean => afterSigning || atPeak;
 
 /**
  * Without the profile after a transfer, no range of the wage after a transfer, which only that profile
@@ -151,7 +191,7 @@ export const withTransferWageShown = <S extends Pick<ScoutState, "filters"> & Si
 
 /** The list after signing is wanted and not asked for yet: the setting is on and a career is loaded. */
 export const needsSignedList = (state: ScoutState): boolean =>
-  state.afterSigning === true &&
+  anyProfile(profileModeOf(state)) &&
   state.career !== null &&
   state.players !== null &&
   state.loading === null &&
@@ -159,7 +199,7 @@ export const needsSignedList = (state: ScoutState): boolean =>
 
 /** The players the list shows: after signing once that list is built and the setting is on. */
 export const shownPlayers = (state: ScoutState): readonly Player[] | null =>
-  state.afterSigning === true && Array.isArray(state.signed) ? state.signed : state.players;
+  anyProfile(profileModeOf(state)) && Array.isArray(state.signed) ? state.signed : state.players;
 
 /**
  * The state after any action, its list after signing kept in step: a new load drops it (the worker
@@ -174,8 +214,11 @@ export const withSignedList = (
   const { signed } = after;
   if (signed === undefined) return after;
   if (signed === "pending" && action.type === "load-failed") return { ...after, signed: "failed" };
-  if (before.loading !== null && after.loading === null && after.players !== before.players) {
-    const { signed: _dropped, ...rest } = after;
+  const reloaded =
+    before.loading !== null && after.loading === null && after.players !== before.players;
+  // Another profile, or none, needs another list: asked for again (needsSignedList).
+  if (reloaded || !sameMode(profileModeOf(after), after.signedMode)) {
+    const { signed: _dropped, signedMode: _mode, ...rest } = after;
     return rest;
   }
   const changed =

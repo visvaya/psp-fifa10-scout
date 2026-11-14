@@ -11,8 +11,9 @@ import { shownCurrency } from "../logic/currency.ts";
 import { inClub } from "../logic/filter-players.ts";
 import type { OfferContext } from "../logic/offer.ts";
 import type { Player } from "../logic/players.ts";
+import type { ProfileMode } from "../logic/player-rating.ts";
 import { initialScoutState, scoutReducer } from "../logic/scout-state.ts";
-import { needsSignedList, shownPlayers } from "../logic/signed-list.ts";
+import { needsSignedList, profileModeOf, shownPlayers } from "../logic/signed-list.ts";
 import type { ScoutAction, ScoutState } from "../logic/scout-state.ts";
 import { BarDialogs } from "./bar-dialogs.tsx";
 import { ListView } from "./list-view.tsx";
@@ -64,6 +65,7 @@ const useStoredPreferences = (state: ScoutState, files: ReturnType<typeof useSco
     tieOrder,
     afterSigning,
     transferYears,
+    atPeak,
     approximatePortraits,
     alwaysPortraits,
   } = state;
@@ -81,6 +83,7 @@ const useStoredPreferences = (state: ScoutState, files: ReturnType<typeof useSco
         ...(tieOrder === undefined ? {} : { tieOrder }),
         ...(afterSigning === undefined ? {} : { afterSigning }),
         ...(transferYears === undefined ? {} : { transferYears }),
+        ...(atPeak === undefined ? {} : { atPeak }),
         ...(approximatePortraits === undefined ? {} : { approximatePortraits }),
         ...(alwaysPortraits === undefined ? {} : { alwaysPortraits }),
       });
@@ -98,6 +101,7 @@ const useStoredPreferences = (state: ScoutState, files: ReturnType<typeof useSco
     tieOrder,
     afterSigning,
     transferYears,
+    atPeak,
     approximatePortraits,
     alwaysPortraits,
   ]);
@@ -191,11 +195,13 @@ const beforeSigning = ({ players }: ScoutState, player: Player): Player =>
   players?.find((candidate) => candidate.id === player.id) ?? player;
 
 /** Asks the worker for the list after signing once the setting wants it and nothing asked yet. */
-const useSignedList = (state: ScoutState, requestSigned: () => void) => {
+const useSignedList = (state: ScoutState, requestSigned: (mode: ProfileMode) => void) => {
   const wanted = needsSignedList(state);
+  const { afterSigning, atPeak } = profileModeOf(state);
+  const mode = useMemo(() => ({ afterSigning, atPeak }), [afterSigning, atPeak]);
   useEffect(() => {
-    if (wanted) requestSigned();
-  }, [wanted, requestSigned]);
+    if (wanted) requestSigned(mode);
+  }, [wanted, mode, requestSigned]);
 };
 
 /** The card of the open player, if he is listed. */
@@ -216,6 +222,7 @@ const OpenCard = (props: {
       curves={state.curves}
       offer={offerFor(state, openPlayer)}
       offerPlayer={beforeSigning(state, openPlayer)}
+      profile={profileModeOf(state)}
       showPotential={state.showPotential}
       watched={state.watchlist.some((entry) => entry.playerId === openPlayer.id)}
       note={state.notes.find((note) => note.playerId === openPlayer.id)}
