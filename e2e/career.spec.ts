@@ -11,6 +11,7 @@ import {
   loadCareer,
   readStored,
   test,
+  openSection,
 } from "./support.ts";
 
 test.use({ viewport: { width: 1280, height: 800 } });
@@ -65,7 +66,7 @@ test.describe("career", () => {
     await expect(own).toBeHidden();
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("");
     await expectCount(page, "62 zawodników");
-    await page.getByText("Kariera", { exact: true }).click();
+    await openSection(page, "Transfer");
     await page.getByRole("group", { name: "Cena (€)", exact: true }).getByLabel("od").fill("1");
     await page
       .getByRole("group", { name: "Zarobki rynkowe (szacunkowe)" })
@@ -105,7 +106,7 @@ test.describe("career currency", () => {
   // The synthetic save keeps euro; dollars come from the same euro amounts with the game's rate.
   test("prices in the chosen currency, money filters kept", async ({ page }) => {
     await loadCareer(page);
-    await page.getByText("Kariera", { exact: true }).click();
+    await openSection(page, "Transfer");
     const euroBound = page.getByRole("group", { name: "Cena (€)", exact: true }).getByLabel("od");
     await euroBound.fill("1000000");
     const listPrice = await (await firstCellOf(page, "Cena")).textContent();
@@ -146,7 +147,7 @@ test.describe("career club status", () => {
   // team.
   test("keeps the players a career cannot sign, named on their chip", async ({ page }) => {
     await loadCareer(page);
-    await page.getByText("Klub i kontrakt").click();
+    await openSection(page, "Klub");
     const status = page.getByRole("group", { name: "Zawodnicy", exact: true });
     await expect(status.getByRole("radio", { name: /^dostępni\sw\skarierze$/u })).toBeChecked();
     await status.getByRole("radio", { name: "niedostępni w karierze" }).check();
@@ -161,7 +162,7 @@ test.describe("career club status", () => {
 test.describe("career ratings", () => {
   test("shows KR with one decimal and filters by it", async ({ page }) => {
     await loadCareer(page);
-    await page.getByText("Kariera", { exact: true }).click();
+    await openSection(page, "Sezon");
     const ratingFrom = page.getByRole("group", { name: "KR (forma)" }).getByLabel("od");
     // A dot typed inside the number becomes a comma and the caret stays after it.
     await ratingFrom.pressSequentially("75");
@@ -181,7 +182,7 @@ test.describe("career ratings", () => {
   // The save keeps league and cup games apart; the card and the filters show both.
   test("shows league and cup games apart and filters by the cup ones", async ({ page }) => {
     await loadCareer(page);
-    await page.getByText("Kariera", { exact: true }).click();
+    await openSection(page, "Sezon");
     await page.getByRole("group", { name: "Występy w pucharach" }).getByLabel("od").fill("1");
     await expectCount(page, "1 zawodnik");
     await page.getByRole("button", { name: /^Lionel Messi/u }).click();
@@ -196,7 +197,7 @@ test.describe("career ratings", () => {
 
   test("shows a goalkeeper's clean sheets and filters by them", async ({ page }) => {
     await loadCareer(page);
-    await page.getByText("Kariera", { exact: true }).click();
+    await openSection(page, "Sezon");
     await page.getByRole("group", { name: "Czyste konta w lidze" }).getByLabel("od").fill("1");
     await expectCount(page, "1 zawodnik");
     await page.getByRole("button", { name: "Gracz Numer 1", exact: true }).click();
@@ -342,7 +343,7 @@ test.describe("bounds of the range fields", () => {
   // field is left, not while it is typed.
   test("keeps KR and an attribute within the game's scales", async ({ page }) => {
     await loadCareer(page);
-    await page.getByText("Kariera", { exact: true }).click();
+    await openSection(page, "Sezon");
     const rating = page.getByRole("group", { name: "KR (forma)" });
     const to = rating.getByLabel("do");
     await to.pressSequentially("12");
@@ -365,7 +366,7 @@ test.describe("career values on the card", () => {
   // Owner, 2026-11-11: one count over the league and the cups, on the card and in the filters.
   test("adds the league and the cups into a total and filters by it", async ({ page }) => {
     await loadCareer(page);
-    await page.getByText("Kariera", { exact: true }).click();
+    await openSection(page, "Sezon");
     await page.getByRole("group", { name: "Występy ogółem" }).getByLabel("od").fill("8");
     await expectCount(page, "1\u00a0zawodnik");
     await page.getByRole("button", { name: /^Lionel Messi/u }).click();
@@ -379,7 +380,7 @@ test.describe("career values on the card", () => {
   test("shows the years left on the contract and filters by them", async ({ page }) => {
     await loadCareer(page);
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("messi");
-    await page.getByText("Klub i kontrakt", { exact: true }).click();
+    await openSection(page, "Transfer");
     const years = page.getByRole("group", { name: "Lata kontraktu" });
     await years.getByLabel("od").fill("5");
     await years.getByLabel("do").fill("5");

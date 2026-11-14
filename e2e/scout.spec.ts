@@ -16,6 +16,7 @@ import {
   loadDatabase,
   pickGame,
   test,
+  openSection,
 } from "./support.ts";
 
 /** The right edge of a box. */
@@ -149,7 +150,7 @@ test.describe("wide screen", () => {
   // career the free agents option does not show.
   test("hides players no club can sign", async ({ page }) => {
     await loadDatabase(page);
-    await page.getByText("Klub i kontrakt").click();
+    await openSection(page, "Klub");
     await expect(page.getByRole("radio", { name: "tylko wolni" })).toHaveCount(0);
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("wolny");
     await expect(page.getByText("Żaden zawodnik nie spełnia filtrów.")).toBeVisible();
@@ -258,7 +259,7 @@ test.describe("career save", () => {
   // Wisła Kraków, the career's club, has Paweł Brożek and 20 of the 60 generated players.
   test("shows only my club or hides it", async ({ page }) => {
     await loadCareer(page);
-    await page.getByText("Klub i kontrakt").click();
+    await openSection(page, "Klub");
     await expect(page.getByRole("radio", { name: "wszyscy zawodnicy" })).toBeChecked();
     await page.getByRole("radio", { name: "tylko zawodnicy mojego klubu" }).check();
     await expectCount(page, "21 zawodników");
@@ -311,14 +312,14 @@ test.describe("filter panel", () => {
 
   test("filters by several nationalities, an attribute range and a trait", async ({ page }) => {
     await loadDatabase(page);
-    await page.getByText("Klub i kontrakt").click();
+    await openSection(page, "Klub");
     await page.getByRole("checkbox", { name: "Argentina" }).check();
     await expectCount(page, "31 zawodników");
     await page.getByRole("checkbox", { name: "Poland" }).check();
     await expectCount(page, "62 zawodników");
     await page.getByText("Atrybuty", { exact: true }).click();
     await page.getByLabel("Dodaj atrybut").selectOption({ label: "Szybkość" });
-    await page.getByRole("group", { name: "Szybkość" }).getByLabel("od").fill("90");
+    await page.getByRole("group", { name: "Szybkość", exact: true }).getByLabel("od").fill("90");
     await expectCount(page, "1 zawodnik");
     // Each chip says what its filter takes.
     const chips = page.getByRole("list", { name: "Aktywne filtry" }).getByRole("button");
@@ -370,7 +371,7 @@ test.describe("game language", () => {
     await page.getByRole("button", { name: /^Pokaż zawodników/u }).click();
     await expect(page.getByRole("table")).toBeVisible();
     await expect(page.getByRole("checkbox", { name: "BR", exact: true })).toBeVisible();
-    await page.getByText("Klub i kontrakt").click();
+    await openSection(page, "Klub");
     await expect(page.getByRole("checkbox", { name: "Polska" })).toBeVisible();
     await expect(page.getByRole("checkbox", { name: "Liga BBVA (Hiszpania)" })).toBeVisible();
     await expectNoAxeViolations(page);
@@ -379,7 +380,7 @@ test.describe("game language", () => {
       value: { pol_pl: { countries: { 52: "Argentyna" } } },
     });
     await page.reload();
-    await page.getByText("Klub i kontrakt").click();
+    await openSection(page, "Klub");
     await expect(page.getByRole("checkbox", { name: "Argentyna" })).toBeVisible();
     await page.getByRole("button", { name: "Pliki" }).click();
     await expect(language).toHaveValue("pol_pl");
@@ -387,7 +388,7 @@ test.describe("game language", () => {
     await language.selectOption({ label: "Angielskie z bazy fifa.db" });
     await page.getByRole("button", { name: "Lista zawodników" }).click();
     await expect(page.getByRole("checkbox", { name: "GK", exact: true })).toBeVisible();
-    await page.getByText("Klub i kontrakt").click();
+    await openSection(page, "Klub");
     await expect(page.getByRole("checkbox", { name: "Poland" })).toBeVisible();
   });
 

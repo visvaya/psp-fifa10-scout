@@ -1,12 +1,12 @@
 // A list filter turned round: everyone but its chosen values.
-import { expect, expectCount, expectStored, loadDatabase, test } from "./support.ts";
+import { openSection, expect, expectCount, expectStored, loadDatabase, test } from "./support.ts";
 
 test.describe("excluding filters", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
   test("keeps everyone but the chosen nationality, and after a reload", async ({ page }) => {
     await loadDatabase(page);
-    await page.getByText("Klub i kontrakt").click();
+    await openSection(page, "Klub");
     const nationality = page.getByRole("group", { name: "Narodowość" });
     const exclude = nationality.getByRole("checkbox", { name: "Wszystkie oprócz zaznaczonych" });
     // The switch shows once a value is chosen.
@@ -22,7 +22,7 @@ test.describe("excluding filters", () => {
       value: { filters: { excludedLists: { nationalityId: true } } },
     });
     await page.reload();
-    await page.getByText("Klub i kontrakt").click();
+    await openSection(page, "Klub");
     await expect(exclude).toBeChecked();
     await expectCount(page, "31 zawodników");
     // Argentina has 31 of the 62 players, so the count alone cannot tell the exclusion from the choice.

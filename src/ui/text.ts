@@ -181,12 +181,14 @@ export const FLAG_LABELS: Readonly<Record<FlagKey, string>> = {
 
 export const FILTER_SECTION_LABELS = {
   basic: "Podstawowe",
+  development: pl`Pozycja i rozwój`,
   physique: "Sylwetka",
   attributes: "Atrybuty",
   traits: "Cechy",
   character: pl`Charakter i renoma`,
-  club: pl`Klub i kontrakt`,
-  career: "Kariera",
+  club: "Klub",
+  transfer: "Transfer",
+  season: "Sezon",
 } as const;
 
 // jscpd:ignore-end

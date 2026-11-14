@@ -12,6 +12,7 @@ import {
   showPotential,
   storedColumns,
   test,
+  openSection,
 } from "./support.ts";
 
 const peakAtBestBox = (page: Page) =>
@@ -193,7 +194,7 @@ test.describe("peak at the best position, order of the tie rules", () => {
     await page.getByRole("checkbox", { name: "Pokaż potencjał" }).check();
     await peakAtBestBox(page).check();
     // Tomasz Remis, a centre-back with no team, peaks alike at RCB, CB and LCB.
-    await page.getByText("Klub i kontrakt").click();
+    await openSection(page, "Klub");
     await page.getByRole("radio", { name: "niedostępni w karierze" }).check();
     await page.getByRole("searchbox", { name: "Nazwisko" }).fill("remis");
     await expectCount(page, "1 zawodnik");
