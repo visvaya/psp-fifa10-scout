@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   careerManager,
   effectiveRows,
+  formationShapes,
   parseCareerSave,
   seasonStartDate,
   userFormationCodes,
@@ -220,6 +221,26 @@ describe("parseCareerSave", () => {
     const unknown = new Map([...save, ["teamwrite", [{ teamid: 1873, formationid: 9 }]]]);
     expect(userFormationCodes(DB, unknown)).toEqual([]);
     expect(userFormationCodes(DB, new Map([...save, ["teamwrite", []]]))).toEqual([]);
+  });
+
+  // Roadmap 98: the formations to rank are the database's, each starting eleven once; fifa.db holds one
+  // row per team, most of them alike (594 rows, 21 shapes).
+  it("lists each starting eleven of the formations once, whatever the order of its codes", () => {
+    const save = new Map([
+      [
+        "formations",
+        [
+          { formationid: 1, ...positions([0, 7, 6, 4, 3, 19, 18, 16, 15, 31, 29, 32, 33]) },
+          { formationid: 2, ...positions([0, 3, 4, 6, 7, 15, 16, 18, 19, 29, 31, 32, 37]) },
+          { formationid: 3, ...positions([0, 2, 5, 4, 6, 8, 17, 16, 18, 30, 27, 32, 33]) },
+        ],
+      ],
+    ]);
+    expect(formationShapes(DB, save)).toEqual([
+      [0, 7, 6, 4, 3, 19, 18, 16, 15, 31, 29],
+      [0, 2, 5, 4, 6, 8, 17, 16, 18, 30, 27],
+    ]);
+    expect(formationShapes(DB, new Map())).toEqual([]);
   });
 
   it("rejects a manager table without a user team", () => {
