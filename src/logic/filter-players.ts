@@ -12,6 +12,18 @@ export interface Range {
 }
 
 /** Number fields a range can apply to; a player without the value (null) never passes. */
+/** The ranges of the season in a career, which only a career save fills. */
+const SEASON_FIELDS = [
+  "form",
+  "morale",
+  ...SEASON_STAT_KEYS,
+  "injuryDays",
+  "levelUpXp",
+  "levelUpPoints",
+  "price",
+  "wage",
+] as const satisfies readonly (keyof Player)[];
+
 const RANGE_FIELDS = [
   "age",
   "overall",
@@ -31,12 +43,7 @@ const RANGE_FIELDS = [
   "clubPrestige",
   "contractEndYear",
   "contractYearsLeft",
-  "form",
-  "morale",
-  ...SEASON_STAT_KEYS,
-  "injuryDays",
-  "price",
-  "wage",
+  ...SEASON_FIELDS,
 ] as const satisfies readonly (keyof Player)[];
 
 export type RangeFields = (typeof RANGE_FIELDS)[number];
@@ -96,12 +103,7 @@ export const needsShortlist = (choice: "any" | ListMembership | undefined): bool
 export const CAREER_RANGE_KEYS = [
   "peak",
   "peakGain",
-  "form",
-  "morale",
-  ...SEASON_STAT_KEYS,
-  "injuryDays",
-  "price",
-  "wage",
+  ...SEASON_FIELDS,
 ] as const satisfies readonly RangeKey[];
 
 /** The flags only a career save sets: without one every player lacks them. */

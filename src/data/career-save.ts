@@ -183,15 +183,15 @@ export const careerManager = (
 };
 
 /**
- * The game's shortlist in a career: the save's rows, else the database's (fifa.db's is empty; a database
- * without the table, as in tests, has none).
+ * A career table fifa.db holds empty: the save's rows, else the database's, none when a database lacks
+ * the table, as in tests, or without a save. The game's shortlist, the players on loan with their parent
+ * clubs, and the experience of the user's squad.
  */
-export const careerShortlist = (db: EaDb, save: CareerSave): readonly EaDbRow[] =>
-  rowsOrNone(db, save, "career_shortlist");
-
-/** The players on loan with their parent clubs, read like the shortlist (fifa.db's list is empty). */
-export const careerLoans = (db: EaDb, save: CareerSave): readonly EaDbRow[] =>
-  rowsOrNone(db, save, "career_loaned_list");
+export const careerList = (
+  db: EaDb,
+  save: CareerSave | undefined,
+  name: "career_shortlist" | "career_loaned_list" | "career_player_growth_xp",
+): readonly EaDbRow[] => (save === undefined ? [] : rowsOrNone(db, save, name));
 
 /**
  * The position codes of the user team's starting eleven: its teamwrite formation's position1..11 in

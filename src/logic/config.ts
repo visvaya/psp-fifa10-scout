@@ -27,6 +27,11 @@ export const SCOUT_CONFIG = {
   benchRoleNumberFrom: 3,
   /** A player outside the club gets a target only where he would be at most this number. */
   targetRoleNumberMax: 2,
+  /** The experience bar levels up at this many XP (match-growth.md, section 4). */
+  levelUpBarXp: 1000,
+  /** The least and the most XP a match measured for a player who plays (match-growth.md, section 4). */
+  levelUpXpPerMatchLow: 15,
+  levelUpXpPerMatchHigh: 53,
   /** Changes of the filters, sort and sets the user can take back, newest first. */
   undoSteps: 50,
 } as const;

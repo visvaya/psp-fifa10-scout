@@ -1,9 +1,8 @@
 // One immutable summary per player: fifa.db's players joined with their club, league, national team
 // and nationality, and with a career save also the save's links, date and season stats.
 import {
-  careerLoans,
+  careerList,
   careerManager,
-  careerShortlist,
   effectiveRows,
   seasonStartDate,
   userFormationCodes,
@@ -16,6 +15,8 @@ import type { Attributes, TraitName } from "./attributes.ts";
 import { bestPeakFields } from "./best-peak.ts";
 import type { BestPeakKey } from "./best-peak.ts";
 import { SCOUT_CONFIG } from "./config.ts";
+import { NO_LEVEL_UP, squadLevelUp } from "./level-up.ts";
+import type { LevelUpFields } from "./level-up.ts";
 import { nameCollator, searchKey } from "./player-names.ts";
 import { composedPortraitOf } from "./portraits.ts";
 import {
@@ -48,7 +49,7 @@ import { clubStarsOf } from "./team-stars.ts";
 import { marketFields, transferMarketOf } from "./transfer-market.ts";
 import type { TransferMarket } from "./transfer-market.ts";
 
-export interface Player extends Finance, SeasonStats, TeamFields, RoleFields {
+export interface Player extends Finance, SeasonStats, TeamFields, RoleFields, LevelUpFields {
   readonly id: number;
   readonly name: string;
   /** The first name as an initial ("L. Messi"), for narrow places; null for a player with one name. */
@@ -177,6 +178,8 @@ interface Context {
   readonly academy: ReadonlySet<number>;
   /** Career only. */
   readonly saleVerdict: ((playerId: number) => SaleRefusal | "sells" | null) | null;
+  /** The experience bar of the user's squad (level-up.ts); none without a save or outside the squad. */
+  readonly levelUp: (playerId: number) => LevelUpFields;
   readonly freeAgents: ReadonlySet<number>;
   readonly rate: (row: EaDbRow) => Rating;
   /** The user's starting eleven, which a tie for the best peak goes by; empty without a save. */
@@ -285,6 +288,7 @@ const summary = (row: EaDbRow, context: Context): Summary => {
     morale: statOf(stats, "morale"),
     ...seasonStats(stats),
     injuryDays: statOf(stats, "injurydaysout"),
+    ...context.levelUp(id),
     ...marketFields(context.market, context.teams, id),
     ...saleFields(context.saleVerdict?.(id) ?? null),
     shortlisted: context.shortlist.has(id),
@@ -418,6 +422,16 @@ const rolesIn = (
   return playerRoles(players, sheet, formationCodes);
 };
 
+/** The parts of the context only a career save has: none without one. */
+const careerParts = (
+  db: EaDb,
+  save: CareerSave | undefined,
+  placements: ReadonlyMap<number, Placement>,
+): Pick<Context, "saleVerdict" | "levelUp"> =>
+  save === undefined
+    ? { saleVerdict: null, levelUp: () => NO_LEVEL_UP }
+    : { saleVerdict: saleVerdictOf(db, save, placements), levelUp: squadLevelUp(db, save) };
+
 /**
  * Every player with his club and nationality; youth-pool players only when a team link, or the
  * save's youth academy, transfer list or shortlist, places them. With a save, links and stats come from it and ages are taken on its last game date.
@@ -439,9 +453,8 @@ export const buildPlayers = (
   const teams = teamsById(db, save);
   const placements = placementsOf(save === undefined ? links : careerLinks(db, save), teams);
   const academy = save === undefined ? [] : effectiveRows(db, save, "career_youth_accademy");
-  // Without a career there is no shortlist.
-  const shortlist = save === undefined ? [] : careerShortlist(db, save);
-  const market = transferMarketOf(transferList, save === undefined ? [] : careerLoans(db, save));
+  const shortlist = careerList(db, save, "career_shortlist");
+  const market = transferMarketOf(transferList, careerList(db, save, "career_loaned_list"));
   const context: Context = {
     ...datesOf(db, save),
     placements,
@@ -467,7 +480,7 @@ export const buildPlayers = (
             loanedFrom: market.loanedFrom,
             prestigeOf: (teamId) => teams.get(teamId)?.prestige ?? null,
           }),
-    saleVerdict: save === undefined ? null : saleVerdictOf(db, save, placements),
+    ...careerParts(db, save, placements),
   };
   // The game keeps generated players out of the leagues until it places them (overall-rating.md, F2).
   const placed = new Set(

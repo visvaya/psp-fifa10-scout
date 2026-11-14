@@ -148,6 +148,8 @@ export const NO_STATS = {
   morale: null,
   ...seasonStats(undefined),
   injuryDays: null,
+  levelUpXp: null,
+  levelUpPoints: null,
 } as const;
 
 const NO_PEAKS = { peak: null, peakGain: null, ...NO_BEST_PEAK } as const;

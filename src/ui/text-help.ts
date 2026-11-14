@@ -3,6 +3,7 @@
 // confirmed (docs: game-knowledge and the specs in the notes).
 import type { FlagKey, ListKey, RangeKey } from "../logic/filter-players.ts";
 import { formatNumber } from "./text.ts";
+import { LEVEL_UP_HELP } from "./text-level-up.ts";
 import { pl } from "./typeset.ts";
 
 const LEAGUE_STATS = pl`Liczby z zapisu kariery za bieżący sezon, z meczów ligi twojego klubu; gra zeruje je na początku sezonu. U zawodnika, który odszedł z twojej ligi, to liczby z czasu gry w niej.`;
@@ -48,6 +49,7 @@ export const FIELD_HELP: Partial<Readonly<Record<RangeKey | ListKey | FlagKey, s
   cupCleanSheets: CUP_STATS,
   contractYearsLeft: pl`Lata do końca kontraktu tak, jak liczy je gra: rok końca kontraktu minus rok, w którym zaczął się sezon. 0 to kontrakt wygasający w tym sezonie, czyli wolny transfer; od nowego sezonu krótszy kontrakt obniża cenę zawodnika.`,
   injuryDays: pl`Dni przerwy z powodu kontuzji według zapisu kariery; 0 to brak kontuzji.`,
+  ...LEVEL_UP_HELP,
   price: pl`Wartość według wzoru gry, jak CENA na liście rynku transferowego. Zależy m.in. od OVR, wieku, lat do końca kontraktu, reputacji i pozycji. Przy wygasłym kontrakcie i u wolnego zawodnika 0. U wypożyczonego zawodnika zapis nie trzyma kontraktu, więc ceny nie ma.`,
   wage: pl`Zarobki na mecz według wzoru gry, jak „Zarobki rynkowe” w formularzu oferty. Przy wygasłym kontrakcie (też w tym roku) z doliczonymi 30% (wolny transfer). Wzór nie odtwarza każdej pensji zapisanej w kontraktach, stąd szacunek. U zawodników twojego klubu zarobki z kontraktu zapisanego w karierze. U zawodników wypożyczonych z twojego klubu albo do niego zarobki z kontraktu, u innych wypożyczonych brak danych.`,
   role: pl`Z zapisem kariery, u zawodników twojego klubu. Miejsca to pozycje jedenastki z formacji twojego klubu w zapisie. Zawodnik ustawiony w taktyce na miejscu jest na nim 1. Każdy inny dostaje jedno miejsce: na każdym miejscu jego numer to 1 plus liczba ustawionych tam i pozostałych zawodników z wyższym OVR na tej pozycji (przy równym OVR wyżej ten z niższym identyfikatorem w bazie gry). Rola to miejsce z najniższym numerem, przy równych numerach to, na którym ma wyższy OVR. Kolumna sortuje według numeru, potem według kolejności miejsc w formacji.`,

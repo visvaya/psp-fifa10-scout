@@ -3,7 +3,7 @@
 // or 19 or fewer (offer code 6), or it is the user's historic rival (11). The user's own full squad
 // (code 7) refuses every offer alike, so it says nothing about a player and is left out here.
 
-import { careerLoans, careerManager, seasonStartDate } from "../data/career-save.ts";
+import { careerList, careerManager, seasonStartDate } from "../data/career-save.ts";
 import type { CareerSave } from "../data/career-save.ts";
 import { num, readTable } from "../data/ea-db.ts";
 import type { EaDb } from "../data/ea-db.ts";
@@ -102,7 +102,7 @@ export const saleVerdictOf = (
   const preferred = new Map(
     readTable(db, "players").map((row) => [num(row, "playerid"), num(row, "preferredposition1")]),
   );
-  const loans = careerLoans(db, save);
+  const loans = careerList(db, save, "career_loaned_list");
   const loaned = new Set(loans.map((row) => num(row, "playerid")));
   const squads = squadsOf(
     [...placements].flatMap(([playerId, { club }]) =>

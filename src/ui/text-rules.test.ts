@@ -1,26 +1,8 @@
 // The writing rules of docs/ui-text.md, checked on every fixed UI text (texts built by a function are
 // checked where their own tests call them).
 import { describe, expect, it } from "vitest";
-import {
-  FILTER_SECTION_LABELS,
-  FLAG_LABELS,
-  LIST_LABELS,
-  POSITION_GROUP_LABELS,
-  RANGE_LABELS,
-  TEXT,
-} from "./text.ts";
-import { ATTRIBUTE_GROUP_LABELS, ATTRIBUTE_LABELS } from "./text-attributes.ts";
-import { CLUB_STATUS_LABELS, LIST_MEMBERSHIP_LABELS, MY_CLUB_LABELS } from "./text-choices.ts";
-import { FILTER_SETS_TEXT } from "./text-filter-sets.ts";
-import { CODE_NAMES } from "./text-code-names.ts";
-import { FIELD_HELP, HELP_TEXT, WARNING_TEXT } from "./text-help.ts";
-import { OFFER_TEXT } from "./text-offer.ts";
 import { startDescription } from "./test-support/start-description.ts";
-import { LOAD_TEXT } from "./text-loading.ts";
-import { NOTES_TEXT } from "./text-notes.ts";
-import { CHART_READING_TEXT } from "./text-chart-reading.ts";
-import { PORTRAIT_TEXT } from "./text-portraits.ts";
-import { WATCHLIST_TEXT } from "./text-watchlist.ts";
+import { WARNING_TEXT } from "./text-help.ts";
 import { tie } from "./typeset.ts";
 
 const stringsIn = (value: unknown): readonly string[] => {
@@ -35,31 +17,16 @@ const descriptionStrings = (): readonly string[] => {
   return [...blocks.map((block) => block.text), ...images.map((image) => image["alt"] ?? "")];
 };
 
-const STRINGS = stringsIn([
-  ATTRIBUTE_GROUP_LABELS,
-  ATTRIBUTE_LABELS,
-  CLUB_STATUS_LABELS,
-  FILTER_SECTION_LABELS,
-  FLAG_LABELS,
-  LIST_LABELS,
-  LIST_MEMBERSHIP_LABELS,
-  MY_CLUB_LABELS,
-  POSITION_GROUP_LABELS,
-  RANGE_LABELS,
-  TEXT,
-  FILTER_SETS_TEXT,
-  OFFER_TEXT,
-  WATCHLIST_TEXT,
-  NOTES_TEXT,
-  PORTRAIT_TEXT,
-  CHART_READING_TEXT,
-  LOAD_TEXT,
-  FIELD_HELP,
-  HELP_TEXT,
-  WARNING_TEXT,
-  CODE_NAMES,
-  descriptionStrings(),
-]);
+/**
+ * Every UI text module (text.ts and text-*.ts beside it), found by name, so a new module cannot slip past
+ * the rules: a hand-kept list had left some out.
+ */
+const TEXT_MODULES = import.meta.glob<Readonly<Record<string, unknown>>>(
+  ["./text.ts", "./text-*.ts", "!./*.test.ts"],
+  { eager: true },
+);
+
+const STRINGS = stringsIn([...Object.values(TEXT_MODULES), descriptionStrings()]);
 
 /** Address pronouns from a capital letter, though not at the start of a sentence. */
 const CAPITAL_PRONOUN =
@@ -70,6 +37,8 @@ const CLICHES =
 
 describe("UI texts", () => {
   it("covers the text modules", () => {
+    expect(Object.keys(TEXT_MODULES)).toContain("./text-level-up.ts");
+    expect(Object.keys(TEXT_MODULES)).not.toContain("./text-rules.test.ts");
     expect(STRINGS.length).toBeGreaterThan(200);
     // The rules reach the description of the start page, not an empty reading of it.
     expect(descriptionStrings().length).toBeGreaterThan(15);

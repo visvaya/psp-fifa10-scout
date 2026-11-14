@@ -377,6 +377,8 @@ const seasonSection = ({ range, ...kit }: Kit, showPotential: boolean) => (
     {range("morale")}
     {SEASON_STAT_KEYS.map((key) => range(key))}
     {range("injuryDays")}
+    {range("levelUpXp")}
+    {range("levelUpPoints")}
   </Section>
 );
 
