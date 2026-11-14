@@ -75,17 +75,17 @@ const optional = (value: number | string | null): ReactNode =>
  * development uses (the season's first match day, not the card's age) and his last season.
  */
 const curveOf = (player: Player, curves: Curves) => {
-  const { seasonAge, lastSeasonAge, overallByAge } = player;
+  const { seasonAge, lastSeasonAge, overallByAge, retirementAge } = player;
   const { developmentStyle: style, developmentType: type } = player;
   if (overallByAge.length > 0)
     return {
       line: ovrSparkline(overallByAge),
-      chart: withRetirement(ovrChart(overallByAge, seasonAge), lastSeasonAge),
+      chart: withRetirement(ovrChart(overallByAge, seasonAge), lastSeasonAge, retirementAge),
     };
   const id = skillCurveId(style, type);
   return {
     line: curveSparklines(curves)(id),
-    chart: withRetirement(curveChart(curves, id, seasonAge), lastSeasonAge),
+    chart: withRetirement(curveChart(curves, id, seasonAge), lastSeasonAge, retirementAge),
   };
 };
 
