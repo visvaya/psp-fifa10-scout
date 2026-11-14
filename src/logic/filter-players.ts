@@ -22,6 +22,7 @@ const SEASON_FIELDS = [
   "levelUpPoints",
   "price",
   "wage",
+  "transferWage",
 ] as const satisfies readonly (keyof Player)[];
 
 const RANGE_FIELDS = [

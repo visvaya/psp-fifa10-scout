@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { initialScoutState, scoutReducer } from "./scout-state.ts";
 import type { ScoutState } from "./scout-state.ts";
+import { offerTerms } from "./offer.ts";
 import { canResetSettings } from "./settings-reset.ts";
 import { needsSignedList, shownPlayers } from "./signed-list.ts";
 import { TEST_CAREER, testPlayer } from "./test-support/player-fixtures.ts";
@@ -23,6 +24,10 @@ const loaded = (from: ScoutState, requestId = 1): ScoutState =>
 
 const moneyShown = (state: ScoutState) =>
   shownPlayers(state)?.map(({ price, wage }) => ({ price, wage }));
+
+/** The least wage the offer form asks for BEFORE at a contract of `years`. */
+const needed = (years: number) =>
+  offerTerms(BEFORE, TEST_CAREER.offer, { double: false, bonusPercent: 0, years })?.wage;
 
 const switched = (state: ScoutState, shown = true): ScoutState =>
   scoutReducer(state, { type: "after-signing-shown", shown });
@@ -93,6 +98,21 @@ describe("the list after signing", () => {
     // Born 1984, retiring at 35, the season ending in 2010; id 1 wants (1 mod 5) + 1 = 2 years.
     const ready = built(switched(loaded(initialScoutState)), [SIGNED]);
     expect(moneyShown(ready)).toEqual([{ price: 2_000_000, wage: 10_000 }]);
+  });
+
+  // Owner, 2026-11-14 (decision 1b): the wage he will be paid, the least his offer needs, beside the market wage.
+  it("gives the wage his offer needs at the user's club for the length he wants or the one chosen", () => {
+    const ready = built(switched(loaded(initialScoutState)), [SIGNED]);
+    expect(shownPlayers(ready)?.[0]?.transferWage).toBe(needed(2));
+    const four = scoutReducer(ready, { type: "transfer-years-chosen", years: 4 });
+    expect(shownPlayers(four)?.[0]?.transferWage).toBe(needed(4));
+    expect(needed(4)).not.toBe(needed(2));
+  });
+
+  it("gives no wage after a transfer to a player without values at the user's club", () => {
+    const ready = built(switched(loaded(initialScoutState)), [AFTER]);
+    expect(shownPlayers(ready)?.[0]?.transferWage).toBeNull();
+    expect(shownPlayers(loaded(initialScoutState))?.[0]?.transferWage).toBeNull();
   });
 
   it("prices him for the contract length chosen, and for the one he wants again", () => {

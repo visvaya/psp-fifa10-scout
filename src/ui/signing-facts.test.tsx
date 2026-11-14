@@ -39,6 +39,7 @@ describe("the card's section on the transfer", () => {
       ...AFTER,
       signedValuesEuro: [1_000_000, 2_000_000, 3_000_000, 2_500_000, 1_500_000],
       signedWageEuro: 6000,
+      transferWage: 9500,
     };
     const html = renderToStaticMarkup(
       <SigningFacts before={BEFORE} after={signed} showPotential currency={0} />,
@@ -46,6 +47,7 @@ describe("the card's section on the transfer", () => {
     expect(html).toContain("Cena (kontrakt 1–5");
     expect(html).toMatch(/900.000.*→.*1.000.000.*3.000.000/u);
     expect(html).toMatch(/4000.€.*→.*6000.€/u);
+    expect(html).toMatch(/Pensja po .*9500.€/u);
   });
 
   it("leaves the money out for a player without values at the user's club", () => {

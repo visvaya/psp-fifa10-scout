@@ -30,6 +30,11 @@ export interface Finance extends EuroMoney {
    */
   readonly signedWageEuro: number | null;
   /**
+   * In the profile after a transfer, the wage his offer needs at the user's club, in the shown currency
+   * (signed-list.ts); null for anyone else and without that profile.
+   */
+  readonly transferWage: number | null;
+  /**
    * A loaned player's value, in euro, once back at his parent club next season: the season's turn renews
    * his contract by one draw of 1 to 5 years for every player (index 0 to 4). Null for anyone else, or
    * when the parent club's prestige is unknown.
@@ -45,6 +50,7 @@ export const NO_FINANCE: Finance = {
   storedWage: false,
   signedValuesEuro: null,
   signedWageEuro: null,
+  transferWage: null,
   returnValuesEuro: null,
 };
 
@@ -57,6 +63,7 @@ export const moneyOf = ({
   storedWage,
   signedValuesEuro,
   signedWageEuro,
+  transferWage,
   returnValuesEuro,
 }: Finance): Finance => ({
   price,
@@ -66,6 +73,7 @@ export const moneyOf = ({
   storedWage,
   signedValuesEuro,
   signedWageEuro,
+  transferWage,
   returnValuesEuro,
 });
 
@@ -135,9 +143,17 @@ const priceInputOf =
   };
 
 /** No value once signed or once back. */
-const NO_VALUES = { signedValuesEuro: null, signedWageEuro: null, returnValuesEuro: null } as const;
+const NO_VALUES = {
+  signedValuesEuro: null,
+  signedWageEuro: null,
+  transferWage: null,
+  returnValuesEuro: null,
+} as const;
 
-type Prospects = Pick<Finance, "signedValuesEuro" | "signedWageEuro" | "returnValuesEuro">;
+type Prospects = Pick<
+  Finance,
+  "signedValuesEuro" | "signedWageEuro" | "transferWage" | "returnValuesEuro"
+>;
 
 /** The contract lengths the offer form offers, in years. */
 export const CONTRACT_YEARS = [1, 2, 3, 4, 5] as const;
