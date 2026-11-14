@@ -6,6 +6,7 @@ import { isAttributeName } from "../logic/attributes.ts";
 import type { PositionGroup } from "../logic/positions.ts";
 import { lazy } from "../logic/lazy.ts";
 import { ATTRIBUTE_LABELS } from "./text-attributes.ts";
+import { LEVEL_UP_LABELS } from "./text-level-up.ts";
 import { NBSP, pl } from "./typeset.ts";
 
 /** By the save's currency code, as the game shows them. */
@@ -117,6 +118,7 @@ export const RANGE_LABELS: Readonly<Record<RangeFields | PeakTwin, string>> = {
   cleanSheets: pl`Czyste konta w lidze`,
   cupCleanSheets: pl`Czyste konta w pucharach`,
   injuryDays: "Kontuzja (dni)",
+  ...LEVEL_UP_LABELS,
   price: "Cena",
   wage: "Zarobki rynkowe (szacunkowe)",
 };
@@ -237,22 +239,6 @@ export const TEXT = {
   /** Left out once the app could not be stored for offline use. */
   installOffline: pl`Po pierwszym otwarciu narzędzie działa też bez internetu.`,
   installSteps: pl`iPhone: w Safari wybierz Udostępnij, potem Do ekranu początkowego. Chrome i Edge: menu przeglądarki, potem Zainstaluj aplikację.`,
-  update: {
-    waiting: pl`Dostępna jest nowa wersja. Wczytane dane gry, zapis kariery i filtry zostaną zachowane.`,
-    installing: "Instalowanie nowej wersji…",
-    outdated: pl`Nowa wersja została zainstalowana w innym oknie. Wczytane dane gry, zapis kariery i filtry zostaną zachowane.`,
-    failed: "Nie udało się pobrać nowej wersji. Spróbuj później.",
-    unregistered: pl`Nie udało się zapisać narzędzia do pracy bez internetu. Odśwież stronę, aby spróbować ponownie.`,
-    checking: "Sprawdzanie aktualizacji…",
-    downloading: "Pobieranie nowej wersji…",
-    current: "Masz najnowszą wersję.",
-    unreachable: pl`Brak połączenia z internetem, nie można sprawdzić aktualizacji.`,
-    check: "Sprawdź aktualizacje",
-    checkMark: "↻",
-    dismiss: "Zamknij komunikat",
-    dismissMark: "×",
-    reload: "Odśwież",
-  },
   storageFailed: pl`Nie udało się użyć pamięci przeglądarki. Narzędzie działa dalej, ale filtry i wczytane pliki mogą nie zostać zapamiętane. Po ponownym otwarciu wczytaj pliki jeszcze raz.`,
   noData: "Nie wczytano jeszcze bazy gry.",
   noMatches: "Żaden zawodnik nie spełnia filtrów.",

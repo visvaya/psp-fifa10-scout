@@ -61,6 +61,9 @@ const FIELD_BOUNDS: Readonly<Record<RangeFields, FieldBounds>> = {
   cleanSheets: whole(0, 255),
   cupCleanSheets: fourCups(63),
   injuryDays: whole(0, 255),
+  // The bar levels up at 1000; a return from the national team adds 200 in one go.
+  levelUpXp: whole(0, 1200),
+  levelUpPoints: whole(0),
   price: whole(0),
   wage: whole(0),
 };

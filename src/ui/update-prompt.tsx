@@ -1,7 +1,7 @@
 import type { JSX } from "react";
 import { isDismissible } from "./app-update.ts";
 import type { UpdateStatus } from "./app-update.ts";
-import { TEXT } from "./text.ts";
+import { UPDATE_TEXT } from "./text-update.ts";
 
 /**
  * The update prompt under the top bar. The region is always there, so a screen reader hears each change;
@@ -17,15 +17,15 @@ export const UpdatePrompt = (props: {
   const canReload = status === "waiting" || status === "outdated";
   return (
     <output className="update-prompt">
-      {status === "idle" ? null : <p>{TEXT.update[status]}</p>}
+      {status === "idle" ? null : <p>{UPDATE_TEXT[status]}</p>}
       {isDismissible(status) ? (
-        <button type="button" className="button" aria-label={TEXT.update.dismiss} onClick={dismiss}>
-          <span aria-hidden="true">{TEXT.update.dismissMark}</span>
+        <button type="button" className="button" aria-label={UPDATE_TEXT.dismiss} onClick={dismiss}>
+          <span aria-hidden="true">{UPDATE_TEXT.dismissMark}</span>
         </button>
       ) : null}
       {canReload ? (
         <button type="button" className="button primary" onClick={install}>
-          {TEXT.update.reload}
+          {UPDATE_TEXT.reload}
         </button>
       ) : null}
     </output>

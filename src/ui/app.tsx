@@ -20,6 +20,7 @@ import { PlayerCard } from "./player-card.tsx";
 import type { PositionNames } from "./position-name.tsx";
 import { StartScreen } from "./start-screen.tsx";
 import { TEXT } from "./text.ts";
+import { UPDATE_TEXT } from "./text-update.ts";
 import { canCheck, UPDATE_CHECK_ID, useAppUpdate } from "./app-update.ts";
 import type { UpdatableRegistration } from "./app-update.ts";
 import { UpdatePrompt } from "./update-prompt.tsx";
@@ -145,12 +146,12 @@ const TopBar = (props: {
           type="button"
           className="button"
           id={UPDATE_CHECK_ID}
-          aria-label={TEXT.update.check}
-          title={TEXT.update.check}
+          aria-label={UPDATE_TEXT.check}
+          title={UPDATE_TEXT.check}
           disabled={!canCheck(update.status)}
           onClick={update.check}
         >
-          <span aria-hidden="true">{TEXT.update.checkMark}</span>
+          <span aria-hidden="true">{UPDATE_TEXT.checkMark}</span>
         </button>
       ) : null}
       {list === null || !wide ? null : (
