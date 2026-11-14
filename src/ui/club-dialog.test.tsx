@@ -86,4 +86,21 @@ describe("the club dialog", () => {
     expect(html).toContain('<span class="formation-codes">P3 P7</span>');
     expect(html).toMatch(/P0<\/span>.*P3<\/span>.*P7<\/span>/u);
   });
+
+  // Owner, 2026-11-14 (roadmap 129): the squad players the eleven leaves out, under it.
+  it("lists the substitutes under the eleven, outsiders left out, or says the squad fits", () => {
+    const html = renderToStaticMarkup(
+      <ClubView
+        players={PLAYERS}
+        myTeamId={5}
+        career={{ ...TEST_CAREER, formationCodes: [0, 30], formations: [[0, 30]] }}
+        showPotential={false}
+        positionName={(code) => `P${String(code)}`}
+        dispatch={() => undefined}
+      />,
+    );
+    expect(html).toMatch(/Jedenastka.*Napastnik.*Zmiennicy.*Obrońca.*<table/u);
+    expect(html).not.toContain("Obcy");
+    expect(render([0, 5, 30])).toContain("Cały skład mieści się w");
+  });
 });
