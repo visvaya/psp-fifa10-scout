@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { OUTSIDE_ELEVEN } from "../logic/roles.ts";
+import { SORTABLE_KEYS } from "../logic/sort-players.ts";
 import { testPlayer } from "../logic/test-support/player-fixtures.ts";
 import { columnLabel, columnText } from "./player-list.tsx";
 import { FLAG_LABELS, TEXT } from "./text.ts";
@@ -62,5 +63,13 @@ describe("a list's value in the list", () => {
     expect(columnText(player, "preferredFoot", null)).toBe("lewa");
     expect(columnText(player, "developmentType", null)).toBe("późny");
     expect(columnText(player, "developmentStyle", null)).toBe("dobry");
+  });
+});
+
+// The slot in the best eleven went out as a column headed by its raw key (owner, 2026-11-14).
+describe("a column's heading", () => {
+  it("names every column the list offers, never by its key", () => {
+    const unnamed = SORTABLE_KEYS.filter((key) => columnLabel(key) === key);
+    expect(unnamed).toEqual([]);
   });
 });
