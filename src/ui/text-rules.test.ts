@@ -18,6 +18,7 @@ import { OFFER_TEXT } from "./text-offer.ts";
 import { startDescription } from "./test-support/start-description.ts";
 import { LOAD_TEXT } from "./text-loading.ts";
 import { NOTES_TEXT } from "./text-notes.ts";
+import { CHART_READING_TEXT } from "./text-chart-reading.ts";
 import { PORTRAIT_TEXT } from "./text-portraits.ts";
 import { WATCHLIST_TEXT } from "./text-watchlist.ts";
 import { tie } from "./typeset.ts";
@@ -51,6 +52,7 @@ const STRINGS = stringsIn([
   WATCHLIST_TEXT,
   NOTES_TEXT,
   PORTRAIT_TEXT,
+  CHART_READING_TEXT,
   LOAD_TEXT,
   FIELD_HELP,
   HELP_TEXT,

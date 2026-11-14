@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { curveChart, ovrChart } from "./curve-chart.ts";
+import { curveChart, ovrChart, readIndexAt, steppedReadIndex } from "./curve-chart.ts";
 import { CURVE_COLUMNS } from "./overall-rating.ts";
 
 /** Each age of the table, 15..45, at `value(age)`. */
@@ -111,5 +111,41 @@ describe("ovrChart", () => {
   it("draws one season too, and nothing without a projection", () => {
     expect(ovrChart([70], 45)?.points).toEqual([{ age: 45, value: 70, x: 54, y: 16 }]);
     expect(ovrChart([], 22)).toBeNull();
+  });
+});
+
+// Owner, 2026-11-13: a finger or the mouse along the chart reads the level at an age; so do the keys.
+describe("reading the chart at an age", () => {
+  const chart = curveChart(CURVES, 13, 22);
+  if (chart === null) throw new Error("The test curve has no chart");
+
+  it("reads the age nearest the pointer along the plot's width, clamped to its ends", () => {
+    expect(readIndexAt(chart, 0)).toBe(0);
+    expect(readIndexAt(chart, 1)).toBe(30);
+    // 31 ages, 30 steps: a share of 0,25 lies at 7,5 steps, read as 8 (age 23).
+    expect(readIndexAt(chart, 0.25)).toBe(8);
+    expect(readIndexAt(chart, -0.2)).toBe(0);
+    expect(readIndexAt(chart, 1.3)).toBe(30);
+  });
+
+  it("steps a year with the arrows and to the ends with Home and End", () => {
+    expect(steppedReadIndex(chart, 3, "ArrowRight")).toBe(4);
+    expect(steppedReadIndex(chart, 3, "ArrowUp")).toBe(4);
+    expect(steppedReadIndex(chart, 3, "ArrowLeft")).toBe(2);
+    expect(steppedReadIndex(chart, 3, "ArrowDown")).toBe(2);
+    expect(steppedReadIndex(chart, 3, "Home")).toBe(0);
+    expect(steppedReadIndex(chart, 3, "End")).toBe(30);
+    expect(steppedReadIndex(chart, 0, "ArrowLeft")).toBe(0);
+    expect(steppedReadIndex(chart, 30, "ArrowRight")).toBe(30);
+  });
+
+  it("steps from this season's age before any reading, and leaves other keys alone", () => {
+    // 22 this season is the eighth age from 15.
+    expect(steppedReadIndex(chart, null, "ArrowRight")).toBe(8);
+    expect(steppedReadIndex(chart, null, "Escape")).toBeNull();
+    expect(steppedReadIndex(chart, 3, "Tab")).toBeNull();
+    const outside = curveChart(CURVES, 13, 50);
+    if (outside === null) throw new Error("The test curve has no chart");
+    expect(steppedReadIndex(outside, null, "ArrowRight")).toBe(1);
   });
 });
