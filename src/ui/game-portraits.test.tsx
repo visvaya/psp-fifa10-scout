@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import type { GraphicsPack } from "../data/game-graphics.ts";
 import { buildShpm, refpackLiterals } from "../data/test-support/synthetic-graphics.ts";
+import { TODAY } from "../logic/player-rating.ts";
 import { testPlayer } from "../logic/test-support/player-fixtures.ts";
 import { GameImages, kitsOf, portraitOf, PortraitSlot } from "./game-image.tsx";
 import { PlayerCard } from "./player-card.tsx";
@@ -48,6 +49,7 @@ const card = (
       curves={new Map()}
       offer={null}
       offerPlayer={player}
+      profile={TODAY}
       showPotential={showPotential}
       names={POSITIONS}
       watched={false}

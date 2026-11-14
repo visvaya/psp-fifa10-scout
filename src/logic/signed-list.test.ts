@@ -3,8 +3,11 @@ import { initialScoutState, scoutReducer } from "./scout-state.ts";
 import type { Preferences, ScoutState } from "./scout-state.ts";
 import { offerTerms } from "./offer.ts";
 import { canResetSettings } from "./settings-reset.ts";
-import { needsSignedList, shownPlayers } from "./signed-list.ts";
+import { needsSignedList, profileModeOf, shownPlayers } from "./signed-list.ts";
 import { TEST_CAREER, testPlayer } from "./test-support/player-fixtures.ts";
+
+/** The profile after a transfer alone. */
+const SIGNING = { afterSigning: true, atPeak: false } as const;
 
 const money = { price: 15_000_000, wage: 8700, priceEuro: 15_449_999.6, wageEuro: 8742.2 };
 const BEFORE = testPlayer({ id: 1, potential: 80, ...money });
@@ -45,9 +48,10 @@ const switched = (state: ScoutState, shown = true): ScoutState =>
   scoutReducer(state, { type: "after-signing-shown", shown });
 
 const built = (state: ScoutState, players: readonly (typeof AFTER)[] | null = [AFTER]) =>
-  scoutReducer(scoutReducer(state, { type: "signed-requested" }), {
+  scoutReducer(scoutReducer(state, { type: "signed-requested", mode: profileModeOf(state) }), {
     type: "signed-built",
     players,
+    mode: profileModeOf(state),
   });
 
 describe("the list after signing", () => {
@@ -57,14 +61,18 @@ describe("the list after signing", () => {
     const on = switched(career);
     expect(on.afterSigning).toBe(true);
     expect(needsSignedList(on)).toBe(true);
-    expect(needsSignedList(scoutReducer(on, { type: "signed-requested" }))).toBe(false);
+    expect(needsSignedList(scoutReducer(on, { type: "signed-requested", mode: SIGNING }))).toBe(
+      false,
+    );
     // Without a career there is nothing to sign.
     expect(needsSignedList(switched(initialScoutState))).toBe(false);
   });
 
   it("shows the built list while the setting is on, and the players before signing otherwise", () => {
     const on = switched(loaded(initialScoutState));
-    expect(shownPlayers(scoutReducer(on, { type: "signed-requested" }))).toEqual([BEFORE]);
+    expect(shownPlayers(scoutReducer(on, { type: "signed-requested", mode: SIGNING }))).toEqual([
+      BEFORE,
+    ]);
     const ready = built(on);
     expect(shownPlayers(ready)?.map((player) => player.potential)).toEqual([84]);
     expect(shownPlayers(switched(ready, false))).toEqual([BEFORE]);
@@ -82,7 +90,10 @@ describe("the list after signing", () => {
       requestId: 1,
       error: { stage: "game", kind: "unexpected" },
     } as const;
-    const pending = scoutReducer(switched(loaded(initialScoutState)), { type: "signed-requested" });
+    const pending = scoutReducer(switched(loaded(initialScoutState)), {
+      type: "signed-requested",
+      mode: SIGNING,
+    });
     expect(scoutReducer(pending, failure).signed).toBe("failed");
     const ready = built(switched(loaded(initialScoutState)));
     expect(scoutReducer(ready, failure).signed).toBe(ready.signed);
@@ -202,7 +213,9 @@ describe("the list after signing", () => {
     expect(again.signed).toBeUndefined();
     expect(needsSignedList(again)).toBe(true);
     // A late reply nothing waits for changes nothing.
-    expect(scoutReducer(again, { type: "signed-built", players: [AFTER] })).toBe(again);
+    expect(scoutReducer(again, { type: "signed-built", players: [AFTER], mode: SIGNING })).toBe(
+      again,
+    );
   });
 
   it("is turned off by Resetuj, which then has something to reset", () => {
@@ -225,5 +238,44 @@ describe("the list after signing", () => {
   it("restores no range of the wage after a transfer without its profile", () => {
     const restored = restore({ filters: { ranges: { transferWage: { min: 1 } } } });
     expect(restored.filters.ranges?.transferWage).toBeUndefined();
+  });
+});
+
+const potential = (state: ScoutState, shown = true) =>
+  scoutReducer(state, { type: "potential-shown", shown });
+const peak = (state: ScoutState, shown = true) =>
+  scoutReducer(state, { type: "peak-shown", shown });
+
+// Owner, 2026-11-14 (roadmap 123): the profile at the peak, alone or with the one after a transfer.
+describe("the profile at the peak", () => {
+  it("is asked for only while the potential shows", () => {
+    const hidden = peak(loaded(initialScoutState));
+    expect(hidden.atPeak).toBe(true);
+    expect(needsSignedList(hidden)).toBe(false);
+    expect(needsSignedList(potential(hidden))).toBe(true);
+  });
+
+  it("drops a list built for another profile, so the new one is asked for", () => {
+    const signing = built(potential(switched(loaded(initialScoutState))));
+    expect(Array.isArray(signing.signed)).toBe(true);
+    const both = peak(signing);
+    expect(both.signed).toBeUndefined();
+    expect(needsSignedList(both)).toBe(true);
+    expect(profileModeOf(both)).toEqual({ afterSigning: true, atPeak: true });
+  });
+
+  it("ignores a reply built for a profile no longer asked for", () => {
+    const state = potential(switched(loaded(initialScoutState)));
+    const asked = scoutReducer(state, { type: "signed-requested", mode: SIGNING });
+    const moved = peak(asked);
+    const again = scoutReducer(moved, { type: "signed-requested", mode: profileModeOf(moved) });
+    const late = scoutReducer(again, { type: "signed-built", players: [AFTER], mode: SIGNING });
+    expect(late.signed).toBe("pending");
+  });
+
+  it("keeps the money the worker priced at the peak when no transfer is shown", () => {
+    const atPeak = testPlayer({ id: 1, potential: 84, price: 20_000_000, priceEuro: 20_000_000 });
+    const ready = built(peak(potential(loaded(initialScoutState))), [atPeak]);
+    expect(shownPlayers(ready)?.map((player) => player.price)).toEqual([20_000_000]);
   });
 });
