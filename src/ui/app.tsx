@@ -24,12 +24,9 @@ import { TEXT } from "./text.ts";
 import { canCheck, UPDATE_CHECK_ID, useAppUpdate } from "./app-update.ts";
 import type { UpdatableRegistration } from "./app-update.ts";
 import { UpdatePrompt } from "./update-prompt.tsx";
-import { useMediaQuery } from "./use-media-query.ts";
+import { useMediaQuery, WIDE_QUERY } from "./use-media-query.ts";
 import { useScoutFiles } from "./use-scout-files.ts";
 import { GameImages } from "./game-image.tsx";
-
-/** Wide layout (table and side panel) from this width; matches --layout-wide in styles.css. */
-const WIDE_QUERY = "(min-width: 60rem)";
 
 /** The players with the names of the active game language, its text order and its position names. */
 const useGameNames = (state: ScoutState) => {
@@ -53,9 +50,9 @@ const useGameNames = (state: ScoutState) => {
   return { language, list, positionNames };
 };
 
-/** Stores the preferences, the languages read, the watchlist and the notes, once the stored ones were restored. */
-const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFiles>) => {
-  const { ready, savePreferences, saveLanguages, saveWatchlist, saveNotes } = files;
+/** Stores the preferences once the stored ones were restored. */
+const useStoredPreferences = (state: ScoutState, files: ReturnType<typeof useScoutFiles>) => {
+  const { ready, savePreferences } = files;
   const {
     filters,
     sort,
@@ -67,11 +64,7 @@ const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFile
     tieOrder,
     afterSigning,
     approximatePortraits,
-    languages,
-    watchlist,
-    watchlistEdited,
-    notes,
-    notesEdited,
+    alwaysPortraits,
   } = state;
   useEffect(() => {
     // Only after the stored preferences were restored, so defaults never overwrite them.
@@ -87,6 +80,7 @@ const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFile
         ...(tieOrder === undefined ? {} : { tieOrder }),
         ...(afterSigning === undefined ? {} : { afterSigning }),
         ...(approximatePortraits === undefined ? {} : { approximatePortraits }),
+        ...(alwaysPortraits === undefined ? {} : { alwaysPortraits }),
       });
     }
   }, [
@@ -102,7 +96,15 @@ const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFile
     tieOrder,
     afterSigning,
     approximatePortraits,
+    alwaysPortraits,
   ]);
+};
+
+/** Stores the preferences, the languages read, the watchlist and the notes, once the stored ones were restored. */
+const useStoredState = (state: ScoutState, files: ReturnType<typeof useScoutFiles>) => {
+  const { ready, saveLanguages, saveWatchlist, saveNotes } = files;
+  const { languages, watchlist, watchlistEdited, notes, notesEdited } = state;
+  useStoredPreferences(state, files);
 
   useEffect(() => {
     if (ready) saveLanguages(languages);

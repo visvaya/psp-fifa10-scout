@@ -23,29 +23,36 @@ describe("the game's graphics in the state", () => {
   });
 });
 
-describe("the approximate portraits switch", () => {
-  const on = scoutReducer(initialScoutState, { type: "approximate-portraits-shown", shown: true });
+// "Przybliżone portrety" (roadmap 110) and "Zawsze pokazuj portrety" (roadmap 117).
+describe.each(["approximatePortraits", "alwaysPortraits"] as const)("the %s switch", (setting) => {
+  const on = scoutReducer(initialScoutState, { type: "portraits-chosen", setting, on: true });
 
   it("is off by default, turned on and off, and not an undo step", () => {
-    expect(initialScoutState.approximatePortraits).toBeUndefined();
-    expect(on.approximatePortraits).toBe(true);
+    expect(initialScoutState[setting]).toBeUndefined();
+    expect(on[setting]).toBe(true);
     expect(on.undo).toEqual([]);
-    const off = scoutReducer(on, { type: "approximate-portraits-shown", shown: false });
-    expect(off).not.toHaveProperty("approximatePortraits");
+    const off = scoutReducer(on, { type: "portraits-chosen", setting, on: false });
+    expect(off).not.toHaveProperty(setting);
+  });
+
+  it("leaves the other portrait switch as it is", () => {
+    const other = setting === "alwaysPortraits" ? "approximatePortraits" : "alwaysPortraits";
+    const both = scoutReducer(on, { type: "portraits-chosen", setting: other, on: true });
+    expect(scoutReducer(both, { type: "portraits-chosen", setting, on: false })[other]).toBe(true);
   });
 
   it("is turned off by Resetuj, which then has something to reset", () => {
     expect(canResetSettings(on)).toBe(true);
-    expect(scoutReducer(on, { type: "settings-reset" })).not.toHaveProperty("approximatePortraits");
+    expect(scoutReducer(on, { type: "settings-reset" })).not.toHaveProperty(setting);
   });
 
   it("is restored from the stored preferences", () => {
     const preferences = { filters: {}, sort: initialScoutState.sort, showPotential: false };
-    const restored = (approximatePortraits?: true) =>
+    const restored = (stored?: true) =>
       scoutReducer(initialScoutState, {
         type: "preferences-restored",
-        preferences: approximatePortraits ? { ...preferences, approximatePortraits } : preferences,
-      }).approximatePortraits;
+        preferences: stored ? { ...preferences, [setting]: stored } : preferences,
+      })[setting];
     expect(restored(true)).toBe(true);
     expect(restored()).toBeUndefined();
   });

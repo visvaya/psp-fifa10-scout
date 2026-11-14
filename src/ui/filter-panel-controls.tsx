@@ -1,10 +1,11 @@
 // The filter panel's own controls above the filters: the potential switch, with the game's graphics the
-// approximate portraits switch and, with a career, the switch to values after signing.
+// portrait switches and, with a career, the switch to values after signing.
 import { useId } from "react";
 import type { Dispatch, JSX } from "react";
 import { CheckField } from "./filter-fields.tsx";
 import { useHasGameImages } from "./game-image.tsx";
-import type { ScoutAction } from "../logic/scout-state.ts";
+import type { PortraitSetting, ScoutAction, ScoutState } from "../logic/scout-state.ts";
+import { useMediaQuery, WIDE_QUERY } from "./use-media-query.ts";
 import type { SigningState } from "../logic/signed-list.ts";
 import { TEXT } from "./text.ts";
 import { PORTRAIT_TEXT } from "./text-portraits.ts";
@@ -42,23 +43,34 @@ export const PotentialSwitch = (props: {
 };
 
 /**
- * A lookalike's portrait for the players the game has none of (roadmap 110), off by default; only
- * with the game's graphics.
+ * The portrait switches, off by default and only with the game's graphics: a lookalike's portrait for
+ * the players the game has none of (roadmap 110), and portraits beside any columns of the phone list
+ * (117), which only the narrow layout has: the wide table always shows them.
  */
-export const PortraitSwitch = (props: {
-  shown: boolean;
+export const PortraitSwitches = (props: {
+  settings: Pick<ScoutState, PortraitSetting>;
   dispatch: Dispatch<ScoutAction>;
-}): JSX.Element | null =>
-  useHasGameImages() ? (
-    <CheckField
-      label={PORTRAIT_TEXT.label}
-      help={PORTRAIT_TEXT.help}
-      checked={props.shown}
-      onChange={(shown) => {
-        props.dispatch({ type: "approximate-portraits-shown", shown });
-      }}
-    />
+}): JSX.Element | null => {
+  const wide = useMediaQuery(WIDE_QUERY);
+  const settings: readonly PortraitSetting[] = wide
+    ? ["approximatePortraits"]
+    : ["approximatePortraits", "alwaysPortraits"];
+  return useHasGameImages() ? (
+    <>
+      {settings.map((setting) => (
+        <CheckField
+          key={setting}
+          label={PORTRAIT_TEXT.switches[setting].label}
+          help={PORTRAIT_TEXT.switches[setting].help}
+          checked={props.settings[setting] === true}
+          onChange={(on) => {
+            props.dispatch({ type: "portraits-chosen", setting, on });
+          }}
+        />
+      ))}
+    </>
   ) : null;
+};
 
 /**
  * Values after signing for players outside the squad (roadmap 56), under the potential switch and only

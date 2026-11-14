@@ -336,10 +336,12 @@ export const PhoneRow = (
     columns: readonly SortKey[];
     labels: readonly string[];
     ratingCode: number | null;
+    /** "Zawsze pokazuj portrety" (roadmap 117): the portrait also beside further columns. */
+    alwaysPortrait: boolean;
     dispatch: Dispatch<ScoutAction>;
   },
 ) => {
-  const { player, watched, columns, labels, ratingCode, dispatch } = props;
+  const { player, watched, columns, labels, ratingCode, alwaysPortrait, dispatch } = props;
   return (
     <button
       type="button"
@@ -350,12 +352,13 @@ export const PhoneRow = (
       }}
     >
       <span className="player-row-text">
-        {/* Portraits only on the basic list, the name and the rating column: with any further column
-            the name needs the room (owner, 2026-11-13). */}
+        {/* Portraits by default only on the basic list, the name and the rating column: with any
+            further column the name needs the room (owner, 2026-11-13), unless the user asks for
+            them always (owner, 2026-11-14). */}
         <PhoneName
           player={player}
           watched={watched}
-          portrait={columns.every((column) => column === "overall")}
+          portrait={alwaysPortrait || columns.every((column) => column === "overall")}
         />
         <MetaLine player={player} columns={columns} />
       </span>
@@ -407,8 +410,25 @@ const usePhoneColumns = (props: ListProps) => {
   }, [columns, ratingName, currency, valueRems, room.style]);
 };
 
-export const PlayerCards = (props: ListProps): JSX.Element => {
-  const { players, ratingCode, sort, watchedIds, dispatch } = props;
+/**
+ * Scrolls the list to a focused label. The list owns the sideways scroll and the labels follow it, so
+ * the two never drift apart, whichever browser also scrolls the labels to the focus by itself.
+ */
+const showFocusedLabel = (
+  label: HTMLElement,
+  list: HTMLElement | null,
+  header: HTMLElement | null,
+) => {
+  if (list === null || header === null) return;
+  list.scrollTo({ left: scrollShowing(label, header, list.scrollLeft), behavior: "instant" });
+  header.scrollTo({ left: list.scrollLeft, behavior: "instant" });
+};
+
+export const PlayerCards = (
+  /** alwaysPortraits: "Zawsze pokazuj portrety", portraits beside further columns too. */
+  props: ListProps & { readonly alwaysPortraits: boolean },
+): JSX.Element => {
+  const { players, ratingCode, sort, watchedIds, alwaysPortraits, dispatch } = props;
   const { columns, labels, layout } = usePhoneColumns(props);
   const headerRef = useRef<HTMLDivElement>(null);
   const { scrollRef, items, before, after } = useRows(players.length, ROW_HEIGHT_REM.list);
@@ -427,12 +447,7 @@ export const PlayerCards = (props: ListProps): JSX.Element => {
         sort={sort}
         dispatch={dispatch}
         onLabelFocus={(label) => {
-          // The list owns the sideways scroll and the labels follow it, so the two never drift apart,
-          // whichever browser also scrolls the labels to the focus by itself.
-          const [list, header] = [scrollRef.current, headerRef.current];
-          if (list === null || header === null) return;
-          list.scrollLeft = scrollShowing(label, header, list.scrollLeft);
-          header.scrollLeft = list.scrollLeft;
+          showFocusedLabel(label, scrollRef.current, headerRef.current);
         }}
       />
       <div
@@ -461,6 +476,7 @@ export const PlayerCards = (props: ListProps): JSX.Element => {
                   columns={columns}
                   labels={labels}
                   ratingCode={ratingCode}
+                  alwaysPortrait={alwaysPortraits}
                   dispatch={dispatch}
                 />
               </li>

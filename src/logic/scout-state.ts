@@ -79,6 +79,8 @@ export interface Preferences extends SigningPreference {
   readonly tieOrder?: readonly TieRule[];
   /** A lookalike's portrait for a player the game has none of (roadmap 110); unset as off. */
   readonly approximatePortraits?: true;
+  /** Portraits in the phone rows also beside further columns (roadmap 117); unset as off. */
+  readonly alwaysPortraits?: true;
 }
 
 export type ScoutError =
@@ -122,7 +124,13 @@ export interface ScoutState extends Preferences, SigningState {
 
 /** Null goes back to the career's currency. */
 type CurrencyAction = { readonly type: "currency-chosen"; readonly currency: CurrencyCode | null };
-type PortraitAction = { readonly type: "approximate-portraits-shown"; readonly shown: boolean };
+/** The two portrait switches, "Przybliżone portrety" and "Zawsze pokazuj portrety". */
+export type PortraitSetting = "approximatePortraits" | "alwaysPortraits";
+type PortraitAction = {
+  readonly type: "portraits-chosen";
+  readonly setting: PortraitSetting;
+  readonly on: boolean;
+};
 /** The actions of the view settings with a reducer of their own. */
 type ViewAction = CurrencyAction | TieOrderAction | PortraitAction;
 
@@ -250,6 +258,7 @@ const withPreferences = (state: ScoutState, preferences: Preferences): ScoutStat
     ...(currency === undefined ? {} : { currency }),
     ...(preferences.afterSigning === true ? { afterSigning: true } : {}),
     ...(preferences.approximatePortraits === true ? { approximatePortraits: true } : {}),
+    ...(preferences.alwaysPortraits === true ? { alwaysPortraits: true } : {}),
   };
 };
 
@@ -368,7 +377,10 @@ const isResetAction = (action: ScoutAction): action is ResetAction => action.typ
  * The settings alone are enough for it, so canResetSettings (settings-reset.ts) asks the reset itself.
  */
 export const resetState = <
-  S extends Pick<ScoutState, "columns" | "tieOrder" | "afterSigning" | "approximatePortraits">,
+  S extends Pick<
+    ScoutState,
+    "columns" | "tieOrder" | "afterSigning" | "approximatePortraits" | "alwaysPortraits"
+  >,
 >(
   state: S,
   type: ResetAction["type"],
@@ -378,6 +390,7 @@ export const resetState = <
     tieOrder: _tieOrder,
     afterSigning: _signing,
     approximatePortraits: _portraits,
+    alwaysPortraits: _always,
     ...kept
   } = state;
   return { ...(type === "settings-reset" ? kept : state), ...RESETS[type] };
@@ -449,9 +462,9 @@ const reduced = (state: ScoutState, action: Exclude<ScoutAction, UndoAction>): S
   if (action.type === "graphics-loaded")
     return action.graphics === null ? state : { ...state, graphics: action.graphics };
   if (action.type === "tie-order-chosen") return tieOrderChosen(state, action.order);
-  if (action.type === "approximate-portraits-shown") {
-    const { approximatePortraits: _shown, ...rest } = state;
-    return action.shown ? { ...rest, approximatePortraits: true } : rest;
+  if (action.type === "portraits-chosen") {
+    const { [action.setting]: _shown, ...rest } = state;
+    return action.on ? { ...rest, [action.setting]: true } : rest;
   }
   const next = isColumnAction(action) ? columnReducer(state, action) : changes(state, action);
   return withShownCurrency(state, next);

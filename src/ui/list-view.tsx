@@ -265,6 +265,7 @@ const ListResults = ({
           ratingName={ratingName}
           currency={shownCurrency(state)}
           watchedIds={watched}
+          alwaysPortraits={state.alwaysPortraits === true}
           dispatch={dispatch}
         />
       )}

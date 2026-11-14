@@ -71,9 +71,11 @@ describe("stored view switches", () => {
     expect((await loadSwitches({ afterSigning: "yes" }))?.afterSigning).toBeUndefined();
   });
 
-  it("restores the approximate portraits only when on", async () => {
-    expect((await loadSwitches({ approximatePortraits: true }))?.approximatePortraits).toBe(true);
-    const wrong = await loadSwitches({ approximatePortraits: "yes" });
-    expect(wrong?.approximatePortraits).toBeUndefined();
-  });
+  it.each(["approximatePortraits", "alwaysPortraits"] as const)(
+    "restores %s only when on",
+    async (setting) => {
+      expect((await loadSwitches({ [setting]: true }))?.[setting]).toBe(true);
+      expect((await loadSwitches({ [setting]: "yes" }))?.[setting]).toBeUndefined();
+    },
+  );
 });

@@ -39,7 +39,8 @@ What it does today:
 - Shows the game's own club crests, nationality flags, league logos, player portraits and club kits
   beside their names, read from your ISO on your device. Where the game has no portrait of a player
   it shows the game's silhouette; an option shows the nearest portrait with the same face instead,
-  and the card says what differs.
+  and the card says what differs. On a narrow screen the list shows portraits only beside the OVR
+  column alone; another option keeps them beside any columns.
 - With a career save, gives each player of your club a role in the squad (for example "2. CB": second
   in line for that place of your formation) and a state (to develop, to loan, to sell, declining and
   so on), and shows for players elsewhere the place they would take in your team when it would be
