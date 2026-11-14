@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { decimalSeparator, formatNumber, formatRating, plural, rangeLabel, TEXT } from "./text.ts";
+import { CHART_READING_TEXT } from "./text-chart-reading.ts";
 import { OFFER_TEXT } from "./text-offer.ts";
 import { TEST_CAREER } from "../logic/test-support/player-fixtures.ts";
 import { NBSP } from "./typeset.ts";
@@ -72,6 +73,14 @@ describe("the development chart's texts", () => {
     expect(TEXT.card.legendPlateau(27, 27)).toBe(`okres szczytu: 27${NBSP}lat`);
     expect(TEXT.card.legendPeak(27, 80, true)).toBe(`szczyt: 27${NBSP}lat, OVR 80`);
     expect(TEXT.card.legendPeak(27, 80, false)).toBe(`szczyt: 27${NBSP}lat, poziom 80`);
+  });
+
+  // Owner, 2026-11-14 (roadmap 124): the chart's age is the season's, the retirement age the game's on
+  // 31 December of the year the season ends, so the legend names both.
+  it("names the season's age and the retirement age the game counts on 31 December", () => {
+    expect(CHART_READING_TEXT.legendRetirement(31, 33)).toBe(
+      `ostatni sezon przed końcem kariery: wiek 31${NBSP}lat na jego początku; wiek zakończenia kariery, 33${NBSP}lata, gra liczy na 31${NBSP}grudnia roku końca sezonu`,
+    );
   });
 });
 
