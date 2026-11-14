@@ -37,6 +37,7 @@ import {
   isSigningAction,
   signingPreferenceOf,
   signingReducer,
+  withTransferWageShown,
   withSignedList,
 } from "./signed-list.ts";
 import type { SigningAction, SigningPreference, SigningState } from "./signed-list.ts";
@@ -238,7 +239,7 @@ const withPotential = (preferences: Preferences): Preferences => {
 
 /** Preferences whose sort fits the filters: by position rating only while a position is chosen. */
 const consistent = (preferences: Preferences): Preferences => {
-  const shown = withPotential(preferences);
+  const shown = withTransferWageShown(withPotential(preferences));
   return RATING_SORT_KEYS.has(shown.sort.key) && shown.filters.positionRating === undefined
     ? { ...shown, sort: DEFAULT_SORT }
     : shown;
@@ -256,12 +257,11 @@ const withPreferences = (state: ScoutState, preferences: Preferences): ScoutStat
   const next = tieOrder === undefined ? state : tieOrderChosen(state, tieOrder);
   return {
     ...next,
-    ...consistent({ ...fitted, showPotential }),
+    ...consistent({ ...fitted, showPotential, ...signingPreferenceOf(preferences) }),
     ...(gameLanguage === undefined ? {} : { gameLanguage }),
     ...(filterSets === undefined ? {} : { filterSets }),
     ...(columns === undefined ? {} : { columns }),
     ...(currency === undefined ? {} : { currency }),
-    ...signingPreferenceOf(preferences),
     ...(preferences.approximatePortraits === true ? { approximatePortraits: true } : {}),
     ...(preferences.alwaysPortraits === true ? { alwaysPortraits: true } : {}),
   };

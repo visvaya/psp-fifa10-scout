@@ -8,6 +8,7 @@ import { pricedIn, shownCurrency } from "./currency.ts";
 import { DEFAULT_CHOICE, offerTerms, wantedContractYears } from "./offer.ts";
 import { moneyOf } from "./player-finance.ts";
 import type { Player } from "./players.ts";
+import { compactFilters } from "./filter-changes.ts";
 import type { ScoutState } from "./scout-state.ts";
 import { tiesBroken } from "./tie-order.ts";
 
@@ -133,7 +134,19 @@ export const signingReducer = (state: ScoutState, action: SigningAction): ScoutS
       : next;
   }
   const { afterSigning: _shown, ...rest } = state;
-  return action.shown ? { ...rest, afterSigning: true } : rest;
+  return action.shown ? { ...rest, afterSigning: true } : withTransferWageShown(rest);
+};
+
+/**
+ * Without the profile after a transfer, no range of the wage after a transfer, which only that profile
+ * fills: hidden, it would leave every player out (CodeRabbit on #204), as the potential's ranges do.
+ */
+export const withTransferWageShown = <S extends Pick<ScoutState, "filters"> & SigningPreference>(
+  state: S,
+): S => {
+  if (state.afterSigning === true || state.filters.ranges?.transferWage === undefined) return state;
+  const { transferWage: _range, ...ranges } = state.filters.ranges;
+  return { ...state, filters: compactFilters({ ...state.filters, ranges }) };
 };
 
 /** The list after signing is wanted and not asked for yet: the setting is on and a career is loaded. */
