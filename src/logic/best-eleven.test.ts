@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { assignRows, bestEleven, formationName, rankFormations } from "./best-eleven.ts";
+import { assignRows, bestEleven, fitOf, formationName, rankFormations } from "./best-eleven.ts";
 import type { SquadMember } from "./best-eleven.ts";
 
-/** A player with `value` at every code but those in `at`. */
+/** A player with `value` at every code but those in `at`, no slot suiting him better. */
 const member = (
   id: number,
   value: number,
@@ -10,7 +10,14 @@ const member = (
 ): SquadMember => ({
   id,
   valueAt: (code) => at[code] ?? value,
+  fitAt: () => 0,
 });
+
+/** A player with `value` at every code, suited by fitOf to his position and foot. */
+const fitted = (
+  value: number,
+  player: { readonly positionCode: number; readonly preferredFoot: "left" | "right" },
+) => ({ valueAt: () => value, fitAt: fitOf(player) });
 
 describe("assignRows", () => {
   it("gives each row a distinct column with the highest total", () => {
@@ -97,6 +104,24 @@ describe("bestEleven", () => {
       { code: 30, playerId: 3, value: 72 },
     ]);
     expect(eleven.average).toBeCloseTo((80 + 75 + 72) / 3);
+  });
+
+  // The audit of roadmap 119 on a real career: a right back went to the left wing-back slot, as both
+  // wing-back codes rate alike.
+  it("breaks a tie by the preferred position, then by the side of the better foot", () => {
+    const right = { id: 1, ...fitted(70, { positionCode: 3, preferredFoot: "right" }) };
+    const left = { id: 2, ...fitted(70, { positionCode: 17, preferredFoot: "left" }) };
+    // Wing-backs: 2 is on the right, 8 on the left.
+    expect(bestEleven([right, left], [8, 2]).slots.map((slot) => slot.playerId)).toEqual([2, 1]);
+    const back = { id: 3, ...fitted(70, { positionCode: 5, preferredFoot: "left" }) };
+    // At his preferred centre-back code, though his foot is the left one.
+    expect(bestEleven([left, back], [5, 17]).slots.map((slot) => slot.playerId)).toEqual([3, 2]);
+  });
+
+  it("never lets the fit outweigh a point of value", () => {
+    const natural = { id: 1, ...fitted(70, { positionCode: 5, preferredFoot: "right" }) };
+    const better = { id: 2, valueAt: (code: number) => (code === 5 ? 71 : 60), fitAt: () => 0 };
+    expect(bestEleven([natural, better], [5, 30]).slots[0]?.playerId).toBe(2);
   });
 
   it("leaves slots empty without enough players, counting them as 0", () => {

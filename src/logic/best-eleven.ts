@@ -2,12 +2,32 @@
 // 2026-11-11: "a formation that, by the players' OVR at each position, makes the most of the squad").
 // Placing players in a formation's slots is an assignment problem: the highest total of values at the
 // slots' codes, each player in one slot at most, solved exactly by the Hungarian algorithm.
+import { sideOf } from "./positions.ts";
 
 /** A squad player as the eleven reads him: his value (OVR, or his peak) at each position code. */
 export interface SquadMember {
   readonly id: number;
   readonly valueAt: (code: number) => number;
+  /**
+   * How well a slot suits him beyond his value, 0 to MAX_FIT: breaks ties only, since mirrored codes
+   * and whole position groups share one OVR (fitOf).
+   */
+  readonly fitAt: (code: number) => number;
 }
+
+/** The most fitAt gives; times eleven slots it stays under one point of value (TIE_SCALE). */
+const MAX_FIT = 3;
+const STARTING_ELEVEN = 11;
+const TIE_SCALE = MAX_FIT * STARTING_ELEVEN + 1;
+
+/**
+ * A slot's fit for a player: 2 at his preferred position, 1 on the side of his better foot (the owner's
+ * rules for a tied peak, roadmap 53), so a tie puts him where he plays.
+ */
+export const fitOf =
+  (player: { readonly positionCode: number; readonly preferredFoot: "left" | "right" }) =>
+  (code: number): number =>
+    (code === player.positionCode ? 2 : 0) + (sideOf(code) === player.preferredFoot ? 1 : 0);
 
 /** A slot of the formation with the player placed there; null when the squad has none left. */
 interface ElevenSlot {
@@ -138,7 +158,10 @@ export const bestEleven = (squad: readonly SquadMember[], codes: readonly number
   // Without enough players, empty places worth 0 fill the columns up to the slots.
   const columns = Math.max(squad.length, codes.length);
   const weights = codes.map((code) =>
-    Array.from({ length: columns }, (_, column) => squad[column]?.valueAt(code) ?? 0),
+    Array.from({ length: columns }, (_, column) => {
+      const player = squad[column];
+      return player === undefined ? 0 : player.valueAt(code) * TIE_SCALE + player.fitAt(code);
+    }),
   );
   const assigned = assignRows(weights);
   const slots = codes.map((code, row): ElevenSlot => {

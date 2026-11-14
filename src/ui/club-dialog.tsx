@@ -2,7 +2,7 @@
 // of the game's database ranked by the best eleven the user's squad can field in each, and that eleven.
 import { useMemo, useState } from "react";
 import type { Dispatch, JSX } from "react";
-import { rankFormations } from "../logic/best-eleven.ts";
+import { fitOf, rankFormations } from "../logic/best-eleven.ts";
 import type { RankedFormation, SquadMember } from "../logic/best-eleven.ts";
 import type { CareerSummary } from "../logic/load-scout.ts";
 import type { Player } from "../logic/players.ts";
@@ -27,7 +27,7 @@ interface ClubProps {
   readonly dispatch: Dispatch<ScoutAction>;
 }
 
-/** The players at the user's club now, valued by OVR or by peak at each code. */
+/** The players at the user's club now, valued by OVR or by peak at each code, a tie by fitOf. */
 const squadOf = (players: readonly Player[], myTeamId: number, kind: ValueKind) =>
   players
     .filter((player) => player.clubId === myTeamId)
@@ -35,6 +35,7 @@ const squadOf = (players: readonly Player[], myTeamId: number, kind: ValueKind) 
       id: player.id,
       valueAt: (code) =>
         (kind === "peak" ? player.peakByCode[code] : player.overallByCode[code]) ?? 0,
+      fitAt: fitOf(player),
     }));
 
 /**
