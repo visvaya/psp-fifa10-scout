@@ -13,7 +13,7 @@ import { PhoneRow } from "./player-rows.tsx";
 const image = refpackLiterals(buildShpm(1, 1, [0], [[1, 2, 3, 255]]));
 const pack: GraphicsPack = { bytes: image, entries: [["s_00000007", 0, image.length]] };
 
-const row = (columns: readonly SortKey[]): string =>
+const row = (columns: readonly SortKey[], alwaysPortrait = false): string =>
   renderToStaticMarkup(
     <GameImages pack={pack}>
       <PhoneRow
@@ -22,6 +22,7 @@ const row = (columns: readonly SortKey[]): string =>
         columns={columns}
         labels={columns.map(String)}
         ratingCode={null}
+        alwaysPortrait={alwaysPortrait}
         dispatch={() => undefined}
       />
     </GameImages>,
@@ -35,5 +36,9 @@ describe("the phone row's portrait", () => {
   it("is not there once the list shows a further column", () => {
     expect(row(["overall", "potential"])).not.toContain("portrait-slot");
     expect(row(["overall", "age"])).not.toContain("portrait-slot");
+  });
+
+  it("stays with further columns under „Zawsze pokazuj portrety” (roadmap 117)", () => {
+    expect(row(["overall", "potential", "age"], true)).toContain('class="portrait-slot"');
   });
 });

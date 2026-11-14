@@ -13,20 +13,21 @@ export type ResetSettings = Pick<
   | "tieOrder"
   | "afterSigning"
   | "approximatePortraits"
+  | "alwaysPortraits"
 >;
 
 /** The settings as far as they change the list: the active filters, not an empty one. */
 const shownSettings = (settings: ResetSettings): string => {
-  const { filters, sort, showPotential, columns, tieOrder, afterSigning, approximatePortraits } =
-    settings;
+  const { filters, sort, showPotential, columns, tieOrder } = settings;
   return JSON.stringify([
     activeFilters(filters),
     sort,
     showPotential,
     columns ?? {},
     tieOrder ?? [],
-    afterSigning === true,
-    approximatePortraits === true,
+    settings.afterSigning === true,
+    settings.approximatePortraits === true,
+    settings.alwaysPortraits === true,
   ]);
 };
 

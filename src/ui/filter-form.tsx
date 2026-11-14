@@ -26,7 +26,7 @@ import { OptionalHelp } from "./field-help.tsx";
 import { codeName } from "./text-code-names.ts";
 import type { CodedKey } from "./text-code-names.ts";
 import type { Choice } from "./filter-fields.tsx";
-import { PortraitSwitch, PotentialSwitch, SigningSwitch } from "./filter-panel-controls.tsx";
+import { PortraitSwitches, PotentialSwitch, SigningSwitch } from "./filter-panel-controls.tsx";
 import type { SigningState } from "../logic/signed-list.ts";
 import { SettingsActions } from "./settings-actions.tsx";
 import type { Settings } from "./settings-actions.tsx";
@@ -412,7 +412,7 @@ export const FilterForm = ({
   return (
     <form className="filter-form" onSubmit={(event) => event.preventDefault()}>
       <PotentialSwitch shown={showPotential} dispatch={dispatch} />
-      <PortraitSwitch shown={settings.approximatePortraits === true} dispatch={dispatch} />
+      <PortraitSwitches settings={settings} dispatch={dispatch} />
       {myTeamId === null ? null : <SigningSwitch signing={signing} dispatch={dispatch} />}
       {basicSection(kit, showPotential, myTeamId !== null)}
       {physiqueSection(kit)}
