@@ -4,11 +4,11 @@ import type { JSX } from "react";
 import type { facetOptions } from "../logic/facets.ts";
 import type { Player } from "../logic/players.ts";
 import { SQUAD_STATES } from "../logic/roles.ts";
-import { roleText } from "./chip-text.ts";
+import { elevenText, roleText } from "./chip-text.ts";
 import type { Choice } from "./filter-fields.tsx";
 import { SQUAD_STATE_LABELS } from "./text-choices.ts";
 
-type RoleListKey = "role" | "squadState" | "target" | "peakTarget";
+type RoleListKey = "role" | "squadState" | "target" | "peakTarget" | "bestEleven";
 
 /** Roles or targets by name ("2. CB"), in the order they sort. */
 const roleChoices = (
@@ -37,6 +37,10 @@ export const RoleFields = ({
     {list(
       "squadState",
       SQUAD_STATES.map((state) => ({ value: state, label: SQUAD_STATE_LABELS[state] })),
+    )}
+    {list(
+      "bestEleven",
+      codes.bestEleven.map((value) => ({ value, label: elevenText(value, { positionName }) })),
     )}
     {list("target", roleChoices(codes.target, positionName))}
     {showPotential ? list("peakTarget", roleChoices(codes.peakTarget, positionName)) : null}

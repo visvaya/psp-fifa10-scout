@@ -13,6 +13,9 @@ export const MY_CLUB_LABELS: Readonly<Record<"all" | MyClub, string>> = {
 };
 
 /** A club player's state (roles.ts), in the list, the filter and on the card. */
+/** A club player the best eleven of the formation leaves out (roadmap 119 (b)). */
+export const OUTSIDE_ELEVEN_LABEL = pl`poza jedenastką`;
+
 export const SQUAD_STATE_LABELS: Readonly<Record<SquadState, string>> = {
   retiring: pl`kończy karierę`,
   contractEnding: pl`kończy kontrakt`,

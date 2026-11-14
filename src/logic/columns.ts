@@ -41,6 +41,7 @@ export const LIST_COLUMNS: Readonly<Record<ListKey, SortKey>> = {
   squadState: "squadState",
   target: "target",
   peakTarget: "peakTarget",
+  bestEleven: "bestEleven",
 };
 
 /** The values only a career has, which an override cannot show without one. */

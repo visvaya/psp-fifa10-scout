@@ -2,6 +2,7 @@
 // starting eleven. Each slot has a queue: the player the team sheet places there first, then the others by
 // their value at its code. A club player's role is his best place in any queue, his state follows from it
 // and from his curves; a player outside the club gets the place he would take as a target.
+import { bestEleven, fitOf } from "./best-eleven.ts";
 import { SCOUT_CONFIG } from "./config.ts";
 import { BENCH_POSITION_FROM } from "./offer.ts";
 import { positionOf } from "./positions.ts";
@@ -33,6 +34,8 @@ export interface RoleInput {
   readonly retiring: boolean;
   readonly contractYearsLeft: number | null;
   readonly loanedFromId: number | null;
+  /** His better foot, which breaks a tie for a side in the best eleven (best-eleven.ts). */
+  readonly preferredFoot: "left" | "right";
 }
 
 export const NO_ROLES = {
@@ -43,6 +46,7 @@ export const NO_ROLES = {
   targetName: null,
   peakTarget: null,
   peakTargetName: null,
+  bestEleven: null,
 } as const;
 
 export type RoleKey = keyof typeof NO_ROLES;
@@ -59,6 +63,11 @@ export interface RoleFields {
   /** The same by his peak at each code, against the club players' peaks. */
   readonly peakTarget: number | null;
   readonly peakTargetName: string | null;
+  /**
+   * A club player's slot in the best eleven of the formation by OVR today (best-eleven.ts, roadmap 119
+   * (b)), slot index * 32 + code, or OUTSIDE_ELEVEN; null outside the club.
+   */
+  readonly bestEleven: number | null;
 }
 
 /**
@@ -68,14 +77,31 @@ export interface RoleFields {
 const CODE_SPAN = 32;
 const NUMBER_SPAN = CODE_SPAN * CODE_SPAN;
 
+/** Role numbers from this one on read alike, "6.+" (owner, 2026-11-14, roadmap 119 (a)). */
+const SHOWN_NUMBER_MAX = 6;
+
 const roleValue = (number: number, index: number, code: number): number =>
-  number * NUMBER_SPAN + index * CODE_SPAN + code;
+  Math.min(number, SHOWN_NUMBER_MAX) * NUMBER_SPAN + index * CODE_SPAN + code;
+
+/** A club player the best eleven leaves out: after every slot. */
+export const OUTSIDE_ELEVEN = NUMBER_SPAN - 1;
+
+/** The position code of a slot in the best eleven; null outside it. */
+export const elevenCodeOf = (value: number | null): number | null =>
+  value === null || value === OUTSIDE_ELEVEN ? null : value % CODE_SPAN;
 
 const numberOf = (value: number): number => Math.floor(value / NUMBER_SPAN);
 
 /** "2. CB": the number and the slot's position, named by `nameOf`; null for none. */
-export const roleNameOf = (value: number | null, nameOf: (code: number) => string): string | null =>
-  value === null ? null : `${String(numberOf(value))}. ${nameOf(value % CODE_SPAN)}`;
+export const roleNameOf = (
+  value: number | null,
+  nameOf: (code: number) => string,
+): string | null => {
+  if (value === null) return null;
+  const number = numberOf(value);
+  const shown = number >= SHOWN_NUMBER_MAX ? `${String(SHOWN_NUMBER_MAX)}.+` : `${String(number)}.`;
+  return `${shown} ${nameOf(value % CODE_SPAN)}`;
+};
 
 const englishName = (code: number): string => positionOf(code).name;
 
@@ -161,6 +187,23 @@ const targetsBy = (
   };
 };
 
+/** Each club player's slot in the best eleven by OVR today, by player id (best-eleven.ts). */
+const elevenSlots = (
+  squad: readonly RoleInput[],
+  formationCodes: readonly number[],
+): ReadonlyMap<number, number> => {
+  const members = squad.map((player) => ({
+    id: player.id,
+    valueAt: (code: number) => overallAt(player, code),
+    fitAt: fitOf(player),
+  }));
+  return new Map(
+    bestEleven(members, formationCodes).slots.flatMap(({ code, playerId }, index) =>
+      playerId === null ? [] : [[playerId, index * CODE_SPAN + code] as const],
+    ),
+  );
+};
+
 /**
  * Each player's role fields, from the players, the user club's team sheet (player id to its position) and
  * the formation's codes. A placed player is 1. at his slot; a benched one is, at each slot, behind those
@@ -204,6 +247,7 @@ export const playerRoles = (
     targetsBy(squad, formationCodes, overallAt),
     targetsBy(squad, formationCodes, peakAt),
   ];
+  const eleven = elevenSlots(squad, formationCodes);
   return (player) => {
     if (sheet.has(player.id)) {
       const role = roleOf(player);
@@ -212,6 +256,7 @@ export const playerRoles = (
         role,
         roleName: roleNameOf(role, englishName),
         squadState: squadStateOf(player, numberOf(role)),
+        bestEleven: eleven.get(player.id) ?? OUTSIDE_ELEVEN,
       };
     }
     const [target, peakTarget] = [targetOf(player), peakTargetOf(player)];

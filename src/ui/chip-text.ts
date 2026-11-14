@@ -2,8 +2,8 @@
 import { FLAG_KEYS, LIST_FIELDS, peakField, RANGE_KEYS } from "../logic/filter-players.ts";
 import type { ListKey, PositionRating, Range } from "../logic/filter-players.ts";
 import type { Player } from "../logic/players.ts";
-import { POSITION_GROUPS } from "../logic/positions.ts";
-import { roleNameOf, SQUAD_STATES } from "../logic/roles.ts";
+import { POSITION_GROUPS, positionOf } from "../logic/positions.ts";
+import { elevenCodeOf, roleNameOf, SQUAD_STATES } from "../logic/roles.ts";
 import type { FilterId, ScoutFilters } from "../logic/scout-state.ts";
 import { codeName } from "./text-code-names.ts";
 import { ratingAbbreviation } from "./position-name.tsx";
@@ -19,6 +19,7 @@ import {
   CLUB_STATUS_LABELS,
   LIST_MEMBERSHIP_LABELS,
   MY_CLUB_LABELS,
+  OUTSIDE_ELEVEN_LABEL,
   SQUAD_STATE_LABELS,
 } from "./text-choices.ts";
 
@@ -76,7 +77,8 @@ export type ChoiceKey =
   | "bodyType"
   | "developmentType"
   | "developmentStyle"
-  | "squadState";
+  | "squadState"
+  | "bestEleven";
 
 /** How a chip and a list column name one value of a list that names itself. */
 export const CHOICE_VALUE_TEXT: Readonly<Record<ChoiceKey, (value: unknown) => string>> = {
@@ -92,6 +94,14 @@ export const CHOICE_VALUE_TEXT: Readonly<Record<ChoiceKey, (value: unknown) => s
     const state = SQUAD_STATES.find((item) => item === value);
     return state === undefined ? String(value) : SQUAD_STATE_LABELS[state];
   },
+  // In the list and on the card named as the role beside it is (Player.roleName).
+  bestEleven: (value) => elevenText(value, { positionName: (code) => positionOf(code).name }),
+};
+
+/** A slot of the best eleven by its position, named by `names`, or "poza jedenastką". */
+export const elevenText = (value: unknown, names: Pick<ChipNames, "positionName">): string => {
+  const code = elevenCodeOf(Number(value));
+  return code === null ? OUTSIDE_ELEVEN_LABEL : names.positionName(code);
 };
 
 /** The lists of a role or target, whose values are named by roleText. */
@@ -112,6 +122,7 @@ const LIST_VALUE_TEXT: Readonly<Record<ListKey, (value: unknown, names: ChipName
   role: roleText,
   target: roleText,
   peakTarget: roleText,
+  bestEleven: elevenText,
 };
 
 /** The first chosen values by name, then how many more: "Argentina, Brazil, Chile +2"; "oprócz …" for

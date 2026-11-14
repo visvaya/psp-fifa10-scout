@@ -142,6 +142,7 @@ export const LIST_LABELS: Readonly<Record<ListKey, string>> = {
   squadState: "Stan",
   target: "Cel",
   peakTarget: pl`Cel w szczycie`,
+  bestEleven: pl`Miejsce w najlepszej jedenastce`,
 };
 
 export const FLAG_LABELS: Readonly<Record<FlagKey, string>> = {

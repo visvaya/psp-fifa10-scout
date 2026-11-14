@@ -61,6 +61,7 @@ export const facetOptions = (
       role: distinct(players.flatMap((player) => player.role ?? [])),
       target: distinct(players.flatMap((player) => player.target ?? [])),
       peakTarget: distinct(players.flatMap((player) => player.peakTarget ?? [])),
+      bestEleven: distinct(players.flatMap((player) => player.bestEleven ?? [])),
     },
   };
 };

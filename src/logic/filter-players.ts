@@ -66,6 +66,7 @@ export const LIST_FIELDS = [
   "squadState",
   "target",
   "peakTarget",
+  "bestEleven",
 ] as const satisfies readonly (keyof Player)[];
 
 export type ListKey = (typeof LIST_FIELDS)[number];
@@ -121,6 +122,7 @@ export const CAREER_LIST_KEYS = [
   "squadState",
   "target",
   "peakTarget",
+  "bestEleven",
 ] as const satisfies readonly ListKey[];
 
 /** The lists whose values hold a formation slot (roles.ts): another formation gives them other meanings. */
@@ -128,6 +130,7 @@ export const FORMATION_LIST_KEYS = [
   "role",
   "target",
   "peakTarget",
+  "bestEleven",
 ] as const satisfies readonly ListKey[];
 
 /** The columns and sort keys only a career save fills, the peak at a chosen position among them. */
