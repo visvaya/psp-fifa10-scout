@@ -28,14 +28,13 @@ const known = (label: string, value: string | null, help?: string): readonly Fac
 
 /**
  * The experience bar with the matches to its level-up as a range, and the points the level-up gives, said
- * to come to nothing while his OVR stands at his potential (roadmap 36); the user's squad only.
+ * to come to nothing while his OVR stands at his potential, said only while the potential shows (roadmap
+ * 36); the user's squad only.
  */
-const levelUpFacts = ({
-  levelUpXp,
-  levelUpPoints,
-  overall,
-  potential,
-}: Player): readonly Fact[] => {
+const levelUpFacts = (
+  { levelUpXp, levelUpPoints, overall, potential }: Player,
+  showPotential: boolean,
+): readonly Fact[] => {
   if (levelUpXp === null || levelUpPoints === null) return [];
   const { fewest, most } = matchesToLevelUp(levelUpXp);
   const xp = formatNumber(levelUpXp);
@@ -48,7 +47,9 @@ const levelUpFacts = ({
             ? countWords(most, MATCHES)
             : LEVEL_UP_TEXT.range(fewest, countWords(most, MATCHES)),
         );
-  const points = formatNumber(levelUpPoints) + (overall >= potential ? LEVEL_UP_TEXT.capped : "");
+  // The reason names the potential, so it shows with the potential only (CodeRabbit on #201).
+  const capped = showPotential && overall >= potential;
+  const points = formatNumber(levelUpPoints) + (capped ? LEVEL_UP_TEXT.capped : "");
   return [
     [RANGE_LABELS.levelUpXp, bar, FIELD_HELP.levelUpXp],
     [RANGE_LABELS.levelUpPoints, points, FIELD_HELP.levelUpPoints],
@@ -99,7 +100,7 @@ export const CareerFacts = ({
           (key) => player.positionGroup === "goalkeeper" || !CLEAN_SHEETS.has(key),
         ).flatMap((key) => known(RANGE_LABELS[key], count(player[key]))),
         ...known(RANGE_LABELS.injuryDays, count(player.injuryDays), FIELD_HELP.injuryDays),
-        ...levelUpFacts(player),
+        ...levelUpFacts(player, showPotential),
         [FLAG_LABELS.transferListed, yesNo(player.transferListed), FIELD_HELP.transferListed],
         [FLAG_LABELS.loanListed, yesNo(player.loanListed), FIELD_HELP.loanListed],
         ...(player.clubWillSell === null

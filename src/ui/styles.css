@@ -1906,6 +1906,56 @@ input[inputmode="numeric"] {
   }
 }
 
+/* The club dialog (roadmap 98): the formations by their best eleven, then the chosen one's eleven. */
+.formation-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.formation-table th,
+.formation-table td {
+  padding: var(--space-1) var(--space-2);
+  border-bottom: 1px solid var(--color-line);
+  text-align: start;
+  font-variant-numeric: tabular-nums;
+}
+
+.formation-table td {
+  text-align: end;
+}
+
+/* The outfield positions under a formation's name, which tell apart formations of one name. */
+.formation-codes {
+  display: block;
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+}
+
+.formation-table .link-button[aria-pressed="true"] {
+  font-weight: 700;
+}
+
+.eleven-list {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.eleven-list > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.eleven-position {
+  min-width: 3em;
+  color: var(--color-muted);
+}
+
 /* After his last season: a line where his career ends and the curve past it faded. */
 .curve-chart .retirement {
   stroke: var(--color-error);

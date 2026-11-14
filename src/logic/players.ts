@@ -15,7 +15,7 @@ import type { Attributes, TraitName } from "./attributes.ts";
 import { bestPeakFields } from "./best-peak.ts";
 import type { BestPeakKey } from "./best-peak.ts";
 import { SCOUT_CONFIG } from "./config.ts";
-import { NO_LEVEL_UP, squadLevelUp } from "./level-up.ts";
+import { dueLevelUp, NO_LEVEL_UP, squadLevelUp } from "./level-up.ts";
 import type { LevelUpFields } from "./level-up.ts";
 import { nameCollator, searchKey } from "./player-names.ts";
 import { composedPortraitOf } from "./portraits.ts";
@@ -288,7 +288,7 @@ const summary = (row: EaDbRow, context: Context): Summary => {
     morale: statOf(stats, "morale"),
     ...seasonStats(stats),
     injuryDays: statOf(stats, "injurydaysout"),
-    ...context.levelUp(id),
+    ...dueLevelUp(context.levelUp(id), overall, potential),
     ...marketFields(context.market, context.teams, id),
     ...saleFields(context.saleVerdict?.(id) ?? null),
     shortlisted: context.shortlist.has(id),
@@ -455,6 +455,7 @@ export const buildPlayers = (
   const academy = save === undefined ? [] : effectiveRows(db, save, "career_youth_accademy");
   const shortlist = careerList(db, save, "career_shortlist");
   const market = transferMarketOf(transferList, careerList(db, save, "career_loaned_list"));
+  const prestigeOf = (teamId: number) => teams.get(teamId)?.prestige ?? null;
   const context: Context = {
     ...datesOf(db, save),
     placements,
@@ -476,10 +477,7 @@ export const buildPlayers = (
     finance:
       save === undefined
         ? null
-        : financeOf(db, save, {
-            loanedFrom: market.loanedFrom,
-            prestigeOf: (teamId) => teams.get(teamId)?.prestige ?? null,
-          }),
+        : financeOf(db, save, { loanedFrom: market.loanedFrom, prestigeOf, afterSigning }),
     ...careerParts(db, save, placements),
   };
   // The game keeps generated players out of the leagues until it places them (overall-rating.md, F2).

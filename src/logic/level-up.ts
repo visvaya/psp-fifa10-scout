@@ -43,6 +43,14 @@ export const levelUpOf = (
       ]),
   );
 
+/** The fields as due: no points while his OVR has reached his potential, as the level-up gives none. */
+export const dueLevelUp = (
+  fields: LevelUpFields,
+  overall: number,
+  potential: number,
+): LevelUpFields =>
+  fields.levelUpPoints === null || overall < potential ? fields : { ...fields, levelUpPoints: 0 };
+
 /**
  * The matches he plays before the bar is full, as a range: at the most and at the least XP a match
  * measured in the saves. Only a range: the XP of a match depends on his minutes, rating and potential.

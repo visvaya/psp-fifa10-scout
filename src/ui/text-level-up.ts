@@ -21,6 +21,6 @@ export const LEVEL_UP_TEXT = {
   /** The bar is full: the game levels it up after the next match. */
   full: (xp: string): string => pl`${xp} z 1000, awans po najbliższym meczu`,
   range: (fewest: number, most: string): string => `${String(fewest)}–${most}`,
-  /** After the points while his OVR has reached his potential. */
-  capped: pl` (awans ich nie doda: OVR osiągnął potencjał)`,
+  /** After the points (0) while his OVR has reached his potential, with the potential shown only. */
+  capped: pl` (OVR osiągnął potencjał, więc awans nie doda punktów)`,
 };

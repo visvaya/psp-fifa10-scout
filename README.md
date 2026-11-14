@@ -62,7 +62,8 @@ What it does today:
   dollar), with the game's rates and rounding.
 - With a career save, can show every player outside your squad as he would be once signed: the game
   raises his potential by a fixed amount when he joins your squad, which can lift his OVR and peak
-  too. The list, filters, sorting and card then use those values; the price and the offer stay as
+  too. The list, filters, sorting and card then use those values, his price is his value at your club
+  for the contract he wants or one you choose, and his wage the market wage there; the offer stays as
   before the transfer.
 - Shows each club's stars as the game computes them from its current squad, and the league and club
   prestige that feed the game's price and wage formulas.

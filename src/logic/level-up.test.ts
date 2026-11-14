@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { levelUpOf, matchesToLevelUp } from "./level-up.ts";
+import { dueLevelUp, levelUpOf, matchesToLevelUp, NO_LEVEL_UP } from "./level-up.ts";
 
 const row = (playerid: number, levelUpXp: number, xp: Readonly<Record<string, number>>) =>
   Object.freeze({ playerid, level_up_xp: levelUpXp, ...xp });
@@ -18,6 +18,16 @@ describe("levelUpOf", () => {
   it("keeps only the rows of the squad, not of players who left it", () => {
     const fields = levelUpOf([row(7, 10, {}), row(8, 20, {})], new Set([8]));
     expect([...fields.keys()]).toEqual([8]);
+  });
+});
+
+// CodeRabbit on #201: the points a capped OVR will not get must not count in columns, sorts and filters.
+describe("dueLevelUp", () => {
+  it("gives no points while his OVR has reached his potential", () => {
+    const fields = { levelUpXp: 400, levelUpPoints: 2 };
+    expect(dueLevelUp(fields, 80, 80)).toEqual({ levelUpXp: 400, levelUpPoints: 0 });
+    expect(dueLevelUp(fields, 79, 80)).toBe(fields);
+    expect(dueLevelUp(NO_LEVEL_UP, 80, 80)).toBe(NO_LEVEL_UP);
   });
 });
 

@@ -390,7 +390,12 @@ export const PlayerCard = (props: {
         dispatch={dispatch}
       />
       <Facts facts={basics(player, showPotential, currency, names)} />
-      <SigningFacts before={props.offerPlayer} after={player} showPotential={showPotential} />
+      <SigningFacts
+        before={props.offerPlayer}
+        after={player}
+        showPotential={showPotential}
+        currency={currency}
+      />
       {offer === null || currency === null ? null : (
         <OfferFacts
           key={player.id}

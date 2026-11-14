@@ -204,10 +204,27 @@ export const userFormationCodes = (db: EaDb, save: CareerSave): readonly number[
   const formation =
     team &&
     rowsOrNone(db, save, "formations").find((row) => row["formationid"] === team["formationid"]);
-  if (formation === undefined) return [];
-  return Array.from({ length: STARTING_ELEVEN }, (_, index) =>
+  return formation === undefined ? [] : startingEleven(formation);
+};
+
+/** A formation's starting eleven, its position codes in the game's order. */
+const startingEleven = (formation: EaDbRow): readonly number[] =>
+  Array.from({ length: STARTING_ELEVEN }, (_, index) =>
     num(formation, `position${String(index + 1)}`),
   );
+
+/**
+ * Every distinct starting eleven of the formations (roadmap 98), the first of each in the table's order:
+ * fifa.db keeps one formation per team, most of them alike, and names none.
+ */
+export const formationShapes = (db: EaDb, save: CareerSave): readonly (readonly number[])[] => {
+  const shapes = new Map<string, readonly number[]>();
+  for (const formation of rowsOrNone(db, save, "formations")) {
+    const codes = startingEleven(formation);
+    const key = codes.toSorted((one, other) => one - other).join();
+    if (!shapes.has(key)) shapes.set(key, codes);
+  }
+  return [...shapes.values()];
 };
 
 /**
