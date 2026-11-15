@@ -26,7 +26,8 @@ pmOnFail: ignore
 # - markdownlint 0.42.0 pins re2js 2.8.6: GHSA-gg6h-894w-4m9c, fixed in 2.8.7; markdownlint 0.42.1 (the
 #   version markdownlint-cli2 0.24.1 uses) depends on re2js 2.9.1.
 # - micromark-extension-math 3.1.0 asks for katex ^0.16.0: GHSA-238p-pmpm-9mq7, fixed in 0.18.2. markdownlint
-#   only parses math syntax and never renders it, so katex is not loaded during a lint run.
+#   loads katex through that package's entry point but only parses math syntax and never renders it; a lint
+#   run with 0.18.11 passes, so check one after every katex or markdownlint update.
 overrides:
   "qs@6.15.1": 6.16.1
   "minimatch@10.2.6": 11.0.3
