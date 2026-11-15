@@ -1,0 +1,15 @@
+// Markdown rules. The formatter (oxfmt) leaves *.md alone: it renumbers ordered lists and realigns whole
+// tables, so markdownlint is the only Markdown check.
+{
+  "config": {
+    "default": true,
+    "MD013": false, // line length: prose and tables keep their lines
+    "MD024": { "siblings_only": true }, // the same heading under different parents
+    "MD060": { "style": "compact" }, // tables: one changed cell changes one line
+  },
+  "globs": ["**/*.md"],
+  // .gitignore keeps out build output, test results and local files.
+  "gitignore": true,
+  // The pull request template starts with its first section, not a title (MD041).
+  "ignores": ["node_modules/**", "dist/**", "coverage/**", ".github/pull_request_template.md"],
+}

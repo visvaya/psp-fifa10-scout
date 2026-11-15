@@ -21,6 +21,15 @@ pmOnFail: ignore
 #   GHSA-q8mj-m7cp-5q26, GHSA-x5fp-wj9c-mxmx, GHSA-4mjr-xmp4-gh2g, GHSA-6pq8-jhm2-2vcw, fixed in 6.16.1.
 # - minimatch 10.2.6: GHSA-g3hv-75wg-m249, fixed in 11.0.1; 11.0.3 is the newest release older than the
 #   three-day release-age window on 2026-11-03.
+# Development-only advisories pulled in by markdownlint-cli2 0.24.0, the same rule (check at every
+# markdownlint-cli2 update, and by 2027-02-01 at the latest):
+# - markdownlint 0.42.0 pins re2js 2.8.6: GHSA-gg6h-894w-4m9c, fixed in 2.8.7; markdownlint 0.42.1 (the
+#   version markdownlint-cli2 0.24.1 uses) depends on re2js 2.9.1.
+# - micromark-extension-math 3.1.0 asks for katex ^0.16.0: GHSA-238p-pmpm-9mq7, fixed in 0.18.2. markdownlint
+#   loads katex through that package's entry point but only parses math syntax and never renders it; a lint
+#   run with 0.18.11 passes, so check one after every katex or markdownlint update.
 overrides:
   "qs@6.15.1": 6.16.1
   "minimatch@10.2.6": 11.0.3
+  "markdownlint@0.42.0": 0.42.1
+  "katex@<0.18.2": 0.18.11
