@@ -1,15 +1,44 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 # Pull request review settings. Defaults apply to everything not listed here.
 language: en-US
+tone_instructions: >-
+  Plain, direct English. No emoji, no ASCII art, no em dash (U+2014).
 reviews:
   profile: chill
   # The pull request description is the author's text; the summary goes to the walkthrough comment.
   high_level_summary_in_walkthrough: true
   poem: false
+  # One maintainer: no reviewer suggestions, no waiting jokes, no diagrams of small changes.
+  suggested_reviewers: false
+  in_progress_fortune: false
+  sequence_diagrams: false
   # `CodeRabbit` is a required check on main: pending while the review runs, success when it ends, is
   # skipped or rate limited, failure when the review stops on an error.
   commit_status: true
   fail_commit_status: true
+  auto_review:
+    # The default pauses automatic reviews after 5 reviewed commits, and a paused review still ends with a
+    # green `CodeRabbit` check, so later fix rounds could merge unreviewed. 0 never pauses.
+    auto_pause_after_reviewed_commits: 0
+  pre_merge_checks:
+    # The project has no docstring rule; the PR title is checked by the `title` job (pr-title.yml).
+    docstrings:
+      mode: "off"
+  # Tools the gate already runs on every pull request (oxlint, actionlint, zizmor, gitleaks, pnpm audit)
+  # or the project does not use (Biome), so findings are not reported twice.
+  tools:
+    oxc:
+      enabled: false
+    biome:
+      enabled: false
+    actionlint:
+      enabled: false
+    zizmor:
+      enabled: false
+    gitleaks:
+      enabled: false
+    osvScanner:
+      enabled: false
   path_filters:
     - "!**/pnpm-lock.yaml"
   path_instructions:
@@ -33,3 +62,9 @@ reviews:
         blocks them). Geometry measured at run time (a virtual list's sizes, a position over a chart) may
         go through React's style prop: React writes it through the CSSOM, which the policy allows, and CSS
         alone cannot know it. Accessible markup.
+chat:
+  art: false
+knowledge_base:
+  learnings:
+    # What the bot learns from this repository's reviews stays with this repository.
+    scope: local

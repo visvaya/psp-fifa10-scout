@@ -23,6 +23,9 @@ Node.js 26 and pnpm 12, then `pnpm install`. Installing also points git at the h
   on `main`.
 - No em dashes (U+2014) or emoji in code, messages or documents; the hooks and CI reject them.
 - Fill in the pull request template: what changed, which checks you ran and which you skipped.
+- [CodeRabbit](https://www.coderabbit.ai/) reviews pull requests into `main` automatically once they
+  are ready for review, not as drafts (settings in `.coderabbit.yaml`). Its comments are suggestions;
+  the maintainer decides which ones to apply.
 
 ## License
 
